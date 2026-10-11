@@ -62,9 +62,9 @@ export default async function PaginaMas() {
             </Link>
           ) : null}
           {admin ? (
-            <Link href="/admin/importaciones" className={FILA}>
+            <Link href="/admin" className={FILA}>
               <ShieldCheck className="size-5 text-ocre" strokeWidth={1.75} />
-              <span className="flex-1 font-semibold">Superadmin · importaciones</span>
+              <span className="flex-1 font-semibold">Panel superadmin</span>
               <ChevronRight className="size-5 text-humo" strokeWidth={1.75} />
             </Link>
           ) : null}

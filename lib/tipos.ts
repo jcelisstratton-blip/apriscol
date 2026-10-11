@@ -328,6 +328,14 @@ export type Database = {
       coef_endogamia_libro: { Args: { p_libro: string }; Returns: number };
       simular_endogamia_libro: { Args: { p_macho: string; p_hembra: string }; Returns: number };
       completitud_pedigri_libro: { Args: { p_libro: string; p_generaciones?: number }; Returns: number };
+      admin_resumen: { Args: Record<string, never>; Returns: Record<string, number> };
+      admin_listar_fincas: {
+        Args: Record<string, never>;
+        Returns: {
+          id: string; nombre: string; departamento: string | null; municipio: string | null; propietario_email: string;
+          propietario_nombre: string; animales_activos: number; miembros: number; creada_en: string;
+        }[];
+      };
       animales_endogamia: {
         Args: { p_finca: string; p_min?: number | null };
         Returns: { animal_id: string; numero_arete: string; nombre: string | null; sexo: SexoAnimal; especie: Especie; estado: string; f: number }[];

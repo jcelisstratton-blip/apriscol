@@ -33,7 +33,7 @@ export const obtenerContexto = cache(async (): Promise<Contexto> => {
   ]);
 
   const ids = (miembros ?? []).map((m) => m.finca_id);
-  if (ids.length === 0) redirect("/onboarding");
+  if (ids.length === 0) redirect((await esAdminPlataforma()) ? "/admin" : "/onboarding");
 
   const { data: fincasData } = await supabase.from("fincas").select("*").in("id", ids).order("nombre");
   const rolPorFinca = new Map((miembros ?? []).map((m) => [m.finca_id, m.rol]));

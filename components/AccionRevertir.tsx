@@ -7,7 +7,7 @@ import { Aviso } from "@/components/Aviso";
 import { Boton } from "@/components/Boton";
 import { Sheet } from "@/components/Sheet";
 import { useToast } from "@/components/Toast";
-import { revertirImportacion } from "@/app/(app)/admin/importaciones/actions";
+import { revertirImportacion } from "@/app/(admin)/admin/importaciones/actions";
 
 export function AccionRevertir({ id, animales }: { id: string; animales: number }) {
   const router = useRouter();

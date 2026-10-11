@@ -1,14 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { redirect } from "next/navigation";
-import { ChevronLeft, Inbox } from "lucide-react";
+import { Inbox } from "lucide-react";
 import { AccionRevertir } from "@/components/AccionRevertir";
 import { Encabezado } from "@/components/Encabezado";
 import { EstadoVacio } from "@/components/EstadoVacio";
 import { Chip, FilaDesplazable } from "@/components/FilaDesplazable";
 import { Insignia } from "@/components/Insignia";
 import { Tarjeta } from "@/components/Tarjeta";
-import { esAdminPlataforma } from "@/lib/contexto";
 import { crearClienteServidor } from "@/lib/supabase/server";
 import { formatoFecha } from "@/lib/fechas";
 
@@ -18,7 +16,6 @@ const ETIQUETA = { pendiente: "En proceso", aprobada: "Importada", rechazada: "R
 const TONO = { pendiente: "aviso", aprobada: "ok", rechazada: "alerta", cancelada: "neutro" } as const;
 
 export default async function PaginaAdminImportaciones({ searchParams }: { searchParams: Promise<{ ver?: string }> }) {
-  if (!(await esAdminPlataforma())) redirect("/mas");
   const { ver } = await searchParams;
   const revertidas = ver === "revertidas";
 
@@ -28,9 +25,6 @@ export default async function PaginaAdminImportaciones({ searchParams }: { searc
 
   return (
     <>
-      <Link href="/mas" className="-ml-2 mt-3 inline-flex min-h-11 items-center gap-1 rounded-full px-2 text-[0.9375rem] font-semibold text-musgo">
-        <ChevronLeft className="size-5" strokeWidth={2} /> Más
-      </Link>
       <Encabezado titulo="Importaciones" subtitulo="Libro genealógico · vista global" />
       <div className="mb-3">
         <FilaDesplazable>
