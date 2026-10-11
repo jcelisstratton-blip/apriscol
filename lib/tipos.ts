@@ -328,6 +328,14 @@ export type Database = {
       coef_endogamia_libro: { Args: { p_libro: string }; Returns: number };
       simular_endogamia_libro: { Args: { p_macho: string; p_hembra: string }; Returns: number };
       completitud_pedigri_libro: { Args: { p_libro: string; p_generaciones?: number }; Returns: number };
+      animales_endogamia: {
+        Args: { p_finca: string; p_min?: number | null };
+        Returns: { animal_id: string; numero_arete: string; nombre: string | null; sexo: SexoAnimal; especie: Especie; estado: string; f: number }[];
+      };
+      ancestros_comunes: {
+        Args: { p_macho: string; p_hembra: string; p_max_gen?: number };
+        Returns: { nombre: string; gen_macho: number; gen_hembra: number }[];
+      };
       traer_animales_libro: { Args: { p_finca: string; p_documento: string }; Returns: RespuestaTraer };
       admin_revertir_importacion: { Args: { p_solicitud: string }; Returns: number };
       admin_listar_reclamos: { Args: { p_estado?: string | null }; Returns: ReclamoAdmin[] };

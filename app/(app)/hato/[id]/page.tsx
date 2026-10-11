@@ -13,6 +13,8 @@ import { FilaParticipacion } from "@/components/FilaParticipacion";
 import { clasesBoton } from "@/components/Boton";
 import { edadTexto, formatoFecha, litros } from "@/lib/fechas";
 import { ETIQUETA_VOCACION, nombreTipo } from "@/lib/animal";
+import { NivelEndogamia } from "@/components/NivelEndogamia";
+import { nivelEndogamia, pedigriTexto, porcentaje } from "@/lib/endogamia";
 
 export const metadata: Metadata = { title: "Animal" };
 
@@ -22,7 +24,7 @@ function Dato({ etiqueta, children }: { etiqueta: string; children: React.ReactN
   return (
     <div className="flex items-baseline justify-between gap-4 py-2.5">
       <dt className="shrink-0 text-sm text-humo">{etiqueta}</dt>
-      <dd className="min-w-0 text-right font-semibold">{children}</dd>
+      <dd className="min-w-0 text-right font-semibold [overflow-wrap:anywhere]">{children}</dd>
     </div>
   );
 }
@@ -36,7 +38,8 @@ export default async function FichaAnimal({ params }: { params: Promise<{ id: st
   const { data: animal } = await supabase.from("animales").select("*").eq("id", id).eq("finca_id", finca.id).is("deleted_at", null).maybeSingle();
   if (!animal) notFound();
 
-  const tienePadres = Boolean(animal.padre_id && animal.madre_id);
+  // Un animal del libro tiene su pedigrí aunque sus padres no estén en este hato.
+  const puedeCalcular = Boolean((animal.padre_id && animal.madre_id) || animal.libro_id);
   const verLeche = puedeVer(rol, "leche") && animal.sexo === "hembra";
   const verGenealogia = puedeVer(rol, "genealogia") || puedeVer(rol, "hato");
   const verFerias = puedeVer(rol, "ferias");
@@ -45,7 +48,7 @@ export default async function FichaAnimal({ params }: { params: Promise<{ id: st
   const [raza, padres, endo, completitud, lactancia, retiro, palmares, participaciones] = await Promise.all([
     animal.raza_id ? supabase.from("razas").select("nombre").eq("id", animal.raza_id).maybeSingle() : Promise.resolve({ data: null }),
     idsPadres.length ? supabase.from("animales").select("id, numero_arete, nombre").in("id", idsPadres) : Promise.resolve({ data: [] }),
-    tienePadres && verGenealogia ? supabase.rpc("coef_endogamia", { p_animal: id }) : Promise.resolve({ data: null as number | null }),
+    puedeCalcular && verGenealogia ? supabase.rpc("coef_endogamia", { p_animal: id }) : Promise.resolve({ data: null as number | null }),
     verGenealogia ? supabase.rpc("completitud_pedigri", { p_animal: id }) : Promise.resolve({ data: null as number | null }),
     verLeche
       ? supabase.from("v_lactancias_resumen").select("*").eq("animal_id", id).order("numero", { ascending: false }).limit(1).maybeSingle()
@@ -73,8 +76,11 @@ export default async function FichaAnimal({ params }: { params: Promise<{ id: st
   const padre = padres.data?.find((p) => p.id === animal.padre_id);
   const madre = padres.data?.find((p) => p.id === animal.madre_id);
   const miRetiro = retiro.data?.find((r) => r.animal_id === id);
-  const f = endo.data;
-  const alertaEndogamia = typeof f === "number" && f >= finca.umbral_endogamia;
+  const pedigri = typeof completitud.data === "number" ? completitud.data : 0;
+  // Con un pedigrí vacío el 0 % no significa «sin endogamia», significa «sin datos»: no se muestra como medida.
+  const f = pedigri > 0 && typeof endo.data === "number" ? endo.data : null;
+  const nivel = f === null ? null : nivelEndogamia(f, finca.umbral_endogamia);
+  const alertaEndogamia = nivel === "alto" || nivel === "muy_alto";
   const lac = lactancia.data;
   const lacAbierta = lac && !lac.fecha_secado;
 
@@ -113,6 +119,10 @@ export default async function FichaAnimal({ params }: { params: Promise<{ id: st
             </Dato>
             <Dato etiqueta="Edad">{edadTexto(animal.fecha_nacimiento)}</Dato>
             <Dato etiqueta="Origen">{animal.origen === "comprado" ? "Comprado" : "Nació en la finca"}</Dato>
+            {animal.chip ? <Dato etiqueta="Microchip">{animal.chip}</Dato> : null}
+            {animal.color ? <Dato etiqueta="Color">{animal.color}</Dato> : null}
+            {animal.rasgos ? <Dato etiqueta="Rasgos">{animal.rasgos}</Dato> : null}
+            {animal.marcas ? <Dato etiqueta="Marcas">{animal.marcas}</Dato> : null}
             {animal.peso_nacer_kg ? <Dato etiqueta="Peso al nacer">{litros(animal.peso_nacer_kg)} kg</Dato> : null}
           </dl>
         </Tarjeta>
@@ -155,24 +165,37 @@ export default async function FichaAnimal({ params }: { params: Promise<{ id: st
                   (animal.madre_externa ?? "Sin registrar")
                 )}
               </Dato>
-              {typeof f === "number" ? (
+              {f !== null ? (
                 <Dato etiqueta="Endogamia (F)">
-                  <span className={alertaEndogamia ? "text-rojo" : ""}>{(f * 100).toFixed(2).replace(".", ",")} %</span>
+                  <span className="inline-flex flex-wrap items-center justify-end gap-2">
+                    <span className="tabular-nums">{porcentaje(f)}</span>
+                    <NivelEndogamia f={f} umbral={finca.umbral_endogamia} />
+                  </span>
                 </Dato>
               ) : null}
-              {typeof completitud.data === "number" ? (
-                <Dato etiqueta="Pedigrí conocido">{Math.round(completitud.data * 100)} %</Dato>
-              ) : null}
+              <Dato etiqueta="Pedigrí conocido">
+                {pedigriTexto(pedigri)} · {Math.round(pedigri * 100)} %
+              </Dato>
             </dl>
             {alertaEndogamia ? (
               <Aviso tipo="atencion" className="mt-3">
-                La endogamia supera el umbral de tu finca ({(finca.umbral_endogamia * 100).toFixed(2).replace(".", ",")} %). Conviene evitar repetir esta cruza.
+                La endogamia supera el umbral de tu finca ({porcentaje(finca.umbral_endogamia)}). Conviene evitar repetir esta cruza.
               </Aviso>
             ) : null}
-            {typeof completitud.data === "number" && completitud.data < 0.5 ? (
+            {pedigri < 0.5 ? (
               <Aviso tipo="info" className="mt-3">
-                Con pocos ancestros registrados el cálculo puede quedarse corto. Completa el pedigrí para que sea más confiable.
+                {pedigri === 0
+                  ? "Todavía no hay padres registrados, por eso no se puede medir la endogamia."
+                  : "Con pocos ancestros registrados el cálculo puede quedarse corto. Completa el pedigrí para que sea más confiable."}
               </Aviso>
+            ) : null}
+            {animal.estado === "activo" ? (
+              <Link
+                href={animal.sexo === "macho" ? `/hato/cruza?macho=${id}` : `/hato/cruza?hembra=${id}`}
+                className={`${clasesBoton("secundario")} mt-3`}
+              >
+                Simular una cruza
+              </Link>
             ) : null}
           </Tarjeta>
         ) : null}

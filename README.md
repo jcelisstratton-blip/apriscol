@@ -24,6 +24,9 @@ roles, hato y genealogía (endogamia de Wright por método tabular), sanidad, re
 (palmarés de cada animal con la foto del premio).
 
 - `coef_endogamia(animal)`, `simular_endogamia(macho, hembra)` y `completitud_pedigri(animal)` son RPC.
+- Endogamia en la app: ficha del animal (F + nivel + pedigrí conocido), `/hato/endogamia` (animales de la finca de mayor a menor F
+  y umbral de alerta editable) y `/hato/cruza` (simulador macho × hembra con los ancestros que comparten). F usa hasta 10
+  generaciones en el hato y 12 en el libro; la completitud se mide sobre 4. Escala: baja < ½ umbral, a vigilar < umbral, alta < 2×, muy alta.
 - Un animal en periodo de retiro **no puede** entrar al tanque ni salir para consumo: lo hace cumplir la base.
 
 ## Libro genealógico (de dónde salen los animales)
