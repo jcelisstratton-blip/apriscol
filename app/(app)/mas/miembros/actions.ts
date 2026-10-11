@@ -6,7 +6,7 @@ import { crearClienteServidor } from "@/lib/supabase/server";
 import { obtenerContexto } from "@/lib/contexto";
 import { puedeGestionar } from "@/lib/permisos";
 import { mensajeAmigable } from "@/lib/mensaje-amigable";
-import { SITE_URL } from "@/lib/env";
+import { urlDelSitio } from "@/lib/sitio";
 
 export type EstadoInvitar = { error?: string; enlace?: string; email?: string } | undefined;
 
@@ -32,7 +32,7 @@ export async function invitar(_: EstadoInvitar, form: FormData): Promise<EstadoI
     return { error: duplicada ? "Ya hay una invitación pendiente para ese correo." : mensajeAmigable(error?.message ?? "") };
   }
   revalidatePath("/mas/miembros");
-  return { enlace: `${SITE_URL}/invitacion/${data.token}`, email: datos.data.email };
+  return { enlace: `${await urlDelSitio()}/invitacion/${data.token}`, email: datos.data.email };
 }
 
 export async function revocarInvitacion(id: string): Promise<{ error?: string }> {

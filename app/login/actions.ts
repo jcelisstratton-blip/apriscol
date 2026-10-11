@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { crearClienteServidor } from "@/lib/supabase/server";
-import { SITE_URL } from "@/lib/env";
+import { urlDelSitio } from "@/lib/sitio";
 import { destinoSeguro } from "@/lib/redireccion";
 import { mensajeAmigable } from "@/lib/mensaje-amigable";
 
@@ -45,7 +45,7 @@ export async function registrarse(_: EstadoAuth, form: FormData): Promise<Estado
     password: datos.data.password,
     options: {
       data: { nombre: datos.data.nombre },
-      emailRedirectTo: `${SITE_URL}/auth/confirm?next=${encodeURIComponent(next)}`,
+      emailRedirectTo: `${await urlDelSitio()}/auth/confirm?next=${encodeURIComponent(next)}`,
     },
   });
   if (error) return { error: mensajeAmigable(error.message) };
