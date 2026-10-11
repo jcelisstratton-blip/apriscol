@@ -4,7 +4,7 @@ import { Inbox } from "lucide-react";
 import { AccionRevertir } from "@/components/AccionRevertir";
 import { Encabezado } from "@/components/Encabezado";
 import { EstadoVacio } from "@/components/EstadoVacio";
-import { Chip, FilaDesplazable } from "@/components/FilaDesplazable";
+import { FilaDesplazable } from "@/components/FilaDesplazable";
 import { Insignia } from "@/components/Insignia";
 import { Tarjeta } from "@/components/Tarjeta";
 import { crearClienteServidor } from "@/lib/supabase/server";
@@ -28,8 +28,21 @@ export default async function PaginaAdminImportaciones({ searchParams }: { searc
       <Encabezado titulo="Importaciones" subtitulo="Libro genealógico · vista global" />
       <div className="mb-3">
         <FilaDesplazable>
-          <Link href="/admin/importaciones"><Chip activo={!revertidas} onClick={() => undefined}>Recientes</Chip></Link>
-          <Link href="/admin/importaciones?ver=revertidas"><Chip activo={revertidas} onClick={() => undefined}>Revertidas</Chip></Link>
+          {[
+            { href: "/admin/importaciones", etiqueta: "Recientes", activo: !revertidas },
+            { href: "/admin/importaciones?ver=revertidas", etiqueta: "Revertidas", activo: revertidas },
+          ].map((f) => (
+            <Link
+              key={f.href}
+              href={f.href}
+              aria-current={f.activo ? "page" : undefined}
+              className={`inline-flex min-h-10 shrink-0 items-center rounded-full px-4 text-sm font-semibold transition ${
+                f.activo ? "bg-musgo text-sobre-musgo" : "bg-papel text-humo ring-1 ring-arena hover:text-tinta"
+              }`}
+            >
+              {f.etiqueta}
+            </Link>
+          ))}
         </FilaDesplazable>
       </div>
 
