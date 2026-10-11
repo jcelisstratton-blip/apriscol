@@ -155,7 +155,7 @@ export function AgregarAlOrdeno({
         <div className="space-y-4">
           <p className="text-[0.9375rem] text-humo">Elige las hembras que están en leche ahora. Aparecerán en la lista del ordeño para registrar sus litros.</p>
 
-          <Campo etiqueta="¿Desde cuándo están en leche?" ayuda="Fecha aproximada de su último parto, para todas las que elijas. Si alguna parió otro día, cámbiala en su fila. Con ella calculamos los días en leche.">
+          <Campo etiqueta="¿Desde cuándo están en leche?" ayuda="Fecha aproximada del último parto, para todas las que elijas. Si alguna parió otro día, cámbiala en su fila. Con ella calculamos los días en leche.">
             {(id) => <input id={id} type="date" value={fecha} max={hoy} onChange={(e) => setFecha(e.target.value)} className={CLASE_INPUT} />}
           </Campo>
 
@@ -209,7 +209,7 @@ export function AgregarAlOrdeno({
                                 className={`${CLASE_INPUT} min-w-0 flex-1`}
                               />
                               <button type="button" onClick={() => cambiarFecha(a.id, null)} className="min-h-11 font-semibold text-musgo">
-                                Usar la general
+                                Usar la fecha de todas
                               </button>
                             </>
                           ) : (
