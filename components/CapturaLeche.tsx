@@ -5,8 +5,10 @@ import { useRouter } from "next/navigation";
 import { Check, ChevronRight, Droplets } from "lucide-react";
 import { Aviso } from "@/components/Aviso";
 import { Boton } from "@/components/Boton";
+import { CampoBusqueda } from "@/components/CampoBusqueda";
 import { Chip, FilaDesplazable } from "@/components/FilaDesplazable";
 import { Insignia } from "@/components/Insignia";
+import { ListaPorTramos } from "@/components/ListaPorTramos";
 import { Segmentado } from "@/components/Segmentado";
 import { Sheet } from "@/components/Sheet";
 import { Teclado } from "@/components/Teclado";
@@ -22,6 +24,8 @@ type Registro = { litros: number; descartada: boolean };
 type JornadaSimple = Exclude<Jornada, "unico">;
 
 const MAX_LITROS = 15;
+/** Desde cuántas hembras en leche aparece el buscador. */
+const MIN_PARA_BUSCAR = 8;
 
 /**
  * Captura rápida de ordeño: una hoja con teclado numérico grande por animal y salto automático al siguiente
@@ -47,6 +51,7 @@ export function CapturaLeche({
   const [jornada, setJornada] = useState<JornadaSimple>(jornadaInicial);
   const [dia, setDia] = useState<"hoy" | "ayer">("hoy");
   const [vista, setVista] = useState<"pendientes" | "hechas">("pendientes");
+  const [busqueda, setBusqueda] = useState("");
   const [carga, setCarga] = useState<{ clave: string; registros: Record<string, Registro>; error: string | null } | null>(null);
   const [activo, setActivo] = useState<AnimalLeche | null>(null);
   const [texto, setTexto] = useState("");
@@ -87,7 +92,10 @@ export function CapturaLeche({
   const pendientes = animales.filter((a) => !registros[a.id]);
   const totalTanque = hechas.reduce((s, a) => s + (registros[a.id].descartada ? 0 : registros[a.id].litros), 0);
   const totalDescartado = hechas.reduce((s, a) => s + (registros[a.id].descartada ? registros[a.id].litros : 0), 0);
-  const lista = vista === "pendientes" ? pendientes : hechas;
+  const buscando = busqueda !== "";
+  const coincide = (a: AnimalLeche) => !buscando || a.numero_arete.toLowerCase().includes(busqueda) || (a.nombre ?? "").toLowerCase().includes(busqueda);
+  const lista = (vista === "pendientes" ? pendientes : hechas).filter(coincide);
+  const alBuscar = useCallback((t: string) => setBusqueda(t.toLowerCase()), []);
 
   const abrir = useCallback(
     (a: AnimalLeche) => {
@@ -130,8 +138,10 @@ export function CapturaLeche({
       if (!r.ok) return setError(r.error);
       const nuevos = { ...registros, [actual.id]: { litros: r.litros, descartada: r.descartada } };
       setRegistros(nuevos);
-      const siguiente = animales.find((a) => a.id !== actual.id && !nuevos[a.id] && animales.indexOf(a) > animales.indexOf(actual)) ??
-        animales.find((a) => a.id !== actual.id && !nuevos[a.id]);
+      // Con una búsqueda activa, «siguiente» se queda dentro de lo que la persona está viendo.
+      const orden = animales.filter(coincide);
+      const siguiente = orden.find((a) => a.id !== actual.id && !nuevos[a.id] && orden.indexOf(a) > orden.indexOf(actual)) ??
+        orden.find((a) => a.id !== actual.id && !nuevos[a.id]);
       if (siguiente) {
         toast.exito(`${etiquetaAnimal(actual)}: ${fmt(r.litros)} L`);
         setActivo(siguiente);
@@ -204,49 +214,56 @@ export function CapturaLeche({
         <Chip activo={vista === "hechas"} onClick={() => setVista("hechas")}>Registradas · {hechas.length}</Chip>
       </FilaDesplazable>
 
+      {animales.length > MIN_PARA_BUSCAR ? <CampoBusqueda onBuscar={alBuscar} placeholder="Buscar por arete o nombre" /> : null}
+
       {errorCarga ? <Aviso tipo="error">{errorCarga}</Aviso> : null}
 
-      {vista === "pendientes" && pendientes.length > 0 ? (
+      {vista === "pendientes" && lista.length > 0 ? (
         <p className="-mt-1 px-1 text-sm text-humo">Toca un animal para escribir los litros que dio en esta jornada.</p>
       ) : null}
 
       {!cargando && lista.length === 0 ? (
         <p className="py-8 text-center text-[0.9375rem] text-humo">
-          {vista === "pendientes" ? "No queda ningún animal por ordeñar en esta jornada." : "Todavía no has registrado ningún animal en esta jornada."}
+          {buscando
+            ? "Ningún animal coincide con tu búsqueda."
+            : vista === "pendientes"
+              ? "No queda ningún animal por ordeñar en esta jornada."
+              : "Todavía no has registrado ningún animal en esta jornada."}
         </p>
       ) : null}
 
-      <ul className="grid grid-cols-1 gap-2.5">
-        {lista.map((a) => {
+      <ListaPorTramos
+        key={`${clave}|${vista}|${busqueda}`}
+        items={lista}
+        clave={(a) => a.id}
+        fila={(a) => {
           const r = registros[a.id];
           return (
-            <li key={a.id} className="min-w-0">
-              <button
-                type="button"
-                onClick={() => abrir(a)}
-                className="flex min-h-[4.25rem] w-full items-center gap-3 rounded-2xl bg-papel px-3.5 py-2.5 text-left ring-1 ring-arena transition active:scale-[0.99]"
-              >
-                <span className={`grid size-11 shrink-0 place-items-center rounded-full ${r ? "bg-ok/15 text-ok" : "bg-arena text-humo"}`}>
-                  {r ? <Check className="size-5" strokeWidth={2.4} /> : <Droplets className="size-5" strokeWidth={1.75} />}
+            <button
+              type="button"
+              onClick={() => abrir(a)}
+              className="flex min-h-[4.25rem] w-full items-center gap-3 rounded-2xl bg-papel px-3.5 py-2.5 text-left ring-1 ring-arena transition active:scale-[0.99]"
+            >
+              <span className={`grid size-11 shrink-0 place-items-center rounded-full ${r ? "bg-ok/15 text-ok" : "bg-arena text-humo"}`}>
+                {r ? <Check className="size-5" strokeWidth={2.4} /> : <Droplets className="size-5" strokeWidth={1.75} />}
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate font-bold">{a.numero_arete}</span>
+                <span className="block truncate text-sm text-humo">{a.nombre ?? "Sin nombre"}</span>
+                {retiros[a.id] ? <span className="mt-1 block"><Insignia tono="aviso">En retiro · se descarta</Insignia></span> : null}
+              </span>
+              {r ? (
+                <span className="shrink-0 text-right">
+                  <span className="block text-lg font-bold tabular-nums">{fmt(r.litros)} L</span>
+                  {r.descartada ? <Insignia tono="aviso">Descartada</Insignia> : null}
                 </span>
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate font-bold">{a.numero_arete}</span>
-                  <span className="block truncate text-sm text-humo">{a.nombre ?? "Sin nombre"}</span>
-                  {retiros[a.id] ? <span className="mt-1 block"><Insignia tono="aviso">En retiro · se descarta</Insignia></span> : null}
-                </span>
-                {r ? (
-                  <span className="shrink-0 text-right">
-                    <span className="block text-lg font-bold tabular-nums">{fmt(r.litros)} L</span>
-                    {r.descartada ? <Insignia tono="aviso">Descartada</Insignia> : null}
-                  </span>
-                ) : (
-                  <ChevronRight className="size-5 shrink-0 text-humo" strokeWidth={1.75} aria-hidden="true" />
-                )}
-              </button>
-            </li>
+              ) : (
+                <ChevronRight className="size-5 shrink-0 text-humo" strokeWidth={1.75} aria-hidden="true" />
+              )}
+            </button>
           );
-        })}
-      </ul>
+        }}
+      />
 
       <Sheet
         abierta={activo !== null}

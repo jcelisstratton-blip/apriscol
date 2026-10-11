@@ -117,7 +117,9 @@
 - **Solución (`AgregarAlOrdeno`):** botón en `/leche` (y "Poner en ordeño" en la ficha) para elegir hembras en leche y la **fecha aproximada del último parto**; abre sus lactancias (`ponerEnOrdeno`). "Ya no está en ordeño" (`sacarDelOrdeno`) cierra la lactancia.
 - **Captura:** `CapturaLeche` — hoja con teclado numérico por animal, salto al siguiente, jornada y día (hoy/ayer).
 - **Archivos:** `app/(app)/leche/{page,actions}`, `components/{CapturaLeche,AgregarAlOrdeno}.tsx`.
-- **Por hacer:** buscador y paginación en la lista de ordeño cuando haya cientos de hembras (hoy dibuja todas); fechas de parto distintas por animal al agregar en bloque; registrar partos desde la UI.
+- **Lista de ordeño:** `CapturaLeche` tiene buscador (`CampoBusqueda`, desde 8 hembras) y dibuja por tramos de 20 con `ListaPorTramos` (hermana de `ListaEscalable` para listas ya completas en el cliente: el progreso y los totales necesitan todos los animales). «Guardar y siguiente» se queda dentro de lo que la búsqueda muestra.
+- **Fecha de parto por animal:** `AgregarAlOrdeno` usa una fecha general y deja cambiarla en la fila de cada hembra elegida; `ponerEnOrdeno` recibe `{ animales: [{ animalId, fechaParto? }], fechaParto? }`.
+- **Por hacer:** registrar partos desde la UI.
 
 ---
 
@@ -166,7 +168,6 @@
 **Ya acordado o en el aire**
 - Confirmar configuración de Auth (URLs, protección de contraseñas filtradas, SMTP) y deshabilitar llaves legacy (ver tema 1).
 - Eliminar `ancestros_comunes` (SQL) si ya no se usa.
-- Paginación/búsqueda en la lista de ordeño; fechas de parto por animal.
 
 **Módulos sin interfaz todavía**
 - **Sanidad** (tratamientos, vacunas, periodos de retiro: el esquema y la regla "un animal en retiro no entra al tanque ni sale para consumo" ya existen en la base).
