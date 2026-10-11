@@ -7,6 +7,8 @@ export type RolFinca = "propietario" | "administrador" | "ordenador" | "veterina
 export type ModuloApp =
   | "hato" | "genealogia" | "leche" | "carne" | "sanidad" | "reproduccion" | "nutricion" | "ambiente" | "contabilidad" | "ferias";
 export type Jornada = "manana" | "tarde" | "noche" | "unico";
+export type TipoBaja = "venta" | "sacrificio" | "muerte" | "perdida";
+export type MotivoBaja = "edad" | "partos" | "baja_produccion" | "sanidad" | "reproductivo" | "accidente" | "otro";
 
 type Tabla<R, Req extends keyof R = never> = {
   Row: R;
@@ -48,6 +50,25 @@ export type Animal = {
   created_at: string;
   updated_at: string;
   deleted_at: string | null;
+};
+
+export type Baja = {
+  id: string;
+  finca_id: string;
+  animal_id: string;
+  tipo: TipoBaja;
+  motivo: MotivoBaja | null;
+  fecha: string;
+  destino: string | null;
+  comprador: string | null;
+  destino_consumo: boolean;
+  peso_kg: number | null;
+  valor: number | null;
+  guia_movilizacion: string | null;
+  detalle: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
 };
 
 export type Finca = {
@@ -300,6 +321,7 @@ export type Database = {
   public: {
     Tables: {
       animales: Tabla<Animal, "finca_id" | "especie" | "numero_arete" | "sexo">;
+      bajas: Tabla<Baja, "finca_id" | "animal_id" | "tipo">;
       fincas: Tabla<Finca, "nombre">;
       finca_miembros: Tabla<Miembro, "finca_id" | "user_id" | "rol">;
       perfiles: Tabla<Perfil, "id">;
