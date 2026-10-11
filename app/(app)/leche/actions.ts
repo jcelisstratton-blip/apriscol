@@ -56,19 +56,35 @@ export async function guardarOrdeno(entrada: z.input<typeof esquema>): Promise<R
 
 export type ResultadoLactancias = { ok: true; agregadas: number; omitidas: number } | { ok: false; error: string };
 
-const esquemaOrdeno = z.object({
-  animalIds: z.array(z.uuid()).min(1, "Elige al menos una hembra.").max(500, "Elige hasta 500 hembras a la vez."),
-  fechaParto: z.iso.date("La fecha no es válida."),
-});
+const esquemaOrdeno = z
+  .object({
+    animales: z
+      .array(z.object({ animalId: z.uuid(), fechaParto: z.iso.date("La fecha no es válida.").optional() }))
+      .min(1, "Elige al menos una hembra.")
+      .max(500, "Elige hasta 500 hembras a la vez."),
+    /** Fecha para las hembras que no traen la suya. */
+    fechaParto: z.iso.date("La fecha no es válida.").optional(),
+  })
+  .refine((d) => d.fechaParto !== undefined || d.animales.every((a) => a.fechaParto !== undefined), {
+    message: "Falta la fecha de parto de alguna hembra.",
+  });
 
-/** Pone hembras en ordeño: abre su lactancia con la fecha aproximada de su último parto. Salta las que ya están en leche. */
+/**
+ * Pone hembras en ordeño: abre su lactancia con la fecha aproximada de su último parto (una general y, si hace falta,
+ * una propia por hembra). Salta las que ya están en leche o nacieron después de esa fecha.
+ */
 export async function ponerEnOrdeno(entrada: z.input<typeof esquemaOrdeno>): Promise<ResultadoLactancias> {
   const { finca, rol } = await obtenerContexto();
   if (!puedeEscribir(rol, "leche")) return { ok: false, error: "No tienes permiso para esto en esta finca." };
   const datos = esquemaOrdeno.safeParse(entrada);
   if (!datos.success) return { ok: false, error: datos.error.issues[0]?.message ?? "Dato inválido." };
-  const { animalIds, fechaParto } = datos.data;
-  if (fechaParto > hoyBogota()) return { ok: false, error: "La fecha del parto no puede ser futura." };
+  const { animales, fechaParto } = datos.data;
+
+  // Una sola fecha por hembra (la última que llegue gana si se repite el id).
+  const fechaDe = new Map(animales.map((a) => [a.animalId, (a.fechaParto ?? fechaParto)!]));
+  const hoy = hoyBogota();
+  if ([...fechaDe.values()].some((f) => f > hoy)) return { ok: false, error: "La fecha del parto no puede ser futura." };
+  const animalIds = [...fechaDe.keys()];
 
   const supabase = await crearClienteServidor();
   const [{ data: hembras }, { data: previas }] = await Promise.all([
@@ -81,8 +97,8 @@ export async function ponerEnOrdeno(entrada: z.input<typeof esquemaOrdeno>): Pro
   for (const l of previas ?? []) maxNumero.set(l.animal_id, Math.max(maxNumero.get(l.animal_id) ?? 0, l.numero));
 
   const filas = (hembras ?? [])
-    .filter((a) => !abiertas.has(a.id) && (!a.fecha_nacimiento || a.fecha_nacimiento < fechaParto))
-    .map((a) => ({ finca_id: finca.id, animal_id: a.id, numero: (maxNumero.get(a.id) ?? 0) + 1, fecha_parto: fechaParto }));
+    .filter((a) => !abiertas.has(a.id) && (!a.fecha_nacimiento || a.fecha_nacimiento < fechaDe.get(a.id)!))
+    .map((a) => ({ finca_id: finca.id, animal_id: a.id, numero: (maxNumero.get(a.id) ?? 0) + 1, fecha_parto: fechaDe.get(a.id)! }));
 
   if (filas.length > 0) {
     const { error } = await supabase.from("lactancias").insert(filas);

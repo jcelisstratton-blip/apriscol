@@ -14,6 +14,7 @@ import { useToast } from "@/components/Toast";
 import { ponerEnOrdeno } from "@/app/(app)/leche/actions";
 import { crearClienteNavegador } from "@/lib/supabase/client";
 import { etiquetaAnimal } from "@/lib/animal";
+import { formatoFecha } from "@/lib/fechas";
 import type { Especie } from "@/lib/tipos";
 
 type Candidata = { id: string; numero_arete: string; nombre: string | null; especie: Especie };
@@ -47,6 +48,8 @@ export function AgregarAlOrdeno({
   const [especie, setEspecie] = useState<FiltroEspecie>("todas");
   const [elegidas, setElegidas] = useState<Set<string>>(new Set());
   const [fecha, setFecha] = useState("");
+  /** Fechas propias de algunas hembras; las demás usan la general. Una clave presente = «Cambiar» está abierto. */
+  const [fechasPropias, setFechasPropias] = useState<Record<string, string>>({});
   const [error, setError] = useState<string | null>(null);
   const [guardando, iniciar] = useTransition();
   const alBuscar = useCallback((t: string) => setBusqueda(t.toLowerCase()), []);
@@ -89,6 +92,16 @@ export function AgregarAlOrdeno({
   const mostradas = visibles.slice(0, MOSTRAR);
   const hayDosEspecies = new Set((candidatas ?? []).map((a) => a.especie)).size > 1;
 
+  const fechaDe = (id: string) => fechasPropias[id] || fecha;
+  const faltaFecha = [...elegidas].some((id) => !fechaDe(id));
+  const cambiarFecha = (id: string, valor: string | null) =>
+    setFechasPropias((p) => {
+      const nuevo = { ...p };
+      if (valor === null) delete nuevo[id];
+      else nuevo[id] = valor;
+      return nuevo;
+    });
+
   const alternar = (id: string) =>
     setElegidas((previo) => {
       const nuevo = new Set(previo);
@@ -100,7 +113,10 @@ export function AgregarAlOrdeno({
   const guardar = () =>
     iniciar(async () => {
       setError(null);
-      const r = await ponerEnOrdeno({ animalIds: [...elegidas], fechaParto: fecha });
+      const r = await ponerEnOrdeno({
+        animales: [...elegidas].map((animalId) => ({ animalId, fechaParto: fechasPropias[animalId] || undefined })),
+        fechaParto: fecha || undefined,
+      });
       if (!r.ok) return setError(r.error);
       toast.exito(
         r.agregadas === 0
@@ -109,6 +125,7 @@ export function AgregarAlOrdeno({
       );
       setAbierta(false);
       setElegidas(new Set());
+      setFechasPropias({});
       setCandidatas(null);
       router.refresh();
     });
@@ -130,7 +147,7 @@ export function AgregarAlOrdeno({
         onCerrar={() => (guardando ? undefined : setAbierta(false))}
         titulo="Agregar hembras al ordeño"
         pie={
-          <Boton onClick={guardar} pendiente={guardando} cargando="Agregando…" disabled={elegidas.size === 0 || !fecha}>
+          <Boton onClick={guardar} pendiente={guardando} cargando="Agregando…" disabled={elegidas.size === 0 || faltaFecha}>
             {elegidas.size === 0 ? "Elige las hembras" : `Agregar ${elegidas.size} ${elegidas.size === 1 ? "hembra" : "hembras"}`}
           </Boton>
         }
@@ -138,7 +155,7 @@ export function AgregarAlOrdeno({
         <div className="space-y-4">
           <p className="text-[0.9375rem] text-humo">Elige las hembras que están en leche ahora. Aparecerán en la lista del ordeño para registrar sus litros.</p>
 
-          <Campo etiqueta="¿Desde cuándo están en leche?" ayuda="Fecha aproximada de su último parto. Con ella calculamos los días en leche.">
+          <Campo etiqueta="¿Desde cuándo están en leche?" ayuda="Fecha aproximada de su último parto, para todas las que elijas. Si alguna parió otro día, cámbiala en su fila. Con ella calculamos los días en leche.">
             {(id) => <input id={id} type="date" value={fecha} max={hoy} onChange={(e) => setFecha(e.target.value)} className={CLASE_INPUT} />}
           </Campo>
 
@@ -179,6 +196,32 @@ export function AgregarAlOrdeno({
                         <input type="checkbox" checked={elegidas.has(a.id)} onChange={() => alternar(a.id)} className="size-5 shrink-0 accent-[var(--musgo)]" />
                         <span className="min-w-0 font-medium [overflow-wrap:anywhere]">{etiquetaAnimal(a)}</span>
                       </label>
+                      {elegidas.has(a.id) ? (
+                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 pb-2 pl-11 pr-3 text-sm text-humo">
+                          {a.id in fechasPropias ? (
+                            <>
+                              <input
+                                type="date"
+                                aria-label={`Fecha de parto de ${etiquetaAnimal(a)}`}
+                                value={fechasPropias[a.id]}
+                                max={hoy}
+                                onChange={(e) => cambiarFecha(a.id, e.target.value)}
+                                className={`${CLASE_INPUT} min-w-0 flex-1`}
+                              />
+                              <button type="button" onClick={() => cambiarFecha(a.id, null)} className="min-h-11 font-semibold text-musgo">
+                                Usar la general
+                              </button>
+                            </>
+                          ) : (
+                            <>
+                              <span>{fecha ? `Parto: ${formatoFecha(fecha)}` : "Falta la fecha de parto"}</span>
+                              <button type="button" onClick={() => cambiarFecha(a.id, fecha)} className="min-h-11 font-semibold text-musgo">
+                                Cambiar
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      ) : null}
                     </li>
                   ))}
                 </ul>
