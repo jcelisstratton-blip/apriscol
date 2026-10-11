@@ -13,7 +13,7 @@ export function FormTraerAnimales() {
 
   return (
     <form action={enviar} className="space-y-4">
-      <Campo etiqueta="Tu número de documento" ayuda="Cédula o NIT, tal como está registrado. Si es NIT, sirve con o sin el dígito de verificación.">
+      <Campo etiqueta="Tu número de documento" ayuda="Cédula o NIT del propietario registrado. Si es NIT, sirve con o sin el dígito de verificación.">
         {(id) => (
           <input
             id={id}
@@ -28,9 +28,27 @@ export function FormTraerAnimales() {
         )}
       </Campo>
 
+      <Campo
+        etiqueta="Microchip de uno de tus animales"
+        ayuda="Es el número del arete o microchip de cualquiera de tus animales registrados. Lo pedimos para confirmar que son tuyos."
+      >
+        {(id) => (
+          <input
+            id={id}
+            name="chip"
+            autoComplete="off"
+            autoCapitalize="characters"
+            required
+            maxLength={30}
+            className={CLASE_INPUT}
+            placeholder="Como aparece en el arete"
+          />
+        )}
+      </Campo>
+
       {estado?.error ? <Aviso tipo="error">{estado.error}</Aviso> : null}
       {r && !r.encontrado ? (
-        <Aviso tipo="atencion">No encontramos animales con ese documento. Revisa el número e inténtalo de nuevo.</Aviso>
+        <Aviso tipo="atencion">No pudimos confirmar tus animales con esos datos. Revisa el documento y el microchip e inténtalo de nuevo.</Aviso>
       ) : null}
       {r && r.encontrado && r.importados === 0 ? (
         <Aviso tipo="info">Los animales de ese documento ya están en una finca.</Aviso>

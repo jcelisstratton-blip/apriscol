@@ -6,3 +6,4 @@ create policy libro_genealogico_select on public.libro_genealogico for select to
 drop function public.solicitar_reclamo(uuid, text, text, text);
 drop function public.aprobar_reclamo(uuid);
 drop function public.rechazar_reclamo(uuid, text);
+drop function public.traer_animales_libro(uuid, text);  -- versión sin microchip, ya revocada

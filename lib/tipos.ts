@@ -336,7 +336,7 @@ export type Database = {
         Args: { p_macho: string; p_hembra: string; p_max_gen?: number };
         Returns: { nombre: string; gen_macho: number; gen_hembra: number }[];
       };
-      traer_animales_libro: { Args: { p_finca: string; p_documento: string }; Returns: RespuestaTraer };
+      traer_animales_libro: { Args: { p_finca: string; p_documento: string; p_chip: string }; Returns: RespuestaTraer };
       admin_revertir_importacion: { Args: { p_solicitud: string }; Returns: number };
       admin_listar_reclamos: { Args: { p_estado?: string | null }; Returns: ReclamoAdmin[] };
     };

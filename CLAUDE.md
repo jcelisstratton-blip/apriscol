@@ -40,7 +40,9 @@ correspondiente en `node_modules/next/dist/docs/` (esta versión cambia APIs: `m
    (`plataforma_admins`); las fincas nunca la consultan, solo reciben cálculos por funciones `security definer` que validan su finca.
    Se llena con `importar_libro_lote` (service_role). Los documentos de titulares nunca se guardan en claro (`private.hash_documento`,
    pepper en Vault). **El propietario es dueño y administrador de su finca**: trae sus animales con `traer_animales_libro`
-   sin aprobación de nadie; al hato solo pasa lo que le sirve (nada de prefijo, puntaje ni datos internos de la asociación). El
+   sin aprobación de nadie, pero **solo los que prueba que son suyos**: documento del titular **y** microchip de uno de sus animales
+   (misma respuesta si falla cualquiera de los dos), 10 intentos/hora por persona, 30 fallidos/hora por titular y tope de 3 documentos
+   distintos por cuenta; al hato solo pasa lo que le sirve (nada de prefijo, puntaje ni datos internos de la asociación). El
    superadmin supervisa y puede revertir (`admin_revertir_importacion`). Los volcados de datos reales no se versionan.
 
 ## Interfaz (móvil primero, referencias de Mobbin)
