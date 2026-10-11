@@ -144,7 +144,7 @@ export function ResultadoCruza({ resultado, umbral }: { resultado: ResultadoSimu
                 <p className="mb-3 text-sm text-humo">
                   Estos animales aparecen en el pedigrí del macho y en el de la hembra. Así llega cada uno hasta la cría:
                 </p>
-                <RutasEndogamia filas={resultado.origen} rotuloPadre="Por el macho" rotuloMadre="Por la hembra" />
+                <RutasEndogamia filas={resultado.origen} rotuloPadre="Por el macho" rotuloMadre="Por la hembra" cruza />
               </>
             )}
           </Tarjeta>

@@ -14,8 +14,8 @@ import { clasesBoton } from "@/components/Boton";
 import { edadTexto, formatoFecha, litros } from "@/lib/fechas";
 import { ETIQUETA_VOCACION, nombreTipo } from "@/lib/animal";
 import { NivelEndogamia } from "@/components/NivelEndogamia";
-import { OrigenEndogamia } from "@/components/OrigenEndogamia";
-import { nivelEndogamia, pedigriTexto, porcentaje } from "@/lib/endogamia";
+import { RutasEndogamia } from "@/components/RutasEndogamia";
+import { describirParentesco, nivelEndogamia, pedigriTexto, porcentaje, primeraMayuscula, type AncestroEndogamia } from "@/lib/endogamia";
 
 export const metadata: Metadata = { title: "Animal" };
 
@@ -82,6 +82,9 @@ export default async function FichaAnimal({ params }: { params: Promise<{ id: st
   const f = pedigri > 0 && typeof endo.data === "number" ? endo.data : null;
   const nivel = f === null ? null : nivelEndogamia(f, finca.umbral_endogamia);
   const alertaEndogamia = nivel === "alto" || nivel === "muy_alto";
+  // Por qué hay endogamia: ancestros repetidos y parentesco entre el padre y la madre.
+  const origen: AncestroEndogamia[] = f !== null && f > 0 ? ((await supabase.rpc("explicar_endogamia", { p_animal: id })).data ?? []) : [];
+  const parentescoPadres = describirParentesco(origen);
   const lac = lactancia.data;
   const lacAbierta = lac && !lac.fecha_secado;
 
@@ -166,6 +169,7 @@ export default async function FichaAnimal({ params }: { params: Promise<{ id: st
                   (animal.madre_externa ?? "Sin registrar")
                 )}
               </Dato>
+              {parentescoPadres ? <Dato etiqueta="Parentesco de sus padres">{primeraMayuscula(parentescoPadres.relacion)}</Dato> : null}
               {f !== null ? (
                 <Dato etiqueta="Endogamia (F)">
                   <span className="inline-flex flex-wrap items-center justify-end gap-2">
@@ -207,7 +211,7 @@ export default async function FichaAnimal({ params }: { params: Promise<{ id: st
               {animal.nombre ?? animal.numero_arete} tiene ancestros repetidos: animales que aparecen tanto por el lado del padre como por el de la madre.
               Esta es la ruta desde cada uno de ellos hasta el ancestro.
             </p>
-            <OrigenEndogamia animalId={id} />
+            <RutasEndogamia filas={origen} />
           </Tarjeta>
         ) : null}
 

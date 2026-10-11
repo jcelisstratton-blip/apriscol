@@ -69,3 +69,58 @@ export function puestoLinaje(posicion: number, sexo: "macho" | "hembra"): string
 export function etiquetaLinaje(n: Pick<NodoLinaje, "c" | "n">): string {
   return [n.c, n.n].filter(Boolean).join(" · ") || "Sin identificar";
 }
+
+export type ParentescoPadres = {
+  padre: NodoLinaje;
+  madre: NodoLinaje;
+  /** «medios hermanos», «tío y sobrina»… dicho del padre y la madre entre sí. */
+  relacion: string;
+  /** Detalle del vínculo («comparten el padre», «ancestro común más cercano…»), si aporta algo. */
+  via: string | null;
+  /** Otros ancestros repetidos además del principal. */
+  otros: number;
+};
+
+function relacionEntre(a: number, b: number, comparten: number): string {
+  const lejos = (n: number) => `ancestro y descendiente (${n} generaciones)`;
+  if (a === 0) return ["", "padre e hija", "abuelo y nieta", "bisabuelo y bisnieta"][b] || lejos(b);
+  if (b === 0) return ["", "madre e hijo", "abuela y nieto", "bisabuela y bisnieto"][a] || lejos(a);
+  if (a === 1 && b === 1) return comparten >= 2 ? "hermanos completos" : "medios hermanos";
+  if (a === 1 && b === 2) return "tío y sobrina";
+  if (a === 2 && b === 1) return "tía y sobrino";
+  if (a === 1 && b === 3) return "tío abuelo y sobrina nieta";
+  if (a === 3 && b === 1) return "tía abuela y sobrino nieto";
+  if (a === 2 && b === 2) return "primos hermanos";
+  if ((a === 2 && b === 3) || (a === 3 && b === 2)) return "primos hermanos en distinto grado";
+  if (a === 3 && b === 3) return "primos segundos";
+  return `parientes (su ancestro común más cercano está a ${a} generaciones del padre y a ${b} de la madre)`;
+}
+
+/** Parentesco entre el padre y la madre (o el macho y la hembra de una cruza), deducido de las rutas hasta su ancestro principal. */
+export function describirParentesco(filas: AncestroEndogamia[]): ParentescoPadres | null {
+  if (filas.length === 0) return null;
+  const pasos = (f: AncestroEndogamia) => [f.ruta_padre.length - 1, f.ruta_madre.length - 1] as const;
+  const ordenadas = [...filas].sort((x, y) => y.aporte - x.aporte || pasos(x)[0] + pasos(x)[1] - (pasos(y)[0] + pasos(y)[1]));
+  const principal = ordenadas[0];
+  const [a, b] = pasos(principal);
+  const clave = (f: AncestroEndogamia) => `${f.ancestro_chip}|${f.ancestro_nombre ?? ""}`;
+  const mismosPasos = new Set(filas.filter((f) => pasos(f)[0] === a && pasos(f)[1] === b).map(clave)).size;
+  const ancestros = new Set(filas.map(clave)).size;
+  const ancestro = etiquetaLinaje({ c: principal.ancestro_chip, n: principal.ancestro_nombre });
+
+  let via: string | null = null;
+  if (a === 1 && b === 1) {
+    via = mismosPasos >= 2 ? "tienen el mismo padre y la misma madre" : `comparten ${principal.ancestro_sexo === "macho" ? "el padre" : "la madre"}, ${ancestro}`;
+  } else if (a > 0 && b > 0) {
+    via = `su ancestro común más cercano es ${ancestro}`;
+  }
+  return {
+    padre: principal.ruta_padre[0],
+    madre: principal.ruta_madre[0],
+    relacion: relacionEntre(a, b, mismosPasos),
+    via,
+    otros: ancestros - mismosPasos,
+  };
+}
+
+export const primeraMayuscula = (t: string) => t.charAt(0).toUpperCase() + t.slice(1);

@@ -1,4 +1,4 @@
-import { etiquetaLinaje, porcentaje, puestoLinaje, type AncestroEndogamia, type NodoLinaje } from "@/lib/endogamia";
+import { describirParentesco, etiquetaLinaje, porcentaje, puestoLinaje, type AncestroEndogamia, type NodoLinaje } from "@/lib/endogamia";
 
 type Grupo = { chip: string; nombre: string | null; sexo: "macho" | "hembra"; total: number; rutas: AncestroEndogamia[] };
 
@@ -41,12 +41,36 @@ function Linea({ titulo, nodos }: { titulo: string; nodos: NodoLinaje[] }) {
  * Por qué hay endogamia: cada ancestro que aparece por el lado del padre y por el de la madre, cuánto aporta y la ruta
  * (identificador original y nombre de cada animal) desde el padre y desde la madre hasta él.
  */
-export function RutasEndogamia({ filas, rotuloPadre = "Por el padre", rotuloMadre = "Por la madre" }: { filas: AncestroEndogamia[]; rotuloPadre?: string; rotuloMadre?: string }) {
+export function RutasEndogamia({
+  filas,
+  rotuloPadre = "Por el padre",
+  rotuloMadre = "Por la madre",
+  cruza = false,
+}: {
+  filas: AncestroEndogamia[];
+  rotuloPadre?: string;
+  rotuloMadre?: string;
+  /** true cuando se explica una cruza simulada (macho y hembra) y no un animal ya nacido. */
+  cruza?: boolean;
+}) {
+  const parentesco = describirParentesco(filas);
   const grupos = agrupar(filas).slice(0, 6);
   if (grupos.length === 0) {
     return <p className="text-[0.9375rem] text-humo">No encontramos ancestros repetidos en el pedigrí registrado.</p>;
   }
   return (
+    <div className="space-y-3">
+      {parentesco ? (
+        <p className="text-[0.9375rem] leading-snug [overflow-wrap:anywhere]">
+          {cruza ? "El macho " : "Sus padres, "}
+          <strong>{etiquetaLinaje(parentesco.padre)}</strong> y {cruza ? "la hembra " : ""}
+          <strong>{etiquetaLinaje(parentesco.madre)}</strong>
+          {cruza ? " son " : ", son "}
+          <strong>{parentesco.relacion}</strong>
+          {parentesco.via ? `: ${parentesco.via}` : ""}.
+          {parentesco.otros > 0 ? ` Además comparten ${parentesco.otros} ${parentesco.otros === 1 ? "ancestro más" : "ancestros más"}.` : ""}
+        </p>
+      ) : null}
     <ul className="grid grid-cols-1 gap-3">
       {grupos.map((g) => (
         <li key={`${g.chip}|${g.nombre}`} className="min-w-0 rounded-2xl bg-lana p-3.5">
@@ -72,5 +96,6 @@ export function RutasEndogamia({ filas, rotuloPadre = "Por el padre", rotuloMadr
         </li>
       ))}
     </ul>
+    </div>
   );
 }
