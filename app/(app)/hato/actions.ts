@@ -28,6 +28,15 @@ const esquema = z.object({
   madre_externa: opcional(z.string().trim().max(80)),
   origen: z.enum(["nacido_en_finca", "comprado"]),
   vocacion: z.enum(["leche", "carne", "doble"]),
+  chip: opcional(z.string().trim().max(40, "El microchip es muy largo.")),
+  color: opcional(z.string().trim().max(60, "El color es muy largo.")),
+  marcas: opcional(z.string().trim().max(120, "Las marcas son muy largas.")),
+  rasgos: opcional(z.string().trim().max(200, "Los rasgos son muy largos.")),
+  peso_nacer_kg: z.preprocess(
+    (v) => (typeof v === "string" ? v.replace(",", ".") : v),
+    opcional(z.coerce.number("El peso al nacer debe ser un número.").min(0.1, "El peso al nacer debe estar entre 0,1 y 15 kg.").max(15, "El peso al nacer debe estar entre 0,1 y 15 kg.")),
+  ),
+  notas: opcional(z.string().trim().max(1000, "Las notas son muy largas.")),
   fecha_ultimo_parto: opcional(z.iso.date("La fecha del parto no es válida.")),
   client_request_id: opcional(z.uuid()),
 });
@@ -39,6 +48,8 @@ export async function crearAnimal(_: EstadoAnimal, form: FormData): Promise<Esta
   const datos = esquema.safeParse(Object.fromEntries(form));
   if (!datos.success) return { error: datos.error.issues[0]?.message };
   const { fecha_ultimo_parto, ...animal } = datos.data;
+  // El peso al nacer solo se conoce de los animales que nacieron en la finca.
+  if (animal.origen === "comprado") animal.peso_nacer_kg = undefined;
 
   if (!finca.especies.includes(animal.especie)) return { error: "Esa especie no está activa en tu finca." };
   if (fecha_ultimo_parto && animal.sexo !== "hembra") return { error: "Solo una hembra puede tener un parto." };
