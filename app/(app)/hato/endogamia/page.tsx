@@ -38,7 +38,7 @@ export default async function PaginaEndogamia() {
       </Link>
       <Encabezado titulo="Endogamia" subtitulo={finca.nombre} />
 
-      <div className="space-y-3.5">
+      <div className="space-y-3.5 lg:max-w-3xl">
         <Tarjeta>
           <UmbralEndogamia fincaId={finca.id} umbral={finca.umbral_endogamia} puedeEditar={puedeGestionar(rol)} />
         </Tarjeta>

@@ -39,7 +39,9 @@ export default async function PaginaCruza({ searchParams }: { searchParams: Prom
         <ChevronLeft className="size-5" strokeWidth={2} /> Hato
       </Link>
       <Encabezado titulo="Simular cruza" subtitulo={finca.nombre} />
-      <FormCruza fincaId={finca.id} umbral={finca.umbral_endogamia} machoInicial={m} hembraInicial={h} />
+      <div className="lg:max-w-3xl">
+        <FormCruza fincaId={finca.id} umbral={finca.umbral_endogamia} machoInicial={m} hembraInicial={h} />
+      </div>
     </>
   );
 }

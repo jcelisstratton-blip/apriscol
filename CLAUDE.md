@@ -51,6 +51,12 @@ correspondiente en `node_modules/next/dist/docs/` (esta versión cambia APIs: `m
 - Se diseña y se prueba a **360 y 320 px**: `scrollWidth == clientWidth` y ninguna caja con contenido más ancho que ella
   (`[...document.querySelectorAll('body *')].filter(e => e.scrollWidth > e.clientWidth + 1 && getComputedStyle(e).overflowX === 'visible')`).
   Rejillas de una columna con `grid-cols-1`; texto largo con `min-w-0` y `overflow-wrap:anywhere`.
+- **Computador (desde `lg`, 1024 px):** menú lateral fijo (`NavLateral`; la barra inferior `BottomNav` se oculta con `lg:hidden`) y contenido
+  hasta `max-w-5xl` (`2xl:max-w-6xl`) en `app/(app)/layout.tsx`. El celular no cambia nunca: todo lo de pantalla ancha va con prefijo `lg:`/`xl:`.
+  Cada pantalla decide cómo usar el ancho: tarjetas en columnas (`lg:columns-2 lg:[&>*]:break-inside-avoid` si el orden del celular debe
+  conservarse; `grid lg:grid-cols-2 lg:items-start` si no), listas en rejilla (`rejilla` de `ListaEscalable`), formularios y páginas de
+  ajustes con ancho cómodo (`lg:max-w-xl`), nunca estirados a todo lo ancho. Lo que el menú lateral ya muestra (finca activa) no se repite
+  en la pantalla en `lg`. Una pantalla nueva se prueba a 1440, 1024, 768, 360 y 320 px.
 - Objetivos táctiles ≥ 44 px, campos de 16 px (evita el zoom de iOS), respetar `env(safe-area-inset-*)`.
 - Navegación: barra inferior de 4 pestañas + botón central de acción (`BottomNav`). Elegir/confirmar/capturar en
   **hojas inferiores** (`Sheet`). Números con el **teclado propio** (`Teclado`), un solo botón principal fijo abajo.

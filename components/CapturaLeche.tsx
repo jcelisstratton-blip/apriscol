@@ -38,6 +38,7 @@ export function CapturaLeche({
   retiros,
   jornadaInicial,
   puedeEditar = false,
+  pie,
 }: {
   fincaId: string;
   hoy: string;
@@ -45,6 +46,8 @@ export function CapturaLeche({
   retiros: Record<string, string>;
   jornadaInicial: JornadaSimple;
   puedeEditar?: boolean;
+  /** Va al final en el celular y bajo el resumen en pantallas anchas (por ejemplo, «Agregar hembras al ordeño»). */
+  pie?: React.ReactNode;
 }) {
   const router = useRouter();
   const toast = useToast();
@@ -173,106 +176,113 @@ export function CapturaLeche({
   const etiquetaJornada = useMemo(() => (jornada === "manana" ? "mañana" : jornada === "tarde" ? "tarde" : "noche"), [jornada]);
 
   return (
-    <div className="space-y-4">
-      <div className="space-y-3">
-        <Segmentado<JornadaSimple>
-          etiqueta="Jornada"
-          valor={jornada}
-          onCambio={setJornada}
-          opciones={[
-            { valor: "manana", etiqueta: "Mañana" },
-            { valor: "tarde", etiqueta: "Tarde" },
-            { valor: "noche", etiqueta: "Noche" },
-          ]}
-        />
-        <FilaDesplazable>
-          <Chip activo={dia === "hoy"} onClick={() => setDia("hoy")}>Hoy</Chip>
-          <Chip activo={dia === "ayer"} onClick={() => setDia("ayer")}>Ayer</Chip>
-        </FilaDesplazable>
-      </div>
+    <div className="space-y-4 lg:grid lg:grid-cols-[22rem_minmax(0,1fr)] lg:grid-rows-[auto_1fr] lg:items-start lg:gap-x-8 lg:gap-y-4 lg:space-y-0">
+      <div className="space-y-4 lg:col-start-1 lg:row-start-1">
+        <div className="space-y-3">
+          <Segmentado<JornadaSimple>
+            etiqueta="Jornada"
+            valor={jornada}
+            onCambio={setJornada}
+            opciones={[
+              { valor: "manana", etiqueta: "Mañana" },
+              { valor: "tarde", etiqueta: "Tarde" },
+              { valor: "noche", etiqueta: "Noche" },
+            ]}
+          />
+          <FilaDesplazable>
+            <Chip activo={dia === "hoy"} onClick={() => setDia("hoy")}>Hoy</Chip>
+            <Chip activo={dia === "ayer"} onClick={() => setDia("ayer")}>Ayer</Chip>
+          </FilaDesplazable>
+        </div>
 
-      <section className="rounded-3xl bg-musgo p-4 text-sobre-musgo" aria-live="polite">
-        <div className="flex items-end justify-between gap-3">
-          <div className="min-w-0">
-            <p className="text-sm font-semibold opacity-85">Ordeño de la {etiquetaJornada}</p>
-            <p className="font-display text-4xl font-semibold leading-tight tabular-nums">
-              {fmt(totalTanque)}
-              <span className="ml-1 text-lg font-medium opacity-80">L</span>
+        <section className="rounded-3xl bg-musgo p-4 text-sobre-musgo" aria-live="polite">
+          <div className="flex items-end justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-sm font-semibold opacity-85">Ordeño de la {etiquetaJornada}</p>
+              <p className="font-display text-4xl font-semibold leading-tight tabular-nums">
+                {fmt(totalTanque)}
+                <span className="ml-1 text-lg font-medium opacity-80">L</span>
+              </p>
+            </div>
+            <p className="shrink-0 pb-1 text-right text-sm font-semibold">
+              {hechas.length} de {animales.length}
+              {totalDescartado > 0 ? <span className="block text-xs font-medium opacity-85">{fmt(totalDescartado)} L descartados</span> : null}
             </p>
           </div>
-          <p className="shrink-0 pb-1 text-right text-sm font-semibold">
-            {hechas.length} de {animales.length}
-            {totalDescartado > 0 ? <span className="block text-xs font-medium opacity-85">{fmt(totalDescartado)} L descartados</span> : null}
-          </p>
+          <div className="mt-3 h-2 overflow-hidden rounded-full bg-sobre-musgo/20" role="progressbar" aria-valuenow={progreso} aria-valuemin={0} aria-valuemax={100}>
+            <div className="h-full rounded-full bg-sobre-musgo transition-all" style={{ width: `${progreso}%` }} />
+          </div>
+        </section>
         </div>
-        <div className="mt-3 h-2 overflow-hidden rounded-full bg-sobre-musgo/20" role="progressbar" aria-valuenow={progreso} aria-valuemin={0} aria-valuemax={100}>
-          <div className="h-full rounded-full bg-sobre-musgo transition-all" style={{ width: `${progreso}%` }} />
-        </div>
-      </section>
 
-      {animales.length > MIN_PARA_BUSCAR ? <CampoBusqueda onBuscar={alBuscar} placeholder="Buscar por arete o nombre" /> : null}
+      <div className="space-y-4 lg:col-start-2 lg:row-span-2 lg:row-start-1">
+        {animales.length > MIN_PARA_BUSCAR ? <CampoBusqueda onBuscar={alBuscar} placeholder="Buscar por arete o nombre" /> : null}
 
-      {buscando ? (
-        lista.length > 0 ? (
-          <p className="px-1 text-sm text-humo" aria-live="polite">
-            {lista.length === 1 ? "1 animal encontrado en el ordeño" : `${lista.length} animales encontrados en el ordeño`}
+        {buscando ? (
+          lista.length > 0 ? (
+            <p className="px-1 text-sm text-humo" aria-live="polite">
+              {lista.length === 1 ? "1 animal encontrado en el ordeño" : `${lista.length} animales encontrados en el ordeño`}
+            </p>
+          ) : null
+        ) : (
+          <FilaDesplazable>
+            <Chip activo={vista === "pendientes"} onClick={() => setVista("pendientes")}>Pendientes · {pendientes.length}</Chip>
+            <Chip activo={vista === "hechas"} onClick={() => setVista("hechas")}>Registradas · {hechas.length}</Chip>
+          </FilaDesplazable>
+        )}
+
+        {errorCarga ? <Aviso tipo="error">{errorCarga}</Aviso> : null}
+
+        {!buscando && vista === "pendientes" && lista.length > 0 ? (
+          <p className="-mt-1 px-1 text-sm text-humo">Toca un animal para escribir los litros que dio en esta jornada.</p>
+        ) : null}
+
+        {!cargando && lista.length === 0 ? (
+          <p className="py-8 text-center text-[0.9375rem] text-humo">
+            {buscando
+              ? "Ningún animal coincide con tu búsqueda."
+              : vista === "pendientes"
+                ? "No queda ningún animal por ordeñar en esta jornada."
+                : "Todavía no has registrado ningún animal en esta jornada."}
           </p>
-        ) : null
-      ) : (
-        <FilaDesplazable>
-          <Chip activo={vista === "pendientes"} onClick={() => setVista("pendientes")}>Pendientes · {pendientes.length}</Chip>
-          <Chip activo={vista === "hechas"} onClick={() => setVista("hechas")}>Registradas · {hechas.length}</Chip>
-        </FilaDesplazable>
-      )}
+        ) : null}
 
-      {errorCarga ? <Aviso tipo="error">{errorCarga}</Aviso> : null}
-
-      {!buscando && vista === "pendientes" && lista.length > 0 ? (
-        <p className="-mt-1 px-1 text-sm text-humo">Toca un animal para escribir los litros que dio en esta jornada.</p>
-      ) : null}
-
-      {!cargando && lista.length === 0 ? (
-        <p className="py-8 text-center text-[0.9375rem] text-humo">
-          {buscando
-            ? "Ningún animal coincide con tu búsqueda."
-            : vista === "pendientes"
-              ? "No queda ningún animal por ordeñar en esta jornada."
-              : "Todavía no has registrado ningún animal en esta jornada."}
-        </p>
-      ) : null}
-
-      <ListaPorTramos
-        key={`${clave}|${vista}|${busqueda}`}
-        items={lista}
-        clave={(a) => a.id}
-        fila={(a) => {
-          const r = registros[a.id];
-          return (
-            <button
-              type="button"
-              onClick={() => abrir(a)}
-              className="flex min-h-[4.25rem] w-full items-center gap-3 rounded-2xl bg-papel px-3.5 py-2.5 text-left ring-1 ring-arena transition active:scale-[0.99]"
-            >
-              <span className={`grid size-11 shrink-0 place-items-center rounded-full ${r ? "bg-ok/15 text-ok" : "bg-arena text-humo"}`}>
-                {r ? <Check className="size-5" strokeWidth={2.4} /> : <Droplets className="size-5" strokeWidth={1.75} />}
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className="block truncate font-bold">{a.numero_arete}</span>
-                <span className="block truncate text-sm text-humo">{a.nombre ?? "Sin nombre"}</span>
-                {retiros[a.id] ? <span className="mt-1 block"><Insignia tono="aviso">En retiro · se descarta</Insignia></span> : null}
-              </span>
-              {r ? (
-                <span className="shrink-0 text-right">
-                  <span className="block text-lg font-bold tabular-nums">{fmt(r.litros)} L</span>
-                  {r.descartada ? <Insignia tono="aviso">Descartada</Insignia> : null}
+        <ListaPorTramos
+          key={`${clave}|${vista}|${busqueda}`}
+          items={lista}
+          clave={(a) => a.id}
+          fila={(a) => {
+            const r = registros[a.id];
+            return (
+              <button
+                type="button"
+                onClick={() => abrir(a)}
+                className="flex min-h-[4.25rem] w-full items-center gap-3 rounded-2xl bg-papel px-3.5 py-2.5 text-left ring-1 ring-arena transition active:scale-[0.99]"
+              >
+                <span className={`grid size-11 shrink-0 place-items-center rounded-full ${r ? "bg-ok/15 text-ok" : "bg-arena text-humo"}`}>
+                  {r ? <Check className="size-5" strokeWidth={2.4} /> : <Droplets className="size-5" strokeWidth={1.75} />}
                 </span>
-              ) : (
-                <ChevronRight className="size-5 shrink-0 text-humo" strokeWidth={1.75} aria-hidden="true" />
-              )}
-            </button>
-          );
-        }}
-      />
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate font-bold">{a.numero_arete}</span>
+                  <span className="block truncate text-sm text-humo">{a.nombre ?? "Sin nombre"}</span>
+                  {retiros[a.id] ? <span className="mt-1 block"><Insignia tono="aviso">En retiro · se descarta</Insignia></span> : null}
+                </span>
+                {r ? (
+                  <span className="shrink-0 text-right">
+                    <span className="block text-lg font-bold tabular-nums">{fmt(r.litros)} L</span>
+                    {r.descartada ? <Insignia tono="aviso">Descartada</Insignia> : null}
+                  </span>
+                ) : (
+                  <ChevronRight className="size-5 shrink-0 text-humo" strokeWidth={1.75} aria-hidden="true" />
+                )}
+              </button>
+            );
+          }}
+        />
+
+      </div>
+
+      {pie ? <div className="lg:col-start-1 lg:row-start-2">{pie}</div> : null}
 
       <Sheet
         abierta={activo !== null}

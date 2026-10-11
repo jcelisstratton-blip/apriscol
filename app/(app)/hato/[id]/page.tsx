@@ -105,7 +105,7 @@ export default async function FichaAnimal({ params }: { params: Promise<{ id: st
         </div>
       </header>
 
-      <div className="space-y-3.5">
+      <div className="space-y-3.5 lg:columns-2 lg:gap-x-4 lg:[&>*]:break-inside-avoid">
         {miRetiro ? (
           <Aviso tipo="atencion">
             En periodo de retiro

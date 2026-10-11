@@ -35,19 +35,21 @@ export default async function PaginaParticipacionNueva({ searchParams }: { searc
         <ChevronLeft className="size-5" strokeWidth={2} /> Volver
       </Link>
       <Encabezado titulo="Premio de feria" subtitulo={finca.nombre} />
-      {(ferias ?? []).length === 0 ? (
-        <EstadoVacio icono={<Trophy strokeWidth={1.5} />} titulo="Primero registra la feria" descripcion="Cada participación pertenece a una feria. Créala y vuelves directo aquí.">
-          <EnlaceBoton href={`/ferias/nueva${animal && ID_UUID.test(animal) ? `?animal=${animal}` : ""}`}>Registrar feria</EnlaceBoton>
-        </EstadoVacio>
-      ) : (
-        <FormParticipacion
-          fincaId={finca.id}
-          ferias={ferias ?? []}
-          feriaInicial={feria && ID_UUID.test(feria) ? feria : undefined}
-          animalInicial={animalInicial.data ?? null}
-          solicitud={randomUUID()}
-        />
-      )}
+      <div className="lg:max-w-xl">
+        {(ferias ?? []).length === 0 ? (
+          <EstadoVacio icono={<Trophy strokeWidth={1.5} />} titulo="Primero registra la feria" descripcion="Cada participación pertenece a una feria. Créala y vuelves directo aquí.">
+            <EnlaceBoton href={`/ferias/nueva${animal && ID_UUID.test(animal) ? `?animal=${animal}` : ""}`}>Registrar feria</EnlaceBoton>
+          </EstadoVacio>
+        ) : (
+          <FormParticipacion
+            fincaId={finca.id}
+            ferias={ferias ?? []}
+            feriaInicial={feria && ID_UUID.test(feria) ? feria : undefined}
+            animalInicial={animalInicial.data ?? null}
+            solicitud={randomUUID()}
+          />
+        )}
+      </div>
     </>
   );
 }

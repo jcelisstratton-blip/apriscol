@@ -23,7 +23,9 @@ export default async function PaginaAnimalNuevo() {
         <ChevronLeft className="size-5" strokeWidth={2} /> Hato
       </Link>
       <Encabezado titulo="Animal nuevo" subtitulo={finca.nombre} />
-      <FormAnimal fincaId={finca.id} especies={finca.especies} propositoFinca={finca.proposito} razas={razas ?? []} solicitud={randomUUID()} />
+      <div className="lg:max-w-xl">
+        <FormAnimal fincaId={finca.id} especies={finca.especies} propositoFinca={finca.proposito} razas={razas ?? []} solicitud={randomUUID()} />
+      </div>
     </>
   );
 }

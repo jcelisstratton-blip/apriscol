@@ -76,7 +76,7 @@ export default async function DetalleFeria({ params }: { params: Promise<{ id: s
           descripcion="Agrega los animales que llevaste a esta feria y, si ganaron, el premio con su foto."
         />
       ) : (
-        <ul className="grid grid-cols-1 gap-2.5">
+        <ul className="grid grid-cols-1 gap-2.5 lg:grid-cols-2">
           {lista.map((p) => (
             <li key={p.id} className="min-w-0">
               <FilaParticipacion

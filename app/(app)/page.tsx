@@ -80,12 +80,12 @@ export default async function PaginaHoy({ searchParams }: { searchParams: Promis
         subtitulo={formatoFecha(hoy, { weekday: "long", day: "numeric", month: "long" })}
       />
       {clave === "cambiada" ? <Aviso tipo="exito" className="mb-3">Tu contraseña quedó actualizada.</Aviso> : null}
-      <div className="mb-4">
+      <div className="mb-4 lg:hidden">
         <FincaSelector fincas={fincas.map((f) => ({ id: f.id, nombre: f.nombre, rol: f.rol }))} activa={finca.id} />
       </div>
 
       {hato === 0 ? (
-        <Tarjeta>
+        <Tarjeta className="lg:max-w-xl">
           <EstadoVacio
             icono={<Rabbit strokeWidth={1.5} />}
             titulo="Empecemos por el hato"
@@ -95,7 +95,7 @@ export default async function PaginaHoy({ searchParams }: { searchParams: Promis
           </EstadoVacio>
         </Tarjeta>
       ) : (
-        <div className="space-y-3.5">
+        <div className="grid grid-cols-1 gap-3.5 lg:grid-cols-2 lg:items-start">
           {verLeche ? (
             <section className="rounded-3xl bg-musgo p-5 text-sobre-musgo">
               <div className="flex items-center justify-between gap-3">
