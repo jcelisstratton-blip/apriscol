@@ -36,10 +36,12 @@ correspondiente en `node_modules/next/dist/docs/` (esta versión cambia APIs: `m
 10. Módulo nuevo ⇒ valor nuevo en el enum `modulo_app` en **su propia migración** (un valor de enum recién creado no puede
    usarse en la misma transacción), y luego tablas + `crear_politicas_finca`. `puede_ver/puede_escribir` niegan por
    defecto: un rol solo accede a un módulo si aparece listado.
-11. **Libro genealógico = única tabla global** (`libro_genealogico`, sin `finca_id`): solo lectura para quien tenga alguna finca, sin
-   políticas de escritura. Se llena con `importar_libro_lote` (service_role). Los documentos de titulares nunca se guardan en claro
-   (`private.hash_documento`, pepper en Vault) y `libro_titulares` solo la ve el administrador de plataforma. Un animal entra al hato
-   únicamente vía `aprobar_reclamo`. Los volcados de datos reales no se versionan.
+11. **Libro genealógico = única tabla global** (`libro_genealogico`, sin `finca_id`), **legible solo por el superadmin**
+   (`plataforma_admins`); las fincas nunca la consultan, solo reciben cálculos por funciones `security definer` que validan su finca.
+   Se llena con `importar_libro_lote` (service_role). Los documentos de titulares nunca se guardan en claro (`private.hash_documento`,
+   pepper en Vault). **El propietario es dueño y administrador de su finca**: trae sus animales con `traer_animales_libro`
+   sin aprobación de nadie; al hato solo pasa lo que le sirve (nada de prefijo, puntaje ni datos internos de la asociación). El
+   superadmin supervisa y puede revertir (`admin_revertir_importacion`). Los volcados de datos reales no se versionan.
 
 ## Interfaz (móvil primero, referencias de Mobbin)
 

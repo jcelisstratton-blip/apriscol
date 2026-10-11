@@ -26,15 +26,17 @@ roles, hato y genealogía (endogamia de Wright por método tabular), sanidad, re
 - `coef_endogamia(animal)`, `simular_endogamia(macho, hembra)` y `completitud_pedigri(animal)` son RPC.
 - Un animal en periodo de retiro **no puede** entrar al tanque ni salir para consumo: lo hace cumplir la base.
 
-## Libro genealógico compartido
+## Libro genealógico (de dónde salen los animales)
 
-Los pedigríes cruzan fincas (el padre de un animal suele ser de otro criador), así que el registro oficial vive en una tabla
-global `libro_genealogico` (hoy: ~6.600 animales ANCO) y las fincas **reclaman** los suyos:
+Los pedigríes cruzan fincas (el padre de un animal suele ser de otro criador), así que el registro de origen (hoy ~6.600 animales
+ANCO) vive en una tabla global `libro_genealogico` que **ninguna finca puede consultar**: solo el superadmin. Cada propietario es
+dueño y administrador de su finca y trae sus animales sin pedirle permiso a nadie:
 
 1. `scripts/importar-libro/` carga el volcado (ver su README) — corre local con la llave de servicio.
-2. La finca pide la reclamación con el documento del titular (`/libro/reclamar`); la base lo compara contra un HMAC, nunca en claro.
-3. El administrador de plataforma aprueba (`/admin/reclamos`); recién ahí se crean los animales en el hato de la finca.
-4. La endogamia usa el grafo del libro cuando el animal viene de él, aunque sus padres estén en otra finca.
+2. El propietario escribe su documento en `/libro/traer`; la base lo compara contra un HMAC (nunca en claro) y crea los animales en
+   su hato, con solo los datos que le sirven (sin prefijo ni datos internos de la asociación) y su pedigrí enlazado.
+3. La endogamia usa el grafo completo del libro aunque el padre sea de otro criador; las funciones validan que el animal sea de tu finca.
+4. El superadmin ve las importaciones en `/admin/importaciones` y puede revertir una (si alguien trajo animales ajenos).
 
 ## Despliegue
 

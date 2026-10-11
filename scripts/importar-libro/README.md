@@ -27,6 +27,8 @@ Los registros con datos irrecuperables se rechazan y se listan en el informe.
 
 ## Después
 
-1. Un administrador de plataforma (fila en `plataforma_admins`) aprueba las solicitudes en `/admin/reclamos`.
-2. Cada finca solicita sus animales en `/libro/reclamar` con el documento del titular; al aprobarse se crean en su hato
-   con el pedigrí enlazado.
+1. Cada propietario trae sus animales en `/libro/traer` escribiendo su documento; no requiere aprobación: se crean en su hato
+   con el pedigrí enlazado. El hato recibe solo lo que le sirve al propietario (nombre, microchip, raza, nacimiento, color,
+   rasgos, marcas, padres, estado); prefijo, puntaje, libro y demás datos de la asociación se quedan en el libro.
+2. El superadmin (fila en `plataforma_admins`) ve en `/admin/importaciones` quién trajo qué y puede revertir una importación
+   si alguien trajo animales que no eran suyos.

@@ -287,9 +287,9 @@ export type ReclamoAdmin = {
   motivo_rechazo: string | null;
 };
 
-export type RespuestaSolicitud =
+export type RespuestaTraer =
   | { encontrado: false }
-  | { encontrado: true; animales: number; vivos?: number; solicitud_id?: string };
+  | { encontrado: true; importados: number; padres_enlazados?: number; madres_enlazadas?: number };
 
 export type Database = {
   __InternalSupabase: { PostgrestVersion: "14.18" };
@@ -328,9 +328,8 @@ export type Database = {
       coef_endogamia_libro: { Args: { p_libro: string }; Returns: number };
       simular_endogamia_libro: { Args: { p_macho: string; p_hembra: string }; Returns: number };
       completitud_pedigri_libro: { Args: { p_libro: string; p_generaciones?: number }; Returns: number };
-      solicitar_reclamo: { Args: { p_finca: string; p_tipo: string; p_documento: string; p_mensaje?: string }; Returns: RespuestaSolicitud };
-      aprobar_reclamo: { Args: { p_solicitud: string }; Returns: { importados: number; padres_enlazados: number; madres_enlazadas: number } };
-      rechazar_reclamo: { Args: { p_solicitud: string; p_motivo?: string }; Returns: undefined };
+      traer_animales_libro: { Args: { p_finca: string; p_documento: string }; Returns: RespuestaTraer };
+      admin_revertir_importacion: { Args: { p_solicitud: string }; Returns: number };
       admin_listar_reclamos: { Args: { p_estado?: string | null }; Returns: ReclamoAdmin[] };
     };
     Enums: Record<string, never>;

@@ -44,7 +44,7 @@ export const obtenerContexto = cache(async (): Promise<Contexto> => {
   return { user, perfil: perfil ?? null, fincas, finca, rol: finca.rol };
 });
 
-/** ¿La persona es administradora de la plataforma? (puede ver y resolver los reclamos del libro genealógico). */
+/** ¿La persona es administradora de la plataforma? (superadmin: vista global e importaciones del libro genealógico). */
 export const esAdminPlataforma = cache(async (): Promise<boolean> => {
   const user = await obtenerUsuario();
   const supabase = await crearClienteServidor();

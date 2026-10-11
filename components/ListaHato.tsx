@@ -85,8 +85,8 @@ export function ListaHato({
                   <Link href="/hato/nuevo" className={clasesBoton("primario")}>
                     Registrar el primer animal
                   </Link>
-                  <Link href="/libro/reclamar" className={clasesBoton("secundario")}>
-                    Traer mis animales del libro genealógico
+                  <Link href="/libro/traer" className={clasesBoton("secundario")}>
+                    Traer mis animales registrados
                   </Link>
                 </div>
               ) : null}

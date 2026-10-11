@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ChevronLeft, Inbox } from "lucide-react";
-import { AccionesReclamo } from "@/components/AccionesReclamo";
+import { AccionRevertir } from "@/components/AccionRevertir";
 import { Encabezado } from "@/components/Encabezado";
 import { EstadoVacio } from "@/components/EstadoVacio";
 import { Chip, FilaDesplazable } from "@/components/FilaDesplazable";
@@ -12,30 +12,30 @@ import { esAdminPlataforma } from "@/lib/contexto";
 import { crearClienteServidor } from "@/lib/supabase/server";
 import { formatoFecha } from "@/lib/fechas";
 
-export const metadata: Metadata = { title: "Reclamos del libro" };
+export const metadata: Metadata = { title: "Importaciones del libro" };
 
-const ETIQUETA = { pendiente: "En revisión", aprobada: "Aprobada", rechazada: "Rechazada", cancelada: "Cancelada" } as const;
+const ETIQUETA = { pendiente: "En proceso", aprobada: "Importada", rechazada: "Rechazada", cancelada: "Revertida" } as const;
 const TONO = { pendiente: "aviso", aprobada: "ok", rechazada: "alerta", cancelada: "neutro" } as const;
 
-export default async function PaginaAdminReclamos({ searchParams }: { searchParams: Promise<{ ver?: string }> }) {
+export default async function PaginaAdminImportaciones({ searchParams }: { searchParams: Promise<{ ver?: string }> }) {
   if (!(await esAdminPlataforma())) redirect("/mas");
   const { ver } = await searchParams;
-  const resueltas = ver === "resueltas";
+  const revertidas = ver === "revertidas";
 
   const supabase = await crearClienteServidor();
-  const { data, error } = await supabase.rpc("admin_listar_reclamos", { p_estado: resueltas ? null : "pendiente" });
-  const lista = (data ?? []).filter((r) => (resueltas ? r.estado !== "pendiente" : true));
+  const { data, error } = await supabase.rpc("admin_listar_reclamos", { p_estado: revertidas ? "cancelada" : "aprobada" });
+  const lista = data ?? [];
 
   return (
     <>
       <Link href="/mas" className="-ml-2 mt-3 inline-flex min-h-11 items-center gap-1 rounded-full px-2 text-[0.9375rem] font-semibold text-musgo">
         <ChevronLeft className="size-5" strokeWidth={2} /> Más
       </Link>
-      <Encabezado titulo="Reclamos" subtitulo="Libro genealógico" />
+      <Encabezado titulo="Importaciones" subtitulo="Libro genealógico · vista global" />
       <div className="mb-3">
         <FilaDesplazable>
-          <Link href="/admin/reclamos"><Chip activo={!resueltas} onClick={() => undefined}>Pendientes</Chip></Link>
-          <Link href="/admin/reclamos?ver=resueltas"><Chip activo={resueltas} onClick={() => undefined}>Resueltas</Chip></Link>
+          <Link href="/admin/importaciones"><Chip activo={!revertidas} onClick={() => undefined}>Recientes</Chip></Link>
+          <Link href="/admin/importaciones?ver=revertidas"><Chip activo={revertidas} onClick={() => undefined}>Revertidas</Chip></Link>
         </FilaDesplazable>
       </div>
 
@@ -44,8 +44,8 @@ export default async function PaginaAdminReclamos({ searchParams }: { searchPara
       {lista.length === 0 ? (
         <EstadoVacio
           icono={<Inbox strokeWidth={1.5} />}
-          titulo={resueltas ? "Todavía no hay solicitudes resueltas" : "No hay solicitudes pendientes"}
-          descripcion="Cuando un criador pida reclamar sus animales, aparecerá aquí para que lo revises."
+          titulo={revertidas ? "No hay importaciones revertidas" : "Todavía no hay importaciones"}
+          descripcion="Cuando un propietario traiga sus animales del libro, quedará registrado aquí: quién, en qué finca y cuántos."
         />
       ) : (
         <ul className="grid grid-cols-1 gap-3">
@@ -70,7 +70,7 @@ export default async function PaginaAdminReclamos({ searchParams }: { searchPara
                     </dd>
                   </div>
                   <div className="flex justify-between gap-4 py-2">
-                    <dt className="text-humo">Animales</dt>
+                    <dt className="text-humo">Del titular</dt>
                     <dd className="font-semibold">{r.animales_total} ({r.animales_vivos} vivos)</dd>
                   </div>
                   {r.criaderos.length > 0 ? (
@@ -80,15 +80,14 @@ export default async function PaginaAdminReclamos({ searchParams }: { searchPara
                     </div>
                   ) : null}
                   <div className="flex justify-between gap-4 py-2">
-                    <dt className="text-humo">Solicitada</dt>
+                    <dt className="text-humo">Fecha</dt>
                     <dd className="font-semibold">{formatoFecha(r.creada_en.slice(0, 10))}</dd>
                   </div>
                 </dl>
-                {r.mensaje ? <p className="mt-2 rounded-xl bg-lana px-3 py-2 text-[0.9375rem] [overflow-wrap:anywhere]">“{r.mensaje}”</p> : null}
-                {r.motivo_rechazo ? <p className="mt-2 text-sm text-rojo">Motivo: {r.motivo_rechazo}</p> : null}
-                {r.estado === "pendiente" ? (
+                                {r.motivo_rechazo ? <p className="mt-2 text-sm text-rojo">Motivo: {r.motivo_rechazo}</p> : null}
+                {r.estado === "aprobada" ? (
                   <div className="mt-3">
-                    <AccionesReclamo id={r.id} animales={r.animales_total} />
+                    <AccionRevertir id={r.id} animales={r.animales_total} />
                   </div>
                 ) : null}
               </Tarjeta>
