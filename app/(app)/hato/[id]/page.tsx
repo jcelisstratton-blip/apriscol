@@ -143,7 +143,14 @@ export default async function FichaAnimal({ params }: { params: Promise<{ id: st
                 <Dato etiqueta="Pico en un día">{lac.pico_diario == null ? "—" : `${litros(lac.pico_diario)} L`}</Dato>
               </dl>
             ) : (
-              <p className="text-[0.9375rem] text-humo">Todavía no tiene lactancia registrada. Se abre sola al registrar un parto.</p>
+              <div className="space-y-3">
+                <p className="text-[0.9375rem] text-humo">Todavía no está en ordeño. Si ya da leche, ponla en el ordeño para registrar sus litros.</p>
+                {puedeEscribir(rol, "leche") && animal.estado === "activo" ? (
+                  <Link href={`/leche?agregar=${id}`} className={clasesBoton("secundario")}>
+                    Poner en ordeño
+                  </Link>
+                ) : null}
+              </div>
             )}
           </Tarjeta>
         ) : null}

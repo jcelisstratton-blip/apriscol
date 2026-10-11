@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
-import { Check, Droplets } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Check, ChevronRight, Droplets } from "lucide-react";
 import { Aviso } from "@/components/Aviso";
 import { Boton } from "@/components/Boton";
 import { Chip, FilaDesplazable } from "@/components/FilaDesplazable";
@@ -10,7 +11,7 @@ import { Segmentado } from "@/components/Segmentado";
 import { Sheet } from "@/components/Sheet";
 import { Teclado } from "@/components/Teclado";
 import { useToast } from "@/components/Toast";
-import { guardarOrdeno } from "@/app/(app)/leche/actions";
+import { guardarOrdeno, sacarDelOrdeno } from "@/app/(app)/leche/actions";
 import { crearClienteNavegador } from "@/lib/supabase/client";
 import { litros as fmt, sumarDias } from "@/lib/fechas";
 import { etiquetaAnimal } from "@/lib/animal";
@@ -32,13 +33,16 @@ export function CapturaLeche({
   animales,
   retiros,
   jornadaInicial,
+  puedeEditar = false,
 }: {
   fincaId: string;
   hoy: string;
   animales: AnimalLeche[];
   retiros: Record<string, string>;
   jornadaInicial: JornadaSimple;
+  puedeEditar?: boolean;
 }) {
+  const router = useRouter();
   const toast = useToast();
   const [jornada, setJornada] = useState<JornadaSimple>(jornadaInicial);
   const [dia, setDia] = useState<"hoy" | "ayer">("hoy");
@@ -48,6 +52,7 @@ export function CapturaLeche({
   const [texto, setTexto] = useState("");
   const [descartar, setDescartar] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [confirmandoSalida, setConfirmandoSalida] = useState(false);
   const [guardando, iniciar] = useTransition();
 
   const fecha = dia === "hoy" ? hoy : sumarDias(hoy, -1);
@@ -91,6 +96,7 @@ export function CapturaLeche({
       setTexto(previo ? String(previo.litros) : "");
       setDescartar(previo?.descartada ?? false);
       setError(null);
+      setConfirmandoSalida(false);
     },
     [registros],
   );
@@ -136,6 +142,19 @@ export function CapturaLeche({
         setActivo(null);
         toast.exito("Jornada completa. ¡Buen ordeño!");
       }
+    });
+  };
+
+  const sacar = () => {
+    if (!activo) return;
+    const actual = activo;
+    iniciar(async () => {
+      const r = await sacarDelOrdeno(actual.id);
+      if (!r.ok) return setError(r.error);
+      toast.exito(`${etiquetaAnimal(actual)} salió del ordeño`);
+      setActivo(null);
+      setConfirmandoSalida(false);
+      router.refresh();
     });
   };
 
@@ -187,6 +206,10 @@ export function CapturaLeche({
 
       {errorCarga ? <Aviso tipo="error">{errorCarga}</Aviso> : null}
 
+      {vista === "pendientes" && pendientes.length > 0 ? (
+        <p className="-mt-1 px-1 text-sm text-humo">Toca un animal para escribir los litros que dio en esta jornada.</p>
+      ) : null}
+
       {!cargando && lista.length === 0 ? (
         <p className="py-8 text-center text-[0.9375rem] text-humo">
           {vista === "pendientes" ? "No queda ningún animal por ordeñar en esta jornada." : "Todavía no has registrado ningún animal en esta jornada."}
@@ -216,7 +239,9 @@ export function CapturaLeche({
                     <span className="block text-lg font-bold tabular-nums">{fmt(r.litros)} L</span>
                     {r.descartada ? <Insignia tono="aviso">Descartada</Insignia> : null}
                   </span>
-                ) : null}
+                ) : (
+                  <ChevronRight className="size-5 shrink-0 text-humo" strokeWidth={1.75} aria-hidden="true" />
+                )}
               </button>
             </li>
           );
@@ -251,6 +276,23 @@ export function CapturaLeche({
             </label>
           )}
           {error ? <Aviso tipo="error">{error}</Aviso> : null}
+          {puedeEditar ? (
+            confirmandoSalida ? (
+              <div className="space-y-2 rounded-2xl bg-lana p-3.5">
+                <p className="text-[0.9375rem]">
+                  ¿Ya no se ordeña? Sale de esta lista y su lactancia queda cerrada hoy. Sus registros anteriores se conservan.
+                </p>
+                <div className="grid grid-cols-2 gap-2">
+                  <Boton variante="secundario" onClick={() => setConfirmandoSalida(false)} disabled={guardando}>Cancelar</Boton>
+                  <Boton variante="peligro" onClick={sacar} pendiente={guardando} cargando="Sacando…">Sí, sacarla</Boton>
+                </div>
+              </div>
+            ) : (
+              <button type="button" onClick={() => setConfirmandoSalida(true)} className="min-h-11 w-full text-center text-[0.9375rem] font-semibold text-humo underline-offset-4 hover:underline">
+                Ya no está en ordeño
+              </button>
+            )
+          ) : null}
         </div>
       </Sheet>
     </div>
