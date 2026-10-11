@@ -7,11 +7,14 @@ import { Insignia } from "@/components/Insignia";
 import { Tarjeta } from "@/components/Tarjeta";
 import { obtenerContexto } from "@/lib/contexto";
 import { crearClienteServidor } from "@/lib/supabase/server";
-import { puedeEscribir, puedeVer } from "@/lib/permisos";
+import { puedeEscribir, puedeGestionar, puedeVer } from "@/lib/permisos";
 import { urlsFotosPremios } from "@/lib/fotos";
 import { FilaParticipacion } from "@/components/FilaParticipacion";
 import { clasesBoton } from "@/components/Boton";
 import { edadTexto, formatoFecha, litros } from "@/lib/fechas";
+import { pesos } from "@/lib/ferias";
+import { ETIQUETA_MOTIVO_BAJA, ETIQUETA_TIPO_BAJA } from "@/lib/bajas";
+import { DeshacerBaja } from "@/components/DeshacerBaja";
 import { ETIQUETA_VOCACION, nombreTipo } from "@/lib/animal";
 import { NivelEndogamia } from "@/components/NivelEndogamia";
 import { RutasEndogamia } from "@/components/RutasEndogamia";
@@ -46,7 +49,7 @@ export default async function FichaAnimal({ params }: { params: Promise<{ id: st
   const verFerias = puedeVer(rol, "ferias");
   const idsPadres = [animal.padre_id, animal.madre_id].filter((x): x is string => !!x);
 
-  const [raza, padres, endo, completitud, lactancia, retiro, palmares, participaciones] = await Promise.all([
+  const [raza, padres, endo, completitud, lactancia, retiro, palmares, participaciones, baja] = await Promise.all([
     animal.raza_id ? supabase.from("razas").select("nombre").eq("id", animal.raza_id).maybeSingle() : Promise.resolve({ data: null }),
     idsPadres.length ? supabase.from("animales").select("id, numero_arete, nombre").in("id", idsPadres) : Promise.resolve({ data: [] }),
     puedeCalcular && verGenealogia ? supabase.rpc("coef_endogamia", { p_animal: id }) : Promise.resolve({ data: null as number | null }),
@@ -64,6 +67,7 @@ export default async function FichaAnimal({ params }: { params: Promise<{ id: st
           .order("created_at", { ascending: false })
           .limit(20)
       : Promise.resolve({ data: [] }),
+    animal.estado !== "activo" ? supabase.from("bajas").select("*").eq("animal_id", id).maybeSingle() : Promise.resolve({ data: null }),
   ]);
 
   const listaPremios = participaciones.data ?? [];
@@ -269,6 +273,34 @@ export default async function FichaAnimal({ params }: { params: Promise<{ id: st
         {animal.notas ? (
           <Tarjeta titulo="Notas">
             <p className="whitespace-pre-wrap text-[0.9375rem]">{animal.notas}</p>
+          </Tarjeta>
+        ) : null}
+
+        {animal.estado !== "activo" ? (
+          <Tarjeta titulo="Salida del hato">
+            <dl className="divide-y divide-arena">
+              <Dato etiqueta="Qué pasó">{baja.data ? ETIQUETA_TIPO_BAJA[baja.data.tipo] : animal.estado[0].toUpperCase() + animal.estado.slice(1)}</Dato>
+              <Dato etiqueta="Fecha">{formatoFecha(baja.data?.fecha ?? animal.fecha_baja)}</Dato>
+              {baja.data?.motivo ? <Dato etiqueta="Motivo">{ETIQUETA_MOTIVO_BAJA[baja.data.motivo]}</Dato> : null}
+              {baja.data?.comprador ? <Dato etiqueta="Comprador">{baja.data.comprador}</Dato> : null}
+              {baja.data?.valor ? <Dato etiqueta="Valor">{pesos(baja.data.valor)}</Dato> : null}
+              {baja.data?.destino_consumo ? <Dato etiqueta="Destino">Consumo</Dato> : null}
+            </dl>
+            {baja.data?.detalle ? <p className="mt-3 whitespace-pre-wrap text-[0.9375rem] text-humo">{baja.data.detalle}</p> : null}
+            {puedeGestionar(rol) ? (
+              <div className="mt-3">
+                <DeshacerBaja animalId={id} etiqueta={animal.nombre ?? animal.numero_arete} esHembra={animal.sexo === "hembra"} />
+              </div>
+            ) : null}
+          </Tarjeta>
+        ) : puedeEscribir(rol, "hato") ? (
+          <Tarjeta titulo="Salida del hato">
+            <p className="text-[0.9375rem] text-humo">
+              Si se vendió, murió, se sacrificó o se perdió, regístralo para sacarlo del hato{animal.sexo === "hembra" ? " y del ordeño" : ""}. Puedes deshacerlo después.
+            </p>
+            <Link href={`/hato/${id}/baja`} className={`${clasesBoton("secundario")} mt-3`}>
+              Dar de baja
+            </Link>
           </Tarjeta>
         ) : null}
       </div>

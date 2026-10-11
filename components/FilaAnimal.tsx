@@ -13,6 +13,9 @@ export type AnimalFila = {
   especie: Especie;
   fecha_nacimiento: string | null;
   fecha_nacimiento_aprox: boolean;
+  /** Solo cuando la lista incluye animales que ya salieron del hato. */
+  estado?: string;
+  fecha_baja?: string | null;
 };
 
 export type RetiroFila = { leche: string | null; carne: string | null };
@@ -38,6 +41,14 @@ export function FilaAnimal({ animal, retiro }: { animal: AnimalFila; retiro?: Re
           {nombreTipo(animal.especie, animal.sexo)} · {edadTexto(animal.fecha_nacimiento)}
           {animal.fecha_nacimiento_aprox ? " aprox." : ""}
         </span>
+        {animal.estado && animal.estado !== "activo" ? (
+          <span className="mt-1 flex flex-wrap gap-1">
+            <Insignia tono="alerta">
+              {animal.estado[0].toUpperCase() + animal.estado.slice(1)}
+              {animal.fecha_baja ? ` · ${formatoFecha(animal.fecha_baja, { day: "numeric", month: "short", year: "numeric" })}` : ""}
+            </Insignia>
+          </span>
+        ) : null}
         {retiro ? (
           <span className="mt-1 flex flex-wrap gap-1">
             {retiro.leche ? <Insignia tono="aviso">Retiro leche · {formatoFecha(retiro.leche, { day: "numeric", month: "short" })}</Insignia> : null}

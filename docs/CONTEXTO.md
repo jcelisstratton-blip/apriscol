@@ -53,6 +53,7 @@
 - **Fechas:** `date`/`timestamptz` y día calendario de Colombia (`lib/fechas.ts#hoyBogota`).
 - **Storage:** un bucket por tipo (`fotos-animales`, `soportes`, `premios`) y dentro `<finca_id>/<uuid>.<ext>`; el servidor arma la ruta y firma la subida; buckets privados con URLs firmadas cortas.
 - **Tablas principales:** `perfiles`, `fincas`, `finca_miembros`, `invitaciones`, `razas`, `razas_alias`, `animales`, `lactancias`, `ordenos`, `partos`, sanidad y reproducción (esquema fase 1), `ferias`, `participaciones_feria`, y las del libro (`libro_genealogico`, `libro_titulares`, `solicitudes_reclamo`, `intentos_reclamo`, `plataforma_admins`).
+- **Bajas de animales (ya con interfaz):** la tabla `bajas` (venta, sacrificio, muerte o pérdida, con fecha, motivo, comprador, valor, destino de consumo y notas) aplica sola el estado y `fecha_baja` del animal (`private.baja_aplicar`), rechaza sacar para consumo a un animal en retiro de carne y una segunda baja del mismo animal; borrar la baja la deshace. Pantalla: ficha del animal → tarjeta «Salida del hato» → «Dar de baja» (`/hato/[id]/baja`, `FormBaja`); acciones `darDeBaja` y `deshacerBaja` en `app/(app)/hato/actions.ts`. Si es una hembra en ordeño, `darDeBaja` cierra su lactancia con la fecha de la baja. «Deshacer la baja» (solo propietario o administrador) devuelve el animal al hato, pero **no reabre la lactancia**: se agrega de nuevo desde Leche. La lista del hato tiene el filtro «Dados de baja». Sin migraciones nuevas.
 - **Migraciones aplicadas (en orden):** nucleo_multitenant · hato_y_genealogia · sanidad · reproduccion · leche · permisos_y_storage · indices_y_vistas · modulo_ferias · ferias_y_premios · libro_genealogico · libro_funciones · propietario_autonomo · (cerrar_libro_y_retirar_aprobacion, aplicada a mano) · endogamia_finca · verificacion_titular · traer_animales_una_vez · panel_superadmin · explicar_endogamia.
 
 ---
@@ -173,7 +174,6 @@
 **Módulos sin interfaz todavía**
 - **Sanidad** (tratamientos, vacunas, periodos de retiro: el esquema y la regla "un animal en retiro no entra al tanque ni sale para consumo" ya existen en la base).
 - **Reproducción / partos** (servicios, gestación, parto con cría y apertura automática de lactancia).
-- **Baja de animales** (muerte, venta) y su fecha.
 - **Pesos / GDP**, nutrición, ambiente (ITH) y contabilidad (módulos previstos en `modulo_app`).
 - **Modo sin conexión** para el ordeño en el campo.
 - Verificar con sesión real: subida de fotos, limpieza de fotos huérfanas.
