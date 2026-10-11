@@ -19,5 +19,6 @@ export async function GET(request: NextRequest) {
     ({ error } = await supabase.auth.exchangeCodeForSession(code));
   }
   if (!error) return NextResponse.redirect(new URL(next, origin));
-  return NextResponse.redirect(new URL("/login?error=enlace", origin));
+  const destino = next === "/cambiar-clave" ? "/recuperar?error=enlace" : "/login?error=enlace";
+  return NextResponse.redirect(new URL(destino, origin));
 }

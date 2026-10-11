@@ -6,6 +6,7 @@ import { crearClienteServidor } from "@/lib/supabase/server";
 import { urlDelSitio } from "@/lib/sitio";
 import { destinoSeguro } from "@/lib/redireccion";
 import { mensajeAmigable } from "@/lib/mensaje-amigable";
+import { obtenerUsuario } from "@/lib/contexto";
 
 export type EstadoAuth = { error?: string; aviso?: string } | undefined;
 
@@ -57,4 +58,48 @@ export async function cerrarSesion() {
   const supabase = await crearClienteServidor();
   await supabase.auth.signOut();
   redirect("/login");
+}
+
+const esquemaRecuperar = z.object({
+  email: z.string().trim().toLowerCase().pipe(z.email("Escribe un correo válido.")),
+});
+
+/** Pide el correo de recuperación. La respuesta es la misma exista o no la cuenta (no revela quién está registrado). */
+export async function pedirRecuperacion(_: EstadoAuth, form: FormData): Promise<EstadoAuth> {
+  const datos = esquemaRecuperar.safeParse({ email: form.get("email") });
+  if (!datos.success) return { error: datos.error.issues[0]?.message };
+
+  const supabase = await crearClienteServidor();
+  const { error } = await supabase.auth.resetPasswordForEmail(datos.data.email, {
+    redirectTo: `${await urlDelSitio()}/auth/confirm?next=${encodeURIComponent("/cambiar-clave")}`,
+  });
+  // Solo se informa el límite de envíos; cualquier otro resultado se responde igual.
+  if (error && /rate limit|too many|over_email_send_rate_limit|security purposes/i.test(error.message)) {
+    return { error: mensajeAmigable(error.message) };
+  }
+  return { aviso: "Si ese correo tiene una cuenta, te enviamos un enlace para elegir una contraseña nueva. Ábrelo desde este mismo teléfono." };
+}
+
+const esquemaClave = z
+  .object({
+    password: z.string().min(8, "La contraseña debe tener al menos 8 caracteres.").max(72, "La contraseña es demasiado larga."),
+    confirmar: z.string(),
+  })
+  .refine((d) => d.password === d.confirmar, { message: "Las dos contraseñas no coinciden.", path: ["confirmar"] });
+
+/** Cambia la contraseña de quien tiene sesión (viene del enlace del correo o de «Más»). */
+export async function cambiarClave(_: EstadoAuth, form: FormData): Promise<EstadoAuth> {
+  await obtenerUsuario();
+  const datos = esquemaClave.safeParse({ password: form.get("password"), confirmar: form.get("confirmar") });
+  if (!datos.success) return { error: datos.error.issues[0]?.message };
+
+  const supabase = await crearClienteServidor();
+  const { error } = await supabase.auth.updateUser({ password: datos.data.password });
+  if (error) {
+    if (/different from the old password|same_password/i.test(error.message)) {
+      return { error: "Elige una contraseña distinta a la anterior." };
+    }
+    return { error: mensajeAmigable(error.message) };
+  }
+  redirect("/?clave=cambiada");
 }

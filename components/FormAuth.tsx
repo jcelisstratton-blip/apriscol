@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Aviso } from "@/components/Aviso";
 import { Boton } from "@/components/Boton";
 import { Campo, CLASE_INPUT } from "@/components/Campo";
+import { CampoClave } from "@/components/CampoClave";
 import type { EstadoAuth } from "@/app/login/actions";
 
 export function FormAuth({
@@ -49,17 +50,16 @@ export function FormAuth({
       </Campo>
       <Campo etiqueta="Contraseña" ayuda={esRegistro ? "Mínimo 8 caracteres." : undefined}>
         {(id) => (
-          <input
-            id={id}
-            name="password"
-            type="password"
-            autoComplete={esRegistro ? "new-password" : "current-password"}
-            required
-            minLength={esRegistro ? 8 : 1}
-            className={CLASE_INPUT}
-          />
+          <CampoClave id={id} name="password" autoComplete={esRegistro ? "new-password" : "current-password"} minLength={esRegistro ? 8 : 1} />
         )}
       </Campo>
+      {!esRegistro ? (
+        <div className="-mt-2 flex justify-end">
+          <Link href="/recuperar" className="inline-flex min-h-11 items-center px-1 text-[0.9375rem] font-semibold text-musgo underline-offset-4 hover:underline">
+            ¿Olvidaste tu contraseña?
+          </Link>
+        </div>
+      ) : null}
 
       {estado?.error ?? errorInicial ? <Aviso tipo="error">{estado?.error ?? errorInicial ?? ""}</Aviso> : null}
       {estado?.aviso ? <Aviso tipo="exito">{estado.aviso}</Aviso> : null}

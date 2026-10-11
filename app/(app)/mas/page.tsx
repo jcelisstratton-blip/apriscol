@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ChevronRight, LogOut, MapPin, Plus, Trophy, Users } from "lucide-react";
+import { ChevronRight, KeyRound, LogOut, MapPin, Plus, Trophy, Users } from "lucide-react";
 import { Encabezado } from "@/components/Encabezado";
 import { FincaSelector } from "@/components/FincaSelector";
 import { Insignia } from "@/components/Insignia";
@@ -70,6 +70,11 @@ export default async function PaginaMas() {
           <Link href="/onboarding" className={FILA}>
             <Plus className="size-5 text-musgo" strokeWidth={1.75} />
             <span className="flex-1 font-semibold">Agregar otra finca</span>
+            <ChevronRight className="size-5 text-humo" strokeWidth={1.75} />
+          </Link>
+          <Link href="/cambiar-clave" className={FILA}>
+            <KeyRound className="size-5 text-musgo" strokeWidth={1.75} />
+            <span className="flex-1 font-semibold">Cambiar contraseña</span>
             <ChevronRight className="size-5 text-humo" strokeWidth={1.75} />
           </Link>
           <form action={cerrarSesion}>

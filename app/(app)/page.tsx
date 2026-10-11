@@ -5,6 +5,7 @@ import { Encabezado } from "@/components/Encabezado";
 import { EstadoVacio } from "@/components/EstadoVacio";
 import { FincaSelector } from "@/components/FincaSelector";
 import { Insignia } from "@/components/Insignia";
+import { Aviso } from "@/components/Aviso";
 import { Tarjeta } from "@/components/Tarjeta";
 import { EnlaceBoton } from "@/components/Boton";
 import { obtenerContexto } from "@/lib/contexto";
@@ -16,7 +17,8 @@ import type { ServicioConParto } from "@/lib/tipos";
 
 export const metadata: Metadata = { title: "Hoy" };
 
-export default async function PaginaHoy() {
+export default async function PaginaHoy({ searchParams }: { searchParams: Promise<{ clave?: string }> }) {
+  const { clave } = await searchParams;
   const { finca, fincas, rol, perfil } = await obtenerContexto();
   const supabase = await crearClienteServidor();
   const hoy = hoyBogota();
@@ -77,6 +79,7 @@ export default async function PaginaHoy() {
         titulo={nombrePila ? `${saludo()}, ${nombrePila}` : saludo()}
         subtitulo={formatoFecha(hoy, { weekday: "long", day: "numeric", month: "long" })}
       />
+      {clave === "cambiada" ? <Aviso tipo="exito" className="mb-3">Tu contraseña quedó actualizada.</Aviso> : null}
       <div className="mb-4">
         <FincaSelector fincas={fincas.map((f) => ({ id: f.id, nombre: f.nombre, rol: f.rol }))} activa={finca.id} />
       </div>
