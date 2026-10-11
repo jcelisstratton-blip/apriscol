@@ -53,10 +53,15 @@ export default async function PaginaLeche({ searchParams }: { searchParams: Prom
           ) : null}
         </EstadoVacio>
       ) : (
-        <div className="space-y-4">
-          <CapturaLeche fincaId={finca.id} hoy={hoy} animales={lista} retiros={retiros} jornadaInicial={jornadaInicial} puedeEditar={puedeEditar} />
-          {puedeEditar ? <AgregarAlOrdeno fincaId={finca.id} hoy={hoy} enLeche={ids} inicial={inicial} /> : null}
-        </div>
+        <CapturaLeche
+          fincaId={finca.id}
+          hoy={hoy}
+          animales={lista}
+          retiros={retiros}
+          jornadaInicial={jornadaInicial}
+          puedeEditar={puedeEditar}
+          pie={puedeEditar ? <AgregarAlOrdeno fincaId={finca.id} hoy={hoy} enLeche={ids} inicial={inicial} /> : null}
+        />
       )}
     </>
   );

@@ -57,7 +57,9 @@ export function ListaHato({
 
   return (
     <div className="space-y-3">
-      <CampoBusqueda onBuscar={alBuscar} placeholder="Buscar por arete o nombre" />
+      <div className="lg:max-w-md">
+        <CampoBusqueda onBuscar={alBuscar} placeholder="Buscar por arete o nombre" />
+      </div>
       <FilaDesplazable>
         <Chip activo={filtro === "todos"} onClick={() => setFiltro("todos")}>Todos</Chip>
         <Chip activo={filtro === "hembras"} onClick={() => setFiltro("hembras")}>Hembras</Chip>
@@ -72,6 +74,7 @@ export function ListaHato({
       <ListaEscalable<AnimalFila>
         key={`${filtro}|${busqueda}`}
         cargar={cargar}
+        rejilla="grid-cols-1 lg:grid-cols-2 xl:grid-cols-3"
         clave={(a) => a.id}
         fila={(a) => <FilaAnimal animal={a} retiro={retiros[a.id]} />}
         vacio={

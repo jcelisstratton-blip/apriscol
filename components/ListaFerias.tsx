@@ -46,6 +46,7 @@ export function ListaFerias({ fincaId, puedeCrear }: { fincaId: string; puedeCre
     <div className="space-y-3">
       <CampoBusqueda onBuscar={alBuscar} placeholder="Buscar feria, ciudad o departamento" />
       <ListaEscalable<FilaFeria>
+        rejilla="grid-cols-1 lg:grid-cols-2"
         key={busqueda}
         cargar={cargar}
         clave={(f) => f.id}

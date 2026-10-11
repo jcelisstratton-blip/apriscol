@@ -17,12 +17,15 @@ export function ListaEscalable<T>({
   clave,
   vacio,
   tramo = 20,
+  rejilla = "grid-cols-1",
 }: {
   cargar: (desde: number, cantidad: number) => Promise<{ filas: T[]; total: number }>;
   fila: (item: T) => React.ReactNode;
   clave: (item: T) => string;
   vacio: React.ReactNode;
   tramo?: number;
+  /** Columnas de la rejilla. Empieza siempre con `grid-cols-1` (celular); en pantallas anchas puede abrir más. */
+  rejilla?: string;
 }) {
   const [items, setItems] = useState<T[]>([]);
   const [total, setTotal] = useState<number | null>(null);
@@ -92,7 +95,7 @@ export function ListaEscalable<T>({
         </p>
       ) : null}
       <div ref={contenedor} className="lg:max-h-[640px] lg:overflow-y-auto">
-        <ul className="grid grid-cols-1 gap-2.5">
+        <ul className={`grid gap-2.5 ${rejilla}`}>
           {items.map((it) => (
             <li key={clave(it)} className="min-w-0">
               {fila(it)}

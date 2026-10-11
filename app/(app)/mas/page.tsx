@@ -22,7 +22,7 @@ export default async function PaginaMas() {
   return (
     <>
       <Encabezado titulo="Más" />
-      <div className="space-y-3.5">
+      <div className="space-y-3.5 lg:max-w-xl">
         {/* Una cuenta es una fila (avatar + nombre + detalle), no un aviso */}
         <Tarjeta>
           <div className="flex items-center gap-3.5">

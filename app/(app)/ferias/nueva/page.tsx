@@ -21,7 +21,9 @@ export default async function PaginaFeriaNueva({ searchParams }: { searchParams:
         <ChevronLeft className="size-5" strokeWidth={2} /> Ferias
       </Link>
       <Encabezado titulo="Feria nueva" />
-      <FormFeria animalId={animalId} />
+      <div className="lg:max-w-xl">
+        <FormFeria animalId={animalId} />
+      </div>
     </>
   );
 }

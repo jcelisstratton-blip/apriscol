@@ -32,7 +32,7 @@ export default async function PaginaMiembros() {
         <ChevronLeft className="size-5" strokeWidth={2} /> Más
       </Link>
       <Encabezado titulo="Equipo" subtitulo={finca.nombre} />
-      <div className="space-y-3.5">
+      <div className="space-y-3.5 lg:max-w-2xl">
         <Tarjeta titulo="Personas con acceso">
           <ul className="divide-y divide-arena">
             {(miembros ?? []).map((m) => (
