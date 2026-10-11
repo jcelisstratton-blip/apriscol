@@ -45,10 +45,27 @@ export function recomendacionCruza(nivel: NivelEndogamia): string {
   }
 }
 
-export function parentesco(generacion: number): string {
-  if (generacion === 0) return "el mismo animal";
-  if (generacion === 1) return "padre o madre";
-  if (generacion === 2) return "abuelo o abuela";
-  if (generacion === 3) return "bisabuelo o bisabuela";
-  return `ancestro de la generación ${generacion}`;
+export type NodoLinaje = { c: string | null; n: string | null; s: "macho" | "hembra" };
+export type AncestroEndogamia = {
+  ancestro_chip: string;
+  ancestro_nombre: string | null;
+  ancestro_sexo: "macho" | "hembra";
+  aporte: number;
+  ruta_padre: NodoLinaje[];
+  ruta_madre: NodoLinaje[];
+};
+
+/** Rótulo del puesto de un antepasado visto desde la cría: 1 = padre o madre, 2 = abuelo o abuela… */
+export function puestoLinaje(posicion: number, sexo: "macho" | "hembra"): string {
+  const m = sexo === "macho";
+  if (posicion === 1) return m ? "Padre" : "Madre";
+  if (posicion === 2) return m ? "Abuelo" : "Abuela";
+  if (posicion === 3) return m ? "Bisabuelo" : "Bisabuela";
+  if (posicion === 4) return m ? "Tatarabuelo" : "Tatarabuela";
+  return `Antepasado, generación ${posicion}`;
+}
+
+/** Identificador original (microchip o arete) y nombre: «605*564*832 · CAROLINA». */
+export function etiquetaLinaje(n: Pick<NodoLinaje, "c" | "n">): string {
+  return [n.c, n.n].filter(Boolean).join(" · ") || "Sin identificar";
 }

@@ -291,6 +291,9 @@ export type RespuestaTraer =
   | { encontrado: false }
   | { encontrado: true; importados: number; padres_enlazados?: number; madres_enlazadas?: number };
 
+export type { AncestroEndogamia } from "@/lib/endogamia";
+import type { AncestroEndogamia } from "@/lib/endogamia";
+
 export type Database = {
   __InternalSupabase: { PostgrestVersion: "14.18" };
   public: {
@@ -336,6 +339,8 @@ export type Database = {
           propietario_nombre: string; animales_activos: number; miembros: number; creada_en: string;
         }[];
       };
+      explicar_endogamia: { Args: { p_animal: string }; Returns: AncestroEndogamia[] };
+      explicar_cruza: { Args: { p_macho: string; p_hembra: string }; Returns: AncestroEndogamia[] };
       animales_endogamia: {
         Args: { p_finca: string; p_min?: number | null };
         Returns: { animal_id: string; numero_arete: string; nombre: string | null; sexo: SexoAnimal; especie: Especie; estado: string; f: number }[];

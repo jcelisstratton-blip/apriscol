@@ -8,12 +8,12 @@ import { NivelEndogamia } from "@/components/NivelEndogamia";
 import { SelectorAnimal } from "@/components/SelectorAnimal";
 import { Tarjeta } from "@/components/Tarjeta";
 import { crearClienteNavegador } from "@/lib/supabase/client";
-import { nivelEndogamia, parentesco, pedigriTexto, porcentaje, recomendacionCruza } from "@/lib/endogamia";
+import { RutasEndogamia } from "@/components/RutasEndogamia";
+import { nivelEndogamia, pedigriTexto, porcentaje, recomendacionCruza, type AncestroEndogamia } from "@/lib/endogamia";
 import type { Especie } from "@/lib/tipos";
 
 export type RefCruza = { id: string; numero_arete: string; nombre: string | null; especie?: Especie };
-type Comun = { nombre: string; gen_macho: number; gen_hembra: number };
-export type ResultadoSimulacion = { f: number; pedigriMacho: number; pedigriHembra: number; comunes: Comun[] };
+export type ResultadoSimulacion = { f: number; pedigriMacho: number; pedigriHembra: number; origen: AncestroEndogamia[] };
 
 /** Simulador de cruza: elige un macho y una hembra y muestra la endogamia que tendría la cría. */
 export function FormCruza({
@@ -43,11 +43,11 @@ export function FormCruza({
         supabase.rpc("simular_endogamia", { p_macho: m.id, p_hembra: h.id }),
         supabase.rpc("completitud_pedigri", { p_animal: m.id }),
         supabase.rpc("completitud_pedigri", { p_animal: h.id }),
-        supabase.rpc("ancestros_comunes", { p_macho: m.id, p_hembra: h.id }),
+        supabase.rpc("explicar_cruza", { p_macho: m.id, p_hembra: h.id }),
       ]);
       const fallo = sim.error ?? pm.error ?? ph.error ?? com.error;
       if (fallo) return setError(fallo.message);
-      setResultado({ f: sim.data ?? 0, pedigriMacho: pm.data ?? 0, pedigriHembra: ph.data ?? 0, comunes: com.data ?? [] });
+      setResultado({ f: sim.data ?? 0, pedigriMacho: pm.data ?? 0, pedigriHembra: ph.data ?? 0, origen: com.data ?? [] });
     });
   };
 
@@ -135,23 +135,16 @@ export function ResultadoCruza({ resultado, umbral }: { resultado: ResultadoSimu
           </Tarjeta>
 
           <Tarjeta titulo="Por qué sale así">
-            {resultado.comunes.length === 0 ? (
+            {resultado.origen.length === 0 ? (
               <p className="text-[0.9375rem] text-humo">
                 No comparten ancestros conocidos, por eso la endogamia es {resultado.f === 0 ? "nula" : "baja"}.
               </p>
             ) : (
               <>
-                <p className="mb-2 text-sm text-humo">Ancestros que comparten, de los más cercanos a los más lejanos:</p>
-                <ul className="divide-y divide-arena">
-                  {resultado.comunes.map((c, i) => (
-                    <li key={`${c.nombre}-${i}`} className="py-2.5">
-                      <p className="font-semibold [overflow-wrap:anywhere]">{c.nombre}</p>
-                      <p className="text-sm text-humo">
-                        Macho: {parentesco(c.gen_macho)} · Hembra: {parentesco(c.gen_hembra)}
-                      </p>
-                    </li>
-                  ))}
-                </ul>
+                <p className="mb-3 text-sm text-humo">
+                  Estos animales aparecen en el pedigrí del macho y en el de la hembra. Así llega cada uno hasta la cría:
+                </p>
+                <RutasEndogamia filas={resultado.origen} rotuloPadre="Por el macho" rotuloMadre="Por la hembra" />
               </>
             )}
           </Tarjeta>

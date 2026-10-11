@@ -14,6 +14,7 @@ import { clasesBoton } from "@/components/Boton";
 import { edadTexto, formatoFecha, litros } from "@/lib/fechas";
 import { ETIQUETA_VOCACION, nombreTipo } from "@/lib/animal";
 import { NivelEndogamia } from "@/components/NivelEndogamia";
+import { OrigenEndogamia } from "@/components/OrigenEndogamia";
 import { nivelEndogamia, pedigriTexto, porcentaje } from "@/lib/endogamia";
 
 export const metadata: Metadata = { title: "Animal" };
@@ -197,6 +198,16 @@ export default async function FichaAnimal({ params }: { params: Promise<{ id: st
                 Simular una cruza
               </Link>
             ) : null}
+          </Tarjeta>
+        ) : null}
+
+        {f !== null && f > 0 ? (
+          <Tarjeta titulo="¿Por qué hay endogamia?">
+            <p className="mb-3 text-[0.9375rem] text-humo">
+              {animal.nombre ?? animal.numero_arete} tiene ancestros repetidos: animales que aparecen tanto por el lado del padre como por el de la madre.
+              Esta es la ruta desde cada uno de ellos hasta el ancestro.
+            </p>
+            <OrigenEndogamia animalId={id} />
           </Tarjeta>
         ) : null}
 
