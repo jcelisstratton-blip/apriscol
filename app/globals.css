@@ -1,0 +1,113 @@
+@import "tailwindcss";
+
+/* Identidad Apriscol: lana, musgo y ocre. Nada de azul corporativo ni verde genérico. */
+:root {
+  --lana: #f5f0e6;
+  --papel: #fffdf8;
+  --arena: #e6dec9;
+  --tinta: #1f1b16;
+  --humo: #6b6457;
+  --musgo: #2f5a45;
+  --musgo-osc: #1f3f30;
+  --sobre-musgo: #fffdf8;
+  --ocre: #c97b1e;
+  --rojo: #b23a2b;
+  --ambar: #b7791f;
+  --ok: #3c7a52;
+  --velo: rgb(31 27 22 / 0.45);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --lana: #14120e;
+    --papel: #1d1a15;
+    --arena: #2f2a21;
+    --tinta: #f1ebdd;
+    --humo: #a39b8b;
+    --musgo: #7fbf9b;
+    --musgo-osc: #a8d6bb;
+    --sobre-musgo: #11251b;
+    --ocre: #e0963a;
+    --rojo: #e07a68;
+    --ambar: #e0b04a;
+    --ok: #7fbf9b;
+    --velo: rgb(0 0 0 / 0.6);
+  }
+}
+
+@theme inline {
+  --color-lana: var(--lana);
+  --color-papel: var(--papel);
+  --color-arena: var(--arena);
+  --color-tinta: var(--tinta);
+  --color-humo: var(--humo);
+  --color-musgo: var(--musgo);
+  --color-musgo-osc: var(--musgo-osc);
+  --color-sobre-musgo: var(--sobre-musgo);
+  --color-ocre: var(--ocre);
+  --color-rojo: var(--rojo);
+  --color-ambar: var(--ambar);
+  --color-ok: var(--ok);
+  --font-sans: var(--font-figtree), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-fraunces), ui-serif, Georgia, serif;
+}
+
+html {
+  background: var(--lana);
+  -webkit-text-size-adjust: 100%;
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--lana);
+  color: var(--tinta);
+  font-family: var(--font-sans);
+  font-size: 16px; /* 16 px evita el zoom automático de iOS al enfocar un campo */
+  line-height: 1.45;
+  -webkit-tap-highlight-color: transparent;
+  overflow-wrap: anywhere;
+}
+
+button,
+[role="button"],
+a.tap {
+  touch-action: manipulation;
+}
+
+:focus-visible {
+  outline: 2px solid var(--musgo);
+  outline-offset: 2px;
+}
+
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+@keyframes hoja-entra {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+@keyframes velo-entra {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes sube {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes pulso {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 1; }
+}
+.anim-hoja { animation: hoja-entra 0.28s cubic-bezier(0.32, 0.72, 0, 1); }
+.anim-velo { animation: velo-entra 0.2s ease-out; }
+.anim-sube { animation: sube 0.22s ease-out; }
+.anim-pulso { animation: pulso 1.4s ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .anim-hoja, .anim-velo, .anim-sube, .anim-pulso { animation: none; }
+  html { scroll-behavior: auto; }
+}

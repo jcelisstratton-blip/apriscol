@@ -1,0 +1,167 @@
+import type { Metadata } from "next";
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import { ChevronLeft } from "lucide-react";
+import { Aviso } from "@/components/Aviso";
+import { Insignia } from "@/components/Insignia";
+import { Tarjeta } from "@/components/Tarjeta";
+import { obtenerContexto } from "@/lib/contexto";
+import { crearClienteServidor } from "@/lib/supabase/server";
+import { puedeVer } from "@/lib/permisos";
+import { edadTexto, formatoFecha, litros } from "@/lib/fechas";
+import { ETIQUETA_VOCACION, nombreTipo } from "@/lib/animal";
+
+export const metadata: Metadata = { title: "Animal" };
+
+const ID_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function Dato({ etiqueta, children }: { etiqueta: string; children: React.ReactNode }) {
+  return (
+    <div className="flex items-baseline justify-between gap-4 py-2.5">
+      <dt className="shrink-0 text-sm text-humo">{etiqueta}</dt>
+      <dd className="min-w-0 text-right font-semibold">{children}</dd>
+    </div>
+  );
+}
+
+export default async function FichaAnimal({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  if (!ID_UUID.test(id)) notFound();
+
+  const { finca, rol } = await obtenerContexto();
+  const supabase = await crearClienteServidor();
+  const { data: animal } = await supabase.from("animales").select("*").eq("id", id).eq("finca_id", finca.id).is("deleted_at", null).maybeSingle();
+  if (!animal) notFound();
+
+  const tienePadres = Boolean(animal.padre_id && animal.madre_id);
+  const verLeche = puedeVer(rol, "leche") && animal.sexo === "hembra";
+  const verGenealogia = puedeVer(rol, "genealogia") || puedeVer(rol, "hato");
+  const idsPadres = [animal.padre_id, animal.madre_id].filter((x): x is string => !!x);
+
+  const [raza, padres, endo, completitud, lactancia, retiro] = await Promise.all([
+    animal.raza_id ? supabase.from("razas").select("nombre").eq("id", animal.raza_id).maybeSingle() : Promise.resolve({ data: null }),
+    idsPadres.length ? supabase.from("animales").select("id, numero_arete, nombre").in("id", idsPadres) : Promise.resolve({ data: [] }),
+    tienePadres && verGenealogia ? supabase.rpc("coef_endogamia", { p_animal: id }) : Promise.resolve({ data: null as number | null }),
+    verGenealogia ? supabase.rpc("completitud_pedigri", { p_animal: id }) : Promise.resolve({ data: null as number | null }),
+    verLeche
+      ? supabase.from("v_lactancias_resumen").select("*").eq("animal_id", id).order("numero", { ascending: false }).limit(1).maybeSingle()
+      : Promise.resolve({ data: null }),
+    supabase.rpc("animales_en_retiro", { p_finca: finca.id }),
+  ]);
+
+  const padre = padres.data?.find((p) => p.id === animal.padre_id);
+  const madre = padres.data?.find((p) => p.id === animal.madre_id);
+  const miRetiro = retiro.data?.find((r) => r.animal_id === id);
+  const f = endo.data;
+  const alertaEndogamia = typeof f === "number" && f >= finca.umbral_endogamia;
+  const lac = lactancia.data;
+  const lacAbierta = lac && !lac.fecha_secado;
+
+  return (
+    <>
+      <Link href="/hato" className="-ml-2 mt-3 inline-flex min-h-11 items-center gap-1 rounded-full px-2 text-[0.9375rem] font-semibold text-musgo">
+        <ChevronLeft className="size-5" strokeWidth={2} /> Hato
+      </Link>
+
+      <header className="pb-4 pt-1">
+        <h1 className="font-display text-[2.25rem] font-semibold leading-none tracking-tight">{animal.numero_arete}</h1>
+        {animal.nombre ? <p className="mt-1 text-lg text-humo">{animal.nombre}</p> : null}
+        <div className="mt-3 flex flex-wrap gap-1.5">
+          <Insignia tono="musgo">{nombreTipo(animal.especie, animal.sexo)}</Insignia>
+          <Insignia>{ETIQUETA_VOCACION[animal.vocacion]}</Insignia>
+          {animal.estado !== "activo" ? <Insignia tono="alerta">{animal.estado[0].toUpperCase() + animal.estado.slice(1)}</Insignia> : null}
+          {lacAbierta ? <Insignia tono="ok">En lactancia</Insignia> : null}
+        </div>
+      </header>
+
+      <div className="space-y-3.5">
+        {miRetiro ? (
+          <Aviso tipo="atencion">
+            En periodo de retiro
+            {miRetiro.retiro_leche_hasta ? ` · la leche no va al tanque hasta el ${formatoFecha(miRetiro.retiro_leche_hasta)}` : ""}
+            {miRetiro.retiro_carne_hasta ? ` · no puede salir para consumo hasta el ${formatoFecha(miRetiro.retiro_carne_hasta)}` : ""}.
+          </Aviso>
+        ) : null}
+
+        <Tarjeta titulo="Datos">
+          <dl className="divide-y divide-arena">
+            <Dato etiqueta="Raza">{raza.data?.nombre ?? "Sin especificar"}</Dato>
+            <Dato etiqueta="Nacimiento">
+              {formatoFecha(animal.fecha_nacimiento)}
+              {animal.fecha_nacimiento_aprox ? " (aprox.)" : ""}
+            </Dato>
+            <Dato etiqueta="Edad">{edadTexto(animal.fecha_nacimiento)}</Dato>
+            <Dato etiqueta="Origen">{animal.origen === "comprado" ? "Comprado" : "Nació en la finca"}</Dato>
+            {animal.peso_nacer_kg ? <Dato etiqueta="Peso al nacer">{litros(animal.peso_nacer_kg)} kg</Dato> : null}
+          </dl>
+        </Tarjeta>
+
+        {verLeche ? (
+          <Tarjeta titulo="Lactancia">
+            {lac ? (
+              <dl className="divide-y divide-arena">
+                <Dato etiqueta="Lactancia">N.º {lac.numero}{lac.fecha_secado ? " · seca" : " · abierta"}</Dato>
+                <Dato etiqueta="Desde el parto">{formatoFecha(lac.fecha_parto)}</Dato>
+                <Dato etiqueta="Días en leche">{lac.dias_lactancia}</Dato>
+                <Dato etiqueta="Total">{litros(lac.litros_total)} L</Dato>
+                <Dato etiqueta="Promedio por día">{lac.promedio_diario == null ? "—" : `${litros(lac.promedio_diario)} L`}</Dato>
+                <Dato etiqueta="Pico en un día">{lac.pico_diario == null ? "—" : `${litros(lac.pico_diario)} L`}</Dato>
+              </dl>
+            ) : (
+              <p className="text-[0.9375rem] text-humo">Todavía no tiene lactancia registrada. Se abre sola al registrar un parto.</p>
+            )}
+          </Tarjeta>
+        ) : null}
+
+        {verGenealogia ? (
+          <Tarjeta titulo="Genealogía">
+            <dl className="divide-y divide-arena">
+              <Dato etiqueta="Padre">
+                {padre ? (
+                  <Link href={`/hato/${padre.id}`} className="text-musgo underline-offset-4 hover:underline">
+                    {padre.nombre ? `${padre.nombre} · ${padre.numero_arete}` : padre.numero_arete}
+                  </Link>
+                ) : (
+                  (animal.padre_externo ?? "Sin registrar")
+                )}
+              </Dato>
+              <Dato etiqueta="Madre">
+                {madre ? (
+                  <Link href={`/hato/${madre.id}`} className="text-musgo underline-offset-4 hover:underline">
+                    {madre.nombre ? `${madre.nombre} · ${madre.numero_arete}` : madre.numero_arete}
+                  </Link>
+                ) : (
+                  (animal.madre_externa ?? "Sin registrar")
+                )}
+              </Dato>
+              {typeof f === "number" ? (
+                <Dato etiqueta="Endogamia (F)">
+                  <span className={alertaEndogamia ? "text-rojo" : ""}>{(f * 100).toFixed(2).replace(".", ",")} %</span>
+                </Dato>
+              ) : null}
+              {typeof completitud.data === "number" ? (
+                <Dato etiqueta="Pedigrí conocido">{Math.round(completitud.data * 100)} %</Dato>
+              ) : null}
+            </dl>
+            {alertaEndogamia ? (
+              <Aviso tipo="atencion" className="mt-3">
+                La endogamia supera el umbral de tu finca ({(finca.umbral_endogamia * 100).toFixed(2).replace(".", ",")} %). Conviene evitar repetir esta cruza.
+              </Aviso>
+            ) : null}
+            {typeof completitud.data === "number" && completitud.data < 0.5 ? (
+              <Aviso tipo="info" className="mt-3">
+                Con pocos ancestros registrados el cálculo puede quedarse corto. Completa el pedigrí para que sea más confiable.
+              </Aviso>
+            ) : null}
+          </Tarjeta>
+        ) : null}
+
+        {animal.notas ? (
+          <Tarjeta titulo="Notas">
+            <p className="whitespace-pre-wrap text-[0.9375rem]">{animal.notas}</p>
+          </Tarjeta>
+        ) : null}
+      </div>
+    </>
+  );
+}
