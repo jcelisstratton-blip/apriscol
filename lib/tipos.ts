@@ -72,6 +72,7 @@ export type Perfil = {
   nombre: string | null;
   telefono: string | null;
   finca_activa_id: string | null;
+  libro_resuelto_en: string | null;
   created_at: string;
   updated_at: string;
 };

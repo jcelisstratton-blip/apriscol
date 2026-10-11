@@ -37,7 +37,7 @@ ANCO) vive en una tabla global `libro_genealogico` que **ninguna finca puede con
 dueño y administrador de su finca y trae sus animales sin pedirle permiso a nadie:
 
 1. `scripts/importar-libro/` carga el volcado (ver su README) — corre local con la llave de servicio.
-2. El propietario escribe su documento y el microchip de uno de sus animales en `/libro/traer`; la base compara el documento contra un HMAC
+2. Es un paso único al crear la cuenta (después de crear la finca): el propietario escribe su documento y el microchip de uno de sus animales en `/onboarding/animales`; la base compara el documento contra un HMAC
    (nunca en claro), exige que el microchip sea de un animal de ese titular y solo entonces crea los animales en
    su hato, con solo los datos que le sirven (sin prefijo ni datos internos de la asociación) y su pedigrí enlazado.
 3. La endogamia usa el grafo completo del libro aunque el padre sea de otro criador; las funciones validan que el animal sea de tu finca.

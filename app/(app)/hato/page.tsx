@@ -5,12 +5,12 @@ import { Encabezado } from "@/components/Encabezado";
 import { ListaHato } from "@/components/ListaHato";
 import { obtenerContexto } from "@/lib/contexto";
 import { crearClienteServidor } from "@/lib/supabase/server";
-import { puedeEscribir } from "@/lib/permisos";
+import { puedeEscribir, puedeGestionar } from "@/lib/permisos";
 
 export const metadata: Metadata = { title: "Hato" };
 
 export default async function PaginaHato() {
-  const { finca, rol } = await obtenerContexto();
+  const { finca, rol, perfil } = await obtenerContexto();
   const supabase = await crearClienteServidor();
   const { data } = await supabase.rpc("animales_en_retiro", { p_finca: finca.id });
   const retiros = Object.fromEntries(
@@ -48,7 +48,7 @@ export default async function PaginaHato() {
           </Link>
         ))}
       </div>
-      <ListaHato fincaId={finca.id} especies={finca.especies} retiros={retiros} puedeCrear={puedeCrear} />
+      <ListaHato fincaId={finca.id} especies={finca.especies} retiros={retiros} puedeCrear={puedeCrear} puedeTraer={puedeGestionar(rol) && !perfil?.libro_resuelto_en} />
     </>
   );
 }

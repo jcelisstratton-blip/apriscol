@@ -19,11 +19,14 @@ export function ListaHato({
   especies,
   retiros,
   puedeCrear,
+  puedeTraer = false,
 }: {
   fincaId: string;
   especies: Especie[];
   retiros: Record<string, RetiroFila>;
   puedeCrear: boolean;
+  /** Solo mientras el paso único «traer mis animales» siga pendiente. */
+  puedeTraer?: boolean;
 }) {
   const [busqueda, setBusqueda] = useState("");
   const [filtro, setFiltro] = useState<Filtro>("todos");
@@ -85,9 +88,11 @@ export function ListaHato({
                   <Link href="/hato/nuevo" className={clasesBoton("primario")}>
                     Registrar el primer animal
                   </Link>
-                  <Link href="/libro/traer" className={clasesBoton("secundario")}>
-                    Traer mis animales registrados
-                  </Link>
+                  {puedeTraer ? (
+                    <Link href="/onboarding/animales" className={clasesBoton("secundario")}>
+                      Traer mis animales registrados
+                    </Link>
+                  ) : null}
                 </div>
               ) : null}
             </EstadoVacio>

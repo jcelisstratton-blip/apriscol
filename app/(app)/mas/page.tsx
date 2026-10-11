@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { BookOpen, ChevronRight, KeyRound, LogOut, MapPin, Plus, ShieldCheck, Trophy, Users } from "lucide-react";
+import { ChevronRight, KeyRound, LogOut, MapPin, Plus, ShieldCheck, Trophy, Users } from "lucide-react";
 import { Encabezado } from "@/components/Encabezado";
 import { FincaSelector } from "@/components/FincaSelector";
 import { Insignia } from "@/components/Insignia";
@@ -54,13 +54,6 @@ export default async function PaginaMas() {
         </Tarjeta>
 
         <Tarjeta className="divide-y divide-arena py-1.5!">
-          {puedeGestionar(rol) ? (
-            <Link href="/libro/traer" className={FILA}>
-              <BookOpen className="size-5 text-musgo" strokeWidth={1.75} />
-              <span className="flex-1 font-semibold">Traer mis animales</span>
-              <ChevronRight className="size-5 text-humo" strokeWidth={1.75} />
-            </Link>
-          ) : null}
           {admin ? (
             <Link href="/admin" className={FILA}>
               <ShieldCheck className="size-5 text-ocre" strokeWidth={1.75} />
