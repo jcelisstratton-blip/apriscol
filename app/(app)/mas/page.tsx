@@ -1,12 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ChevronRight, LogOut, MapPin, Plus, Users } from "lucide-react";
+import { ChevronRight, LogOut, MapPin, Plus, Trophy, Users } from "lucide-react";
 import { Encabezado } from "@/components/Encabezado";
 import { FincaSelector } from "@/components/FincaSelector";
 import { Insignia } from "@/components/Insignia";
 import { Tarjeta } from "@/components/Tarjeta";
 import { obtenerContexto } from "@/lib/contexto";
-import { ETIQUETA_ROL, puedeGestionar } from "@/lib/permisos";
+import { ETIQUETA_ROL, puedeGestionar, puedeVer } from "@/lib/permisos";
 import { cerrarSesion } from "@/app/login/actions";
 
 export const metadata: Metadata = { title: "Más" };
@@ -53,6 +53,13 @@ export default async function PaginaMas() {
         </Tarjeta>
 
         <Tarjeta className="divide-y divide-arena py-1.5!">
+          {puedeVer(rol, "ferias") ? (
+            <Link href="/ferias" className={FILA}>
+              <Trophy className="size-5 text-musgo" strokeWidth={1.75} />
+              <span className="flex-1 font-semibold">Ferias y premios</span>
+              <ChevronRight className="size-5 text-humo" strokeWidth={1.75} />
+            </Link>
+          ) : null}
           {puedeGestionar(rol) ? (
             <Link href="/mas/miembros" className={FILA}>
               <Users className="size-5 text-musgo" strokeWidth={1.75} />

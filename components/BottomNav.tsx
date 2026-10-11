@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { Droplets, Home, MoreHorizontal, PawPrint, Plus, Rabbit } from "lucide-react";
+import { Droplets, Home, MoreHorizontal, PawPrint, Plus, Rabbit, Trophy } from "lucide-react";
 import { Sheet } from "@/components/Sheet";
 
 type Accion = { href: string; titulo: string; detalle: string; icono: React.ReactNode };
@@ -19,7 +19,7 @@ const TABS = [
  * Barra inferior de 4 pestañas con un botón central de acción rápida (patrón Mobbin: Attio, ClickUp, Jobber).
  * Respeta el área segura del teléfono.
  */
-export function BottomNav({ puedeOrdenar, puedeCrearAnimal }: { puedeOrdenar: boolean; puedeCrearAnimal: boolean }) {
+export function BottomNav({ puedeOrdenar, puedeCrearAnimal, puedeFerias }: { puedeOrdenar: boolean; puedeCrearAnimal: boolean; puedeFerias: boolean }) {
   const ruta = usePathname();
   const [abierta, setAbierta] = useState(false);
 
@@ -29,6 +29,9 @@ export function BottomNav({ puedeOrdenar, puedeCrearAnimal }: { puedeOrdenar: bo
       : []),
     ...(puedeCrearAnimal
       ? [{ href: "/hato/nuevo", titulo: "Animal nuevo", detalle: "Cabra, cabro, oveja o carnero", icono: <Rabbit className="size-6" strokeWidth={1.75} /> }]
+      : []),
+    ...(puedeFerias
+      ? [{ href: "/ferias/participacion/nueva", titulo: "Premio de feria", detalle: "Resultado y foto del premio", icono: <Trophy className="size-6" strokeWidth={1.75} /> }]
       : []),
   ];
 

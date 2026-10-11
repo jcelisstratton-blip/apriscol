@@ -27,8 +27,15 @@ correspondiente en `node_modules/next/dist/docs/` (esta versión cambia APIs: `m
 7. Funciones `SECURITY DEFINER`: solo cuando es imprescindible, con `search_path = ''`, validando dentro quién llama y
    con `revoke execute … from public, anon`.
 8. Fechas en `timestamptz`/`date` y **día calendario de Colombia** (`lib/fechas.ts#hoyBogota`), nunca el del servidor.
-9. Storage: un bucket por tipo de uso y dentro la carpeta de la finca por su uuid (`<finca_id>/…`). La ruta la arma el
-   servidor y se sube con URL firmada; los buckets no tienen políticas de escritura ni de listado para clientes.
+9. Storage: un bucket por tipo de uso (`fotos-animales`, `soportes`, `premios`) y dentro la carpeta de la finca por su
+   uuid (`<finca_id>/<uuid>.<ext>`). El servidor arma el nombre y emite una URL firmada de subida; además, cada bucket
+   con subida desde el navegador lleva políticas en `storage.objects` **acotadas a la carpeta de la finca** y al rol
+   (`private.carpeta_finca` + `puede_ver/puede_escribir`), con el formato del nombre forzado por la propia política. Así
+   no se necesita la llave de servicio en el servidor web. Los buckets son privados: las fotos se muestran con URLs
+   firmadas de corta vida (`lib/fotos.ts`). Las fotos se reducen en el navegador antes de subir (ahorra datos en el campo).
+10. Módulo nuevo ⇒ valor nuevo en el enum `modulo_app` en **su propia migración** (un valor de enum recién creado no puede
+   usarse en la misma transacción), y luego tablas + `crear_politicas_finca`. `puede_ver/puede_escribir` niegan por
+   defecto: un rol solo accede a un módulo si aparece listado.
 
 ## Interfaz (móvil primero, referencias de Mobbin)
 

@@ -5,7 +5,7 @@ export type SexoAnimal = "hembra" | "macho";
 export type Vocacion = "leche" | "carne" | "doble";
 export type RolFinca = "propietario" | "administrador" | "ordenador" | "veterinario" | "contador";
 export type ModuloApp =
-  | "hato" | "genealogia" | "leche" | "carne" | "sanidad" | "reproduccion" | "nutricion" | "ambiente" | "contabilidad";
+  | "hato" | "genealogia" | "leche" | "carne" | "sanidad" | "reproduccion" | "nutricion" | "ambiente" | "contabilidad" | "ferias";
 export type Jornada = "manana" | "tarde" | "noche" | "unico";
 
 type Tabla<R, Req extends keyof R = never> = {
@@ -166,6 +166,54 @@ export type Parto = {
   numero_crias: number;
 };
 
+export type NivelFeria = "local" | "regional" | "nacional" | "internacional";
+export type ResultadoFeria =
+  | "gran_campeon" | "campeon" | "subcampeon" | "reservado_campeon" | "mejor_ejemplar" | "mencion_honor" | "participacion" | "otro";
+
+export type Feria = {
+  id: string;
+  finca_id: string;
+  nombre: string;
+  nivel: NivelFeria;
+  departamento: string | null;
+  municipio: string | null;
+  fecha_inicio: string;
+  fecha_fin: string | null;
+  organizador: string | null;
+  notas: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type Participacion = {
+  id: string;
+  finca_id: string;
+  feria_id: string;
+  animal_id: string;
+  categoria: string;
+  resultado: ResultadoFeria;
+  puesto: number | null;
+  puntaje: number | null;
+  premio_descripcion: string | null;
+  premio_en_dinero: number | null;
+  foto_path: string | null;
+  observaciones: string | null;
+  client_request_id: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type PalmaresAnimal = {
+  finca_id: string | null;
+  animal_id: string | null;
+  participaciones: number | null;
+  premios: number | null;
+  campeonatos: number | null;
+  mejor_puesto: number | null;
+};
+
 export type Database = {
   __InternalSupabase: { PostgrestVersion: "14.18" };
   public: {
@@ -179,11 +227,14 @@ export type Database = {
       ordenos: Tabla<Ordeno, "finca_id" | "animal_id" | "jornada" | "litros">;
       lactancias: Tabla<Lactancia, "finca_id" | "animal_id" | "numero" | "fecha_parto">;
       partos: Tabla<Parto, "finca_id" | "madre_id">;
+      ferias: Tabla<Feria, "finca_id" | "nombre" | "fecha_inicio">;
+      participaciones_feria: Tabla<Participacion, "finca_id" | "feria_id" | "animal_id" | "categoria">;
     };
     Views: {
       v_produccion_diaria: { Row: ProduccionDiaria; Relationships: [] };
       v_lactancias_resumen: { Row: LactanciaResumen; Relationships: [] };
       v_servicios: { Row: ServicioConParto; Relationships: [] };
+      v_palmares_animal: { Row: PalmaresAnimal; Relationships: [] };
     };
     Functions: {
       aceptar_invitacion: { Args: { p_token: string }; Returns: string };

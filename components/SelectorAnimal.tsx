@@ -27,8 +27,8 @@ export function SelectorAnimal({
   id?: string;
   nombre: string;
   fincaId: string;
-  sexo: SexoAnimal;
-  especie: Especie;
+  sexo?: SexoAnimal;
+  especie?: Especie;
   titulo: string;
   valor: Resultado | null;
   onCambio: (a: Resultado | null) => void;
@@ -46,10 +46,11 @@ export function SelectorAnimal({
         .from("animales")
         .select("id, numero_arete, nombre")
         .eq("finca_id", fincaId)
-        .eq("sexo", sexo)
-        .eq("especie", especie)
-        .eq("estado", "activo")
         .is("deleted_at", null);
+      if (sexo) q = q.eq("sexo", sexo);
+      if (especie) q = q.eq("especie", especie);
+      // Los animales que ya salieron del hato también pueden tener premios históricos.
+      if (sexo || especie) q = q.eq("estado", "activo");
       if (limpio) q = q.or(`numero_arete.ilike.%${limpio}%,nombre.ilike.%${limpio}%`);
       const { data, error: e } = await q.order("numero_arete").limit(20);
       if (e) setError(e.message);

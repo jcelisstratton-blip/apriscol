@@ -7,7 +7,10 @@ import { Insignia } from "@/components/Insignia";
 import { Tarjeta } from "@/components/Tarjeta";
 import { obtenerContexto } from "@/lib/contexto";
 import { crearClienteServidor } from "@/lib/supabase/server";
-import { puedeVer } from "@/lib/permisos";
+import { puedeEscribir, puedeVer } from "@/lib/permisos";
+import { urlsFotosPremios } from "@/lib/fotos";
+import { FilaParticipacion } from "@/components/FilaParticipacion";
+import { clasesBoton } from "@/components/Boton";
 import { edadTexto, formatoFecha, litros } from "@/lib/fechas";
 import { ETIQUETA_VOCACION, nombreTipo } from "@/lib/animal";
 
@@ -36,9 +39,10 @@ export default async function FichaAnimal({ params }: { params: Promise<{ id: st
   const tienePadres = Boolean(animal.padre_id && animal.madre_id);
   const verLeche = puedeVer(rol, "leche") && animal.sexo === "hembra";
   const verGenealogia = puedeVer(rol, "genealogia") || puedeVer(rol, "hato");
+  const verFerias = puedeVer(rol, "ferias");
   const idsPadres = [animal.padre_id, animal.madre_id].filter((x): x is string => !!x);
 
-  const [raza, padres, endo, completitud, lactancia, retiro] = await Promise.all([
+  const [raza, padres, endo, completitud, lactancia, retiro, palmares, participaciones] = await Promise.all([
     animal.raza_id ? supabase.from("razas").select("nombre").eq("id", animal.raza_id).maybeSingle() : Promise.resolve({ data: null }),
     idsPadres.length ? supabase.from("animales").select("id, numero_arete, nombre").in("id", idsPadres) : Promise.resolve({ data: [] }),
     tienePadres && verGenealogia ? supabase.rpc("coef_endogamia", { p_animal: id }) : Promise.resolve({ data: null as number | null }),
@@ -47,7 +51,24 @@ export default async function FichaAnimal({ params }: { params: Promise<{ id: st
       ? supabase.from("v_lactancias_resumen").select("*").eq("animal_id", id).order("numero", { ascending: false }).limit(1).maybeSingle()
       : Promise.resolve({ data: null }),
     supabase.rpc("animales_en_retiro", { p_finca: finca.id }),
+    verFerias ? supabase.from("v_palmares_animal").select("*").eq("animal_id", id).maybeSingle() : Promise.resolve({ data: null }),
+    verFerias
+      ? supabase
+          .from("participaciones_feria")
+          .select("id, feria_id, categoria, resultado, puesto, puntaje, premio_descripcion, premio_en_dinero, foto_path")
+          .eq("animal_id", id)
+          .order("created_at", { ascending: false })
+          .limit(20)
+      : Promise.resolve({ data: [] }),
   ]);
+
+  const listaPremios = participaciones.data ?? [];
+  const idsFerias = [...new Set(listaPremios.map((p) => p.feria_id))];
+  const [feriasData, fotosPremios] = await Promise.all([
+    idsFerias.length ? supabase.from("ferias").select("id, nombre, fecha_inicio").in("id", idsFerias) : Promise.resolve({ data: [] }),
+    urlsFotosPremios(supabase, listaPremios.map((p) => p.foto_path)),
+  ]);
+  const ferias = new Map((feriasData.data ?? []).map((f) => [f.id, f]));
 
   const padre = padres.data?.find((p) => p.id === animal.padre_id);
   const madre = padres.data?.find((p) => p.id === animal.madre_id);
@@ -152,6 +173,50 @@ export default async function FichaAnimal({ params }: { params: Promise<{ id: st
               <Aviso tipo="info" className="mt-3">
                 Con pocos ancestros registrados el cálculo puede quedarse corto. Completa el pedigrí para que sea más confiable.
               </Aviso>
+            ) : null}
+          </Tarjeta>
+        ) : null}
+
+        {verFerias ? (
+          <Tarjeta titulo="Ferias y premios">
+            {listaPremios.length === 0 ? (
+              <p className="text-[0.9375rem] text-humo">Todavía no tiene participaciones en ferias.</p>
+            ) : (
+              <>
+                <dl className="mb-3 grid grid-cols-3 divide-x divide-arena text-center">
+                  {[
+                    ["Ferias", palmares.data?.participaciones ?? 0],
+                    ["Premios", palmares.data?.premios ?? 0],
+                    ["Campeonatos", palmares.data?.campeonatos ?? 0],
+                  ].map(([etiqueta, valor]) => (
+                    <div key={etiqueta} className="min-w-0 px-1">
+                      <dd className="font-display text-2xl font-semibold tabular-nums">{valor}</dd>
+                      <dt className="text-xs font-medium text-humo">{etiqueta}</dt>
+                    </div>
+                  ))}
+                </dl>
+                <ul className="grid grid-cols-1 gap-2.5">
+                  {listaPremios.map((p) => {
+                    const f = ferias.get(p.feria_id);
+                    return (
+                      <li key={p.id} className="min-w-0">
+                        <FilaParticipacion
+                          p={p}
+                          titulo={f?.nombre ?? "Feria"}
+                          detalle={f ? formatoFecha(f.fecha_inicio) : undefined}
+                          enlace={`/ferias/${p.feria_id}`}
+                          fotoUrl={p.foto_path ? fotosPremios.get(p.foto_path) : undefined}
+                        />
+                      </li>
+                    );
+                  })}
+                </ul>
+              </>
+            )}
+            {puedeEscribir(rol, "ferias") ? (
+              <Link href={`/ferias/participacion/nueva?animal=${id}`} className={`${clasesBoton("secundario")} mt-3`}>
+                Registrar participación
+              </Link>
             ) : null}
           </Tarjeta>
         ) : null}

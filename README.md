@@ -20,14 +20,15 @@ npm run dev                  # http://localhost:3000
 ## Base de datos
 
 El esquema vive en `supabase/migrations/` y es la única fuente de verdad. Módulos de la fase 1: núcleo multi-finca y
-roles, hato y genealogía (endogamia de Wright por método tabular), sanidad, reproducción y leche.
+roles, hato y genealogía (endogamia de Wright por método tabular), sanidad, reproducción, leche y ferias
+(palmarés de cada animal con la foto del premio).
 
 - `coef_endogamia(animal)`, `simular_endogamia(macho, hembra)` y `completitud_pedigri(animal)` son RPC.
 - Un animal en periodo de retiro **no puede** entrar al tanque ni salir para consumo: lo hace cumplir la base.
 
 ## Despliegue
 
-GitHub (`main`) → Vercel (Next.js, raíz del repo). Variables de entorno en Vercel: las tres de arriba.
+GitHub (`main`) → Vercel (Next.js, raíz del repo). Variables de entorno en Vercel: las dos primeras (la URL del sitio se toma de la propia petición; `NEXT_PUBLIC_SITE_URL` es solo respaldo).
 En Supabase → Authentication → URL Configuration: *Site URL* = dominio de producción y *Redirect URLs* =
 `http://localhost:3000/**` y `https://*-<equipo>.vercel.app/**`.
 
