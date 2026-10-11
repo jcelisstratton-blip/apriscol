@@ -38,6 +38,11 @@ export type Animal = {
   fecha_baja: string | null;
   foto_path: string | null;
   notas: string | null;
+  chip: string | null;
+  color: string | null;
+  rasgos: string | null;
+  marcas: string | null;
+  libro_id: string | null;
   client_request_id: string | null;
   created_by: string | null;
   created_at: string;
@@ -214,6 +219,78 @@ export type PalmaresAnimal = {
   mejor_puesto: number | null;
 };
 
+export type LibroAnimal = {
+  id: string;
+  entidad: string;
+  numero_registro: string;
+  chip: string;
+  nombre: string;
+  prefijo: string | null;
+  especie: Especie;
+  sexo: SexoAnimal;
+  raza_id: number | null;
+  composicion: string | null;
+  libro: string | null;
+  concepcion: string | null;
+  fecha_nacimiento: string | null;
+  fecha_solicitud: string | null;
+  color: string | null;
+  rasgos: string | null;
+  marcas: string | null;
+  puntaje_fundador: number | null;
+  padre_id: string | null;
+  madre_id: string | null;
+  padre_chip_origen: string | null;
+  madre_chip_origen: string | null;
+  criadero: string | null;
+  departamento_dane: string | null;
+  municipio_dane: string | null;
+  estado: "vivo" | "baja";
+  fecha_baja: string | null;
+  observaciones: string | null;
+  notas_importacion: string[];
+};
+
+export type EstadoReclamo = "pendiente" | "aprobada" | "rechazada" | "cancelada";
+
+export type SolicitudReclamo = {
+  id: string;
+  finca_id: string;
+  titular_id: string;
+  solicitante_id: string;
+  estado: EstadoReclamo;
+  mensaje: string | null;
+  animales_disponibles: number;
+  animales_importados: number | null;
+  motivo_rechazo: string | null;
+  resuelta_por: string | null;
+  resuelta_en: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type ReclamoAdmin = {
+  id: string;
+  estado: EstadoReclamo;
+  creada_en: string;
+  finca_id: string;
+  finca_nombre: string;
+  solicitante_nombre: string;
+  solicitante_email: string;
+  documento_tipo: string;
+  documento_ultimos4: string;
+  persona_juridica: boolean;
+  animales_total: number;
+  animales_vivos: number;
+  criaderos: string[];
+  mensaje: string | null;
+  motivo_rechazo: string | null;
+};
+
+export type RespuestaSolicitud =
+  | { encontrado: false }
+  | { encontrado: true; animales: number; vivos?: number; solicitud_id?: string };
+
 export type Database = {
   __InternalSupabase: { PostgrestVersion: "14.18" };
   public: {
@@ -229,6 +306,9 @@ export type Database = {
       partos: Tabla<Parto, "finca_id" | "madre_id">;
       ferias: Tabla<Feria, "finca_id" | "nombre" | "fecha_inicio">;
       participaciones_feria: Tabla<Participacion, "finca_id" | "feria_id" | "animal_id" | "categoria">;
+      libro_genealogico: Tabla<LibroAnimal, "numero_registro" | "chip" | "nombre" | "especie" | "sexo">;
+      solicitudes_reclamo: Tabla<SolicitudReclamo, "finca_id" | "titular_id">;
+      plataforma_admins: Tabla<{ user_id: string; created_at: string }, "user_id">;
     };
     Views: {
       v_produccion_diaria: { Row: ProduccionDiaria; Relationships: [] };
@@ -245,6 +325,13 @@ export type Database = {
       coef_endogamia: { Args: { p_animal: string }; Returns: number };
       completitud_pedigri: { Args: { p_animal: string; p_generaciones?: number }; Returns: number };
       simular_endogamia: { Args: { p_macho: string; p_hembra: string }; Returns: number };
+      coef_endogamia_libro: { Args: { p_libro: string }; Returns: number };
+      simular_endogamia_libro: { Args: { p_macho: string; p_hembra: string }; Returns: number };
+      completitud_pedigri_libro: { Args: { p_libro: string; p_generaciones?: number }; Returns: number };
+      solicitar_reclamo: { Args: { p_finca: string; p_tipo: string; p_documento: string; p_mensaje?: string }; Returns: RespuestaSolicitud };
+      aprobar_reclamo: { Args: { p_solicitud: string }; Returns: { importados: number; padres_enlazados: number; madres_enlazadas: number } };
+      rechazar_reclamo: { Args: { p_solicitud: string; p_motivo?: string }; Returns: undefined };
+      admin_listar_reclamos: { Args: { p_estado?: string | null }; Returns: ReclamoAdmin[] };
     };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;

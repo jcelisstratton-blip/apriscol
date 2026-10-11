@@ -81,9 +81,14 @@ export function ListaHato({
               descripcion="Cada animal que registres aparecerá en esta lista, con su edad, su estado y sus periodos de retiro."
             >
               {puedeCrear ? (
-                <Link href="/hato/nuevo" className={clasesBoton("primario")}>
-                  Registrar el primer animal
-                </Link>
+                <div className="space-y-2">
+                  <Link href="/hato/nuevo" className={clasesBoton("primario")}>
+                    Registrar el primer animal
+                  </Link>
+                  <Link href="/libro/reclamar" className={clasesBoton("secundario")}>
+                    Traer mis animales del libro genealógico
+                  </Link>
+                </div>
               ) : null}
             </EstadoVacio>
           )

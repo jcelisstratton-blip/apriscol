@@ -43,3 +43,11 @@ export const obtenerContexto = cache(async (): Promise<Contexto> => {
   const finca = fincas.find((f) => f.id === perfil?.finca_activa_id) ?? fincas[0];
   return { user, perfil: perfil ?? null, fincas, finca, rol: finca.rol };
 });
+
+/** ¿La persona es administradora de la plataforma? (puede ver y resolver los reclamos del libro genealógico). */
+export const esAdminPlataforma = cache(async (): Promise<boolean> => {
+  const user = await obtenerUsuario();
+  const supabase = await crearClienteServidor();
+  const { data } = await supabase.from("plataforma_admins").select("user_id").eq("user_id", user.id).maybeSingle();
+  return Boolean(data);
+});

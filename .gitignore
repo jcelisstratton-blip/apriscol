@@ -42,3 +42,9 @@ next-env.d.ts
 
 # permitir la plantilla de variables
 !.env.example
+
+# volcados de datos reales (contienen documentos de personas): nunca al repo
+*.sql
+!supabase/migrations/*.sql
+anco_registro*
+scripts/importar-libro/salida/
