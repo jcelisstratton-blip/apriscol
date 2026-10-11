@@ -94,7 +94,8 @@ export function CapturaLeche({
   const totalDescartado = hechas.reduce((s, a) => s + (registros[a.id].descartada ? registros[a.id].litros : 0), 0);
   const buscando = busqueda !== "";
   const coincide = (a: AnimalLeche) => !buscando || a.numero_arete.toLowerCase().includes(busqueda) || (a.nombre ?? "").toLowerCase().includes(busqueda);
-  const lista = (vista === "pendientes" ? pendientes : hechas).filter(coincide);
+  // Al buscar se revisan todos los animales del ordeño, estén pendientes o ya registrados.
+  const lista = buscando ? animales.filter(coincide) : vista === "pendientes" ? pendientes : hechas;
   const alBuscar = useCallback((t: string) => setBusqueda(t.toLowerCase()), []);
 
   const abrir = useCallback(
@@ -209,16 +210,24 @@ export function CapturaLeche({
         </div>
       </section>
 
-      <FilaDesplazable>
-        <Chip activo={vista === "pendientes"} onClick={() => setVista("pendientes")}>Pendientes · {pendientes.length}</Chip>
-        <Chip activo={vista === "hechas"} onClick={() => setVista("hechas")}>Registradas · {hechas.length}</Chip>
-      </FilaDesplazable>
-
       {animales.length > MIN_PARA_BUSCAR ? <CampoBusqueda onBuscar={alBuscar} placeholder="Buscar por arete o nombre" /> : null}
+
+      {buscando ? (
+        lista.length > 0 ? (
+          <p className="px-1 text-sm text-humo" aria-live="polite">
+            {lista.length === 1 ? "1 animal encontrado en el ordeño" : `${lista.length} animales encontrados en el ordeño`}
+          </p>
+        ) : null
+      ) : (
+        <FilaDesplazable>
+          <Chip activo={vista === "pendientes"} onClick={() => setVista("pendientes")}>Pendientes · {pendientes.length}</Chip>
+          <Chip activo={vista === "hechas"} onClick={() => setVista("hechas")}>Registradas · {hechas.length}</Chip>
+        </FilaDesplazable>
+      )}
 
       {errorCarga ? <Aviso tipo="error">{errorCarga}</Aviso> : null}
 
-      {vista === "pendientes" && lista.length > 0 ? (
+      {!buscando && vista === "pendientes" && lista.length > 0 ? (
         <p className="-mt-1 px-1 text-sm text-humo">Toca un animal para escribir los litros que dio en esta jornada.</p>
       ) : null}
 
