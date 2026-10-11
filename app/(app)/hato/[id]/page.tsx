@@ -135,7 +135,7 @@ export default async function FichaAnimal({ params }: { params: Promise<{ id: st
           </dl>
         </Tarjeta>
 
-        {verLeche ? (
+        {verLeche && (lac || animal.estado === "activo") ? (
           <Tarjeta titulo="Lactancia">
             {lac ? (
               <dl className="divide-y divide-arena">
@@ -262,7 +262,7 @@ export default async function FichaAnimal({ params }: { params: Promise<{ id: st
                 </ul>
               </>
             )}
-            {puedeEscribir(rol, "ferias") ? (
+            {puedeEscribir(rol, "ferias") && animal.estado === "activo" ? (
               <Link href={`/ferias/participacion/nueva?animal=${id}`} className={`${clasesBoton("secundario")} mt-3`}>
                 Registrar participación
               </Link>

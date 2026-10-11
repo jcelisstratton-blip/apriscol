@@ -1,6 +1,7 @@
 /** Traduce errores técnicos (Postgres, Supabase Auth, red) a frases para personas. El original queda en consola. */
 const REGLAS: [RegExp, string][] = [
   [/animales_arete_uk|numero_arete/i, "Ya tienes un animal con ese número de arete."],
+  [/animales_chip_uk/i, "Ya tienes un animal con ese microchip."],
   [/duplicate key|already exists|23505/i, "Ya existe un registro con ese dato."],
   [/Invalid login credentials/i, "El correo o la contraseña no coinciden."],
   [/Email not confirmed/i, "Falta confirmar tu correo. Revisa tu bandeja de entrada."],
