@@ -116,7 +116,7 @@ export default async function FichaAnimal({ params, searchParams }: { params: Pr
         {animal.nombre ? <p className="mt-1 text-lg text-humo">{animal.nombre}</p> : null}
         <div className="mt-3 flex flex-wrap gap-1.5">
           <Insignia tono="musgo">{nombreTipo(animal.especie, animal.sexo)}</Insignia>
-          <Insignia>{ETIQUETA_VOCACION[animal.vocacion]}</Insignia>
+          {animal.sexo === "hembra" ? <Insignia>{ETIQUETA_VOCACION[animal.vocacion]}</Insignia> : null}
           {animal.estado !== "activo" ? <Insignia tono="alerta">{animal.estado[0].toUpperCase() + animal.estado.slice(1)}</Insignia> : null}
           {lacAbierta ? <Insignia tono="ok">En lactancia</Insignia> : null}
         </div>
@@ -239,7 +239,7 @@ export default async function FichaAnimal({ params, searchParams }: { params: Pr
           </Tarjeta>
         ) : null}
 
-        {verFerias ? (
+        {verFerias && (animal.estado === "activo" || listaPremios.length > 0) ? (
           <Tarjeta titulo="Ferias y premios">
             {listaPremios.length === 0 ? (
               <p className="text-[0.9375rem] text-humo">Todavía no tiene participaciones en ferias.</p>

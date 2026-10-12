@@ -49,6 +49,8 @@ export async function crearAnimal(_: EstadoAnimal, form: FormData): Promise<Esta
   const datos = esquema.safeParse(Object.fromEntries(form));
   if (!datos.success) return { error: datos.error.issues[0]?.message };
   const { fecha_ultimo_parto, ...animal } = datos.data;
+  // La aptitud de leche solo aplica a las hembras.
+  if (animal.sexo === "macho") animal.vocacion = "carne";
   // El peso al nacer solo se conoce de los animales que nacieron en la finca.
   if (animal.origen === "comprado") animal.peso_nacer_kg = undefined;
 
@@ -170,7 +172,7 @@ export async function editarAnimal(_: EstadoAnimal, form: FormData): Promise<Est
       fecha_nacimiento_aprox: d.fecha_nacimiento ? d.fecha_nacimiento_aprox : false,
       origen: d.origen,
       peso_nacer_kg: d.origen === "nacido_en_finca" ? (d.peso_nacer_kg ?? null) : null,
-      vocacion: d.vocacion,
+      vocacion: d.sexo === "macho" ? "carne" : d.vocacion,
       padre_id: d.padre_id ?? null,
       madre_id: d.madre_id ?? null,
       padre_externo: d.padre_externo ?? null,
