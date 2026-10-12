@@ -45,6 +45,8 @@ export function AgregarAlOrdeno({
   const toast = useToast();
   const [abierta, setAbierta] = useState(Boolean(inicial));
   const [candidatas, setCandidatas] = useState<Candidata[] | null>(null);
+  /** Las hembras que ya están en el ordeño: no se ofrecen, pero se usan para explicar por qué una búsqueda no las encuentra. */
+  const [yaEnOrdeno, setYaEnOrdeno] = useState<Candidata[]>([]);
   const [busqueda, setBusqueda] = useState("");
   const [especie, setEspecie] = useState<FiltroEspecie>("todas");
   const [elegidas, setElegidas] = useState<Set<string>>(new Set());
@@ -68,6 +70,7 @@ export function AgregarAlOrdeno({
     if (e) return setError(e.message);
     const ya = new Set(enLeche);
     const lista = (data ?? []).filter((a) => !ya.has(a.id));
+    setYaEnOrdeno((data ?? []).filter((a) => ya.has(a.id)));
     setCandidatas(lista);
     if (inicial && lista.some((a) => a.id === inicial)) setElegidas(new Set([inicial]));
   }, [fincaId, enLeche, inicial]);
@@ -91,6 +94,9 @@ export function AgregarAlOrdeno({
     (a) => (especie === "todas" || a.especie === especie) && (!busqueda || a.numero_arete.toLowerCase().includes(busqueda) || (a.nombre ?? "").toLowerCase().includes(busqueda)),
   );
   const mostradas = visibles.slice(0, MOSTRAR);
+  const coincidenYaEnOrdeno = busqueda
+    ? yaEnOrdeno.filter((a) => (especie === "todas" || a.especie === especie) && (a.numero_arete.toLowerCase().includes(busqueda) || (a.nombre ?? "").toLowerCase().includes(busqueda)))
+    : [];
   const hayDosEspecies = new Set((candidatas ?? []).map((a) => a.especie)).size > 1;
 
   const fechaDe = (id: string) => fechasPropias[id] || fecha;
@@ -154,7 +160,7 @@ export function AgregarAlOrdeno({
         }
       >
         <div className="space-y-4">
-          <p className="text-[0.9375rem] text-humo">Elige las hembras que están en leche ahora. Aparecerán en la lista del ordeño para registrar sus litros.</p>
+          <p className="text-[0.9375rem] text-humo">Elige las hembras que están en leche ahora. Aparecerán en la lista del ordeño para registrar sus litros. Aquí solo salen las que todavía no están en el ordeño.</p>
 
           <Campo etiqueta="¿Desde cuándo están en leche?" ayuda="Fecha aproximada del último parto, para todas las que elijas. Si alguna parió otro día, cámbiala en su fila. Con ella calculamos los días en leche.">
             {(id) => <input id={id} type="date" value={fecha} max={hoy} onChange={(e) => setFecha(e.target.value)} className={CLASE_INPUT} />}
@@ -177,8 +183,12 @@ export function AgregarAlOrdeno({
                   </FilaTarjetas>
                 ) : null}
                 <div className="flex items-center justify-between gap-3 text-sm text-humo">
-                  <span>
-                    {visibles.length === 0 ? "Sin resultados" : `Mostrando ${mostradas.length} de ${visibles.length}`}
+                  <span className="min-w-0 [overflow-wrap:anywhere]">
+                    {visibles.length > 0
+                      ? `Mostrando ${mostradas.length} de ${visibles.length}`
+                      : coincidenYaEnOrdeno.length > 0
+                        ? `${coincidenYaEnOrdeno.slice(0, 3).map(etiquetaAnimal).join(", ")}${coincidenYaEnOrdeno.length > 3 ? ` y ${coincidenYaEnOrdeno.length - 3} más` : ""} ya ${coincidenYaEnOrdeno.length === 1 ? "está" : "están"} en el ordeño, por eso no ${coincidenYaEnOrdeno.length === 1 ? "sale" : "salen"} aquí.`
+                        : "Sin resultados"}
                   </span>
                   {mostradas.length > 0 ? (
                     <button

@@ -18,6 +18,12 @@ export function Sheet({
   pie?: React.ReactNode;
 }) {
   const panel = useRef<HTMLDivElement>(null);
+  // `onCerrar` casi siempre llega como una función nueva en cada render del padre. Si fuera dependencia del efecto, cada letra escrita en un campo
+  // de la hoja lo volvería a ejecutar y le quitaría el foco al campo: por eso se guarda en una referencia y el efecto solo depende de `abierta`.
+  const alCerrar = useRef(onCerrar);
+  useEffect(() => {
+    alCerrar.current = onCerrar;
+  });
 
   useEffect(() => {
     if (!abierta) return;
@@ -26,7 +32,7 @@ export function Sheet({
     document.body.style.overflow = "hidden";
     panel.current?.focus();
     const alTeclear = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onCerrar();
+      if (e.key === "Escape") alCerrar.current();
     };
     window.addEventListener("keydown", alTeclear);
     return () => {
@@ -34,7 +40,7 @@ export function Sheet({
       document.body.style.overflow = overflow;
       previo?.focus?.();
     };
-  }, [abierta, onCerrar]);
+  }, [abierta]);
 
   if (!abierta) return null;
 
