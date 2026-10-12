@@ -317,3 +317,75 @@ export async function deshacerBaja(animalId: string): Promise<ResultadoBaja> {
   revalidatePath("/");
   return { ok: true };
 }
+
+// ───────────────────────── Programa del ordeño ─────────────────────────
+const TURNO = z.enum(["manana", "tarde", "noche"]);
+type ResultadoPrograma = { ok: true } | { ok: false; error: string };
+
+/** Define en qué turnos se ordeña una hembra. Una lista vacía significa que por ahora no se ordeña en ningún turno. */
+export async function programarOrdeno(animalId: string, turnos: string[]): Promise<ResultadoPrograma> {
+  const { finca, rol } = await obtenerContexto();
+  if (!puedeEscribir(rol, "hato")) return { ok: false, error: "No tienes permiso para programar el ordeño en esta finca." };
+  const datos = z.object({ animalId: z.uuid(), turnos: z.array(TURNO).max(3) }).safeParse({ animalId, turnos });
+  if (!datos.success) return { ok: false, error: "El turno no es válido." };
+
+  const supabase = await crearClienteServidor();
+  const { data, error } = await supabase
+    .from("animales")
+    .update({ turnos_ordeno: [...new Set(datos.data.turnos)] })
+    .eq("id", datos.data.animalId)
+    .eq("finca_id", finca.id)
+    .eq("sexo", "hembra")
+    .is("deleted_at", null)
+    .select("id");
+  if (error) return { ok: false, error: mensajeAmigable(error.message) };
+  if (!data || data.length === 0) return { ok: false, error: "No encontramos esa hembra." };
+  revalidatePath("/hato");
+  revalidatePath(`/hato/${animalId}`);
+  revalidatePath("/leche");
+  return { ok: true };
+}
+
+/** Prende o apaga un turno en todas las hembras que están en leche, sin tocar los otros turnos de cada una. */
+export async function programarOrdenoLote(turno: string, activo: boolean): Promise<{ ok: true; afectadas: number } | { ok: false; error: string }> {
+  const { finca, rol } = await obtenerContexto();
+  if (!puedeEscribir(rol, "hato")) return { ok: false, error: "No tienes permiso para programar el ordeño en esta finca." };
+  const t = TURNO.safeParse(turno);
+  if (!t.success) return { ok: false, error: "El turno no es válido." };
+
+  const supabase = await crearClienteServidor();
+  const { data: lactancias } = await supabase.from("lactancias").select("animal_id").eq("finca_id", finca.id).is("fecha_secado", null);
+  const ids = (lactancias ?? []).map((l) => l.animal_id);
+  if (ids.length === 0) return { ok: true, afectadas: 0 };
+
+  const actuales: { id: string; turnos_ordeno: string[] | null }[] = [];
+  for (let i = 0; i < ids.length; i += 100) {
+    const { data, error } = await supabase.from("animales").select("id, turnos_ordeno").eq("finca_id", finca.id).eq("sexo", "hembra").eq("estado", "activo").is("deleted_at", null).in("id", ids.slice(i, i + 100));
+    if (error) return { ok: false, error: mensajeAmigable(error.message) };
+    actuales.push(...(data ?? []));
+  }
+
+  // Cada hembra queda con su lista nueva; las que quedan igual se agrupan para no hacer una consulta por animal.
+  const grupos = new Map<string, string[]>();
+  for (const a of actuales) {
+    const hoy = new Set(a.turnos_ordeno ?? ["manana", "tarde", "noche"]);
+    if (activo) hoy.add(t.data);
+    else hoy.delete(t.data);
+    const nueva = ["manana", "tarde", "noche"].filter((x) => hoy.has(x));
+    const clave = nueva.join(",");
+    grupos.set(clave, [...(grupos.get(clave) ?? []), a.id]);
+  }
+  for (const [clave, lista] of grupos) {
+    for (let i = 0; i < lista.length; i += 100) {
+      const { error } = await supabase
+        .from("animales")
+        .update({ turnos_ordeno: clave === "" ? [] : clave.split(",") })
+        .eq("finca_id", finca.id)
+        .in("id", lista.slice(i, i + 100));
+      if (error) return { ok: false, error: mensajeAmigable(error.message) };
+    }
+  }
+  revalidatePath("/hato");
+  revalidatePath("/leche");
+  return { ok: true, afectadas: actuales.length };
+}

@@ -16,8 +16,8 @@ export async function Registrar({ fincaId, puedeEditar, agregar }: { fincaId: st
   const ids = (lactancias ?? []).map((l) => l.animal_id);
   const [animales, retiro, tendencia, habitualFilas] = await Promise.all([
     ids.length
-      ? supabase.from("animales").select("id, numero_arete, nombre").in("id", ids).eq("estado", "activo").is("deleted_at", null).order("numero_arete")
-      : Promise.resolve({ data: [] as { id: string; numero_arete: string; nombre: string | null }[] }),
+      ? supabase.from("animales").select("id, numero_arete, nombre, turnos_ordeno").in("id", ids).eq("estado", "activo").is("deleted_at", null).order("numero_arete")
+      : Promise.resolve({ data: [] as { id: string; numero_arete: string; nombre: string | null; turnos_ordeno: string[] | null }[] }),
     supabase.rpc("animales_en_retiro", { p_finca: fincaId }),
     supabase.rpc("produccion_tendencia", { p_finca: fincaId }),
     supabase.rpc("produccion_habitual", { p_finca: fincaId }),
@@ -63,7 +63,7 @@ export async function Registrar({ fincaId, puedeEditar, agregar }: { fincaId: st
       <CapturaLeche
         fincaId={fincaId}
         hoy={hoy}
-        animales={lista}
+        animales={lista.map(({ turnos_ordeno, ...a }) => ({ ...a, turnos: turnos_ordeno }))}
         retiros={retiros}
         jornadaInicial={jornadaInicial}
         tendencias={tendencias}
