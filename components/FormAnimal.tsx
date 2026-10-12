@@ -12,7 +12,7 @@ import { SelectorAnimal } from "@/components/SelectorAnimal";
 import { crearAnimal, editarAnimal } from "@/app/(app)/hato/actions";
 import { nombreTipo } from "@/lib/animal";
 import { hoyBogota } from "@/lib/fechas";
-import type { Especie, Raza, SexoAnimal, Vocacion } from "@/lib/tipos";
+import type { Especie, Raza, SexoAnimal, UsoMacho, Vocacion } from "@/lib/tipos";
 
 type Ref = { id: string; numero_arete: string; nombre: string | null };
 
@@ -33,6 +33,7 @@ export type AnimalEditable = {
   origen: "nacido_en_finca" | "comprado";
   peso_nacer_kg: number | null;
   vocacion: Vocacion;
+  uso_macho: UsoMacho | null;
   padre: Ref | null;
   madre: Ref | null;
   padre_externo: string | null;
@@ -80,6 +81,7 @@ export function FormAnimal({
   const [razaId, setRazaId] = useState<number | "">(animal?.raza_id ?? "");
   const [origen, setOrigen] = useState<"nacido_en_finca" | "comprado">(animal?.origen ?? "nacido_en_finca");
   const [vocacion, setVocacion] = useState<Vocacion>(animal?.vocacion ?? propositoFinca);
+  const [usoMacho, setUsoMacho] = useState<UsoMacho | "por_definir">(animal?.uso_macho ?? "por_definir");
   const [padre, setPadre] = useState<Ref | null>(animal?.padre ?? null);
   const [madre, setMadre] = useState<Ref | null>(animal?.madre ?? null);
   const [color, setColor] = useState(animal?.color ?? "");
@@ -274,8 +276,26 @@ export function FormAnimal({
           </div>
         </Seccion>
       ) : (
-        // El macho no produce leche: no se pregunta aptitud ni último parto (se guarda como «carne», que no abre lactancias).
-        <input type="hidden" name="vocacion" value="carne" />
+        // El macho no produce leche: no se pregunta aptitud ni último parto. Se le pregunta para qué es.
+        // (`vocacion` se guarda como «carne» solo porque la columna no admite vacío; el dato real es `uso_macho`.)
+        <Seccion titulo="Uso">
+          <input type="hidden" name="vocacion" value="carne" />
+          <div className="min-w-0 space-y-2 lg:max-w-md">
+            <span className="block text-sm font-semibold">¿Para qué es este macho?</span>
+            <Segmentado
+              etiqueta="Uso del macho"
+              nombre="uso_macho"
+              valor={usoMacho}
+              onCambio={setUsoMacho}
+              opciones={[
+                { valor: "reproductor", etiqueta: "Reproductor" },
+                { valor: "carne", etiqueta: "Carne" },
+                { valor: "por_definir", etiqueta: "Por definir" },
+              ]}
+            />
+            <p className="text-[0.8125rem] text-humo">Reproductor es un semental para cubrir hembras. Carne es un animal de engorde. Puedes cambiarlo después.</p>
+          </div>
+        </Seccion>
       )}
 
       <Seccion titulo="Genealogía">

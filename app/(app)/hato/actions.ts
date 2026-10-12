@@ -29,6 +29,7 @@ const esquema = z.object({
   madre_externa: opcional(z.string().trim().max(80)),
   origen: z.enum(["nacido_en_finca", "comprado"]),
   vocacion: z.enum(["leche", "carne", "doble"]),
+  uso_macho: opcional(z.enum(["reproductor", "carne", "por_definir"])),
   chip: opcional(z.string().trim().max(40, "El microchip es muy largo.")),
   color: opcional(z.string().trim().max(60, "El color es muy largo.")),
   marcas: opcional(z.string().trim().max(120, "Las marcas son muy largas.")),
@@ -48,9 +49,10 @@ export async function crearAnimal(_: EstadoAnimal, form: FormData): Promise<Esta
 
   const datos = esquema.safeParse(Object.fromEntries(form));
   if (!datos.success) return { error: datos.error.issues[0]?.message };
-  const { fecha_ultimo_parto, ...animal } = datos.data;
-  // La aptitud de leche solo aplica a las hembras.
+  const { fecha_ultimo_parto, uso_macho, ...animal } = datos.data;
+  // La aptitud de leche solo aplica a las hembras; un macho tiene, en cambio, un uso (reproductor, carne o por definir).
   if (animal.sexo === "macho") animal.vocacion = "carne";
+  const usoMacho = animal.sexo === "macho" && uso_macho && uso_macho !== "por_definir" ? uso_macho : null;
   // El peso al nacer solo se conoce de los animales que nacieron en la finca.
   if (animal.origen === "comprado") animal.peso_nacer_kg = undefined;
 
@@ -63,7 +65,7 @@ export async function crearAnimal(_: EstadoAnimal, form: FormData): Promise<Esta
   const supabase = await crearClienteServidor();
   const { data, error } = await supabase
     .from("animales")
-    .insert({ ...animal, finca_id: finca.id })
+    .insert({ ...animal, uso_macho: usoMacho, finca_id: finca.id })
     .select("id")
     .single();
 
@@ -173,6 +175,7 @@ export async function editarAnimal(_: EstadoAnimal, form: FormData): Promise<Est
       origen: d.origen,
       peso_nacer_kg: d.origen === "nacido_en_finca" ? (d.peso_nacer_kg ?? null) : null,
       vocacion: d.sexo === "macho" ? "carne" : d.vocacion,
+      uso_macho: d.sexo === "macho" && d.uso_macho && d.uso_macho !== "por_definir" ? d.uso_macho : null,
       padre_id: d.padre_id ?? null,
       madre_id: d.madre_id ?? null,
       padre_externo: d.padre_externo ?? null,
