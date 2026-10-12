@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { ChevronLeft, MapPin, Plus, Trophy } from "lucide-react";
+import { ChevronLeft, MapPin, Pencil, Plus, Trophy } from "lucide-react";
+import { AvisoGuardado } from "@/components/AvisoGuardado";
 import { EstadoVacio } from "@/components/EstadoVacio";
 import { FilaParticipacion, rangoFechas } from "@/components/FilaParticipacion";
 import { Insignia } from "@/components/Insignia";
@@ -16,8 +17,9 @@ import { ETIQUETA_NIVEL } from "@/lib/ferias";
 export const metadata: Metadata = { title: "Feria" };
 const ID_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-export default async function DetalleFeria({ params }: { params: Promise<{ id: string }> }) {
+export default async function DetalleFeria({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ guardado?: string }> }) {
   const { id } = await params;
+  const { guardado } = await searchParams;
   if (!ID_UUID.test(id)) notFound();
   const { finca, rol } = await obtenerContexto();
   if (!puedeVer(rol, "ferias")) redirect("/");
@@ -45,9 +47,20 @@ export default async function DetalleFeria({ params }: { params: Promise<{ id: s
 
   return (
     <>
-      <Link href="/ferias" className="-ml-2 mt-3 inline-flex min-h-11 items-center gap-1 rounded-full px-2 text-[0.9375rem] font-semibold text-musgo">
-        <ChevronLeft className="size-5" strokeWidth={2} /> Ferias
-      </Link>
+      <AvisoGuardado activo={guardado === "1"} />
+      <div className="mt-3 flex items-center justify-between gap-3">
+        <Link href="/ferias" className="-ml-2 inline-flex min-h-11 items-center gap-1 rounded-full px-2 text-[0.9375rem] font-semibold text-musgo">
+          <ChevronLeft className="size-5" strokeWidth={2} /> Ferias
+        </Link>
+        {puedeEscribir(rol, "ferias") ? (
+          <Link
+            href={`/ferias/${id}/editar`}
+            className="inline-flex min-h-11 items-center gap-1.5 rounded-full bg-papel px-4 text-sm font-semibold text-musgo ring-1 ring-arena transition hover:bg-arena/40"
+          >
+            <Pencil className="size-4" strokeWidth={2} aria-hidden="true" /> Editar
+          </Link>
+        ) : null}
+      </div>
       <header className="pb-4 pt-1">
         <h1 className="font-display text-[1.875rem] font-semibold leading-tight tracking-tight [overflow-wrap:anywhere]">{feria.nombre}</h1>
         <p className="mt-1.5 text-[0.9375rem] text-humo">{rangoFechas(feria.fecha_inicio, feria.fecha_fin)}</p>
