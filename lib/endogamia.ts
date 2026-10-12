@@ -3,7 +3,7 @@
 export type NivelEndogamia = "bajo" | "vigilar" | "alto" | "muy_alto";
 
 export const ETIQUETA_NIVEL: Record<NivelEndogamia, string> = {
-  bajo: "Baja",
+  bajo: "Aceptable",
   vigilar: "A vigilar",
   alto: "Alta",
   muy_alto: "Muy alta",
@@ -11,12 +11,45 @@ export const ETIQUETA_NIVEL: Record<NivelEndogamia, string> = {
 
 export const TONO_NIVEL = { bajo: "ok", vigilar: "aviso", alto: "alerta", muy_alto: "alerta" } as const;
 
-/** Escala a partir del umbral de la finca: mitad = a vigilar, umbral = alta, el doble = muy alta. */
+/** La endogamia y el umbral con cinco decimales (0,0625 → 6250): iguala los valores que son lo mismo y absorbe el ruido del decimal binario. */
+const centesimas = (f: number) => Math.round(f * 100000);
+
+/**
+ * Escala a partir del umbral de la finca: aceptable (menos de la mitad del umbral), a vigilar (desde la mitad), alta (desde el umbral)
+ * y muy alta (desde el doble). Se compara con la precisión que se ve en pantalla, para que quien muestra «3,13 %» nunca quede por
+ * debajo de un umbral de «3,13 %» por un decimal escondido (el umbral estricto es exactamente 0,03125, igual que la endogamia que le corresponde).
+ * Un animal que llega justo a un valor entra en el nivel siguiente.
+ */
 export function nivelEndogamia(f: number, umbral: number): NivelEndogamia {
-  if (f <= 0 || f < umbral / 2) return "bajo";
-  if (f < umbral) return "vigilar";
-  if (f < umbral * 2) return "alto";
+  const x = centesimas(f);
+  const u = centesimas(umbral);
+  if (x <= 0 || x < u / 2) return "bajo";
+  if (x < u) return "vigilar";
+  if (x < u * 2) return "alto";
   return "muy_alto";
+}
+
+/** ¿Está en el umbral de la finca o por encima? (alta o muy alta) */
+export function sobreElUmbral(f: number, umbral: number): boolean {
+  const nivel = nivelEndogamia(f, umbral);
+  return nivel === "alto" || nivel === "muy_alto";
+}
+
+export type Reparto = { sobre: number; vigilar: number; aceptables: number; sin: number };
+
+/** Reparte los animales medidos en tres grupos que suman el total: sobre el umbral, a vigilar y aceptables (incluye a los que no tienen endogamia). */
+export function repartirPorNivel(fs: number[], umbral: number): Reparto {
+  const r: Reparto = { sobre: 0, vigilar: 0, aceptables: 0, sin: 0 };
+  for (const f of fs) {
+    const nivel = nivelEndogamia(f, umbral);
+    if (nivel === "alto" || nivel === "muy_alto") r.sobre++;
+    else if (nivel === "vigilar") r.vigilar++;
+    else {
+      r.aceptables++;
+      if (centesimas(f) <= 0) r.sin++;
+    }
+  }
+  return r;
 }
 
 /** 0,0625 → «6,25 %» */
@@ -35,7 +68,7 @@ export function pedigriTexto(completitud: number): string {
 export function recomendacionCruza(nivel: NivelEndogamia): string {
   switch (nivel) {
     case "bajo":
-      return "Cruza recomendable: la cría tendría una endogamia baja.";
+      return "Cruza recomendable: la cría tendría una endogamia aceptable.";
     case "vigilar":
       return "Aceptable, pero ya se acerca al umbral de tu finca. Conviene vigilarla.";
     case "alto":
