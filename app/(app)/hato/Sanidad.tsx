@@ -2,12 +2,14 @@ import Link from "next/link";
 import { CalendarClock, Footprints, Plus, Syringe } from "lucide-react";
 import { AvisoFamacha } from "@/components/AvisoFamacha";
 import { AvisoGuardado } from "@/components/AvisoGuardado";
+import { AyudaModulo } from "@/components/AyudaModulo";
 import { CancelarPrograma } from "@/components/AccionesPrograma";
 import { clasesBoton } from "@/components/Boton";
 import { EstadoVacio } from "@/components/EstadoVacio";
 import { IconoEvento } from "@/components/IconoEvento";
 import { Insignia } from "@/components/Insignia";
 import { crearClienteServidor } from "@/lib/supabase/server";
+import { AYUDA_SANIDAD } from "@/lib/ayuda";
 import { estadoFamacha } from "@/lib/famacha";
 import { formatoFecha, hoyBogota, sumarDias } from "@/lib/fechas";
 import { DIAS_PODOLOGIA, ETIQUETA_EVENTO, estadoDosis, estadoFechaPrograma, nombreEvento } from "@/lib/sanidad";
@@ -71,11 +73,7 @@ export async function Sanidad({
   return (
     <div className="space-y-4">
       <AvisoGuardado activo={guardado} />
-      <p className="text-[0.9375rem] text-humo">
-        Aquí programas vacunas, desparasitaciones, tratamientos, podología o pediluvio para los animales que aplican, y registras lo que ya se aplicó. El resumen de toda la
-        finca, con filtros por fechas, está en{" "}
-        <Link href="/sanidad" className="font-semibold text-musgo underline underline-offset-2">Sanidad</Link>.
-      </p>
+      <AyudaModulo ayuda={AYUDA_SANIDAD} />
       {botones}
 
       {programas.length === 0 && refuerzos.length === 0 ? (

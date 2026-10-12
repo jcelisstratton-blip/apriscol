@@ -67,6 +67,10 @@ export const TONO_ESTADO_UBICACION: Record<EstadoUbicacion, "musgo" | "aviso" | 
   listo: "musgo",
 };
 
+/** Rotación de potreros por defecto (la guía: ocupación de 3 a 5 días y descanso de 30 a 45). */
+export const DIAS_OCUPACION_DEFECTO = 5;
+export const DIAS_DESCANSO_DEFECTO = 35;
+
 /** Días mínimos y recomendados de cuarentena para un animal que llega (la guía: 21 a 30). */
 export const CUARENTENA_MIN_DIAS = 21;
 export const CUARENTENA_RECOMENDADA_DIAS = 30;

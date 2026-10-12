@@ -78,6 +78,7 @@ correspondiente en `node_modules/next/dist/docs/` (esta versión cambia APIs: `m
 - Mensajes: `Aviso` (info/éxito son una nota; atención/error llevan recuadro sutil), `EstadoVacio` para listas sin
   datos, `useToast()` para confirmaciones pasajeras. Errores técnicos siempre por `mensajeAmigable`. Nada técnico a
   los clientes. Sin emojis decorativos: iconos de trazo fino (lucide). Nunca `<select>`, `confirm`, `alert` ni `prompt`.
+- **Ayuda de un módulo:** cada vista de trabajo del Hato (Corrales, Sanidad) abre su explicación con «¿Cómo funciona?» (`AyudaModulo`, hoja corta de 4 o 5 ideas de una frase). Los textos viven en `lib/ayuda.ts` y sus números salen de las mismas constantes que usa la app (cupo, días de rotación, cuarentena, FAMACHA, podología); si cambia una regla, se cambia ahí. Nunca párrafos de explicación sueltos en la pantalla; el detalle de un campo va como ayuda bajo el campo.
 - Esperas: `Cargando` (isotipo animado), `Esqueleto*` y `loading.tsx` por segmento; un botón que trabaja usa
   `<Boton pendiente cargando="…">`.
 - Identidad: lana, musgo y ocre (`globals.css`), Fraunces para títulos y Figtree para interfaz. Nada genérico.

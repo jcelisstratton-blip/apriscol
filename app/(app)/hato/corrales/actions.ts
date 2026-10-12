@@ -9,7 +9,7 @@ import { puedeEscribir, puedeGestionar } from "@/lib/permisos";
 import { mensajeAmigable } from "@/lib/mensaje-amigable";
 import { hoyBogota } from "@/lib/fechas";
 import { leerNumero } from "@/lib/numeros";
-import { MOTIVOS, PISOS, TIPOS_UBICACION, USOS } from "@/lib/corrales";
+import { DIAS_DESCANSO_DEFECTO, DIAS_OCUPACION_DEFECTO, MOTIVOS, PISOS, TIPOS_UBICACION, USOS } from "@/lib/corrales";
 import { DIRECCION_CORRALES } from "@/lib/hato";
 
 export type EstadoForm = { error?: string } | undefined;
@@ -52,8 +52,8 @@ function datosUbicacion(d: z.output<typeof esquemaUbicacion>) {
     piso: (d.piso as never) ?? null,
     agua: d.agua,
     // Los días de rotación solo cuentan en potreros; en un corral quedan los valores de la guía.
-    dias_ocupacion_max: potrero ? (d.dias_ocupacion_max ?? 5) : 5,
-    dias_descanso_min: potrero ? (d.dias_descanso_min ?? 35) : 35,
+    dias_ocupacion_max: potrero ? (d.dias_ocupacion_max ?? DIAS_OCUPACION_DEFECTO) : DIAS_OCUPACION_DEFECTO,
+    dias_descanso_min: potrero ? (d.dias_descanso_min ?? DIAS_DESCANSO_DEFECTO) : DIAS_DESCANSO_DEFECTO,
     observaciones: d.observaciones ?? null,
   };
 }

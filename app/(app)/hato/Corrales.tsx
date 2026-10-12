@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { AlertTriangle, ArrowRightLeft, Fence, Plus } from "lucide-react";
 import { AvisoGuardado } from "@/components/AvisoGuardado";
+import { AyudaModulo } from "@/components/AyudaModulo";
 import { clasesBoton } from "@/components/Boton";
 import { EstadoVacio } from "@/components/EstadoVacio";
 import { Insignia } from "@/components/Insignia";
@@ -8,6 +9,7 @@ import { TarjetaUbicacion } from "@/components/TarjetaUbicacion";
 import { crearClienteServidor } from "@/lib/supabase/server";
 import { animalesPorIds } from "@/lib/animal-etiquetas";
 import { etiquetaAnimal } from "@/lib/animal";
+import { AYUDA_CORRALES } from "@/lib/ayuda";
 import { estadoCuarentena } from "@/lib/corrales";
 import type { CuarentenaAlerta, UbicacionVista } from "@/lib/tipos";
 
@@ -54,11 +56,7 @@ export async function Corrales({
   return (
     <div className="space-y-4">
       <AvisoGuardado activo={guardado} />
-      <p className="text-[0.9375rem] text-humo">
-        Aquí armas tus corrales y potreros, mueves a los animales (o un lote entero para rotarlo) y ves dónde hay hacinamiento, qué potrero debe desocuparse o descansar y cómo van
-        los animales en cuarentena. El resumen de toda la finca, con filtros por fechas, está en{" "}
-        <Link href="/corrales" className="font-semibold text-musgo underline underline-offset-2">Corrales</Link>.
-      </p>
+      <AyudaModulo ayuda={AYUDA_CORRALES} />
       {puedeEditar ? (
         <div className="grid grid-cols-1 gap-2 min-[420px]:grid-cols-2">
           <Link href="/hato/corrales/mover" className={clasesBoton("primario")}>
