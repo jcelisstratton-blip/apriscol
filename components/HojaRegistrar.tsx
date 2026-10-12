@@ -1,14 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { Droplets, Rabbit, Syringe } from "lucide-react";
+import { Droplets, Rabbit, Scale, Syringe } from "lucide-react";
 import { Sheet } from "@/components/Sheet";
 
 export type Accion = { href: string; titulo: string; detalle: string; icono: React.ReactNode };
-export type PermisosRegistro = { puedeOrdenar: boolean; puedeCrearAnimal: boolean; puedeSanidad: boolean };
+export type PermisosRegistro = { puedeOrdenar: boolean; puedeCrearAnimal: boolean; puedeSanidad: boolean; puedeCarne: boolean };
 
 /** Lo que la persona puede registrar desde el botón «+» (celular) o «Registrar» (menú lateral), según su rol. */
-export function accionesRegistro({ puedeOrdenar, puedeCrearAnimal, puedeSanidad }: PermisosRegistro): Accion[] {
+export function accionesRegistro({ puedeOrdenar, puedeCrearAnimal, puedeSanidad, puedeCarne }: PermisosRegistro): Accion[] {
   return [
     ...(puedeOrdenar
       ? [{ href: "/hato?vista=ordeno", titulo: "Registrar ordeño", detalle: "Litros por animal, jornada de hoy", icono: <Droplets className="size-6" strokeWidth={1.75} /> }]
@@ -18,6 +18,9 @@ export function accionesRegistro({ puedeOrdenar, puedeCrearAnimal, puedeSanidad 
       : []),
     ...(puedeSanidad
       ? [{ href: "/sanidad/nuevo", titulo: "Vacuna o tratamiento", detalle: "Para uno o varios animales", icono: <Syringe className="size-6" strokeWidth={1.75} /> }]
+      : []),
+    ...(puedeCarne
+      ? [{ href: "/hato?vista=ceba", titulo: "Pesar animales", detalle: "Peso de los animales en ceba", icono: <Scale className="size-6" strokeWidth={1.75} /> }]
       : []),
   ];
 }

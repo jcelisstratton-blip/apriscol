@@ -11,7 +11,7 @@ import { FilaAnimal, type AnimalFila, type RetiroFila } from "@/components/FilaA
 import { ListaEscalable } from "@/components/ListaEscalable";
 import { clasesBoton } from "@/components/Boton";
 import { crearClienteNavegador } from "@/lib/supabase/client";
-import { DIRECCION_ORDENO, filtrosHato, type FiltroHato } from "@/lib/hato";
+import { DIRECCION_ORDENO, DIRECCION_CEBA, filtrosHato, type FiltroHato } from "@/lib/hato";
 import type { Especie } from "@/lib/tipos";
 
 type Filtro = FiltroHato;
@@ -24,6 +24,7 @@ export function ListaHato({
   puedeTraer = false,
   filtroInicial = "todos",
   conOrdeno = false,
+  conCeba = false,
 }: {
   fincaId: string;
   especies: Especie[];
@@ -35,6 +36,8 @@ export function ListaHato({
   filtroInicial?: FiltroHato;
   /** Si se ofrece el filtro «Ordeño» (quien puede ver leche): lleva al registro del ordeño y su programa. */
   conOrdeno?: boolean;
+  /** Si se ofrece el filtro «Ceba» (quien puede ver carne): lleva a pesar los animales en engorde. */
+  conCeba?: boolean;
 }) {
   const [busqueda, setBusqueda] = useState("");
   const [filtro, setFiltro] = useState<Filtro>(filtroInicial);
@@ -78,6 +81,11 @@ export function ListaHato({
         {conOrdeno ? (
           <ChipEnlace href={DIRECCION_ORDENO} activo={false}>
             Ordeño
+          </ChipEnlace>
+        ) : null}
+        {conCeba ? (
+          <ChipEnlace href={DIRECCION_CEBA} activo={false}>
+            Ceba
           </ChipEnlace>
         ) : null}
       </FilaDesplazable>

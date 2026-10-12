@@ -26,6 +26,8 @@ import { HistorialSanidadAnimal } from "@/components/HistorialSanidadAnimal";
 import { TurnosAnimal } from "@/components/TurnosAnimal";
 import { estadoDosis, ETIQUETA_RESULTADO_PRUEBA, nombreEvento } from "@/lib/sanidad";
 import { estadoRcs, formatoMiles } from "@/lib/leche-calidad";
+import { ETIQUETA_PESAJE, faltaParaMeta, gdp, kg } from "@/lib/carne";
+import { LoteAnimal } from "@/components/LoteAnimal";
 import { describirParentesco, nivelEndogamia, pedigriTexto, porcentaje, primeraMayuscula, type AncestroEndogamia } from "@/lib/endogamia";
 
 export const metadata: Metadata = { title: "Animal" };
@@ -57,6 +59,7 @@ export default async function FichaAnimal({ params, searchParams }: { params: Pr
   const verGenealogia = puedeVer(rol, "genealogia") || puedeVer(rol, "hato");
   const verFerias = puedeVer(rol, "ferias");
   const verSanidad = puedeVer(rol, "sanidad");
+  const verCarne = puedeVer(rol, "carne");
   const idsPadres = [animal.padre_id, animal.madre_id].filter((x): x is string => !!x);
 
   const [raza, padres, endo, completitud, lactancia, retiro, palmares, participaciones, baja] = await Promise.all([
@@ -117,6 +120,20 @@ export default async function FichaAnimal({ params, searchParams }: { params: Pr
     retiro_leche_hasta: e.fin_retiro_leche && (e.retiro_leche_dias ?? 0) > 0 && e.fin_retiro_leche >= hoyBogota() ? e.fin_retiro_leche : null,
     retiro_carne_hasta: e.fin_retiro_carne && (e.retiro_carne_dias ?? 0) > 0 && e.fin_retiro_carne >= hoyBogota() ? e.fin_retiro_carne : null,
   }));
+  // Crecimiento y ceba: pesos del animal, su ganancia diaria (la calcula la base) y el lote en el que está.
+  const [pesosDB, cebaDB, lotesDB] = verCarne
+    ? await Promise.all([
+        supabase.from("pesajes").select("*").eq("animal_id", id).eq("finca_id", finca.id).order("fecha", { ascending: false }).limit(50),
+        supabase.rpc("ceba_animales", { p_finca: finca.id }),
+        supabase.from("lotes_ceba").select("id, nombre, peso_meta_kg, cerrado_en").eq("finca_id", finca.id).order("nombre").limit(500),
+      ])
+    : [{ data: [] }, { data: [] }, { data: [] }];
+  const miCeba = (cebaDB.data ?? []).find((c) => c.animal_id === id);
+  const listaPesos = pesosDB.data ?? [];
+  const lotesCeba = lotesDB.data ?? [];
+  const miLote = lotesCeba.find((l) => l.id === animal.lote_ceba_id);
+  const esCeba = animal.sexo === "macho" ? animal.uso_macho === "carne" : animal.vocacion !== "leche";
+  const mostrarCrecimiento = verCarne && (animal.estado === "activo" || listaPesos.length > 0);
   // Calidad de la leche de esta hembra: sus análisis (grasa, proteína, células somáticas). El CMT vive en Sanidad → Pruebas.
   const analisisLeche = verLeche
     ? ((await supabase.from("analisis_leche").select("*").eq("animal_id", id).eq("finca_id", finca.id).order("fecha", { ascending: false }).order("created_at", { ascending: false }).limit(20)).data ?? [])
@@ -305,6 +322,60 @@ export default async function FichaAnimal({ params, searchParams }: { params: Pr
               <Link href={`/hato/${id}/calidad/nuevo`} className={`${clasesBoton("secundario")} mt-3`}>
                 Registrar análisis
               </Link>
+            ) : null}
+          </Tarjeta>
+        ) : null}
+
+        {mostrarCrecimiento ? (
+          <Tarjeta titulo="Peso y ceba" id="crecimiento">
+            <dl className="divide-y divide-arena">
+              {animal.peso_nacer_kg ? <Dato etiqueta="Peso al nacer">{litros(animal.peso_nacer_kg)} kg</Dato> : null}
+              <Dato etiqueta="Último peso">
+                {miCeba?.peso_ultimo != null && miCeba.n_pesajes > 0 ? `${kg(miCeba.peso_ultimo)} · ${formatoFecha(miCeba.fecha_ultimo, { day: "numeric", month: "short", year: "numeric" })}` : "Sin pesos todavía"}
+              </Dato>
+              {miCeba?.gdp_total_g != null ? <Dato etiqueta="Ganancia por día">{gdp(miCeba.gdp_total_g)}</Dato> : null}
+              {miCeba?.gdp_reciente_g != null && miCeba.gdp_reciente_g !== miCeba.gdp_total_g ? <Dato etiqueta="Entre los dos últimos pesos">{gdp(miCeba.gdp_reciente_g)}</Dato> : null}
+              {miLote ? (
+                <Dato etiqueta="Lote de ceba">
+                  <Link href={`/carne/lotes/${miLote.id}`} className="font-semibold text-musgo underline-offset-4 hover:underline [overflow-wrap:anywhere]">
+                    {miLote.nombre}
+                  </Link>
+                </Dato>
+              ) : null}
+              {miLote?.peso_meta_kg != null && miCeba?.peso_ultimo != null ? (
+                <Dato etiqueta="Meta del lote">
+                  {Number(miCeba.peso_ultimo) >= Number(miLote.peso_meta_kg) ? <Insignia tono="ok">Listo para beneficio</Insignia> : `Faltan ${kg(faltaParaMeta(miCeba.peso_ultimo, miLote.peso_meta_kg))} para ${kg(miLote.peso_meta_kg)}`}
+                </Dato>
+              ) : null}
+            </dl>
+            {miCeba && miCeba.n_pesajes > 0 && miCeba.gdp_total_g == null ? (
+              <p className="mt-2 text-sm text-humo">La ganancia por día se calcula con dos pesos separados al menos 7 días.</p>
+            ) : null}
+            {listaPesos.length > 0 ? (
+              <ul className="mt-3 divide-y divide-arena">
+                {listaPesos.slice(0, 8).map((p) => (
+                  <li key={p.id} className="flex items-center justify-between gap-3 py-2">
+                    <span className="min-w-0 text-[0.9375rem] [overflow-wrap:anywhere]">
+                      <span className="font-semibold">{kg(p.peso_kg)}</span>
+                      <span className="text-humo"> · {formatoFecha(p.fecha, { day: "numeric", month: "short", year: "numeric" })}{p.tipo !== "control" ? ` · ${ETIQUETA_PESAJE[p.tipo]}` : ""}</span>
+                    </span>
+                    {puedeEscribir(rol, "carne") ? (
+                      <Link href={`/carne/pesajes/${p.id}`} className="inline-flex min-h-11 shrink-0 items-center text-sm font-semibold text-musgo underline-offset-4 hover:underline">
+                        Editar
+                      </Link>
+                    ) : null}
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+            {listaPesos.length > 8 ? <p className="mt-1 text-sm text-humo">Y {listaPesos.length - 8} pesos más en Carne → Pesos.</p> : null}
+            {puedeEscribir(rol, "carne") && animal.estado === "activo" ? (
+              <div className="mt-3 space-y-3">
+                {esCeba || miLote ? <LoteAnimal animalId={id} loteId={miLote && !miLote.cerrado_en ? miLote.id : null} lotes={lotesCeba.filter((l) => !l.cerrado_en).map((l) => ({ id: l.id, nombre: l.nombre }))} /> : null}
+                <Link href={`/hato/${id}/peso/nuevo`} className={clasesBoton("secundario")}>
+                  Registrar peso
+                </Link>
+              </div>
             ) : null}
           </Tarjeta>
         ) : null}
