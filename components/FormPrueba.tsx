@@ -6,6 +6,7 @@ import { Aviso } from "@/components/Aviso";
 import { Boton, clasesBoton } from "@/components/Boton";
 import { Campo, CLASE_INPUT } from "@/components/Campo";
 import { Selector } from "@/components/Selector";
+import { SubirSoporte } from "@/components/SubirSoporte";
 import { crearPrueba, editarPrueba } from "@/app/(app)/sanidad/actions";
 import { ETIQUETA_PRUEBA, ETIQUETA_RESULTADO_PRUEBA, RESULTADOS_PRUEBA, TIPOS_PRUEBA } from "@/lib/sanidad";
 import type { PruebaSanitaria, ResultadoPrueba, TipoPrueba } from "@/lib/tipos";
@@ -17,6 +18,7 @@ export function FormPrueba({ animalId, hoy, prueba, solicitud }: { animalId: str
   const [, iniciar] = useTransition();
   const [tipo, setTipo] = useState<TipoPrueba>(prueba?.prueba ?? "cae");
   const [resultado, setResultado] = useState<ResultadoPrueba>(prueba?.resultado ?? "pendiente");
+  const [subiendo, setSubiendo] = useState(false);
 
   // Se envía con onSubmit (no con `action`): si hay un error, lo que la persona escribió no se borra.
   const alEnviar = (e: React.FormEvent<HTMLFormElement>) => {
@@ -64,13 +66,19 @@ export function FormPrueba({ animalId, hoy, prueba, solicitud }: { animalId: str
         {(id) => <input id={id} name="laboratorio" defaultValue={prueba?.laboratorio ?? ""} maxLength={120} autoComplete="off" className={CLASE_INPUT} />}
       </Campo>
 
+      <div className="space-y-1.5">
+        <p className="text-sm font-semibold">Documento con el resultado</p>
+        <p className="text-[0.8125rem] text-humo">Opcional. El informe del laboratorio o la foto de la prueba: queda guardado como respaldo.</p>
+        <SubirSoporte nombre="soporte_path" carpeta="sanidad" etiqueta="Documento con el resultado" inicial={prueba?.soporte_path} onEstado={setSubiendo} />
+      </div>
+
       <Campo etiqueta="Observaciones" ayuda="Opcional.">
         {(id) => <textarea id={id} name="observaciones" defaultValue={prueba?.observaciones ?? ""} rows={3} maxLength={1000} className={`${CLASE_INPUT} py-3`} />}
       </Campo>
 
       {estado?.error ? <Aviso tipo="error">{estado.error}</Aviso> : null}
       <div className="space-y-2">
-        <Boton type="submit" pendiente={pendiente} cargando="Guardando…">
+        <Boton type="submit" pendiente={pendiente} cargando="Guardando…" disabled={subiendo}>
           {editando ? "Guardar cambios" : "Guardar prueba"}
         </Boton>
         <Link href={`/hato/${animalId}#sanidad`} className={clasesBoton("fantasma")}>

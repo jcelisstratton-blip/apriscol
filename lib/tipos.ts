@@ -450,6 +450,7 @@ export type RespuestaTraer =
 // ───────────────────────── Leche: calidad, frío, despachos y equipo ─────────────────────────
 export type MomentoFrio = "tras_ordeno" | "almacenada" | "despacho";
 export type DestinoLeche = "industria" | "queseria" | "venta_directa" | "otro";
+export type ResiduosAntibioticos = "negativo" | "positivo";
 export type TipoMantenimiento = "lavado_alcalino" | "lavado_acido" | "presion_vacio" | "pulsadores" | "revision" | "otro";
 
 export type AnalisisLeche = {
@@ -462,6 +463,13 @@ export type AnalisisLeche = {
   grasa_pct: number | null;
   proteina_pct: number | null;
   rcs_miles_ml: number | null;
+  solidos_totales_pct: number | null;
+  lactosa_pct: number | null;
+  /** Punto de congelación en °C (siempre negativo): la leche pura congela hacia -0,530 a -0,550. */
+  crioscopia_c: number | null;
+  residuos_antibioticos: ResiduosAntibioticos | null;
+  /** Ruta del documento con los resultados (bucket «soportes»). */
+  soporte_path: string | null;
   laboratorio: string | null;
   observaciones: string | null;
   client_request_id: string | null;
@@ -634,6 +642,32 @@ export type CanalesResumen = {
   merma_prom: number | null;
 };
 
+// ───────────────────────── Controles de calidad (con constancia) ─────────────────────────
+export type TipoControl = "residuos_antibioticos" | "crioscopia" | "composicion" | "celulas_somaticas" | "condicion_corporal" | "inspeccion_postmortem";
+export type EstadoControl = "realizado" | "no_realizado";
+export type ResultadoControl = "conforme" | "no_conforme";
+
+export type ControlCalidad = {
+  id: string;
+  finca_id: string;
+  /** Un control es de un despacho de leche o de un animal que sale para consumo (uno de los dos). */
+  despacho_id: string | null;
+  animal_id: string | null;
+  tipo: TipoControl;
+  estado: EstadoControl;
+  analisis_id: string | null;
+  fecha: string | null;
+  resultado: ResultadoControl | null;
+  /** Condición corporal, de 1 a 5. */
+  valor: number | null;
+  detalle: string | null;
+  motivo: string | null;
+  soporte_path: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
 export type { AncestroEndogamia } from "@/lib/endogamia";
 import type { AncestroEndogamia } from "@/lib/endogamia";
 
@@ -668,6 +702,7 @@ export type Database = {
       pesajes: Tabla<Pesaje, "finca_id" | "animal_id" | "peso_kg">;
       consumo_lote: Tabla<ConsumoLote, "finca_id" | "lote_id" | "kg_alimento">;
       canales: Tabla<Omit<Canal, "tipo_baja">, "finca_id" | "animal_id" | "peso_canal_caliente_kg">;
+      controles_calidad: Tabla<ControlCalidad, "finca_id" | "tipo" | "estado">;
     };
     Views: {
       v_produccion_diaria: { Row: ProduccionDiaria; Relationships: [] };

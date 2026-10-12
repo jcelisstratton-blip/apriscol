@@ -68,7 +68,9 @@ export function FormBaja({
       if (!r.ok) return setError(r.error);
       toast.exito(`${etiqueta} salió del hato`);
       if (r.aviso) toast.error(r.aviso);
-      router.push(`/hato/${animalId}`);
+      // Una salida para consumo va directo a sus controles de calidad (responderlos o dejar constancia de que no se hicieron).
+      const paraConsumo = tipo === "sacrificio" || (tipo === "venta" && consumo);
+      router.push(paraConsumo ? `/hato/${animalId}/controles?nuevo=1` : `/hato/${animalId}`);
       router.refresh();
     });
   };

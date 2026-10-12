@@ -9,7 +9,8 @@ import { puedeEscribir, puedeGestionar } from "@/lib/permisos";
 import { mensajeAmigable } from "@/lib/mensaje-amigable";
 import { hoyBogota } from "@/lib/fechas";
 import { decimal, opcional, texto } from "@/lib/validacion";
-import { DESTINOS_LECHE, MOMENTOS_FRIO, TIPOS_MANTENIMIENTO } from "@/lib/leche-calidad";
+import { DESTINOS_LECHE, MOMENTOS_FRIO, RESIDUOS, TIPOS_MANTENIMIENTO } from "@/lib/leche-calidad";
+import { soporteValido } from "@/lib/soportes";
 
 export type EstadoForm = { error?: string } | undefined;
 type Resultado = { ok: true; destino?: string } | { ok: false; error: string };
@@ -52,19 +53,36 @@ const esquemaAnalisis = z.object({
   grasa_pct: decimal(z.coerce.number("La grasa debe ser un número.").min(0, "La grasa no puede ser negativa.").max(20, "La grasa no puede pasar de 20 %.")),
   proteina_pct: decimal(z.coerce.number("La proteína debe ser un número.").min(0, "La proteína no puede ser negativa.").max(15, "La proteína no puede pasar de 15 %.")),
   rcs_miles_ml: decimal(z.coerce.number("El recuento debe ser un número.").int("El recuento debe ser un número entero.").min(0, "El recuento no puede ser negativo.").max(100000, "El recuento es demasiado alto. Revisa el dato.")),
+  solidos_totales_pct: decimal(z.coerce.number("Los sólidos totales deben ser un número.").min(0, "Los sólidos totales no pueden ser negativos.").max(30, "Los sólidos totales no pueden pasar de 30 %.")),
+  lactosa_pct: decimal(z.coerce.number("La lactosa debe ser un número.").min(0, "La lactosa no puede ser negativa.").max(10, "La lactosa no puede pasar de 10 %.")),
+  // El punto de congelación siempre es negativo: quien escribe «0,535» quiere decir -0,535.
+  crioscopia_c: decimal(z.coerce.number("La crioscopia debe ser un número.").min(-1, "La crioscopia debe estar entre -1 y 0 °C.").max(1, "La crioscopia debe estar entre -1 y 0 °C.")),
+  residuos_antibioticos: opcional(z.enum(RESIDUOS as [string, ...string[]], "El resultado de residuos no es válido.")),
+  soporte_path: opcional(z.string().max(200)),
+  volver: opcional(z.string().max(120)),
   laboratorio: texto(120, "El nombre del laboratorio es muy largo."),
   observaciones: texto(1000, "Las observaciones son muy largas."),
   client_request_id: opcional(z.uuid()),
   analisis_id: opcional(z.uuid()),
 });
 
-function leerAnalisis(form: FormData) {
+function leerAnalisis(form: FormData, fincaId: string, exigirDocumento: boolean) {
   const datos = esquemaAnalisis.safeParse(Object.fromEntries(form));
   if (!datos.success) return { error: datos.error.issues[0]?.message ?? "Revisa los datos." } as const;
   const d = datos.data;
   const futura = fechaNoFutura(d.fecha);
   if (futura) return { error: futura } as const;
-  if (d.grasa_pct == null && d.proteina_pct == null && d.rcs_miles_ml == null) return { error: "Indica al menos un resultado: grasa, proteína o células somáticas." } as const;
+  const crioscopia = d.crioscopia_c == null ? null : -Math.abs(d.crioscopia_c);
+  if (crioscopia !== null && (crioscopia <= -1 || crioscopia >= 0)) return { error: "La crioscopia debe estar entre -1 y 0 °C." } as const;
+  // La pureza y los residuos son del tanque o del lote, no de un animal suelto.
+  const esTanque = !d.animal_id;
+  const residuos = esTanque ? (d.residuos_antibioticos ?? null) : null;
+  const criosc = esTanque ? crioscopia : null;
+  if (d.grasa_pct == null && d.proteina_pct == null && d.rcs_miles_ml == null && d.solidos_totales_pct == null && d.lactosa_pct == null && criosc == null && residuos == null) {
+    return { error: "Indica al menos un resultado del análisis." } as const;
+  }
+  if (!soporteValido(d.soporte_path, fincaId, "calidad")) return { error: "El documento no es válido. Adjúntalo de nuevo." } as const;
+  if (exigirDocumento && !d.soporte_path) return { error: "Adjunta el documento con los resultados (el informe del laboratorio o la foto de la prueba)." } as const;
   return {
     d,
     fila: {
@@ -73,7 +91,12 @@ function leerAnalisis(form: FormData) {
       fecha: d.fecha,
       grasa_pct: d.grasa_pct ?? null,
       proteina_pct: d.proteina_pct ?? null,
+      solidos_totales_pct: d.solidos_totales_pct ?? null,
+      lactosa_pct: d.lactosa_pct ?? null,
       rcs_miles_ml: d.rcs_miles_ml ?? null,
+      crioscopia_c: criosc,
+      residuos_antibioticos: residuos as never,
+      soporte_path: d.soporte_path ?? null,
       laboratorio: d.laboratorio ?? null,
       observaciones: d.observaciones ?? null,
     },
@@ -83,19 +106,21 @@ function leerAnalisis(form: FormData) {
 export async function crearAnalisis(_: EstadoForm, form: FormData): Promise<EstadoForm> {
   const p = await permiso("registrar");
   if ("error" in p) return { error: p.error };
-  const l = leerAnalisis(form);
+  const l = leerAnalisis(form, p.finca.id, true);
   if ("error" in l) return { error: l.error };
   const supabase = await crearClienteServidor();
   const { error } = await supabase.from("analisis_leche").insert({ finca_id: p.finca.id, ...l.fila, client_request_id: l.d.client_request_id ?? null });
   if (error && !esRepetido(error)) return { error: mensajeAmigable(error.message) };
   revalidar(l.fila.animal_id);
-  redirect(volverA("analisis_leche", l.fila.animal_id));
+  // Si venía de los controles de un despacho, vuelve allá para terminar de responderlos.
+  const vuelta = l.d.volver && /^\/leche\/despachos\/[0-9a-f-]{36}\/controles$/i.test(l.d.volver) ? l.d.volver : null;
+  redirect(vuelta ?? volverA("analisis_leche", l.fila.animal_id));
 }
 
 export async function editarAnalisis(_: EstadoForm, form: FormData): Promise<EstadoForm> {
   const p = await permiso("editar");
   if ("error" in p) return { error: p.error };
-  const l = leerAnalisis(form);
+  const l = leerAnalisis(form, p.finca.id, false);
   if ("error" in l) return { error: l.error };
   if (!l.d.analisis_id) return { error: "No encontramos ese análisis." };
   const supabase = await crearClienteServidor();
@@ -152,10 +177,17 @@ export async function crearDespacho(_: EstadoForm, form: FormData): Promise<Esta
   const l = leerDespacho(form);
   if ("error" in l) return { error: l.error };
   const supabase = await crearClienteServidor();
-  const { error } = await supabase.from("despachos_leche").insert({ finca_id: p.finca.id, ...l.fila, client_request_id: l.d.client_request_id ?? null });
+  const { data, error } = await supabase.from("despachos_leche").insert({ finca_id: p.finca.id, ...l.fila, client_request_id: l.d.client_request_id ?? null }).select("id").maybeSingle();
   if (error && !esRepetido(error)) return { error: mensajeAmigable(error.message) };
+  // Doble toque: ya se guardó; se busca el despacho para llevar a la persona a sus controles.
+  let id = data?.id;
+  if (error && l.d.client_request_id) {
+    id = (await supabase.from("despachos_leche").select("id").eq("finca_id", p.finca.id).eq("client_request_id", l.d.client_request_id).maybeSingle()).data?.id;
+  }
   revalidar();
-  redirect(volverA("despachos_leche"));
+  // Un despacho recién registrado va directo a sus controles de calidad (residuos, crioscopia, composición, células): responderlos o
+  // dejar constancia de que no se hicieron.
+  redirect(id ? `/leche/despachos/${id}/controles?nuevo=1` : volverA("despachos_leche"));
 }
 
 export async function editarDespacho(_: EstadoForm, form: FormData): Promise<EstadoForm> {
@@ -297,6 +329,7 @@ async function eliminar(tabla: Tabla, id: string, nombre: string): Promise<Resul
   if (!ID_UUID.safeParse(id).success) return { ok: false, error: "Registro no válido." };
   const supabase = await crearClienteServidor();
   const { data, error } = await supabase.from(tabla).delete().eq("id", id).eq("finca_id", finca.id).select("*");
+  if (error?.code === "23503") return { ok: false, error: "Este análisis respalda un control de un despacho y no se puede eliminar: se perdería la prueba." };
   if (error) return { ok: false, error: mensajeAmigable(error.message) };
   if (!data || data.length === 0) return { ok: false, error: "No encontramos ese registro." };
   const animal = tabla === "analisis_leche" ? ((data[0] as { animal_id?: string | null }).animal_id ?? null) : null;

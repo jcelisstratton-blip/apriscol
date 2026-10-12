@@ -9,6 +9,7 @@ import { puedeEscribir, puedeGestionar } from "@/lib/permisos";
 import { mensajeAmigable } from "@/lib/mensaje-amigable";
 import { hoyBogota } from "@/lib/fechas";
 import { leerNumero } from "@/lib/numeros";
+import { soporteValido } from "@/lib/soportes";
 import { EVENTO_CON_PRODUCTO, RESULTADOS_PRUEBA, TIPOS_EVENTO, TIPOS_PRODUCTO, TIPOS_PRUEBA, VIAS } from "@/lib/sanidad";
 
 export type EstadoForm = { error?: string } | undefined;
@@ -239,6 +240,7 @@ const esquemaPrueba = z.object({
   fecha: z.iso.date("Indica la fecha."),
   resultado: z.enum(RESULTADOS_PRUEBA as [string, ...string[]], "Elige el resultado."),
   laboratorio: opcional(z.string().trim().max(120, "El nombre del laboratorio es muy largo.")),
+  soporte_path: opcional(z.string().max(200)),
   observaciones: opcional(z.string().trim().max(1000, "Las observaciones son muy largas.")),
   client_request_id: opcional(z.uuid()),
 });
@@ -250,6 +252,7 @@ export async function crearPrueba(_: EstadoForm, form: FormData): Promise<Estado
   if (!datos.success) return { error: datos.error.issues[0]?.message };
   const d = datos.data;
   if (d.fecha > hoyBogota()) return { error: "La fecha no puede ser futura." };
+  if (!soporteValido(d.soporte_path, finca.id, "sanidad")) return { error: "El documento no es válido. Adjúntalo de nuevo." };
 
   const supabase = await crearClienteServidor();
   const { error } = await supabase.from("pruebas_sanitarias").insert({
@@ -259,6 +262,7 @@ export async function crearPrueba(_: EstadoForm, form: FormData): Promise<Estado
     fecha: d.fecha,
     resultado: d.resultado as never,
     laboratorio: d.laboratorio ?? null,
+    soporte_path: d.soporte_path ?? null,
     observaciones: d.observaciones ?? null,
     client_request_id: d.client_request_id ?? null,
   });
@@ -279,11 +283,12 @@ export async function editarPrueba(_: EstadoForm, form: FormData): Promise<Estad
   if (!datos.success) return { error: datos.error.issues[0]?.message };
   const d = datos.data;
   if (d.fecha > hoyBogota()) return { error: "La fecha no puede ser futura." };
+  if (!soporteValido(d.soporte_path, finca.id, "sanidad")) return { error: "El documento no es válido. Adjúntalo de nuevo." };
 
   const supabase = await crearClienteServidor();
   const { data, error } = await supabase
     .from("pruebas_sanitarias")
-    .update({ prueba: d.prueba as never, fecha: d.fecha, resultado: d.resultado as never, laboratorio: d.laboratorio ?? null, observaciones: d.observaciones ?? null })
+    .update({ prueba: d.prueba as never, fecha: d.fecha, resultado: d.resultado as never, laboratorio: d.laboratorio ?? null, soporte_path: d.soporte_path ?? null, observaciones: d.observaciones ?? null })
     .eq("id", d.prueba_id)
     .eq("finca_id", finca.id)
     .eq("animal_id", d.animal_id)

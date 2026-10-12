@@ -2,13 +2,15 @@ import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import { Aviso } from "@/components/Aviso";
 import { Insignia } from "@/components/Insignia";
+import { PorQueAnalizar } from "@/components/PorQueAnalizar";
 import { ListaCalidad } from "@/components/ListaCalidad";
 import { Tarjeta } from "@/components/Tarjeta";
 import { crearClienteServidor } from "@/lib/supabase/server";
 import { animalesPorIds } from "@/lib/animal-etiquetas";
 import { etiquetaAnimal } from "@/lib/animal";
 import { formatoFecha, hoyBogota, sumarDias } from "@/lib/fechas";
-import { estadoRcs, formatoMiles, RCS_ALTO } from "@/lib/leche-calidad";
+import { estadoCrioscopia, estadoRcs, estadoResiduos, formatoCrioscopia, formatoMiles, RCS_ALTO } from "@/lib/leche-calidad";
+import { direccionSoporte } from "@/lib/soportes";
 import type { AnalisisLeche } from "@/lib/tipos";
 
 const pct = (n: number) => `${n.toLocaleString("es-CO", { maximumFractionDigits: 2 })} %`;
@@ -39,6 +41,7 @@ export async function Calidad({
 
   return (
     <div className="space-y-4">
+      <PorQueAnalizar linea="leche" />
       {ultimo ? (
         <Tarjeta titulo="Último análisis del tanque">
           <p className="text-sm text-humo [overflow-wrap:anywhere]">
@@ -57,12 +60,18 @@ export async function Calidad({
               </div>
             ))}
           </dl>
-          {rcsTanque ? (
-            <p className="mt-2 text-sm">
-              <Insignia tono={rcsTanque.tono}>{`Células somáticas: ${rcsTanque.texto.toLowerCase()}`}</Insignia>{" "}
-              <span className="text-humo">({formatoMiles(ultimo.rcs_miles_ml!)})</span>
-            </p>
-          ) : null}
+          <p className="mt-2 flex flex-wrap items-center gap-1.5 text-sm">
+            {rcsTanque ? <Insignia tono={rcsTanque.tono}>{`Células somáticas: ${rcsTanque.texto.toLowerCase()} (${formatoMiles(ultimo.rcs_miles_ml!)})`}</Insignia> : null}
+            {ultimo.crioscopia_c != null ? <Insignia tono={estadoCrioscopia(ultimo.crioscopia_c).tono}>{`Crioscopia ${formatoCrioscopia(ultimo.crioscopia_c)}: ${estadoCrioscopia(ultimo.crioscopia_c).texto.toLowerCase()}`}</Insignia> : null}
+            {ultimo.residuos_antibioticos ? <Insignia tono={estadoResiduos(ultimo.residuos_antibioticos).tono}>{`Antibióticos: ${estadoResiduos(ultimo.residuos_antibioticos).texto.toLowerCase()}`}</Insignia> : null}
+            {ultimo.soporte_path ? (
+              <a href={direccionSoporte(ultimo.soporte_path)} target="_blank" rel="noopener noreferrer" className="font-semibold text-musgo underline-offset-4 hover:underline">
+                Ver documento
+              </a>
+            ) : (
+              <Insignia tono="aviso">Sin documento</Insignia>
+            )}
+          </p>
         </Tarjeta>
       ) : null}
 

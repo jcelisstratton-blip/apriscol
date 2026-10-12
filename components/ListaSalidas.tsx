@@ -8,14 +8,16 @@ import { EstadoVacio } from "@/components/EstadoVacio";
 import { Chip, FilaDesplazable } from "@/components/FilaDesplazable";
 import { Insignia } from "@/components/Insignia";
 import { ListaEscalable } from "@/components/ListaEscalable";
+import { controlesDe, agruparControles } from "@/lib/controles-datos";
+import { controlesDeSalida, etiquetaResumen, resumenControles } from "@/lib/controles";
 import { crearClienteNavegador } from "@/lib/supabase/client";
 import { etiquetaAnimal } from "@/lib/animal";
 import { kg } from "@/lib/carne";
 import { formatoFecha } from "@/lib/fechas";
 import { pesos } from "@/lib/leche-calidad";
-import type { Baja } from "@/lib/tipos";
+import type { Baja, ControlCalidad } from "@/lib/tipos";
 
-type FilaSalida = Baja & { animal?: { numero_arete: string; nombre: string | null } };
+type FilaSalida = Baja & { animal?: { numero_arete: string; nombre: string | null }; controles?: ControlCalidad[] };
 type Filtro = "todas" | "sacrificio" | "consumo" | "pie";
 
 /**
@@ -50,6 +52,8 @@ export function ListaSalidas({ fincaId, puedeEditar }: { fincaId: string; puedeE
         const { data: animales } = await supabase.from("animales").select("id, numero_arete, nombre").in("id", [...new Set(filas.map((f) => f.animal_id))]);
         const porId = new Map((animales ?? []).map((a) => [a.id, a]));
         for (const f of filas) f.animal = porId.get(f.animal_id);
+        const porAnimal = agruparControles(await controlesDe(supabase, fincaId, "animal_id", filas.map((f) => f.animal_id)), "animal_id");
+        for (const f of filas) f.controles = porAnimal.get(f.animal_id) ?? [];
       }
       return { filas, total: count ?? 0 };
     },
@@ -74,7 +78,8 @@ export function ListaSalidas({ fincaId, puedeEditar }: { fincaId: string; puedeE
         clave={(b) => b.id}
         fila={(b) => (
           <div className="flex items-start gap-3 rounded-2xl bg-papel px-3.5 py-3 ring-1 ring-arena">
-            <Link href={`/hato/${b.animal_id}#salida`} className="block min-w-0 flex-1">
+            <div className="min-w-0 flex-1">
+            <Link href={`/hato/${b.animal_id}#salida`} className="block">
               <span className="block font-bold [overflow-wrap:anywhere]">{b.animal ? etiquetaAnimal(b.animal) : "Animal"}</span>
               <span className="block text-sm text-humo [overflow-wrap:anywhere]">
                 {formatoFecha(b.fecha, { day: "numeric", month: "short", year: "numeric" })}
@@ -89,6 +94,15 @@ export function ListaSalidas({ fincaId, puedeEditar }: { fincaId: string; puedeE
                 {!b.guia_movilizacion ? <Insignia tono="aviso">Sin guía</Insignia> : null}
               </span>
             </Link>
+            {b.controles && controlesDeSalida(b.tipo, b.destino_consumo).length > 0 ? (
+              <Link href={`/hato/${b.animal_id}/controles`} className="mt-1 inline-flex min-h-11 items-center underline-offset-4 hover:underline" aria-label="Controles de calidad">
+                {(() => {
+                  const e = etiquetaResumen(resumenControles(controlesDeSalida(b.tipo, b.destino_consumo), b.controles));
+                  return <Insignia tono={e.tono}>{e.texto}</Insignia>;
+                })()}
+              </Link>
+            ) : null}
+            </div>
             {puedeEditar ? (
               <Link href={`/hato/${b.animal_id}/baja/editar`} className="inline-flex min-h-11 shrink-0 items-center gap-1.5 text-sm font-semibold text-musgo underline-offset-4 hover:underline">
                 <Pencil className="size-3.5" strokeWidth={2} aria-hidden="true" /> Editar

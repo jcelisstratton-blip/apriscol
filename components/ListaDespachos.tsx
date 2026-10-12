@@ -8,10 +8,14 @@ import { EstadoVacio } from "@/components/EstadoVacio";
 import { Chip, FilaDesplazable } from "@/components/FilaDesplazable";
 import { Insignia } from "@/components/Insignia";
 import { ListaEscalable } from "@/components/ListaEscalable";
+import { controlesDe, agruparControles } from "@/lib/controles-datos";
+import { CONTROLES_DESPACHO, etiquetaResumen, resumenControles } from "@/lib/controles";
 import { crearClienteNavegador } from "@/lib/supabase/client";
 import { formatoFecha, litros as formatoLitros } from "@/lib/fechas";
 import { DESTINOS_LECHE, ETIQUETA_DESTINO, pesos } from "@/lib/leche-calidad";
-import type { DespachoLeche, DestinoLeche } from "@/lib/tipos";
+import type { ControlCalidad, DespachoLeche, DestinoLeche } from "@/lib/tipos";
+
+type FilaDespacho = DespachoLeche & { controles?: ControlCalidad[] };
 
 /** Todos los despachos de leche de la finca, del más reciente al más antiguo. */
 export function ListaDespachos({ fincaId, puedeEditar }: { fincaId: string; puedeEditar: boolean }) {
@@ -28,7 +32,12 @@ export function ListaDespachos({ fincaId, puedeEditar }: { fincaId: string; pued
       if (limpio) q = q.or(`comprador.ilike.%${limpio}%,guia.ilike.%${limpio}%,tanque.ilike.%${limpio}%`);
       const { data, count, error } = await q.order("fecha", { ascending: false }).order("created_at", { ascending: false }).range(desde, desde + cantidad - 1);
       if (error) throw new Error(error.message);
-      return { filas: (data ?? []) as DespachoLeche[], total: count ?? 0 };
+      const filas = (data ?? []) as FilaDespacho[];
+      if (filas.length) {
+        const porDespacho = agruparControles(await controlesDe(supabase, fincaId, "despacho_id", filas.map((f) => f.id)), "despacho_id");
+        for (const f of filas) f.controles = porDespacho.get(f.id) ?? [];
+      }
+      return { filas, total: count ?? 0 };
     },
     [fincaId, busqueda, destino],
   );
@@ -44,7 +53,7 @@ export function ListaDespachos({ fincaId, puedeEditar }: { fincaId: string; pued
           <Chip key={d} activo={destino === d} onClick={() => setDestino(d)}>{ETIQUETA_DESTINO[d]}</Chip>
         ))}
       </FilaDesplazable>
-      <ListaEscalable<DespachoLeche>
+      <ListaEscalable<FilaDespacho>
         rejilla="grid-cols-1 lg:grid-cols-2"
         key={`${busqueda}|${destino}`}
         cargar={cargar}
@@ -63,6 +72,14 @@ export function ListaDespachos({ fincaId, puedeEditar }: { fincaId: string; pued
                 <span className="mt-1.5 block">
                   <Insignia tono="musgo">{`${pesos(d.valor_total)} (${pesos(d.precio_litro)}/l)`}</Insignia>
                 </span>
+              ) : null}
+              {d.controles ? (
+                <Link href={`/leche/despachos/${d.id}/controles`} className="mt-1.5 inline-flex min-h-8 items-center gap-1.5 underline-offset-4 hover:underline">
+                  {(() => {
+                    const e = etiquetaResumen(resumenControles(CONTROLES_DESPACHO, d.controles));
+                    return <Insignia tono={e.tono}>{e.texto}</Insignia>;
+                  })()}
+                </Link>
               ) : null}
             </div>
             {puedeEditar ? (
