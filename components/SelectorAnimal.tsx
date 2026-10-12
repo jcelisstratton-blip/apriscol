@@ -11,7 +11,7 @@ import { crearClienteNavegador } from "@/lib/supabase/client";
 import { etiquetaAnimal } from "@/lib/animal";
 import type { Especie, SexoAnimal } from "@/lib/tipos";
 
-type Resultado = { id: string; numero_arete: string; nombre: string | null; especie?: Especie; estado?: string };
+type Resultado = { id: string; numero_arete: string; nombre: string | null; especie?: Especie; estado?: string; fecha_nacimiento?: string | null };
 
 /** Elegir un animal del hato (por ejemplo, el padre o la madre) con búsqueda en la hoja inferior. */
 export function SelectorAnimal({
@@ -53,7 +53,7 @@ export function SelectorAnimal({
       const limpio = texto.replace(/[%,()*\\]/g, " ").trim();
       let q = crearClienteNavegador()
         .from("animales")
-        .select("id, numero_arete, nombre, especie, estado")
+        .select("id, numero_arete, nombre, especie, estado, fecha_nacimiento")
         .eq("finca_id", fincaId)
         .is("deleted_at", null);
       if (sexo) q = q.eq("sexo", sexo);

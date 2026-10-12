@@ -951,6 +951,14 @@ export type Database = {
         Args: { p_lote: string; p_macho: string; p_hembras: string[] };
         Returns: { hembra_id: string; f: number; sobre_umbral: boolean }[];
       };
+      empadronamiento_candidatas_criterios: {
+        Args: { p_finca: string; p_especie: Especie; p_edad_min: number; p_peso_min: number; p_cc_min: number; p_excluir_lote?: string | null };
+        Returns: CandidataEmp[];
+      };
+      empadronamiento_endogamia_previa: {
+        Args: { p_finca: string; p_macho: string; p_hembras: string[] };
+        Returns: { hembra_id: string; f: number; sobre_umbral: boolean }[];
+      };
       cerrar_empadronamiento: {
         Args: { p_lote: string; p_cierre: string; p_base?: string | null };
         Returns: { hembras: number; servicios_creados: number };

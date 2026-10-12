@@ -45,6 +45,17 @@ async function machosValidos(supabase: Cliente, fincaId: string, especie: string
 }
 
 // ───────────────────────── Crear y editar ─────────────────────────
+/** Una lista de ids que llega del formulario como texto JSON (vacío = ninguna). */
+const listaIds = (mensaje: string) =>
+  z.preprocess((v) => {
+    if (typeof v !== "string" || v.trim() === "") return [];
+    try {
+      return JSON.parse(v);
+    } catch {
+      return null;
+    }
+  }, z.array(z.uuid(), mensaje).max(500, "Elige hasta 500 hembras a la vez."));
+
 const esquema = z.object({
   nombre: z.string().trim().min(1, "Ponle un nombre al empadronamiento.").max(80, "El nombre es muy largo (máximo 80 letras)."),
   especie: z.enum(["caprino", "ovino"], "Elige la especie."),
@@ -58,6 +69,9 @@ const esquema = z.object({
   macho_id: opcional(z.uuid("El semental no es válido.")),
   client_request_id: opcional(z.uuid()),
   empadronamiento_id: opcional(z.uuid()),
+  /** Al crear: las hembras que van con el semental (lista de ids en JSON) y las que entran como excepción de endogamia. */
+  hembra_ids: listaIds("Las hembras elegidas no son válidas."),
+  excepcion_ids: listaIds("Las excepciones elegidas no son válidas."),
 });
 
 function fechasValidas(inicio: string, duracion: number, hoy: string) {
@@ -108,6 +122,14 @@ export async function crearEmpadronamiento(_: EstadoForm, form: FormData): Promi
   if (eMacho) {
     await supabase.from("empadronamientos").delete().eq("id", lote.id).eq("finca_id", p.finca.id);
     return { error: mensajeAmigable(eMacho.message) };
+  }
+  if (d.hembra_ids.length > 0) {
+    const r = await insertarHembras(supabase, p.finca.id, lote.id, d.macho_id, d.hembra_ids, d.excepcion_ids);
+    if (!r.ok) {
+      // Si no se pueden guardar las hembras, la temporada no se crea a medias: se borra y se explica qué pasó.
+      await supabase.from("empadronamientos").delete().eq("id", lote.id).eq("finca_id", p.finca.id);
+      return { error: r.error };
+    }
   }
   revalidatePath("/reproduccion");
   redirect(`${destinoLote(lote.id)}?guardado=1`);
@@ -203,11 +225,44 @@ const esquemaAsignar = z.object({
   excepcionIds: z.array(z.uuid()).max(500).default([]),
 });
 
+type ResultadoHembras = { ok: true; agregadas: number } | { ok: false; error: string };
+
 /**
- * Asigna hembras al semental de la temporada. Vuelve a comprobar aquí lo que la pantalla ya filtró: que cumplan los criterios y que la
- * endogamia de cada pareja no llegue al umbral de la finca (salvo excepción marcada). La base lo exige otra vez.
+ * Asigna hembras a un semental de la temporada (la usan «agregar hembras» y «crear temporada con sus hembras»). Vuelve a comprobar aquí lo
+ * que la pantalla ya filtró: que estén libres y cumplan los criterios, y que la endogamia de cada pareja no llegue al umbral de la finca
+ * (salvo excepción marcada). La base lo exige otra vez.
  */
-export async function asignarHembras(entrada: z.input<typeof esquemaAsignar>): Promise<{ ok: true; agregadas: number } | { ok: false; error: string }> {
+async function insertarHembras(supabase: Cliente, fincaId: string, loteId: string, machoId: string, hembraIds: string[], excepcionIds: string[]): Promise<ResultadoHembras> {
+  const ids = [...new Set(hembraIds)];
+  const [cand, endo] = await Promise.all([
+    supabase.rpc("empadronamiento_candidatas", { p_lote: loteId }),
+    supabase.rpc("empadronamiento_endogamia", { p_lote: loteId, p_macho: machoId, p_hembras: ids }),
+  ]);
+  if (cand.error) return { ok: false, error: mensajeAmigable(cand.error.message) };
+  if (endo.error) return { ok: false, error: mensajeAmigable(endo.error.message) };
+  const porId = new Map((cand.data ?? []).map((x) => [x.animal_id, x]));
+  const noAptas = ids.filter((id) => {
+    const x = porId.get(id);
+    return !x || aptitud(x).clase === "no";
+  });
+  if (noAptas.length > 0) return { ok: false, error: `${noAptas.length === 1 ? "Una de las hembras ya no está libre o no cumple" : `${noAptas.length} hembras ya no están libres o no cumplen`} los requisitos de la temporada. Vuelve a abrir la lista.` };
+
+  const excepciones = new Set(excepcionIds);
+  const bloqueadas = (endo.data ?? []).filter((e) => e.sobre_umbral && !excepciones.has(e.hembra_id));
+  if (bloqueadas.length > 0) {
+    const peor = Math.max(...bloqueadas.map((b) => b.f));
+    return { ok: false, error: `${bloqueadas.length === 1 ? "Una pareja llega" : `${bloqueadas.length} parejas llegan`} al umbral de endogamia de tu finca (hasta ${porcentaje(peor)}). Quítalas o asígnalas como excepción.` };
+  }
+  if ((endo.data ?? []).length !== ids.length) return { ok: false, error: "No pudimos calcular la endogamia de alguna hembra. Vuelve a abrir la lista." };
+
+  const filas = ids.map((id) => ({ finca_id: fincaId, empadronamiento_id: loteId, hembra_id: id, macho_id: machoId, endogamia: 0, excepcion: excepciones.has(id) }));
+  const { error } = await supabase.from("empadronamiento_hembras").insert(filas);
+  if (error?.code === "23505") return { ok: false, error: "Alguna de esas hembras ya estaba en la temporada." };
+  if (error) return { ok: false, error: mensajeAmigable(error.message) };
+  return { ok: true, agregadas: filas.length };
+}
+
+export async function asignarHembras(entrada: z.input<typeof esquemaAsignar>): Promise<ResultadoHembras> {
   const p = await permiso("asignar hembras");
   if (!p.ok) return { ok: false, error: p.error };
   const datos = esquemaAsignar.safeParse(entrada);
@@ -219,35 +274,11 @@ export async function asignarHembras(entrada: z.input<typeof esquemaAsignar>): P
   const { data: semental } = await supabase.from("empadronamiento_machos").select("macho_id").eq("empadronamiento_id", d.loteId).eq("macho_id", d.machoId).maybeSingle();
   if (!semental) return { ok: false, error: "Ese semental no está en esta temporada." };
 
-  const ids = [...new Set(d.hembraIds)];
-  const [cand, endo] = await Promise.all([
-    supabase.rpc("empadronamiento_candidatas", { p_lote: d.loteId }),
-    supabase.rpc("empadronamiento_endogamia", { p_lote: d.loteId, p_macho: d.machoId, p_hembras: ids }),
-  ]);
-  if (cand.error) return { ok: false, error: mensajeAmigable(cand.error.message) };
-  if (endo.error) return { ok: false, error: mensajeAmigable(endo.error.message) };
-  const porId = new Map((cand.data ?? []).map((x) => [x.animal_id, x]));
-  const noAptas = ids.filter((id) => {
-    const x = porId.get(id);
-    return !x || aptitud(x).clase === "no";
-  });
-  if (noAptas.length > 0) return { ok: false, error: `${noAptas.length === 1 ? "Una de las hembras ya no cumple" : `${noAptas.length} hembras ya no cumplen`} los criterios de la temporada. Vuelve a abrir la lista.` };
-
-  const excepciones = new Set(d.excepcionIds);
-  const bloqueadas = (endo.data ?? []).filter((e) => e.sobre_umbral && !excepciones.has(e.hembra_id));
-  if (bloqueadas.length > 0) {
-    const peor = Math.max(...bloqueadas.map((b) => b.f));
-    return { ok: false, error: `${bloqueadas.length === 1 ? "Una pareja llega" : `${bloqueadas.length} parejas llegan`} al umbral de endogamia de tu finca (hasta ${porcentaje(peor)}). Quítalas o asígnalas como excepción.` };
-  }
-  if ((endo.data ?? []).length !== ids.length) return { ok: false, error: "No pudimos calcular la endogamia de alguna hembra. Vuelve a abrir la lista." };
-
-  const filas = ids.map((id) => ({ finca_id: p.finca.id, empadronamiento_id: d.loteId, hembra_id: id, macho_id: d.machoId, endogamia: 0, excepcion: excepciones.has(id) }));
-  const { error } = await supabase.from("empadronamiento_hembras").insert(filas);
-  if (error?.code === "23505") return { ok: false, error: "Alguna de esas hembras ya estaba en la temporada." };
-  if (error) return { ok: false, error: mensajeAmigable(error.message) };
+  const r = await insertarHembras(supabase, p.finca.id, d.loteId, d.machoId, d.hembraIds, d.excepcionIds);
+  if (!r.ok) return r;
   revalidatePath(destinoLote(d.loteId));
   revalidatePath("/reproduccion");
-  return { ok: true, agregadas: filas.length };
+  return r;
 }
 
 export async function quitarHembra(loteId: string, hembraId: string): Promise<Resultado> {

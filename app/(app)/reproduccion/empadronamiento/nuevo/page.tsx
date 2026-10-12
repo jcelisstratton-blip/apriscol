@@ -22,7 +22,7 @@ export default async function PaginaEmpadronamientoNuevo() {
       </Link>
       <Encabezado titulo="Nuevo empadronamiento" subtitulo={finca.nombre} />
       <div className="lg:max-w-xl">
-        <FormEmpadronamiento fincaId={finca.id} especies={finca.especies} hoy={hoyBogota()} solicitud={randomUUID()} />
+        <FormEmpadronamiento fincaId={finca.id} umbral={finca.umbral_endogamia} especies={finca.especies} hoy={hoyBogota()} solicitud={randomUUID()} />
       </div>
     </>
   );

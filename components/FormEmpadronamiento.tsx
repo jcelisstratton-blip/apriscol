@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState, useTransition } from "react";
+import { useActionState, useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { Aviso } from "@/components/Aviso";
 import { Boton, clasesBoton } from "@/components/Boton";
@@ -8,26 +8,37 @@ import { Campo, CLASE_INPUT } from "@/components/Campo";
 import { Segmentado } from "@/components/Segmentado";
 import { Selector } from "@/components/Selector";
 import { SelectorAnimal } from "@/components/SelectorAnimal";
+import { Insignia } from "@/components/Insignia";
+import { SeleccionHembrasEmp, type FuenteHembras, type SeleccionEmp } from "@/components/SeleccionHembrasEmp";
 import { crearEmpadronamiento, editarEmpadronamiento } from "@/app/(app)/reproduccion/empadronamiento/actions";
-import { CRITERIOS_POR_DEFECTO, DURACION_DEFECTO_DIAS, RELACION_RECOMENDADA, DURACION_MAX_DIAS, textoCC, VALORES_CC } from "@/lib/empadronamiento";
+import { crearClienteNavegador } from "@/lib/supabase/client";
+import { etiquetaAnimal } from "@/lib/animal";
+import { capacidadSemental, CRITERIOS_POR_DEFECTO, DURACION_DEFECTO_DIAS, RELACION_RECOMENDADA, DURACION_MAX_DIAS, mesesDesde, textoCC, VALORES_CC } from "@/lib/empadronamiento";
 import { diasHasta, formatoFecha, sumarDias } from "@/lib/fechas";
+import { leerNumero } from "@/lib/numeros";
 import type { Empadronamiento, Especie } from "@/lib/tipos";
 
 const coma = (n: number | null | undefined) => (n == null ? "" : String(n).replace(".", ","));
-type Macho = { id: string; numero_arete: string; nombre: string | null };
+type Macho = { id: string; numero_arete: string; nombre: string | null; fecha_nacimiento?: string | null };
+type HembrasElegidas = { ids: string[]; excepciones: string[]; etiquetas: Record<string, string>; clave: string };
+const MUESTRA_ELEGIDAS = 8;
 
 /**
- * Crear o corregir un empadronamiento (temporada de monta): fechas, criterios para elegir hembras y, al crearlo, el primer semental.
+ * Crear o corregir un empadronamiento (temporada de monta): fechas, criterios para elegir hembras y, al crearlo, el primer semental con
+ * sus hembras (solo hembras libres: sin gestación). Más sementales y más hembras se suman después desde la temporada.
  * Cerrado, solo se corrigen las observaciones.
  */
 export function FormEmpadronamiento({
   fincaId,
+  umbral,
   especies,
   hoy,
   lote,
   solicitud,
 }: {
   fincaId: string;
+  /** Umbral de endogamia de la finca (para bloquear parejas al elegir las hembras). */
+  umbral: number;
   especies: Especie[];
   hoy: string;
   lote?: Empadronamiento;
@@ -44,7 +55,29 @@ export function FormEmpadronamiento({
   const [peso, setPeso] = useState(lote ? coma(lote.peso_min_kg) : String(CRITERIOS_POR_DEFECTO[especies[0] ?? "caprino"].pesoKg));
   const [cc, setCc] = useState<number>(lote?.cc_min ?? CRITERIOS_POR_DEFECTO[lote?.especie ?? especies[0] ?? "caprino"].cc);
   const [macho, setMacho] = useState<Macho | null>(null);
+  const [porMacho, setPorMacho] = useState(lote?.hembras_por_macho == null ? "" : String(lote.hembras_por_macho));
+  const [hembras, setHembras] = useState<HembrasElegidas | null>(null);
   const rec = RELACION_RECOMENDADA[especie];
+
+  // Los requisitos que filtran a las hembras: si no son números válidos todavía no se puede buscar.
+  const edadN = Number(edad);
+  const pesoN = leerNumero(peso);
+  const criteriosOk = Number.isInteger(edadN) && edadN >= 1 && pesoN != null && pesoN > 0;
+  const claveCriterios = `${especie}|${edadN}|${pesoN}|${cc}`;
+  const porMachoN = leerNumero(porMacho);
+  const capacidad = macho ? capacidadSemental(especie, mesesDesde(macho.fecha_nacimiento ?? null), porMachoN != null && Number.isInteger(porMachoN) && porMachoN >= 1 ? porMachoN : null).max : rec.joven;
+  const machoId = macho?.id;
+  const fuente = useMemo<FuenteHembras>(
+    () => ({
+      candidatas: () => crearClienteNavegador().rpc("empadronamiento_candidatas_criterios", { p_finca: fincaId, p_especie: especie, p_edad_min: edadN, p_peso_min: pesoN ?? 0, p_cc_min: cc }),
+      endogamia: (id, ids) => crearClienteNavegador().rpc("empadronamiento_endogamia_previa", { p_finca: fincaId, p_macho: id, p_hembras: ids }),
+    }),
+    [fincaId, especie, edadN, pesoN, cc],
+  );
+  const alElegir = async (sel: SeleccionEmp) => {
+    setHembras({ ids: sel.hembraIds, excepciones: sel.excepcionIds, etiquetas: sel.etiquetas, clave: claveCriterios });
+    return null;
+  };
 
   const dias = Number(duracion);
   const cierrePrevisto = /^\d{4}-\d{2}-\d{2}$/.test(inicio) && Number.isInteger(dias) && dias >= 1 && dias <= DURACION_MAX_DIAS ? sumarDias(inicio, dias) : null;
@@ -52,6 +85,7 @@ export function FormEmpadronamiento({
   const cambiarEspecie = (e: Especie) => {
     setEspecie(e);
     setMacho(null);
+    setHembras(null);
     setEdad(String(CRITERIOS_POR_DEFECTO[e].edadMeses));
     setPeso(String(CRITERIOS_POR_DEFECTO[e].pesoKg));
     setCc(CRITERIOS_POR_DEFECTO[e].cc);
@@ -147,15 +181,84 @@ export function FormEmpadronamiento({
         etiqueta="Hembras por semental (máximo)"
         ayuda={`Opcional. Si lo dejas vacío usamos lo recomendado según la edad de cada semental: ${especie === "caprino" ? "cabros" : "carneros"} jóvenes ${rec.joven} y adultos ${rec.adulto}. Es una guía: si te pasas, la app avisa, no bloquea.`}
       >
-        {(id) => <input id={id} name="hembras_por_macho" defaultValue={lote?.hembras_por_macho ?? ""} inputMode="numeric" autoComplete="off" placeholder={`Recomendado: ${rec.joven} a ${rec.adulto}`} className={CLASE_INPUT} />}
+        {(id) => <input id={id} name="hembras_por_macho" value={porMacho} onChange={(e) => setPorMacho(e.target.value)} inputMode="numeric" autoComplete="off" placeholder={`Recomendado: ${rec.joven} a ${rec.adulto}`} className={CLASE_INPUT} />}
       </Campo>
 
       {!editando ? (
         <div className="space-y-1.5">
           <p className="text-sm font-semibold">Semental</p>
-          <SelectorAnimal key={especie} nombre="macho_id" fincaId={fincaId} sexo="macho" especie={especie} titulo="Elegir semental" valor={macho} onCambio={setMacho} vacio="Elegir un macho de tu hato" />
+          <SelectorAnimal
+            key={especie}
+            nombre="macho_id"
+            fincaId={fincaId}
+            sexo="macho"
+            especie={especie}
+            titulo="Elegir semental"
+            valor={macho}
+            onCambio={(m) => {
+              if (m?.id !== macho?.id) setHembras(null);
+              setMacho(m);
+            }}
+            vacio="Elegir un macho de tu hato"
+          />
           <p className="text-[0.8125rem] text-humo">Después puedes sumar más sementales a la temporada.</p>
         </div>
+      ) : null}
+
+      {!editando ? (
+        <fieldset className="space-y-3 rounded-2xl bg-lana p-3.5">
+          <legend className="px-1 text-sm font-semibold">Hembras con este semental</legend>
+          <input type="hidden" name="hembra_ids" value={JSON.stringify(hembras?.ids ?? [])} />
+          <input type="hidden" name="excepcion_ids" value={JSON.stringify(hembras?.excepciones ?? [])} />
+          {!macho ? (
+            <p className="text-[0.9375rem] text-humo">Elige primero el semental: aquí escoges con qué hembras va, y solo aparecen hembras libres (sin gestación).</p>
+          ) : (
+            <>
+              {hembras && hembras.ids.length > 0 ? (
+                <div className="space-y-2">
+                  <p className="text-[0.9375rem]">
+                    <strong>{hembras.ids.length}</strong> {hembras.ids.length === 1 ? "hembra" : "hembras"} con <span className="font-semibold [overflow-wrap:anywhere]">{etiquetaAnimal(macho)}</span>
+                    {hembras.excepciones.length > 0 ? (
+                      <>
+                        {" "}
+                        <Insignia tono="alerta">{hembras.excepciones.length} {hembras.excepciones.length === 1 ? "excepción" : "excepciones"}</Insignia>
+                      </>
+                    ) : null}
+                  </p>
+                  <ul className="flex flex-wrap gap-1.5">
+                    {hembras.ids.slice(0, MUESTRA_ELEGIDAS).map((id) => (
+                      <li key={id} className="max-w-full rounded-full bg-papel px-2.5 py-1 text-sm ring-1 ring-arena [overflow-wrap:anywhere]">{hembras.etiquetas[id] ?? "Hembra"}</li>
+                    ))}
+                    {hembras.ids.length > MUESTRA_ELEGIDAS ? <li className="rounded-full px-2.5 py-1 text-sm text-humo">y {hembras.ids.length - MUESTRA_ELEGIDAS} más</li> : null}
+                  </ul>
+                  {hembras.clave !== claveCriterios ? (
+                    <Aviso tipo="atencion">Cambiaste los requisitos o la especie después de elegir las hembras. Ábrelas de nuevo para confirmar que siguen cumpliéndolos.</Aviso>
+                  ) : null}
+                  {hembras.ids.length > capacidad ? (
+                    <Aviso tipo="atencion">
+                      {etiquetaAnimal(macho)} tendría {hembras.ids.length} hembras y lo recomendado es hasta {capacidad}. Puedes seguir: es una guía.
+                    </Aviso>
+                  ) : null}
+                </div>
+              ) : (
+                <p className="text-[0.9375rem] text-humo">Aún no eliges hembras. Puedes hacerlo ahora o después, desde la temporada. Solo aparecen hembras libres: sin gestación ni servicio esperando diagnóstico.</p>
+              )}
+              <SeleccionHembrasEmp
+                key={`${machoId}`}
+                machos={[{ id: macho.id, etiqueta: etiquetaAnimal(macho), asignadas: 0, capacidad }]}
+                umbral={umbral}
+                fuente={fuente}
+                inicial={hembras && hembras.ids.length > 0 ? { machoId: macho.id, hembraIds: hembras.ids, excepcionIds: hembras.excepciones } : undefined}
+                titulo="Elegir las hembras"
+                boton={{ texto: hembras && hembras.ids.length > 0 ? "Cambiar las hembras" : "Elegir las hembras", variante: "secundario" }}
+                deshabilitado={!criteriosOk}
+                textoConfirmar={(n) => `Elegir ${n} ${n === 1 ? "hembra" : "hembras"}`}
+                onConfirmar={alElegir}
+              />
+              {!criteriosOk ? <p className="text-sm text-humo">Revisa la edad y el peso mínimos de arriba para poder buscar las hembras.</p> : null}
+            </>
+          )}
+        </fieldset>
       ) : null}
 
       <Campo etiqueta="Observaciones" ayuda="Opcional.">

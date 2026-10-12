@@ -30,7 +30,7 @@ export default async function PaginaEmpadronamientoEditar({ params }: { params: 
       </Link>
       <Encabezado titulo="Editar empadronamiento" subtitulo={finca.nombre} />
       <div className="space-y-8 lg:max-w-xl">
-        <FormEmpadronamiento fincaId={finca.id} especies={finca.especies} hoy={hoyBogota()} lote={lote} />
+        <FormEmpadronamiento fincaId={finca.id} umbral={finca.umbral_endogamia} especies={finca.especies} hoy={hoyBogota()} lote={lote} />
         {puedeGestionar(rol) && !lote.cerrado_en ? (
           <EliminarRegistro
             etiqueta="Eliminar este empadronamiento"
