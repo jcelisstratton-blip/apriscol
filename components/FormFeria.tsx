@@ -5,9 +5,9 @@ import Link from "next/link";
 import { Aviso } from "@/components/Aviso";
 import { Boton, clasesBoton } from "@/components/Boton";
 import { Campo, CLASE_INPUT } from "@/components/Campo";
+import { CamposUbicacion } from "@/components/CamposUbicacion";
 import { Selector } from "@/components/Selector";
 import { crearFeria, editarFeria } from "@/app/(app)/ferias/actions";
-import { DEPARTAMENTOS } from "@/lib/colombia";
 import { ETIQUETA_NIVEL } from "@/lib/ferias";
 import type { NivelFeria } from "@/lib/tipos";
 
@@ -35,7 +35,6 @@ export function FormFeria({ animalId, feria }: { animalId?: string; feria?: Feri
   const [estado, enviar, pendiente] = useActionState(editando ? editarFeria : crearFeria, undefined);
   const [, iniciar] = useTransition();
   const [nivel, setNivel] = useState<NivelFeria>(feria?.nivel ?? "nacional");
-  const [depto, setDepto] = useState<string>(feria?.departamento ?? "");
 
   // Se envía con onSubmit (no con `action`): si hay un error, lo que la persona escribió no se borra.
   const alEnviar = (e: React.FormEvent<HTMLFormElement>) => {
@@ -65,24 +64,7 @@ export function FormFeria({ animalId, feria }: { animalId?: string; feria?: Feri
         )}
       </Campo>
 
-      <Campo etiqueta="Departamento">
-        {(id) => (
-          <Selector
-            id={id}
-            nombre="departamento"
-            valor={depto}
-            opciones={DEPARTAMENTOS.map((d) => ({ valor: d, etiqueta: d }))}
-            onCambio={(v) => setDepto(String(v))}
-            titulo="Departamento"
-            placeholder="Sin especificar"
-            permitirVacio
-          />
-        )}
-      </Campo>
-
-      <Campo etiqueta="Municipio">
-        {(id) => <input id={id} name="municipio" defaultValue={feria?.municipio ?? ""} maxLength={80} autoComplete="off" className={CLASE_INPUT} />}
-      </Campo>
+      <CamposUbicacion departamentoInicial={feria?.departamento ?? ""} municipioInicial={feria?.municipio ?? ""} />
 
       <div className="grid grid-cols-1 gap-5 min-[420px]:grid-cols-2">
         <Campo etiqueta="Desde">
