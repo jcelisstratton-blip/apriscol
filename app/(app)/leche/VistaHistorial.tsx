@@ -98,7 +98,7 @@ export function VistaHistorial({ fincaId, puedeEditar, hoy, periodo, animal, lac
           >
             <div className="space-y-2">
               {animal ? <EnlaceBoton href={ver()} variante="secundario">Ver todo el hato</EnlaceBoton> : null}
-              {puedeEditar ? <EnlaceBoton href="/leche?vista=registrar">Registrar ordeño</EnlaceBoton> : null}
+              {puedeEditar ? <EnlaceBoton href="/hato?vista=ordeno">Registrar ordeño</EnlaceBoton> : null}
             </div>
           </EstadoVacio>
         </Tarjeta>

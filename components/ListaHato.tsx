@@ -5,14 +5,16 @@ import Link from "next/link";
 import { Rabbit, SearchX } from "lucide-react";
 import { CampoBusqueda } from "@/components/CampoBusqueda";
 import { EstadoVacio } from "@/components/EstadoVacio";
+import { ChipEnlace } from "@/components/ChipEnlace";
 import { Chip, FilaDesplazable } from "@/components/FilaDesplazable";
 import { FilaAnimal, type AnimalFila, type RetiroFila } from "@/components/FilaAnimal";
 import { ListaEscalable } from "@/components/ListaEscalable";
 import { clasesBoton } from "@/components/Boton";
 import { crearClienteNavegador } from "@/lib/supabase/client";
+import { DIRECCION_ORDENO, filtrosHato, type FiltroHato } from "@/lib/hato";
 import type { Especie } from "@/lib/tipos";
 
-type Filtro = "todos" | "hembras" | "machos" | "caprino" | "ovino" | "bajas";
+type Filtro = FiltroHato;
 
 export function ListaHato({
   fincaId,
@@ -20,6 +22,8 @@ export function ListaHato({
   retiros,
   puedeCrear,
   puedeTraer = false,
+  filtroInicial = "todos",
+  conOrdeno = false,
 }: {
   fincaId: string;
   especies: Especie[];
@@ -27,9 +31,13 @@ export function ListaHato({
   puedeCrear: boolean;
   /** Solo mientras el paso único «traer mis animales» siga pendiente. */
   puedeTraer?: boolean;
+  /** El filtro con el que abre la lista (por ejemplo, al volver desde «Ordeño»). */
+  filtroInicial?: FiltroHato;
+  /** Si se ofrece el filtro «Ordeño» (quien puede ver leche): lleva al registro del ordeño y su programa. */
+  conOrdeno?: boolean;
 }) {
   const [busqueda, setBusqueda] = useState("");
-  const [filtro, setFiltro] = useState<Filtro>("todos");
+  const [filtro, setFiltro] = useState<Filtro>(filtroInicial);
   const alBuscar = useCallback((t: string) => setBusqueda(t), []);
 
   const cargar = useCallback(
@@ -62,16 +70,16 @@ export function ListaHato({
         <CampoBusqueda onBuscar={alBuscar} placeholder="Buscar por arete o nombre" />
       </div>
       <FilaDesplazable>
-        <Chip activo={filtro === "todos"} onClick={() => setFiltro("todos")}>Todos</Chip>
-        <Chip activo={filtro === "hembras"} onClick={() => setFiltro("hembras")}>Hembras</Chip>
-        <Chip activo={filtro === "machos"} onClick={() => setFiltro("machos")}>Machos</Chip>
-        {especies.length > 1 ? (
-          <>
-            <Chip activo={filtro === "caprino"} onClick={() => setFiltro("caprino")}>Cabras</Chip>
-            <Chip activo={filtro === "ovino"} onClick={() => setFiltro("ovino")}>Ovejas</Chip>
-          </>
+        {filtrosHato(especies).map((f) => (
+          <Chip key={f.id} activo={filtro === f.id} onClick={() => setFiltro(f.id)}>
+            {f.texto}
+          </Chip>
+        ))}
+        {conOrdeno ? (
+          <ChipEnlace href={DIRECCION_ORDENO} activo={false}>
+            Ordeño
+          </ChipEnlace>
         ) : null}
-        <Chip activo={filtro === "bajas"} onClick={() => setFiltro("bajas")}>Dados de baja</Chip>
       </FilaDesplazable>
       <ListaEscalable<AnimalFila>
         key={`${filtro}|${busqueda}`}

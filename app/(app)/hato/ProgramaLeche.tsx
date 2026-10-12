@@ -4,12 +4,27 @@ import { ProgramaOrdeno } from "@/components/ProgramaOrdeno";
 import { crearClienteServidor } from "@/lib/supabase/server";
 import { etiquetaAnimal } from "@/lib/animal";
 import { hoyBogota } from "@/lib/fechas";
+import type { FiltroHato } from "@/lib/hato";
 
-export async function Animales({ fincaId, especies, puedeCrear, puedeTraer }: { fincaId: string; especies: ("caprino" | "ovino")[]; puedeCrear: boolean; puedeTraer: boolean }) {
+export async function Animales({
+  fincaId,
+  especies,
+  puedeCrear,
+  puedeTraer,
+  filtroInicial,
+  conOrdeno,
+}: {
+  fincaId: string;
+  especies: ("caprino" | "ovino")[];
+  puedeCrear: boolean;
+  puedeTraer: boolean;
+  filtroInicial?: FiltroHato;
+  conOrdeno?: boolean;
+}) {
   const supabase = await crearClienteServidor();
   const { data } = await supabase.rpc("animales_en_retiro", { p_finca: fincaId });
   const retiros = Object.fromEntries((data ?? []).map((r) => [r.animal_id, { leche: r.retiro_leche_hasta, carne: r.retiro_carne_hasta }]));
-  return <ListaHato fincaId={fincaId} especies={especies} retiros={retiros} puedeCrear={puedeCrear} puedeTraer={puedeTraer} />;
+  return <ListaHato fincaId={fincaId} especies={especies} retiros={retiros} puedeCrear={puedeCrear} puedeTraer={puedeTraer} filtroInicial={filtroInicial} conOrdeno={conOrdeno} />;
 }
 
 /** El programa del ordeño: las hembras en leche con sus turnos, y agregar más hembras al ordeño. */
@@ -43,7 +58,7 @@ export async function ProgramaLeche({
   return (
     <div className="space-y-4 lg:max-w-3xl">
       <p className="px-1 text-[0.9375rem] text-humo">
-        Aquí decides qué hembras se ordeñan y en qué turnos. De esto sale la lista de cada turno cuando registras el ordeño en Leche.
+        Aquí decides qué hembras se ordeñan y en qué turnos. De esto sale la lista de cada turno cuando registras el ordeño.
       </p>
       <ProgramaOrdeno
         hembras={activas.map((a) => ({ id: a.id, etiqueta: etiquetaAnimal(a), turnos: a.turnos_ordeno }))}

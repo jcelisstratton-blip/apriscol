@@ -1,18 +1,15 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Encabezado } from "@/components/Encabezado";
-import { FilaDesplazable } from "@/components/FilaDesplazable";
 import { obtenerContexto } from "@/lib/contexto";
 import { puedeEscribir, puedeVer } from "@/lib/permisos";
 import { Historial } from "./Historial";
-import { Registrar } from "./Registrar";
 
 export const metadata: Metadata = { title: "Leche" };
 
 /**
- * Leche, a nivel de toda la finca: lo que ha producido el hato (o un animal) en cualquier periodo, con su gráfica, y el registro del ordeño.
- * Qué hembras se ordeñan y en qué turnos se programa dentro de Hato.
+ * Leche, a nivel de toda la finca: lo que ha producido el hato (o un animal) en cualquier periodo, con sus gráficas. El registro del
+ * ordeño y el programa de turnos viven en Hato → «Ordeño».
  */
 export default async function PaginaLeche({
   searchParams,
@@ -22,36 +19,14 @@ export default async function PaginaLeche({
   const { finca, rol } = await obtenerContexto();
   if (!puedeVer(rol, "leche")) redirect("/");
   const sp = await searchParams;
-  const puedeEditar = puedeEscribir(rol, "leche");
-  const vista = sp.vista === "registrar" && puedeEditar ? "registrar" : "resumen";
+  // Enlaces viejos al registro del ordeño: ahora está en Hato.
+  if (sp.vista === "registrar") redirect(sp.agregar && /^[0-9a-f-]{36}$/i.test(sp.agregar) ? `/hato?vista=ordeno&agregar=${sp.agregar}` : "/hato?vista=ordeno");
+  if (sp.agregar && /^[0-9a-f-]{36}$/i.test(sp.agregar)) redirect(`/hato?vista=ordeno&agregar=${sp.agregar}`);
 
   return (
     <>
       <Encabezado titulo="Leche" subtitulo={finca.nombre} />
-      {puedeEditar ? (
-        <FilaDesplazable className="mb-3">
-          {[
-            { v: "resumen", t: "Producción", href: "/leche" },
-            { v: "registrar", t: "Registrar ordeño", href: "/leche?vista=registrar" },
-          ].map((p) => (
-            <Link
-              key={p.v}
-              href={p.href}
-              aria-current={vista === p.v ? "page" : undefined}
-              className={`inline-flex min-h-10 shrink-0 items-center rounded-full px-4 text-sm font-semibold transition ${
-                vista === p.v ? "bg-musgo text-sobre-musgo" : "bg-papel text-humo ring-1 ring-arena hover:text-tinta"
-              }`}
-            >
-              {p.t}
-            </Link>
-          ))}
-        </FilaDesplazable>
-      ) : null}
-      {vista === "registrar" ? (
-        <Registrar fincaId={finca.id} puedeEditar={puedeEditar} agregar={sp.agregar} />
-      ) : (
-        <Historial fincaId={finca.id} puedeEditar={puedeEditar} pedido={{ periodo: sp.periodo, desde: sp.desde, hasta: sp.hasta, animal: sp.animal }} />
-      )}
+      <Historial fincaId={finca.id} puedeEditar={puedeEscribir(rol, "leche")} pedido={{ periodo: sp.periodo, desde: sp.desde, hasta: sp.hasta, animal: sp.animal }} />
     </>
   );
 }
