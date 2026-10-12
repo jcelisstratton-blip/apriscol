@@ -49,6 +49,61 @@ export async function crearFeria(_: EstadoForm, form: FormData): Promise<EstadoF
     : `/ferias/${data.id}`);
 }
 
+const esquemaEdicionFeria = esquemaFeria.extend({ feria_id: z.uuid() });
+
+/** Corrige los datos de una feria. Lo que se deja vacío queda vacío. */
+export async function editarFeria(_: EstadoForm, form: FormData): Promise<EstadoForm> {
+  const { finca, rol } = await obtenerContexto();
+  if (!puedeEscribir(rol, "ferias")) return { error: "No tienes permiso para editar ferias en esta finca." };
+  const datos = esquemaEdicionFeria.safeParse(Object.fromEntries(form));
+  if (!datos.success) return { error: datos.error.issues[0]?.message };
+  const d = datos.data;
+  if (d.fecha_fin && d.fecha_fin < d.fecha_inicio) return { error: "La feria no puede terminar antes de empezar." };
+
+  const supabase = await crearClienteServidor();
+  const { data, error } = await supabase
+    .from("ferias")
+    .update({
+      nombre: d.nombre,
+      nivel: d.nivel,
+      departamento: d.departamento ?? null,
+      municipio: d.municipio ?? null,
+      fecha_inicio: d.fecha_inicio,
+      fecha_fin: d.fecha_fin ?? null,
+      organizador: d.organizador ?? null,
+    })
+    .eq("id", d.feria_id)
+    .eq("finca_id", finca.id)
+    .select("id");
+  if (error) return { error: error.code === "23505" ? "Ya registraste una feria con ese nombre y esa fecha de inicio." : mensajeAmigable(error.message) };
+  if (!data || data.length === 0) return { error: "No encontramos esa feria." };
+
+  revalidatePath("/ferias");
+  revalidatePath(`/ferias/${d.feria_id}`);
+  redirect(`/ferias/${d.feria_id}?guardado=1`);
+}
+
+/** Elimina una feria con todas sus participaciones y las fotos de sus premios. No se puede deshacer. */
+export async function eliminarFeria(feriaId: string): Promise<{ ok: true } | { ok: false; error: string }> {
+  const { finca, rol } = await obtenerContexto();
+  if (!puedeEscribir(rol, "ferias")) return { ok: false, error: "No tienes permiso para eliminar ferias en esta finca." };
+  if (!z.uuid().safeParse(feriaId).success) return { ok: false, error: "Feria no válida." };
+
+  const supabase = await crearClienteServidor();
+  const { data: fotos } = await supabase.from("participaciones_feria").select("foto_path").eq("feria_id", feriaId).eq("finca_id", finca.id);
+  const { data, error } = await supabase.from("ferias").delete().eq("id", feriaId).eq("finca_id", finca.id).select("id");
+  if (error) return { ok: false, error: mensajeAmigable(error.message) };
+  if (!data || data.length === 0) return { ok: false, error: "No encontramos esa feria." };
+
+  // Las participaciones se borran en cascada; sus fotos se limpian de Storage (si falla, solo queda un archivo suelto).
+  const rutas = (fotos ?? []).map((f) => f.foto_path).filter((r): r is string => Boolean(r));
+  if (rutas.length > 0) await supabase.storage.from("premios").remove(rutas);
+
+  revalidatePath("/ferias");
+  revalidatePath("/hato", "layout");
+  return { ok: true };
+}
+
 // ───────────────────────── Foto del premio ─────────────────────────
 /**
  * El servidor arma la ruta (<finca>/<uuid>.<ext>) y emite un permiso de subida de un solo uso.

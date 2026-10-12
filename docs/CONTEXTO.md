@@ -133,6 +133,7 @@
 ## 8. Ferias y premios
 
 - Módulo `ferias`: ferias (`nivel` local→internacional) y participaciones por animal (resultado, puesto, puntaje, premio, **foto del premio** en el bucket `premios`), vista `v_palmares_animal`, palmarés en la ficha.
+- **Editar y eliminar una feria (`/ferias/[id]/editar`):** botón «Editar» en el detalle de la feria (propietario y administrador). Reutiliza `FormFeria` con los datos precargados (`editarFeria`; lo vacío queda vacío; el mismo nombre con la misma fecha de inicio lo rechaza la base con mensaje claro). Al pie, «Eliminar esta feria» pide confirmar y dice cuántas participaciones se pierden: `eliminarFeria` borra la feria, sus participaciones en cascada y las fotos de sus premios en Storage (si el borrado de fotos falla, solo queda un archivo suelto). Probado en la base: la propietaria edita y elimina (cascada); una persona ajena no ve, ni edita, ni elimina. Falta (siguiente): editar y eliminar una **participación/premio** (incluida su foto).
 - **Archivos:** `app/(app)/ferias/*`, `components/{FormFeria,FormParticipacion,FotoPremio,FilaParticipacion,ListaFerias,VisorFoto}.tsx`, `lib/ferias.ts`, `lib/fotos.ts`.
 - **Sin verificar con sesión real:** la subida de fotos desde el navegador y la limpieza de fotos huérfanas.
 
