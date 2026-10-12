@@ -21,6 +21,7 @@ export default async function LayoutApp({ children }: { children: React.ReactNod
         fincaActiva={finca.id}
         permisos={permisos}
         verLeche={puedeVer(rol, "leche")}
+        verPremios={puedeVer(rol, "ferias")}
         verEquipo={puedeGestionar(rol)}
         esSuperadmin={esSuperadmin}
       />

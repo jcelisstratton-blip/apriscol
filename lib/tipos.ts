@@ -244,6 +244,15 @@ export type PalmaresAnimal = {
   mejor_puesto: number | null;
 };
 
+export type PalmaresFinca = {
+  finca_id: string | null;
+  participaciones: number | null;
+  premios: number | null;
+  campeonatos: number | null;
+  dinero: number | null;
+  animales_premiados: number | null;
+};
+
 export type LibroAnimal = {
   id: string;
   entidad: string;
@@ -344,6 +353,7 @@ export type Database = {
       v_lactancias_resumen: { Row: LactanciaResumen; Relationships: [] };
       v_servicios: { Row: ServicioConParto; Relationships: [] };
       v_palmares_animal: { Row: PalmaresAnimal; Relationships: [] };
+      v_palmares_finca: { Row: PalmaresFinca; Relationships: [] };
     };
     Functions: {
       aceptar_invitacion: { Args: { p_token: string }; Returns: string };
