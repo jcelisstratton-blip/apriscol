@@ -12,6 +12,7 @@ import { ListaEscalable } from "@/components/ListaEscalable";
 import { crearClienteNavegador } from "@/lib/supabase/client";
 import { etiquetaAnimal } from "@/lib/animal";
 import { formatoFecha } from "@/lib/fechas";
+import { direccionSoporte } from "@/lib/soportes";
 import { ETIQUETA_PRUEBA_CORTA, ETIQUETA_RESULTADO_PRUEBA, RESULTADOS_PRUEBA, TONO_RESULTADO_PRUEBA } from "@/lib/sanidad";
 import type { PruebaSanitaria, ResultadoPrueba } from "@/lib/tipos";
 
@@ -78,6 +79,11 @@ export function ListaPruebas({ fincaId, puedeEditar }: { fincaId: string; puedeE
                 <Insignia tono={TONO_RESULTADO_PRUEBA[p.resultado]}>{ETIQUETA_RESULTADO_PRUEBA[p.resultado]}</Insignia>
               </span>
             </Link>
+            {p.soporte_path ? (
+              <a href={direccionSoporte(p.soporte_path)} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 shrink-0 items-center text-sm font-semibold text-musgo underline-offset-4 hover:underline">
+                Documento
+              </a>
+            ) : null}
             {puedeEditar ? (
               <Link href={`/sanidad/pruebas/${p.id}/editar`} className="inline-flex min-h-11 shrink-0 items-center gap-1.5 text-sm font-semibold text-musgo underline-offset-4 hover:underline">
                 <Pencil className="size-3.5" strokeWidth={2} aria-hidden="true" /> Editar

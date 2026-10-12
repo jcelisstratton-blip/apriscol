@@ -4,26 +4,8 @@ import { useRef, useState } from "react";
 import { Camera, ImagePlus, RefreshCw, Trash2 } from "lucide-react";
 import { Aviso } from "@/components/Aviso";
 import { Cargando } from "@/components/Cargando";
+import { comprimirImagen } from "@/lib/imagen-cliente";
 import { crearClienteNavegador } from "@/lib/supabase/client";
-
-const LADO_MAX = 1600;
-
-/** Reduce la foto antes de subirla: ahorra datos en el campo y evita el límite de tamaño. */
-async function comprimir(archivo: File): Promise<Blob> {
-  try {
-    const bitmap = await createImageBitmap(archivo, { imageOrientation: "from-image" });
-    const escala = Math.min(1, LADO_MAX / Math.max(bitmap.width, bitmap.height));
-    const lienzo = document.createElement("canvas");
-    lienzo.width = Math.round(bitmap.width * escala);
-    lienzo.height = Math.round(bitmap.height * escala);
-    lienzo.getContext("2d")?.drawImage(bitmap, 0, 0, lienzo.width, lienzo.height);
-    bitmap.close();
-    const blob = await new Promise<Blob | null>((ok) => lienzo.toBlob(ok, "image/jpeg", 0.85));
-    return blob && blob.size < archivo.size ? blob : archivo;
-  } catch {
-    return archivo;
-  }
-}
 
 export type PrepararSubida = (tipoMime: string) => Promise<{ path: string; token: string } | { error: string }>;
 
@@ -62,7 +44,7 @@ export function SubirFoto({
     setSubiendo(true);
     onEstado?.(true);
     try {
-      const blob = await comprimir(archivo);
+      const blob = await comprimirImagen(archivo);
       const tipo = blob.type === "image/png" || blob.type === "image/webp" ? blob.type : "image/jpeg";
       const permiso = await preparar(tipo);
       if ("error" in permiso) throw new Error(permiso.error);

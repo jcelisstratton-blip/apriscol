@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { ChevronLeft } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { EliminarRegistro } from "@/components/EliminarRegistro";
 import { Encabezado } from "@/components/Encabezado";
 import { FormDespacho } from "@/components/FormDespacho";
@@ -31,6 +31,10 @@ export default async function PaginaEditar({ params }: { params: Promise<{ id: s
       </Link>
       <Encabezado titulo="Editar despacho" subtitulo={`${formatoFecha(registro.fecha)} · ${ETIQUETA_DESTINO[registro.destino_tipo]}`} />
       <div className="space-y-8 lg:max-w-xl">
+        <Link href={`/leche/despachos/${id}/controles`} className="flex min-h-14 items-center justify-between gap-3 rounded-2xl bg-papel px-4 ring-1 ring-arena transition hover:bg-arena/40">
+          <span className="font-semibold">Controles de calidad de este despacho</span>
+          <ChevronRight className="size-5 shrink-0 text-humo" aria-hidden="true" />
+        </Link>
         <FormDespacho hoy={hoyBogota()} despacho={registro as never} />
         {puedeGestionar(rol) ? (
           <EliminarRegistro

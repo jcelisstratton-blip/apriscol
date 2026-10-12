@@ -6,6 +6,7 @@ import { EnlaceBoton } from "@/components/Boton";
 import { Encabezado } from "@/components/Encabezado";
 import { FilaDesplazable } from "@/components/FilaDesplazable";
 import { ListaPesajes } from "@/components/ListaPesajes";
+import { PorQueAnalizar } from "@/components/PorQueAnalizar";
 import { ListaSalidas } from "@/components/ListaSalidas";
 import { obtenerContexto } from "@/lib/contexto";
 import { puedeEscribir, puedeVer } from "@/lib/permisos";
@@ -63,7 +64,12 @@ export default async function PaginaCarne({ searchParams }: { searchParams: Prom
       {vista === "lotes" ? <Lotes fincaId={finca.id} puedeEditar={puedeEditar} /> : null}
       {vista === "pesajes" ? <ListaPesajes fincaId={finca.id} puedeEditar={puedeEditar} /> : null}
       {vista === "canales" ? <Canales fincaId={finca.id} puedeEditar={puedeEditar} /> : null}
-      {vista === "salidas" ? <ListaSalidas fincaId={finca.id} puedeEditar={puedeEscribir(rol, "hato")} /> : null}
+      {vista === "salidas" ? (
+        <div className="space-y-4">
+          <PorQueAnalizar linea="carne" />
+          <ListaSalidas fincaId={finca.id} puedeEditar={puedeEscribir(rol, "hato")} />
+        </div>
+      ) : null}
     </>
   );
 }

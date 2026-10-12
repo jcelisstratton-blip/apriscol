@@ -3,6 +3,9 @@ import { ListaDespachos } from "@/components/ListaDespachos";
 import { crearClienteServidor } from "@/lib/supabase/server";
 import { hoyBogota, litros as formatoLitros, sumarDias } from "@/lib/fechas";
 import { pesos } from "@/lib/leche-calidad";
+import { CONTROLES_DESPACHO, resumenControles } from "@/lib/controles";
+import { agruparControles, controlesDe } from "@/lib/controles-datos";
+import { PorQueAnalizar } from "@/components/PorQueAnalizar";
 
 /** Despachos de leche de la finca: lo que salió en los últimos 30 días frente a lo que se ordeñó, y el historial. */
 export async function Despachos({
@@ -17,7 +20,18 @@ export async function Despachos({
 }) {
   const supabase = cliente ?? (await crearClienteServidor());
   const hoy = hoyBogota();
-  const { data } = await supabase.rpc("leche_balance", { p_finca: fincaId, p_desde: sumarDias(hoy, -29), p_hasta: hoy });
+  const desde = sumarDias(hoy, -29);
+  const [{ data }, recientes] = await Promise.all([
+    supabase.rpc("leche_balance", { p_finca: fincaId, p_desde: desde, p_hasta: hoy }),
+    supabase.from("despachos_leche").select("id").eq("finca_id", fincaId).gte("fecha", desde).limit(1000),
+  ]);
+  // Cómo van los controles de calidad de los despachos de los últimos 30 días.
+  const ids = (recientes.data ?? []).map((d) => d.id);
+  const porDespacho = agruparControles(await controlesDe(supabase, fincaId, "despacho_id", ids), "despacho_id");
+  const resumenes = ids.map((i) => resumenControles(CONTROLES_DESPACHO, porDespacho.get(i) ?? []));
+  const conPendientes = resumenes.filter((r) => r.sinResponder > 0).length;
+  const conNoRealizados = resumenes.filter((r) => r.sinResponder === 0 && r.noRealizados > 0).length;
+  const completos = resumenes.length - conPendientes - conNoRealizados;
   const b = data?.[0];
   const producida = Number(b?.producida ?? 0);
   const descartada = Number(b?.descartada ?? 0);
@@ -46,6 +60,14 @@ export async function Despachos({
           {descartada > 0 ? ` (en estos 30 días fueron ${formatoLitros(descartada)} litros)` : ""}.
         </Aviso>
       </section>
+      {ids.length > 0 ? (
+        <Aviso tipo={conPendientes > 0 ? "atencion" : conNoRealizados > 0 ? "info" : "exito"}>
+          Controles de calidad de {ids.length === 1 ? "tu despacho" : `tus ${ids.length} despachos`} de los últimos 30 días: {completos} con todos los controles realizados
+          {conNoRealizados > 0 ? `, ${conNoRealizados} con controles que no se hicieron (queda la constancia)` : ""}
+          {conPendientes > 0 ? `, ${conPendientes} con controles sin responder` : ""}.
+        </Aviso>
+      ) : null}
+      <PorQueAnalizar linea="leche" />
       <ListaDespachos fincaId={fincaId} puedeEditar={puedeEditar} />
     </div>
   );

@@ -28,6 +28,8 @@ import { estadoDosis, ETIQUETA_RESULTADO_PRUEBA, nombreEvento } from "@/lib/sani
 import { estadoRcs, formatoMiles } from "@/lib/leche-calidad";
 import { ETIQUETA_CONFORMACION, ETIQUETA_ENGRASAMIENTO, ETIQUETA_GRASA_VISCERAL, ETIQUETA_PESAJE, faltaParaMeta, gdp, kg, pctUno } from "@/lib/carne";
 import { LoteAnimal } from "@/components/LoteAnimal";
+import { direccionSoporte } from "@/lib/soportes";
+import { controlesDeSalida, etiquetaResumen, resumenControles } from "@/lib/controles";
 import { describirParentesco, nivelEndogamia, pedigriTexto, porcentaje, primeraMayuscula, type AncestroEndogamia } from "@/lib/endogamia";
 
 export const metadata: Metadata = { title: "Animal" };
@@ -132,6 +134,13 @@ export default async function FichaAnimal({ params, searchParams }: { params: Pr
   const listaPesos = pesosDB.data ?? [];
   const lotesCeba = lotesDB.data ?? [];
   const miLote = lotesCeba.find((l) => l.id === animal.lote_ceba_id);
+  // Controles de calidad de un animal que salió para consumo (condición corporal, inspección en el matadero).
+  const aplicanControles = baja.data ? controlesDeSalida(baja.data.tipo, baja.data.destino_consumo) : [];
+  const controlesAnimal =
+    verCarne && aplicanControles.length > 0
+      ? ((await supabase.from("controles_calidad").select("tipo, estado").eq("animal_id", id).eq("finca_id", finca.id)).data ?? [])
+      : [];
+  const etiquetaControles = etiquetaResumen(resumenControles(aplicanControles, controlesAnimal));
   // Canal (rendimiento al beneficio) de un animal sacrificado.
   const canal =
     verCarne && baja.data?.tipo === "sacrificio"
@@ -303,6 +312,13 @@ export default async function FichaAnimal({ params, searchParams }: { params: Pr
                           ].filter(Boolean).join(" · ")}
                         </span>
                         {rcs ? <span className="mt-1 block"><Insignia tono={rcs.tono}>{`Células somáticas: ${rcs.texto.toLowerCase()}`}</Insignia></span> : null}
+                        {a.soporte_path ? (
+                          <a href={direccionSoporte(a.soporte_path)} target="_blank" rel="noopener noreferrer" className="mt-1 inline-flex min-h-8 items-center text-sm font-semibold text-musgo underline-offset-4 hover:underline">
+                            Ver documento
+                          </a>
+                        ) : (
+                          <span className="mt-1 block"><Insignia tono="aviso">Sin documento</Insignia></span>
+                        )}
                       </span>
                       {puedeEscribir(rol, "leche") ? (
                         <Link href={`/leche/calidad/${a.id}`} className="inline-flex min-h-11 shrink-0 items-center text-sm font-semibold text-musgo underline-offset-4 hover:underline">
@@ -561,6 +577,17 @@ export default async function FichaAnimal({ params, searchParams }: { params: Pr
               <Link href={`/hato/${id}/baja/editar`} className="mt-2 inline-flex min-h-11 items-center gap-1.5 text-sm font-semibold text-musgo underline-offset-4 hover:underline">
                 Corregir datos de la salida
               </Link>
+            ) : null}
+            {verCarne && aplicanControles.length > 0 ? (
+              <div className="mt-3 space-y-2 border-t border-arena pt-3">
+                <p className="text-sm font-semibold">Controles de calidad</p>
+                <p>
+                  <Insignia tono={etiquetaControles.tono}>{etiquetaControles.texto}</Insignia>
+                </p>
+                <Link href={`/hato/${id}/controles`} className={clasesBoton("secundario")}>
+                  {puedeEscribir(rol, "carne") ? "Responder los controles" : "Ver los controles"}
+                </Link>
+              </div>
             ) : null}
             {baja.data?.tipo === "sacrificio" && verCarne ? (
               <div className="mt-3 space-y-2 border-t border-arena pt-3">

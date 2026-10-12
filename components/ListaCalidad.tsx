@@ -2,7 +2,7 @@
 
 import { useCallback, useState } from "react";
 import Link from "next/link";
-import { FlaskConical, Pencil } from "lucide-react";
+import { FileText, FlaskConical, Pencil } from "lucide-react";
 import { CampoBusqueda } from "@/components/CampoBusqueda";
 import { EstadoVacio } from "@/components/EstadoVacio";
 import { Chip, FilaDesplazable } from "@/components/FilaDesplazable";
@@ -11,7 +11,8 @@ import { ListaEscalable } from "@/components/ListaEscalable";
 import { crearClienteNavegador } from "@/lib/supabase/client";
 import { etiquetaAnimal } from "@/lib/animal";
 import { formatoFecha } from "@/lib/fechas";
-import { estadoRcs, formatoMiles } from "@/lib/leche-calidad";
+import { estadoCrioscopia, estadoRcs, estadoResiduos, formatoCrioscopia, formatoMiles } from "@/lib/leche-calidad";
+import { direccionSoporte } from "@/lib/soportes";
 import type { AnalisisLeche } from "@/lib/tipos";
 
 type FilaAnalisis = AnalisisLeche & { animal?: { numero_arete: string; nombre: string | null } };
@@ -80,15 +81,23 @@ export function ListaCalidad({ fincaId, puedeEditar }: { fincaId: string; puedeE
                 {a.laboratorio ? ` · ${a.laboratorio}` : ""}
               </span>
               <span className="mt-1 block text-sm [overflow-wrap:anywhere]">
-                {[a.grasa_pct != null ? `Grasa ${pct(a.grasa_pct)}` : null, a.proteina_pct != null ? `Proteína ${pct(a.proteina_pct)}` : null, a.rcs_miles_ml != null ? `Células ${formatoMiles(a.rcs_miles_ml)}` : null]
+                {[
+                  a.grasa_pct != null ? `Grasa ${pct(a.grasa_pct)}` : null,
+                  a.proteina_pct != null ? `Proteína ${pct(a.proteina_pct)}` : null,
+                  a.solidos_totales_pct != null ? `Sólidos ${pct(a.solidos_totales_pct)}` : null,
+                  a.lactosa_pct != null ? `Lactosa ${pct(a.lactosa_pct)}` : null,
+                  a.rcs_miles_ml != null ? `Células ${formatoMiles(a.rcs_miles_ml)}` : null,
+                  a.crioscopia_c != null ? `Crioscopia ${formatoCrioscopia(a.crioscopia_c)}` : null,
+                ]
                   .filter(Boolean)
                   .join(" · ")}
               </span>
-              {rcs ? (
-                <span className="mt-1.5 block">
-                  <Insignia tono={rcs.tono}>{`Células somáticas: ${rcs.texto.toLowerCase()}`}</Insignia>
-                </span>
-              ) : null}
+              <span className="mt-1.5 flex flex-wrap gap-1.5">
+                {rcs ? <Insignia tono={rcs.tono}>{`Células somáticas: ${rcs.texto.toLowerCase()}`}</Insignia> : null}
+                {a.crioscopia_c != null ? <Insignia tono={estadoCrioscopia(a.crioscopia_c).tono}>{`Crioscopia: ${estadoCrioscopia(a.crioscopia_c).texto.toLowerCase()}`}</Insignia> : null}
+                {a.residuos_antibioticos ? <Insignia tono={estadoResiduos(a.residuos_antibioticos).tono}>{`Antibióticos: ${estadoResiduos(a.residuos_antibioticos).texto.toLowerCase()}`}</Insignia> : null}
+                {!a.soporte_path ? <Insignia tono="aviso">Sin documento</Insignia> : null}
+              </span>
             </>
           );
           return (
@@ -98,11 +107,18 @@ export function ListaCalidad({ fincaId, puedeEditar }: { fincaId: string; puedeE
               ) : (
                 <div className="min-w-0 flex-1">{contenido}</div>
               )}
-              {puedeEditar ? (
-                <Link href={`/leche/calidad/${a.id}`} className="inline-flex min-h-11 shrink-0 items-center gap-1.5 text-sm font-semibold text-musgo underline-offset-4 hover:underline">
-                  <Pencil className="size-3.5" strokeWidth={2} aria-hidden="true" /> Editar
-                </Link>
-              ) : null}
+              <div className="flex shrink-0 flex-col items-end">
+                {puedeEditar ? (
+                  <Link href={`/leche/calidad/${a.id}`} className="inline-flex min-h-11 items-center gap-1.5 text-sm font-semibold text-musgo underline-offset-4 hover:underline">
+                    <Pencil className="size-3.5" strokeWidth={2} aria-hidden="true" /> Editar
+                  </Link>
+                ) : null}
+                {a.soporte_path ? (
+                  <a href={direccionSoporte(a.soporte_path)} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center gap-1.5 text-sm font-semibold text-musgo underline-offset-4 hover:underline">
+                    <FileText className="size-3.5" strokeWidth={2} aria-hidden="true" /> Documento
+                  </a>
+                ) : null}
+              </div>
             </div>
           );
         }}

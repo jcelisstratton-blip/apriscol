@@ -1,4 +1,4 @@
-import type { DestinoLeche, MomentoFrio, TipoMantenimiento } from "@/lib/tipos";
+import type { DestinoLeche, MomentoFrio, ResiduosAntibioticos, TipoMantenimiento } from "@/lib/tipos";
 
 export type Tono = "ok" | "aviso" | "alerta" | "neutro";
 
@@ -90,3 +90,19 @@ export function pendientesMantenimiento<T extends { tipo: string; equipo: string
 
 export const textoPlazo = (dias: number) =>
   dias < 0 ? `Atrasada ${-dias} ${-dias === 1 ? "día" : "días"}` : dias === 0 ? "Toca hoy" : dias === 1 ? "Toca mañana" : `Toca en ${dias} días`;
+
+// ───────────────────────── Pureza y residuos ─────────────────────────
+/** La leche pura congela hacia -0,530 a -0,550 °C; más cerca de cero sugiere agua añadida. */
+export const CRIOSCOPIA_MIN = -0.55;
+export const CRIOSCOPIA_MAX = -0.53;
+
+export function estadoCrioscopia(c: number): EstadoValor {
+  if (c >= CRIOSCOPIA_MIN && c <= CRIOSCOPIA_MAX) return { tono: "ok", texto: "En rango" };
+  return c > CRIOSCOPIA_MAX ? { tono: "alerta", texto: "Posible agua añadida" } : { tono: "aviso", texto: "Más fría de lo habitual" };
+}
+
+export const formatoCrioscopia = (c: number) => `${c.toLocaleString("es-CO", { minimumFractionDigits: 3, maximumFractionDigits: 3 })} °C`;
+
+export const RESIDUOS: ResiduosAntibioticos[] = ["negativo", "positivo"];
+export const ETIQUETA_RESIDUOS: Record<ResiduosAntibioticos, string> = { negativo: "Negativo (sin residuos)", positivo: "Positivo (con residuos)" };
+export const estadoResiduos = (r: ResiduosAntibioticos): EstadoValor => (r === "negativo" ? { tono: "ok", texto: "Sin residuos" } : { tono: "alerta", texto: "Con residuos: no despachar" });
