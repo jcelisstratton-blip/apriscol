@@ -7,10 +7,11 @@ import { crearClienteServidor } from "@/lib/supabase/server";
 import { obtenerContexto } from "@/lib/contexto";
 import { puedeEscribir, puedeGestionar } from "@/lib/permisos";
 import { mensajeAmigable } from "@/lib/mensaje-amigable";
-import { hoyBogota } from "@/lib/fechas";
+import { hoyBogota, sumarDias } from "@/lib/fechas";
 import { leerNumero } from "@/lib/numeros";
 import { soporteValido } from "@/lib/soportes";
-import { EVENTO_CON_PRODUCTO, RESULTADOS_PRUEBA, TIPOS_EVENTO, TIPOS_PRODUCTO, TIPOS_PRUEBA, VIAS } from "@/lib/sanidad";
+import { DIRECCION_SANIDAD } from "@/lib/hato";
+import { EVENTO_CON_PRODUCTO, RESULTADOS_PRUEBA, TIPOS_EVENTO, TIPOS_PRODUCTO, TIPOS_PROGRAMABLES, TIPOS_PRUEBA, VIAS } from "@/lib/sanidad";
 
 export type EstadoForm = { error?: string } | undefined;
 type Resultado = { ok: true } | { ok: false; error: string };
@@ -43,6 +44,8 @@ const esquemaEvento = z.object({
   client_request_id: opcional(z.uuid()),
   evento_id: opcional(z.uuid()),
   animal: opcional(z.uuid()),
+  /** Si el evento aplica una programación, la que se marca como aplicada para estos animales. */
+  programa_id: opcional(z.uuid()),
 });
 
 type Cliente = Awaited<ReturnType<typeof crearClienteServidor>>;
@@ -91,7 +94,7 @@ async function leerEvento(form: FormData, fincaId: string, supabase: Cliente) {
     proxima_fecha: d.proxima_fecha ?? "",
     client_request_id: d.client_request_id ?? "",
   };
-  return { payload, ids, animal: d.animal, eventoId: d.evento_id } as const;
+  return { payload, ids, animal: d.animal, eventoId: d.evento_id, programaId: d.programa_id } as const;
 }
 
 function revalidarSanidad(animales: string[]) {
@@ -119,8 +122,13 @@ export async function crearEvento(_: EstadoForm, form: FormData): Promise<Estado
     if (!id) return { error: mensajeAmigable(error.message) };
   }
 
+  // Si el evento aplica una programación, esos animales quedan como aplicados en ella.
+  if (leido.programaId && id) {
+    await vincularPrograma(supabase, finca.id, leido.programaId, id, leido.ids);
+    revalidatePath("/hato");
+  }
   revalidarSanidad(leido.ids);
-  redirect(leido.animal ? `/hato/${leido.animal}?guardado=1#sanidad` : `/sanidad/evento/${id}?guardado=1`);
+  redirect(leido.animal ? `/hato/${leido.animal}?guardado=1#sanidad` : leido.programaId ? `${DIRECCION_SANIDAD}&guardado=1` : `/sanidad/evento/${id}?guardado=1`);
 }
 
 /** Corrige un evento: sus datos y la lista de animales que lo recibieron. Lo que se deja vacío queda vacío. */
@@ -313,4 +321,136 @@ export async function eliminarPrueba(pruebaId: string): Promise<{ ok: true; anim
   revalidatePath("/sanidad");
   revalidatePath(`/hato/${data[0].animal_id}`);
   return { ok: true, animalId: data[0].animal_id };
+}
+
+
+// ───────────────────────── Programación sanitaria ─────────────────────────
+const esquemaPrograma = z.object({
+  tipo: z.enum(TIPOS_PROGRAMABLES as [string, ...string[]], "Elige qué se va a aplicar."),
+  fecha_programada: z.iso.date("Indica para cuándo se programa."),
+  producto_id: opcional(z.string()),
+  producto_nombre: opcional(z.string().trim().max(120, "El nombre del producto es muy largo.")),
+  dosis: numero(z.coerce.number("La dosis debe ser un número.").positive("La dosis debe ser mayor que cero.").max(99999)),
+  unidad_dosis: opcional(z.string().trim().max(20)),
+  via: opcional(z.enum(VIAS as [string, ...string[]])),
+  retiro_leche_dias: dias("Los días de retiro de la leche deben ser un número entero."),
+  retiro_carne_dias: dias("Los días de retiro de la carne deben ser un número entero."),
+  observaciones: opcional(z.string().trim().max(1000, "Las observaciones son muy largas.")),
+  client_request_id: opcional(z.uuid()),
+  programa_id: opcional(z.uuid()),
+  animal: opcional(z.uuid()),
+});
+
+/** Valida el formulario de una programación y deja listo lo que se manda a la base. */
+async function leerPrograma(form: FormData, fincaId: string, supabase: Cliente, creando: boolean) {
+  const datos = esquemaPrograma.safeParse(Object.fromEntries(form));
+  if (!datos.success) return { error: datos.error.issues[0]?.message ?? "Revisa los datos." } as const;
+  const d = datos.data;
+  const ids = [...new Set(form.getAll("animal_id").map(String))];
+  if (ids.length === 0) return { error: "Elige al menos un animal." } as const;
+  if (ids.length > 1000) return { error: "Son demasiados animales a la vez (máximo 1000)." } as const;
+  if (!ids.every((i) => ID_UUID.safeParse(i).success)) return { error: "Hay un animal que no es válido. Elígelos de nuevo." } as const;
+  const hoy = hoyBogota();
+  if (creando && d.fecha_programada < hoy) return { error: "La fecha programada no puede ser anterior a hoy. Si ya se aplicó, regístralo como aplicado." } as const;
+  if (d.fecha_programada > sumarDias(hoy, 730)) return { error: "La fecha programada no puede estar a más de dos años." } as const;
+
+  const prod = await resolverProducto(supabase, fincaId, d.producto_id, d.producto_nombre);
+  if ("error" in prod) return { error: prod.error } as const;
+  if (EVENTO_CON_PRODUCTO.includes(d.tipo as never) && !prod.nombre) return { error: "Indica el producto que se va a aplicar." } as const;
+
+  const payload = {
+    tipo: d.tipo,
+    fecha_programada: d.fecha_programada,
+    producto_id: prod.id ?? "",
+    producto_nombre: prod.nombre ?? "",
+    dosis: d.dosis ?? "",
+    unidad_dosis: d.dosis ? (d.unidad_dosis ?? "") : "",
+    via: d.via ?? "",
+    retiro_leche_dias: d.retiro_leche_dias,
+    retiro_carne_dias: d.retiro_carne_dias,
+    observaciones: d.observaciones ?? "",
+    client_request_id: d.client_request_id ?? "",
+  };
+  return { payload, ids, animal: d.animal, programaId: d.programa_id } as const;
+}
+
+/** Si se eligió un producto del catálogo, su nombre se copia: el registro sigue siendo legible aunque el producto se elimine después. */
+async function resolverProducto(supabase: Cliente, fincaId: string, productoId: string | undefined, nombre: string | undefined) {
+  if (productoId && productoId !== "otro") {
+    if (!ID_UUID.safeParse(productoId).success) return { error: "El producto no es válido." } as const;
+    const { data: p } = await supabase.from("productos_veterinarios").select("id, nombre").eq("id", productoId).eq("finca_id", fincaId).maybeSingle();
+    if (!p) return { error: "No encontramos ese producto. Elígelo de nuevo." } as const;
+    return { id: p.id, nombre: p.nombre } as const;
+  }
+  return { id: undefined, nombre } as const;
+}
+
+/** Marca como aplicados, en la programación, a los animales que cubrió el evento recién registrado. */
+async function vincularPrograma(supabase: Cliente, fincaId: string, programaId: string, eventoId: string, animales: string[]) {
+  for (let i = 0; i < animales.length; i += 100) {
+    await supabase
+      .from("programa_sanitario_animales")
+      .update({ evento_id: eventoId })
+      .eq("programa_id", programaId)
+      .eq("finca_id", fincaId)
+      .is("evento_id", null)
+      .in("animal_id", animales.slice(i, i + 100));
+  }
+}
+
+function revalidarPrograma(animales: string[]) {
+  revalidatePath("/hato");
+  revalidatePath("/sanidad");
+  revalidatePath("/");
+  for (const a of animales.slice(0, 50)) revalidatePath(`/hato/${a}`);
+}
+
+export async function programarSanidad(_: EstadoForm, form: FormData): Promise<EstadoForm> {
+  const { finca, rol } = await obtenerContexto();
+  if (!puedeEscribir(rol, "sanidad")) return { error: "No tienes permiso para programar sanidad en esta finca." };
+  const supabase = await crearClienteServidor();
+  const leido = await leerPrograma(form, finca.id, supabase, true);
+  if ("error" in leido) return { error: leido.error };
+
+  const { data, error } = await supabase.rpc("guardar_programa_sanitario", { p_finca: finca.id, p_programa: null, p_datos: leido.payload, p_animales: leido.ids });
+  if (error && !(error.code === "23505" && leido.payload.client_request_id)) return { error: mensajeAmigable(error.message) };
+  // Doble toque: la misma solicitud ya se guardó (client_request_id único) → seguimos como si fuera esta.
+  revalidarPrograma(leido.ids);
+  void data;
+  redirect(leido.animal ? `/hato/${leido.animal}?guardado=1#sanidad` : `${DIRECCION_SANIDAD}&guardado=1`);
+}
+
+/** Corrige una programación: sus datos y los animales pendientes (los ya aplicados no se tocan). */
+export async function editarPrograma(_: EstadoForm, form: FormData): Promise<EstadoForm> {
+  const { finca, rol } = await obtenerContexto();
+  if (!puedeEscribir(rol, "sanidad")) return { error: "No tienes permiso para editar sanidad en esta finca." };
+  const supabase = await crearClienteServidor();
+  const leido = await leerPrograma(form, finca.id, supabase, false);
+  if ("error" in leido) return { error: leido.error };
+  if (!leido.programaId) return { error: "No encontramos esa programación." };
+
+  const { error } = await supabase.rpc("guardar_programa_sanitario", { p_finca: finca.id, p_programa: leido.programaId, p_datos: leido.payload, p_animales: leido.ids });
+  if (error) return { error: mensajeAmigable(error.message) };
+
+  // Los pendientes que ya no van se quitan de la programación (por tramos: la dirección de la consulta tiene largo máximo).
+  const { data: actuales } = await supabase.from("programa_sanitario_animales").select("animal_id").eq("programa_id", leido.programaId).eq("finca_id", finca.id).is("evento_id", null).limit(2000);
+  const sobran = (actuales ?? []).map((a) => a.animal_id).filter((a) => !leido.ids.includes(a));
+  for (let i = 0; i < sobran.length; i += 100) {
+    await supabase.from("programa_sanitario_animales").delete().eq("programa_id", leido.programaId).eq("finca_id", finca.id).is("evento_id", null).in("animal_id", sobran.slice(i, i + 100));
+  }
+  revalidarPrograma([...leido.ids, ...sobran]);
+  redirect(`${DIRECCION_SANIDAD}&guardado=1`);
+}
+
+/** Cancela una programación (queda en el historial, pero ya no pide aplicarse). */
+export async function cancelarPrograma(programaId: string): Promise<Resultado> {
+  const { finca, rol } = await obtenerContexto();
+  if (!puedeEscribir(rol, "sanidad")) return { ok: false, error: "No tienes permiso para cancelar programaciones en esta finca." };
+  if (!ID_UUID.safeParse(programaId).success) return { ok: false, error: "Programación no válida." };
+  const supabase = await crearClienteServidor();
+  const { data, error } = await supabase.from("programas_sanitarios").update({ cancelado_en: new Date().toISOString() }).eq("id", programaId).eq("finca_id", finca.id).is("cancelado_en", null).select("id");
+  if (error) return { ok: false, error: mensajeAmigable(error.message) };
+  if (!data || data.length === 0) return { ok: false, error: "No encontramos esa programación o ya estaba cancelada." };
+  revalidarPrograma([]);
+  return { ok: true };
 }

@@ -19,7 +19,7 @@ import type { PruebaSanitaria, ResultadoPrueba } from "@/lib/tipos";
 type FilaPrueba = PruebaSanitaria & { animal?: { numero_arete: string; nombre: string | null } };
 
 /** Todas las pruebas diagnósticas de la finca. Se registran y se corrigen desde la ficha de cada animal; aquí se consultan. */
-export function ListaPruebas({ fincaId, puedeEditar }: { fincaId: string; puedeEditar: boolean }) {
+export function ListaPruebas({ fincaId, puedeEditar, rango = { desde: null, hasta: null } }: { fincaId: string; puedeEditar: boolean; rango?: { desde: string | null; hasta: string | null } }) {
   const [busqueda, setBusqueda] = useState("");
   const [resultado, setResultado] = useState<ResultadoPrueba | "todos">("todos");
   const alBuscar = useCallback((t: string) => setBusqueda(t), []);
@@ -29,6 +29,8 @@ export function ListaPruebas({ fincaId, puedeEditar }: { fincaId: string; puedeE
       const supabase = crearClienteNavegador();
       let q = supabase.from("pruebas_sanitarias").select("*", { count: "exact" }).eq("finca_id", fincaId);
       if (resultado !== "todos") q = q.eq("resultado", resultado);
+      if (rango.desde) q = q.gte("fecha", rango.desde);
+      if (rango.hasta) q = q.lte("fecha", rango.hasta);
       const limpio = busqueda.replace(/[%,()*\\]/g, " ").trim();
       if (limpio) {
         const { data: animales } = await supabase.from("animales").select("id").eq("finca_id", fincaId).or(`numero_arete.ilike.%${limpio}%,nombre.ilike.%${limpio}%`).limit(200);
@@ -45,10 +47,10 @@ export function ListaPruebas({ fincaId, puedeEditar }: { fincaId: string; puedeE
       for (const f of filas) f.animal = porId.get(f.animal_id);
       return { filas, total: count ?? 0 };
     },
-    [fincaId, busqueda, resultado],
+    [fincaId, busqueda, resultado, rango.desde, rango.hasta],
   );
 
-  const hayFiltro = busqueda !== "" || resultado !== "todos";
+  const hayFiltro = busqueda !== "" || resultado !== "todos" || Boolean(rango.desde || rango.hasta);
 
   return (
     <div className="space-y-3">
@@ -63,7 +65,7 @@ export function ListaPruebas({ fincaId, puedeEditar }: { fincaId: string; puedeE
       </FilaDesplazable>
       <ListaEscalable<FilaPrueba>
         rejilla="grid-cols-1 lg:grid-cols-2"
-        key={`${busqueda}|${resultado}`}
+        key={`${busqueda}|${resultado}|${rango.desde}|${rango.hasta}`}
         cargar={cargar}
         clave={(p) => p.id}
         fila={(p) => (

@@ -11,7 +11,7 @@ import { FilaAnimal, type AnimalFila, type RetiroFila } from "@/components/FilaA
 import { ListaEscalable } from "@/components/ListaEscalable";
 import { clasesBoton } from "@/components/Boton";
 import { crearClienteNavegador } from "@/lib/supabase/client";
-import { DIRECCION_ORDENO, DIRECCION_CEBA, DIRECCION_EMPADRONAMIENTO, filtrosHato, type FiltroHato } from "@/lib/hato";
+import { filtrosHato, type FiltroHato, type VistaHato } from "@/lib/hato";
 import type { Especie } from "@/lib/tipos";
 
 type Filtro = FiltroHato;
@@ -23,9 +23,7 @@ export function ListaHato({
   puedeCrear,
   puedeTraer = false,
   filtroInicial = "todos",
-  conOrdeno = false,
-  conCeba = false,
-  conMonta = false,
+  vistas = [],
 }: {
   fincaId: string;
   especies: Especie[];
@@ -35,12 +33,8 @@ export function ListaHato({
   puedeTraer?: boolean;
   /** El filtro con el que abre la lista (por ejemplo, al volver desde «Ordeño»). */
   filtroInicial?: FiltroHato;
-  /** Si se ofrece el filtro «Ordeño» (quien puede ver leche): lleva al registro del ordeño y su programa. */
-  conOrdeno?: boolean;
-  /** Si se ofrece el filtro «Ceba» (quien puede ver carne): lleva a pesar los animales en engorde. */
-  conCeba?: boolean;
-  /** Si se ofrece el filtro «Empadronamiento» (quien puede ver reproducción): arma y cierra las temporadas de monta. */
-  conMonta?: boolean;
+  /** Las vistas de trabajo que se ofrecen junto a los filtros (Ordeño, Ceba, Empadronamiento, Sanidad, Corrales…), según lo que la persona puede ver. */
+  vistas?: VistaHato[];
 }) {
   const [busqueda, setBusqueda] = useState("");
   const [filtro, setFiltro] = useState<Filtro>(filtroInicial);
@@ -81,21 +75,11 @@ export function ListaHato({
             {f.texto}
           </Chip>
         ))}
-        {conOrdeno ? (
-          <ChipEnlace href={DIRECCION_ORDENO} activo={false}>
-            Ordeño
+        {vistas.map((v) => (
+          <ChipEnlace key={v.id} href={v.href} activo={false}>
+            {v.texto}
           </ChipEnlace>
-        ) : null}
-        {conCeba ? (
-          <ChipEnlace href={DIRECCION_CEBA} activo={false}>
-            Ceba
-          </ChipEnlace>
-        ) : null}
-        {conMonta ? (
-          <ChipEnlace href={DIRECCION_EMPADRONAMIENTO} activo={false}>
-            Empadronamiento
-          </ChipEnlace>
-        ) : null}
+        ))}
       </FilaDesplazable>
       <ListaEscalable<AnimalFila>
         key={`${filtro}|${busqueda}`}

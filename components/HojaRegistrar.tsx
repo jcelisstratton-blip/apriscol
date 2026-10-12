@@ -17,7 +17,7 @@ export function accionesRegistro({ puedeOrdenar, puedeCrearAnimal, puedeSanidad,
       ? [{ href: "/hato/nuevo", titulo: "Animal nuevo", detalle: "Cabra, cabro, oveja o carnero", icono: <Rabbit className="size-6" strokeWidth={1.75} /> }]
       : []),
     ...(puedeSanidad
-      ? [{ href: "/sanidad/nuevo", titulo: "Vacuna o tratamiento", detalle: "Para uno o varios animales", icono: <Syringe className="size-6" strokeWidth={1.75} /> }]
+      ? [{ href: "/hato/sanidad/nuevo", titulo: "Vacuna o tratamiento", detalle: "Para uno o varios animales", icono: <Syringe className="size-6" strokeWidth={1.75} /> }]
       : []),
     ...(puedeCarne
       ? [{ href: "/hato?vista=ceba", titulo: "Pesar animales", detalle: "Peso de los animales en ceba", icono: <Scale className="size-6" strokeWidth={1.75} /> }]

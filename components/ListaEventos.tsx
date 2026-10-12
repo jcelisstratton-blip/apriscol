@@ -19,9 +19,9 @@ import type { EventoResumen, TipoEvento } from "@/lib/tipos";
  * Historial de todo lo que se ha aplicado en la finca, lo más reciente primero. Cada fila lleva al detalle del evento
  * (a quiénes se aplicó, retiro, próxima dosis). Pagina en el servidor.
  */
-export function ListaEventos({ fincaId, puedeRegistrar }: { fincaId: string; puedeRegistrar: boolean }) {
+export function ListaEventos({ fincaId, puedeRegistrar, rango = { desde: null, hasta: null }, tipoInicial = "todos" }: { fincaId: string; puedeRegistrar: boolean; rango?: { desde: string | null; hasta: string | null }; tipoInicial?: TipoEvento | "todos" }) {
   const [busqueda, setBusqueda] = useState("");
-  const [tipo, setTipo] = useState<TipoEvento | "todos">("todos");
+  const [tipo, setTipo] = useState<TipoEvento | "todos">(tipoInicial);
   const alBuscar = useCallback((t: string) => setBusqueda(t), []);
   const hoy = hoyBogota();
 
@@ -29,16 +29,18 @@ export function ListaEventos({ fincaId, puedeRegistrar }: { fincaId: string; pue
     async (desde: number, cantidad: number) => {
       let q = crearClienteNavegador().from("v_eventos_sanitarios").select("*", { count: "exact" }).eq("finca_id", fincaId);
       if (tipo !== "todos") q = q.eq("tipo", tipo);
+      if (rango.desde) q = q.gte("fecha", rango.desde);
+      if (rango.hasta) q = q.lte("fecha", rango.hasta);
       const limpio = busqueda.replace(/[%,()*\\]/g, " ").trim();
       if (limpio) q = q.or(`producto_nombre.ilike.%${limpio}%,responsable.ilike.%${limpio}%,diagnostico.ilike.%${limpio}%`);
       const { data, count, error } = await q.order("fecha", { ascending: false }).order("created_at", { ascending: false }).range(desde, desde + cantidad - 1);
       if (error) throw new Error(error.message);
       return { filas: (data ?? []) as EventoResumen[], total: count ?? 0 };
     },
-    [fincaId, busqueda, tipo],
+    [fincaId, busqueda, tipo, rango.desde, rango.hasta],
   );
 
-  const hayFiltro = busqueda !== "" || tipo !== "todos";
+  const hayFiltro = busqueda !== "" || tipo !== "todos" || Boolean(rango.desde || rango.hasta);
 
   return (
     <div className="space-y-3">
@@ -53,7 +55,7 @@ export function ListaEventos({ fincaId, puedeRegistrar }: { fincaId: string; pue
       </FilaDesplazable>
       <ListaEscalable<EventoResumen>
         rejilla="grid-cols-1 lg:grid-cols-2"
-        key={`${busqueda}|${tipo}`}
+        key={`${busqueda}|${tipo}|${rango.desde}|${rango.hasta}`}
         cargar={cargar}
         clave={(e) => e.id ?? ""}
         fila={(e) => {
@@ -86,7 +88,7 @@ export function ListaEventos({ fincaId, puedeRegistrar }: { fincaId: string; pue
             <EstadoVacio icono={<Syringe strokeWidth={1.5} />} titulo="Nada coincide" descripcion="Prueba con otro producto o quita el filtro." />
           ) : (
             <EstadoVacio icono={<Syringe strokeWidth={1.5} />} titulo="Aún no hay registros de sanidad" descripcion="Aquí queda cada vacuna, desparasitación o tratamiento que registres, con sus retiros y próximas dosis.">
-              {puedeRegistrar ? <EnlaceBoton href="/sanidad/nuevo">Registrar el primero</EnlaceBoton> : null}
+              {puedeRegistrar ? <EnlaceBoton href="/hato?vista=sanidad">Ir a Hato → Sanidad</EnlaceBoton> : null}
             </EstadoVacio>
           )
         }

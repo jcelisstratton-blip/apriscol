@@ -259,7 +259,7 @@ export type PalmaresAnimal = {
 
 // ───────────────────────── Sanidad ─────────────────────────
 export type TipoProducto = "vacuna" | "desparasitante" | "antibiotico" | "antiinflamatorio" | "vitamina" | "otro";
-export type TipoEvento = "vacunacion" | "desparasitacion" | "tratamiento" | "cirugia" | "otro";
+export type TipoEvento = "vacunacion" | "desparasitacion" | "tratamiento" | "cirugia" | "podologia" | "otro";
 export type ViaAplicacion = "oral" | "subcutanea" | "intramuscular" | "intravenosa" | "topica" | "intramamaria" | "otra";
 export type TipoPrueba = "cae" | "brucelosis" | "cmt" | "mastitis_cultivo" | "paratuberculosis" | "otra";
 export type ResultadoPrueba = "negativo" | "positivo" | "sospechoso" | "pendiente";
@@ -366,6 +366,29 @@ export type EventoDeAnimal = {
 };
 
 /** Próxima dosis de un animal que aún no se ha aplicado (vista `v_sanidad_pendiente`). */
+/** Una programación sanitaria: qué se va a aplicar, cuándo y a cuántos animales (el estado se calcula en la vista). */
+export type ProgramaSanitario = {
+  id: string;
+  finca_id: string;
+  tipo: TipoEvento;
+  fecha_programada: string;
+  producto_id: string | null;
+  producto_nombre: string | null;
+  dosis: number | null;
+  unidad_dosis: string | null;
+  via: ViaAplicacion | null;
+  retiro_leche_dias: number;
+  retiro_carne_dias: number;
+  observaciones: string | null;
+  cancelado_en: string | null;
+  client_request_id: string | null;
+  created_at: string;
+  updated_at: string;
+};
+export type EstadoPrograma = "abierto" | "completado" | "cancelado";
+export type ProgramaSanitarioResumen = ProgramaSanitario & { animales: number; aplicados: number; estado: EstadoPrograma };
+export type ProgramaSanitarioAnimal = { programa_id: string; animal_id: string; finca_id: string; evento_id: string | null };
+
 export type SanidadPendiente = {
   finca_id: string | null;
   animal_id: string | null;
@@ -923,6 +946,8 @@ export type Database = {
       reglas_ceba: Tabla<Omit<ReglaCeba, "personalizada"> & { finca_id: string; created_by: string | null; created_at: string; updated_at: string }, "finca_id" | "especie">;
       pesajes: Tabla<Pesaje, "finca_id" | "animal_id" | "peso_kg">;
       empadronamientos: Tabla<Empadronamiento, "finca_id" | "especie" | "nombre" | "fecha_fin_prevista" | "edad_min_meses" | "peso_min_kg">;
+      programas_sanitarios: Tabla<ProgramaSanitario, "finca_id" | "tipo" | "fecha_programada">;
+      programa_sanitario_animales: Tabla<ProgramaSanitarioAnimal, "programa_id" | "animal_id" | "finca_id">;
       empadronamiento_machos: Tabla<EmpadronamientoMacho, "finca_id" | "empadronamiento_id" | "macho_id">;
       sementales_externos: Tabla<SementalExterno, "finca_id" | "especie" | "chip" | "nombre" | "hato_origen" | "raza_id" | "prestamo_desde" | "prestamo_hasta">;
       empadronamiento_hembras: Tabla<EmpadronamientoHembra, "finca_id" | "empadronamiento_id" | "hembra_id" | "macho_id" | "endogamia">;
@@ -944,8 +969,14 @@ export type Database = {
       v_canales: { Row: CanalVista; Relationships: [] };
       v_repro_hembras: { Row: ReproHembra; Relationships: [] };
       v_empadronamientos: { Row: Empadronamiento; Relationships: [] };
+      v_programas_sanitarios: { Row: ProgramaSanitarioResumen; Relationships: [] };
+      v_podologia_animal: { Row: { animal_id: string; finca_id: string; ultima_fecha: string | null }; Relationships: [] };
     };
     Functions: {
+      guardar_programa_sanitario: {
+        Args: { p_finca: string; p_programa: string | null; p_datos: Record<string, unknown>; p_animales: string[] };
+        Returns: string;
+      };
       aceptar_invitacion: { Args: { p_token: string }; Returns: string };
       produccion_tendencia: {
         Args: { p_finca: string; p_hoy?: string | null };

@@ -61,6 +61,7 @@ export function FormEvento({
   animalFijo,
   animalesIniciales = [],
   datos,
+  programaId,
   solicitud,
 }: {
   fincaId: string;
@@ -73,6 +74,8 @@ export function FormEvento({
   animalesIniciales?: AnimalElegido[];
   /** Si trae `id`, el formulario corrige ese evento; si no, solo propone estos valores. */
   datos?: DatosEvento;
+  /** Si el evento aplica una programación, su id: los animales quedan como aplicados en ella. */
+  programaId?: string;
   /** Solo al crear: identifica la apertura del formulario para ignorar un doble toque. */
   solicitud?: string;
 }) {
@@ -118,6 +121,7 @@ export function FormEvento({
   return (
     <form onSubmit={alEnviar} className="space-y-5">
       {datos?.id ? <input type="hidden" name="evento_id" value={datos.id} /> : <input type="hidden" name="client_request_id" value={solicitud ?? ""} />}
+      {programaId ? <input type="hidden" name="programa_id" value={programaId} /> : null}
       {animalFijo ? (
         <>
           <input type="hidden" name="animal" value={animalFijo.id} />

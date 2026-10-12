@@ -1,5 +1,5 @@
 import { leerNumero } from "@/lib/numeros";
-import { diasHasta, hoyBogota, sumarDias } from "@/lib/fechas";
+import { diasHasta, hoyBogota } from "@/lib/fechas";
 import type { CandidataEmp, CriterioEmp, Empadronamiento, Especie } from "@/lib/tipos";
 
 /**
@@ -93,36 +93,5 @@ export function leerNumeroHembras(texto: string): number | null {
 export const ETIQUETA_CAPACIDAD = { fijada: "fijado en la temporada", joven: "macho joven", adulto: "macho adulto" } as const;
 
 // ───────────────────────── Filtro por fechas del resumen ─────────────────────────
-export type PeriodoEmp = "todo" | "anio" | "12m" | "6m" | "3m" | "rango";
-export const PERIODOS_EMP: { valor: PeriodoEmp; etiqueta: string }[] = [
-  { valor: "todo", etiqueta: "Todo" },
-  { valor: "anio", etiqueta: "Este año" },
-  { valor: "12m", etiqueta: "12 meses" },
-  { valor: "6m", etiqueta: "6 meses" },
-  { valor: "3m", etiqueta: "3 meses" },
-  { valor: "rango", etiqueta: "Entre fechas" },
-];
-export const esPeriodoEmp = (v: string | undefined): v is PeriodoEmp => PERIODOS_EMP.some((p) => p.valor === v);
-const FECHA = /^\d{4}-\d{2}-\d{2}$/;
-
-/** Entre qué fechas de inicio se miran las temporadas (nulo = sin límite). Una fecha mal escrita se ignora. */
-export function rangoPeriodo(periodo: PeriodoEmp, hoy: string, desde?: string, hasta?: string): { desde: string | null; hasta: string | null } {
-  const dias = (n: number) => sumarDias(hoy, -n);
-  switch (periodo) {
-    case "anio":
-      return { desde: `${hoy.slice(0, 4)}-01-01`, hasta: null };
-    case "12m":
-      return { desde: dias(365), hasta: null };
-    case "6m":
-      return { desde: dias(182), hasta: null };
-    case "3m":
-      return { desde: dias(91), hasta: null };
-    case "rango": {
-      const d = desde && FECHA.test(desde) ? desde : null;
-      const h = hasta && FECHA.test(hasta) ? hasta : null;
-      return d && h && d > h ? { desde: h, hasta: d } : { desde: d, hasta: h };
-    }
-    default:
-      return { desde: null, hasta: null };
-  }
-}
+// El filtro por periodos es de todos los menús (ver `lib/periodos.ts`); estos nombres se conservan para el resumen de empadronamientos.
+export { PERIODOS as PERIODOS_EMP, esPeriodo as esPeriodoEmp, rangoPeriodo, type Periodo as PeriodoEmp } from "@/lib/periodos";

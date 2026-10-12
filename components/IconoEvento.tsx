@@ -1,7 +1,7 @@
-import { Bug, ClipboardList, Pill, Scissors, Syringe } from "lucide-react";
+import { Bug, ClipboardList, Footprints, Pill, Scissors, Syringe } from "lucide-react";
 import type { TipoEvento } from "@/lib/tipos";
 
-const ICONOS = { vacunacion: Syringe, desparasitacion: Bug, tratamiento: Pill, cirugia: Scissors, otro: ClipboardList } as const;
+const ICONOS = { vacunacion: Syringe, desparasitacion: Bug, tratamiento: Pill, podologia: Footprints, cirugia: Scissors, otro: ClipboardList } as const;
 
 /** Icono redondo de un tipo de evento sanitario. */
 export function IconoEvento({ tipo }: { tipo: TipoEvento | null }) {

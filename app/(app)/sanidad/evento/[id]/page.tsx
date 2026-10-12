@@ -100,7 +100,7 @@ export default async function DetalleEvento({ params, searchParams }: { params: 
             </div>
             <p className="mt-2 text-sm text-humo">Aparece como pendiente en Sanidad hasta que se registre una nueva aplicación del mismo producto.</p>
             {puedeEscribir(rol, "sanidad") ? (
-              <Link href={`/sanidad/nuevo?refuerzo=${id}`} className="mt-3 inline-flex min-h-11 items-center rounded-full bg-musgo px-4 text-sm font-semibold text-sobre-musgo">
+              <Link href={`/hato/sanidad/nuevo?refuerzo=${id}`} className="mt-3 inline-flex min-h-11 items-center rounded-full bg-musgo px-4 text-sm font-semibold text-sobre-musgo">
                 Aplicar la siguiente dosis
               </Link>
             ) : null}

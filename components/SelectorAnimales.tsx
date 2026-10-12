@@ -11,6 +11,8 @@ import { Chip, FilaDesplazable } from "@/components/FilaDesplazable";
 import { Sheet } from "@/components/Sheet";
 import { crearClienteNavegador } from "@/lib/supabase/client";
 import { etiquetaAnimal } from "@/lib/animal";
+import { hoyBogota, sumarDias } from "@/lib/fechas";
+import { DIAS_PODOLOGIA } from "@/lib/sanidad";
 import type { Especie } from "@/lib/tipos";
 
 export type AnimalElegido = { id: string; numero_arete: string; nombre: string | null };
@@ -57,26 +59,84 @@ export function SelectorAnimales({
     else if (valor.length < MAXIMO) onCambio([...valor, a]);
   };
 
-  const sumarGrupo = async (clave: string, filtro: { sexo?: "hembra" | "macho"; especie?: Especie }) => {
-    setError(null);
-    setCargandoGrupo(clave);
+  /** Trae animales activos por sus ids (por tramos: la dirección de la consulta tiene largo máximo). */
+  const animalesPorId = async (ids: string[]): Promise<AnimalElegido[]> => {
+    const supabase = crearClienteNavegador();
+    const salida: AnimalElegido[] = [];
+    for (let i = 0; i < ids.length; i += 100) {
+      const { data, error: e } = await supabase.from("animales").select("id, numero_arete, nombre").eq("finca_id", fincaId).eq("estado", "activo").is("deleted_at", null).in("id", ids.slice(i, i + 100));
+      if (e) throw new Error(e.message);
+      salida.push(...(data ?? []));
+    }
+    return salida.sort((x, y) => x.numero_arete.localeCompare(y.numero_arete, "es", { numeric: true }));
+  };
+
+  const porSexoEspecie = (filtro: { sexo?: "hembra" | "macho"; especie?: Especie }) => async (): Promise<AnimalElegido[]> => {
     let q = crearClienteNavegador().from("animales").select("id, numero_arete, nombre").eq("finca_id", fincaId).eq("estado", "activo").is("deleted_at", null);
     if (filtro.sexo) q = q.eq("sexo", filtro.sexo);
     if (filtro.especie) q = q.eq("especie", filtro.especie);
     const { data, error: e } = await q.order("numero_arete").limit(MAXIMO);
-    setCargandoGrupo(null);
-    if (e) return setError(e.message);
-    const nuevos = (data ?? []).filter((a) => !elegidos.has(a.id));
-    onCambio([...valor, ...nuevos].slice(0, MAXIMO));
+    if (e) throw new Error(e.message);
+    return data ?? [];
   };
 
-  const grupos: { clave: string; texto: string; filtro: { sexo?: "hembra" | "macho"; especie?: Especie } }[] = [
-    { clave: "todos", texto: "Todo el hato", filtro: {} },
-    { clave: "hembras", texto: "Hembras", filtro: { sexo: "hembra" } },
-    { clave: "machos", texto: "Machos", filtro: { sexo: "macho" } },
-    ...(especies.length > 1
-      ? especies.map((e) => ({ clave: e, texto: e === "caprino" ? "Caprinos" : "Ovinos", filtro: { especie: e } }))
-      : []),
+  const sumarGrupo = async (clave: string, cargar: () => Promise<AnimalElegido[]>) => {
+    setError(null);
+    setCargandoGrupo(clave);
+    try {
+      const traidos = await cargar();
+      const nuevos = traidos.filter((a) => !elegidos.has(a.id));
+      onCambio([...valor, ...nuevos].slice(0, MAXIMO));
+      if (traidos.length === 0) setError("Ningún animal del hato cumple eso por ahora.");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "No pudimos traer ese grupo.");
+    } finally {
+      setCargandoGrupo(null);
+    }
+  };
+
+  const grupos: { clave: string; texto: string; cargar: () => Promise<AnimalElegido[]> }[] = [
+    { clave: "todos", texto: "Todo el hato", cargar: porSexoEspecie({}) },
+    { clave: "hembras", texto: "Hembras", cargar: porSexoEspecie({ sexo: "hembra" }) },
+    { clave: "machos", texto: "Machos", cargar: porSexoEspecie({ sexo: "macho" }) },
+    ...(especies.length > 1 ? especies.map((e) => ({ clave: e, texto: e === "caprino" ? "Caprinos" : "Ovinos", cargar: porSexoEspecie({ especie: e }) })) : []),
+    {
+      clave: "lactancia",
+      texto: "En lactancia",
+      cargar: async () => {
+        const { data, error: e } = await crearClienteNavegador().from("lactancias").select("animal_id").eq("finca_id", fincaId).is("fecha_secado", null).limit(MAXIMO);
+        if (e) throw new Error(e.message);
+        return animalesPorId((data ?? []).map((l) => l.animal_id));
+      },
+    },
+    {
+      clave: "gestantes",
+      texto: "Gestantes",
+      cargar: async () => {
+        const { data, error: e } = await crearClienteNavegador().from("v_repro_hembras").select("animal_id").eq("finca_id", fincaId).eq("estado", "gestante").limit(MAXIMO);
+        if (e) throw new Error(e.message);
+        return animalesPorId((data ?? []).map((r) => r.animal_id).filter((x): x is string => !!x));
+      },
+    },
+    {
+      clave: "crias",
+      texto: "Crías (menos de 6 meses)",
+      cargar: async () => {
+        const { data, error: e } = await crearClienteNavegador().from("animales").select("id, numero_arete, nombre").eq("finca_id", fincaId).eq("estado", "activo").is("deleted_at", null).gte("fecha_nacimiento", sumarDias(hoyBogota(), -182)).order("numero_arete").limit(MAXIMO);
+        if (e) throw new Error(e.message);
+        return data ?? [];
+      },
+    },
+    {
+      clave: "podologia",
+      texto: "Sin podología en 6 meses",
+      cargar: async () => {
+        const limite = sumarDias(hoyBogota(), -DIAS_PODOLOGIA);
+        const { data, error: e } = await crearClienteNavegador().from("v_podologia_animal").select("animal_id, ultima_fecha").eq("finca_id", fincaId).limit(2000);
+        if (e) throw new Error(e.message);
+        return animalesPorId((data ?? []).filter((p) => !p.ultima_fecha || p.ultima_fecha < limite).map((p) => p.animal_id));
+      },
+    },
   ];
 
   const resumen =
@@ -104,7 +164,7 @@ export function SelectorAnimales({
             <p className="text-sm font-semibold">Sumar un grupo completo</p>
             <FilaDesplazable>
               {grupos.map((g) => (
-                <Chip key={g.clave} activo={false} onClick={() => void sumarGrupo(g.clave, g.filtro)}>
+                <Chip key={g.clave} activo={false} onClick={() => void sumarGrupo(g.clave, g.cargar)}>
                   {cargandoGrupo === g.clave ? "Sumando…" : `+ ${g.texto}`}
                 </Chip>
               ))}

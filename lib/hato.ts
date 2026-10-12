@@ -20,3 +20,19 @@ export const direccionHato = (f: FiltroHato) => (f === "todos" ? "/hato" : `/hat
 export const DIRECCION_ORDENO = "/hato?vista=ordeno";
 export const DIRECCION_CEBA = "/hato?vista=ceba";
 export const DIRECCION_EMPADRONAMIENTO = "/hato?vista=empadronamiento";
+export const DIRECCION_SANIDAD = "/hato?vista=sanidad";
+export const DIRECCION_CORRALES = "/hato?vista=corrales";
+
+/** Las vistas de trabajo del Hato (chips junto a los filtros de animales): lo que se arma o se aplica sobre varios animales. */
+export type VistaHato = { id: "ordeno" | "ceba" | "empadronamiento" | "sanidad" | "corrales"; href: string; texto: string };
+
+/** Qué vistas ofrece el Hato según lo que la persona puede ver, en el orden en que aparecen. */
+export function vistasHato(ver: { leche: boolean; carne: boolean; repro: boolean; sanidad: boolean; corrales: boolean }): VistaHato[] {
+  return [
+    ...(ver.leche ? ([{ id: "ordeno", href: DIRECCION_ORDENO, texto: "Ordeño" }] as const) : []),
+    ...(ver.carne ? ([{ id: "ceba", href: DIRECCION_CEBA, texto: "Ceba" }] as const) : []),
+    ...(ver.repro ? ([{ id: "empadronamiento", href: DIRECCION_EMPADRONAMIENTO, texto: "Empadronamiento" }] as const) : []),
+    ...(ver.sanidad ? ([{ id: "sanidad", href: DIRECCION_SANIDAD, texto: "Sanidad" }] as const) : []),
+    ...(ver.corrales ? ([{ id: "corrales", href: DIRECCION_CORRALES, texto: "Corrales" }] as const) : []),
+  ];
+}

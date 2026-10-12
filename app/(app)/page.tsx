@@ -17,8 +17,8 @@ import { puedeEscribir, puedeVer } from "@/lib/permisos";
 import { diasHasta, formatoFecha, hoyBogota, litros, sumarDias } from "@/lib/fechas";
 import { etiquetaAnimal, saludo } from "@/lib/animal";
 import { IconoEvento } from "@/components/IconoEvento";
-import { ETIQUETA_EVENTO, estadoDosis, nombreEvento } from "@/lib/sanidad";
-import type { CandidatoCeba, SanidadPendiente, ServicioConParto, TipoEvento } from "@/lib/tipos";
+import { ETIQUETA_EVENTO, estadoDosis, estadoFechaPrograma, nombreEvento } from "@/lib/sanidad";
+import type { CandidatoCeba, ProgramaSanitarioResumen, SanidadPendiente, ServicioConParto, TipoEvento } from "@/lib/tipos";
 
 export const metadata: Metadata = { title: "Hoy" };
 
@@ -35,7 +35,7 @@ export default async function PaginaHoy({ searchParams }: { searchParams: Promis
   const activos = () =>
     supabase.from("animales").select("*", { count: "exact", head: true }).eq("finca_id", finca.id).is("deleted_at", null).eq("estado", "activo");
 
-  const [prod, totalActivos, totalHembras, retiro, servicios, tendencia, pendientes, candidatosCeba] = await Promise.all([
+  const [prod, totalActivos, totalHembras, retiro, servicios, tendencia, pendientes, candidatosCeba, programadas] = await Promise.all([
     verLeche
       ? supabase.from("v_produccion_diaria").select("animal_id, litros_tanque, litros_descartados").eq("finca_id", finca.id).eq("fecha", hoy)
       : Promise.resolve({ data: [] as { animal_id: string | null; litros_tanque: number | null; litros_descartados: number | null }[] }),
@@ -58,6 +58,10 @@ export default async function PaginaHoy({ searchParams }: { searchParams: Promis
       : Promise.resolve({ data: [] as SanidadPendiente[] }),
     // Animales que conviene pasar a ceba (según las reglas de la finca).
     verCarne ? supabase.rpc("candidatos_ceba", { p_finca: finca.id }) : Promise.resolve({ data: [] as CandidatoCeba[] }),
+    // Lo programado en Hato → Sanidad que ya venció o toca en la próxima semana.
+    verSanidad
+      ? supabase.from("v_programas_sanitarios").select("*").eq("finca_id", finca.id).eq("estado", "abierto").lte("fecha_programada", sumarDias(hoy, 7)).order("fecha_programada").limit(20)
+      : Promise.resolve({ data: [] as ProgramaSanitarioResumen[] }),
   ]);
 
   // Las dosis por aplicar se agrupan por el evento que las programó.
@@ -181,6 +185,34 @@ export default async function PaginaHoy({ searchParams }: { searchParams: Promis
             </dl>
           </Tarjeta>
 
+          {(programadas.data ?? []).length > 0 ? (
+            <Tarjeta titulo="Sanidad programada" acciones={<Link href="/hato?vista=sanidad" className="text-sm font-semibold text-musgo">Ver Hato → Sanidad</Link>}>
+              <ul className="divide-y divide-arena">
+                {(programadas.data as ProgramaSanitarioResumen[]).slice(0, 4).map((p) => {
+                  const e = estadoFechaPrograma(p.fecha_programada, hoy);
+                  return (
+                    <li key={p.id} className="flex items-center gap-3 py-2.5">
+                      <IconoEvento tipo={p.tipo} />
+                      <span className="min-w-0 flex-1">
+                        <span className="block font-semibold [overflow-wrap:anywhere]">{p.producto_nombre?.trim() || ETIQUETA_EVENTO[p.tipo]}</span>
+                        <span className="block text-sm text-humo">
+                          {ETIQUETA_EVENTO[p.tipo]} · {p.animales - p.aplicados} {p.animales - p.aplicados === 1 ? "animal" : "animales"}
+                        </span>
+                        <span className="mt-1 block"><Insignia tono={e.tono}>{e.texto}</Insignia></span>
+                      </span>
+                      {puedeEscribir(rol, "sanidad") ? (
+                        <Link href={`/hato/sanidad/nuevo?programa=${p.id}`} className="inline-flex min-h-11 shrink-0 items-center rounded-full bg-musgo px-4 text-sm font-semibold text-sobre-musgo">
+                          Aplicar
+                        </Link>
+                      ) : null}
+                    </li>
+                  );
+                })}
+              </ul>
+              {(programadas.data ?? []).length > 4 ? <p className="mt-2 border-t border-arena pt-2 text-sm text-humo">Y {(programadas.data ?? []).length - 4} más en Hato → Sanidad.</p> : null}
+            </Tarjeta>
+          ) : null}
+
           {dosisPorAplicar.length > 0 ? (
             <Tarjeta titulo="Dosis por aplicar" acciones={<Link href="/sanidad" className="text-sm font-semibold text-musgo">Ver Sanidad</Link>}>
               <ul className="divide-y divide-arena">
@@ -197,7 +229,7 @@ export default async function PaginaHoy({ searchParams }: { searchParams: Promis
                         <span className="mt-1 block"><Insignia tono={e.tono}>{e.texto}</Insignia></span>
                       </span>
                       {puedeEscribir(rol, "sanidad") ? (
-                        <Link href={`/sanidad/nuevo?refuerzo=${g.evento_id}`} className="inline-flex min-h-11 shrink-0 items-center rounded-full bg-musgo px-4 text-sm font-semibold text-sobre-musgo">
+                        <Link href={`/hato/sanidad/nuevo?refuerzo=${g.evento_id}`} className="inline-flex min-h-11 shrink-0 items-center rounded-full bg-musgo px-4 text-sm font-semibold text-sobre-musgo">
                           Aplicar
                         </Link>
                       ) : null}

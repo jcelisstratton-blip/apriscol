@@ -25,7 +25,7 @@ import { NivelEndogamia } from "@/components/NivelEndogamia";
 import { RutasEndogamia } from "@/components/RutasEndogamia";
 import { HistorialSanidadAnimal } from "@/components/HistorialSanidadAnimal";
 import { TurnosAnimal } from "@/components/TurnosAnimal";
-import { estadoDosis, ETIQUETA_RESULTADO_PRUEBA, nombreEvento } from "@/lib/sanidad";
+import { estadoDosis, estadoFechaPrograma, ETIQUETA_EVENTO, ETIQUETA_RESULTADO_PRUEBA, nombreEvento, TIPOS_EVENTO } from "@/lib/sanidad";
 import { estadoRcs, formatoMiles } from "@/lib/leche-calidad";
 import { ETIQUETA_CONFORMACION, ETIQUETA_ENGRASAMIENTO, ETIQUETA_GRASA_VISCERAL, ETIQUETA_PESAJE, faltaParaMeta, gdp, kg, pctUno } from "@/lib/carne";
 import { LoteAnimal } from "@/components/LoteAnimal";
@@ -122,6 +122,11 @@ export default async function FichaAnimal({ params, searchParams }: { params: Pr
         supabase.from("v_sanidad_pendiente").select("evento_id, tipo, producto_nombre, proxima_fecha").eq("animal_id", id).order("proxima_fecha"),
       ])
     : [{ data: [] }, { data: [] }, { data: [] }];
+  // Lo programado para este animal que aún no se aplica (Hato → Sanidad).
+  const pendientesProg = verSanidad ? ((await supabase.from("programa_sanitario_animales").select("programa_id").eq("animal_id", id).eq("finca_id", finca.id).is("evento_id", null).limit(50)).data ?? []) : [];
+  const programasAnimal = pendientesProg.length > 0
+    ? ((await supabase.from("v_programas_sanitarios").select("*").in("id", pendientesProg.map((p) => p.programa_id)).eq("finca_id", finca.id).neq("estado", "cancelado").order("fecha_programada")).data ?? [])
+    : [];
   const historialEventos = (eventosSan.data ?? []).map((e) => ({
     clave: `e-${e.id}`,
     fecha: e.fecha ?? "",
@@ -606,19 +611,54 @@ export default async function FichaAnimal({ params, searchParams }: { params: Pr
                 })}
               </ul>
             ) : null}
+            {programasAnimal.length > 0 ? (
+              <ul className="mb-3 space-y-2">
+                {programasAnimal.map((p) => {
+                  const e = estadoFechaPrograma(p.fecha_programada, hoyBogota());
+                  return (
+                    <li key={p.id} className="flex flex-wrap items-center justify-between gap-2 rounded-2xl bg-lana px-3 py-2.5">
+                      <span className="min-w-0 text-[0.9375rem]">
+                        <span className="font-semibold [overflow-wrap:anywhere]">{p.producto_nombre?.trim() || ETIQUETA_EVENTO[p.tipo]}</span>
+                        <span className="block text-sm text-humo">Programada · {formatoFecha(p.fecha_programada, { day: "numeric", month: "short" })}</span>
+                      </span>
+                      <span className="flex items-center gap-2">
+                        <Insignia tono={e.tono}>{e.texto}</Insignia>
+                        {puedeEscribir(rol, "sanidad") && animal.estado === "activo" ? (
+                          <Link href={`/hato/sanidad/nuevo?programa=${p.id}&animal=${id}`} className="inline-flex min-h-11 items-center rounded-full bg-musgo px-4 text-sm font-semibold text-sobre-musgo">
+                            Aplicar
+                          </Link>
+                        ) : null}
+                      </span>
+                    </li>
+                  );
+                })}
+              </ul>
+            ) : null}
             {historialEventos.length === 0 && historialPruebas.length === 0 ? (
               <p className="text-[0.9375rem] text-humo">Todavía no tiene vacunas, tratamientos ni pruebas registrados.</p>
             ) : (
               <HistorialSanidadAnimal eventos={historialEventos} pruebas={historialPruebas} puedeEditar={puedeEscribir(rol, "sanidad")} />
             )}
             {puedeEscribir(rol, "sanidad") && animal.estado === "activo" ? (
-              <div className="mt-3 grid grid-cols-1 gap-2 min-[420px]:grid-cols-2">
-                <Link href={`/sanidad/nuevo?animal=${id}`} className={clasesBoton("secundario")}>
-                  Vacuna o tratamiento
-                </Link>
-                <Link href={`/sanidad/pruebas/nueva?animal=${id}`} className={clasesBoton("secundario")}>
-                  Prueba diagnóstica
-                </Link>
+              <div className="mt-3 space-y-3">
+                <div>
+                  <p className="text-sm font-semibold">Registrar lo que se le aplicó</p>
+                  <div className="mt-1.5 grid grid-cols-2 gap-2">
+                    {TIPOS_EVENTO.filter((t) => t !== "otro").map((t) => (
+                      <Link key={t} href={`/hato/sanidad/nuevo?animal=${id}&tipo=${t}`} className={clasesBoton("secundario")}>
+                        {ETIQUETA_EVENTO[t]}
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 gap-2 min-[420px]:grid-cols-2">
+                  <Link href={`/hato/sanidad/programar?animal=${id}`} className={clasesBoton("secundario")}>
+                    Programar una aplicación
+                  </Link>
+                  <Link href={`/sanidad/pruebas/nueva?animal=${id}`} className={clasesBoton("secundario")}>
+                    Prueba diagnóstica
+                  </Link>
+                </div>
               </div>
             ) : null}
           </Tarjeta>

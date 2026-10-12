@@ -1,15 +1,17 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Plus } from "lucide-react";
-import { ChipEnlace } from "@/components/ChipEnlace";
+import { ChipsHato } from "@/components/ChipsHato";
 import { Encabezado } from "@/components/Encabezado";
+import { ChipEnlace } from "@/components/ChipEnlace";
 import { FilaDesplazable } from "@/components/FilaDesplazable";
 import { obtenerContexto } from "@/lib/contexto";
 import { puedeEscribir, puedeGestionar, puedeVer } from "@/lib/permisos";
-import { DIRECCION_CEBA, DIRECCION_EMPADRONAMIENTO, DIRECCION_ORDENO, direccionHato, esFiltroHato, filtrosHato } from "@/lib/hato";
+import { DIRECCION_ORDENO, esFiltroHato, vistasHato } from "@/lib/hato";
 import { Registrar } from "./Registrar";
 import { Ceba } from "./Ceba";
 import { Monta } from "./Monta";
+import { Sanidad } from "./Sanidad";
 import { Animales, CalidadLeche, ProgramaLeche } from "./ProgramaLeche";
 
 export const metadata: Metadata = { title: "Hato" };
@@ -18,7 +20,7 @@ export const metadata: Metadata = { title: "Hato" };
  * Hato: los animales (con sus filtros) y, como un filtro más, «Ordeño»: el registro del ordeño de cada jornada y el programa de qué
  * hembras se ordeñan y en qué turnos. Lo que se mira de la producción de todo el hato (totales, gráficas) está en el menú «Leche».
  */
-export default async function PaginaHato({ searchParams }: { searchParams: Promise<{ vista?: string; modo?: string; filtro?: string; agregar?: string }> }) {
+export default async function PaginaHato({ searchParams }: { searchParams: Promise<{ vista?: string; modo?: string; filtro?: string; agregar?: string; guardado?: string }> }) {
   const sp = await searchParams;
   const { finca, rol, perfil } = await obtenerContexto();
   const puedeCrear = puedeEscribir(rol, "hato");
@@ -29,9 +31,11 @@ export default async function PaginaHato({ searchParams }: { searchParams: Promi
   const enCeba = sp.vista === "ceba" && verCarne;
   const verRepro = puedeVer(rol, "reproduccion");
   const enMonta = sp.vista === "empadronamiento" && verRepro;
+  const verSanidad = puedeVer(rol, "sanidad");
+  const enSanidad = sp.vista === "sanidad" && verSanidad;
+  const vistas = vistasHato({ leche: verLeche, carne: verCarne, repro: verRepro, sanidad: verSanidad, corrales: false });
   // Quien no puede escribir leche (veterinario, contador) no registra ordeños: ve el programa y la calidad, sin poder cambiarlos.
   const modo = sp.modo === "calidad" ? "calidad" : sp.modo === "programar" || !puedeRegistrar ? "programar" : "registrar";
-  const filtros = filtrosHato(finca.especies);
 
   return (
     <>
@@ -52,50 +56,22 @@ export default async function PaginaHato({ searchParams }: { searchParams: Promi
 
       {enCeba ? (
         <div className="space-y-4">
-          <FilaDesplazable>
-            {filtros.map((f) => (
-              <ChipEnlace key={f.id} href={direccionHato(f.id)} activo={false}>
-                {f.texto}
-              </ChipEnlace>
-            ))}
-            {verLeche ? <ChipEnlace href={DIRECCION_ORDENO} activo={false}>Ordeño</ChipEnlace> : null}
-            <ChipEnlace href={DIRECCION_CEBA} activo>
-              Ceba
-            </ChipEnlace>
-            {verRepro ? <ChipEnlace href={DIRECCION_EMPADRONAMIENTO} activo={false}>Empadronamiento</ChipEnlace> : null}
-          </FilaDesplazable>
+          <ChipsHato especies={finca.especies} vistas={vistas} activa="ceba" />
           <Ceba fincaId={finca.id} puedeEditar={puedeEscribir(rol, "carne")} />
         </div>
       ) : enMonta ? (
         <div className="space-y-4">
-          <FilaDesplazable>
-            {filtros.map((f) => (
-              <ChipEnlace key={f.id} href={direccionHato(f.id)} activo={false}>
-                {f.texto}
-              </ChipEnlace>
-            ))}
-            {verLeche ? <ChipEnlace href={DIRECCION_ORDENO} activo={false}>Ordeño</ChipEnlace> : null}
-            {verCarne ? <ChipEnlace href={DIRECCION_CEBA} activo={false}>Ceba</ChipEnlace> : null}
-            <ChipEnlace href={DIRECCION_EMPADRONAMIENTO} activo>
-              Empadronamiento
-            </ChipEnlace>
-          </FilaDesplazable>
+          <ChipsHato especies={finca.especies} vistas={vistas} activa="empadronamiento" />
           <Monta fincaId={finca.id} umbral={finca.umbral_endogamia} puedeEditar={puedeEscribir(rol, "reproduccion")} />
+        </div>
+      ) : enSanidad ? (
+        <div className="space-y-4">
+          <ChipsHato especies={finca.especies} vistas={vistas} activa="sanidad" />
+          <Sanidad fincaId={finca.id} puedeEditar={puedeEscribir(rol, "sanidad")} guardado={sp.guardado === "1"} />
         </div>
       ) : enOrdeno ? (
         <div className="space-y-4">
-          <FilaDesplazable>
-            {filtros.map((f) => (
-              <ChipEnlace key={f.id} href={direccionHato(f.id)} activo={false}>
-                {f.texto}
-              </ChipEnlace>
-            ))}
-            <ChipEnlace href={DIRECCION_ORDENO} activo>
-              Ordeño
-            </ChipEnlace>
-            {verCarne ? <ChipEnlace href={DIRECCION_CEBA} activo={false}>Ceba</ChipEnlace> : null}
-            {verRepro ? <ChipEnlace href={DIRECCION_EMPADRONAMIENTO} activo={false}>Empadronamiento</ChipEnlace> : null}
-          </FilaDesplazable>
+          <ChipsHato especies={finca.especies} vistas={vistas} activa="ordeno" />
 
           <FilaDesplazable>
             {puedeRegistrar ? (
@@ -126,9 +102,7 @@ export default async function PaginaHato({ searchParams }: { searchParams: Promi
           puedeCrear={puedeCrear}
           puedeTraer={puedeGestionar(rol) && !perfil?.libro_resuelto_en}
           filtroInicial={esFiltroHato(sp.filtro) ? sp.filtro : "todos"}
-          conOrdeno={verLeche}
-          conCeba={verCarne}
-          conMonta={verRepro}
+          vistas={vistas}
         />
       )}
     </>
