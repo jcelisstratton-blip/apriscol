@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ChevronRight, Scale } from "lucide-react";
 import { Aviso } from "@/components/Aviso";
 import { EnlaceBoton } from "@/components/Boton";
+import { AvisoCandidatosCeba } from "@/components/AvisoCandidatosCeba";
 import { EstadoVacio } from "@/components/EstadoVacio";
 import { Insignia } from "@/components/Insignia";
 import { Tarjeta } from "@/components/Tarjeta";
@@ -26,11 +27,14 @@ export async function Resumen({
 }) {
   const supabase = cliente ?? (await crearClienteServidor());
   const hoy = hoyBogota();
-  const [lotesDB, animalesDB, retirosDB] = await Promise.all([
+  const [lotesDB, animalesDB, retirosDB, candidatosDB] = await Promise.all([
     supabase.from("lotes_ceba").select("*").eq("finca_id", fincaId).is("cerrado_en", null).limit(500),
     supabase.rpc("ceba_animales", { p_finca: fincaId }),
     supabase.rpc("animales_en_retiro", { p_finca: fincaId }),
+    supabase.rpc("candidatos_ceba", { p_finca: fincaId }),
   ]);
+  const candidatos = candidatosDB.data ?? [];
+  const aviso = <AvisoCandidatosCeba tocan={candidatos.filter((c) => c.nivel === "toca").length} proximos={candidatos.filter((c) => c.nivel === "proxima").length} />;
   const lotes = new Map((lotesDB.data ?? []).map((l) => [l.id, l]));
   // «En ceba» = los animales que están en un lote abierto.
   const enCeba = (animalesDB.data ?? []).filter((a) => a.lote_id && lotes.has(a.lote_id));
@@ -52,9 +56,12 @@ export async function Resumen({
 
   if (lotes.size === 0) {
     return (
-      <EstadoVacio icono={<Scale strokeWidth={1.5} />} titulo="Aún no hay animales en ceba" descripcion="Crea un lote de ceba, ponle animales y pésalos: aquí verás cuánto ganan por día, cuánto alimento gastan y cuáles ya están listos para beneficio.">
-        {puedeEditar ? <EnlaceBoton href="/carne/lotes/nuevo">Crear un lote</EnlaceBoton> : null}
-      </EstadoVacio>
+      <div className="space-y-4">
+        {aviso}
+        <EstadoVacio icono={<Scale strokeWidth={1.5} />} titulo="Aún no hay animales en ceba" descripcion="Crea un lote de ceba, ponle animales y pésalos: aquí verás cuánto ganan por día, cuánto alimento gastan y cuáles ya están listos para beneficio.">
+          {puedeEditar ? <EnlaceBoton href="/carne/lotes/nuevo">Crear un lote</EnlaceBoton> : null}
+        </EstadoVacio>
+      </div>
     );
   }
 
@@ -67,6 +74,7 @@ export async function Resumen({
 
   return (
     <div className="space-y-4">
+      {aviso}
       <dl className="grid grid-cols-2 gap-2 text-center min-[560px]:grid-cols-4">
         {cifras.map(([e, v]) => (
           <div key={e} className="min-w-0 rounded-2xl bg-papel px-1.5 py-3 ring-1 ring-arena">

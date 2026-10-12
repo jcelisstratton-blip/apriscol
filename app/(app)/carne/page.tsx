@@ -10,18 +10,22 @@ import { PorQueAnalizar } from "@/components/PorQueAnalizar";
 import { ListaSalidas } from "@/components/ListaSalidas";
 import { obtenerContexto } from "@/lib/contexto";
 import { puedeEscribir, puedeVer } from "@/lib/permisos";
+import { Candidatos } from "./Candidatos";
 import { Canales } from "./Canales";
 import { Lotes } from "./Lotes";
+import { Reglas } from "./Reglas";
 import { Resumen } from "./Resumen";
 
 export const metadata: Metadata = { title: "Carne" };
 
 const PESTANAS = [
   { valor: "resumen", etiqueta: "Resumen" },
+  { valor: "candidatos", etiqueta: "Candidatos" },
   { valor: "lotes", etiqueta: "Lotes" },
   { valor: "pesajes", etiqueta: "Pesos" },
   { valor: "canales", etiqueta: "Canales" },
   { valor: "salidas", etiqueta: "Salidas" },
+  { valor: "reglas", etiqueta: "Reglas" },
 ] as const;
 type Vista = (typeof PESTANAS)[number]["valor"];
 
@@ -61,9 +65,11 @@ export default async function PaginaCarne({ searchParams }: { searchParams: Prom
       </FilaDesplazable>
 
       {vista === "resumen" ? <Resumen fincaId={finca.id} puedeEditar={puedeEditar} /> : null}
+      {vista === "candidatos" ? <Candidatos fincaId={finca.id} /> : null}
       {vista === "lotes" ? <Lotes fincaId={finca.id} puedeEditar={puedeEditar} /> : null}
       {vista === "pesajes" ? <ListaPesajes fincaId={finca.id} puedeEditar={puedeEditar} /> : null}
       {vista === "canales" ? <Canales fincaId={finca.id} puedeEditar={puedeEditar} /> : null}
+      {vista === "reglas" ? <Reglas fincaId={finca.id} especies={finca.especies} puedeEditar={puedeEditar} /> : null}
       {vista === "salidas" ? (
         <div className="space-y-4">
           <PorQueAnalizar linea="carne" />

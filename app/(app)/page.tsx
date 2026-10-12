@@ -6,6 +6,7 @@ import { EstadoVacio } from "@/components/EstadoVacio";
 import { FincaSelector } from "@/components/FincaSelector";
 import { Insignia } from "@/components/Insignia";
 import { Aviso } from "@/components/Aviso";
+import { AvisoCandidatosCeba } from "@/components/AvisoCandidatosCeba";
 import { Tarjeta } from "@/components/Tarjeta";
 import { AlertasProduccion } from "@/components/AlertasProduccion";
 import { esBaja } from "@/lib/produccion";
@@ -17,7 +18,7 @@ import { diasHasta, formatoFecha, hoyBogota, litros, sumarDias } from "@/lib/fec
 import { etiquetaAnimal, saludo } from "@/lib/animal";
 import { IconoEvento } from "@/components/IconoEvento";
 import { ETIQUETA_EVENTO, estadoDosis, nombreEvento } from "@/lib/sanidad";
-import type { SanidadPendiente, ServicioConParto, TipoEvento } from "@/lib/tipos";
+import type { CandidatoCeba, SanidadPendiente, ServicioConParto, TipoEvento } from "@/lib/tipos";
 
 export const metadata: Metadata = { title: "Hoy" };
 
@@ -29,11 +30,12 @@ export default async function PaginaHoy({ searchParams }: { searchParams: Promis
   const verLeche = puedeVer(rol, "leche");
   const verRepro = puedeVer(rol, "reproduccion");
   const verSanidad = puedeVer(rol, "sanidad");
+  const verCarne = puedeVer(rol, "carne");
 
   const activos = () =>
     supabase.from("animales").select("*", { count: "exact", head: true }).eq("finca_id", finca.id).is("deleted_at", null).eq("estado", "activo");
 
-  const [prod, totalActivos, totalHembras, retiro, servicios, tendencia, pendientes] = await Promise.all([
+  const [prod, totalActivos, totalHembras, retiro, servicios, tendencia, pendientes, candidatosCeba] = await Promise.all([
     verLeche
       ? supabase.from("v_produccion_diaria").select("animal_id, litros_tanque, litros_descartados").eq("finca_id", finca.id).eq("fecha", hoy)
       : Promise.resolve({ data: [] as { animal_id: string | null; litros_tanque: number | null; litros_descartados: number | null }[] }),
@@ -54,6 +56,8 @@ export default async function PaginaHoy({ searchParams }: { searchParams: Promis
     verSanidad
       ? supabase.from("v_sanidad_pendiente").select("*").eq("finca_id", finca.id).lte("proxima_fecha", sumarDias(hoy, 7)).order("proxima_fecha").limit(1000)
       : Promise.resolve({ data: [] as SanidadPendiente[] }),
+    // Animales que conviene pasar a ceba (según las reglas de la finca).
+    verCarne ? supabase.rpc("candidatos_ceba", { p_finca: finca.id }) : Promise.resolve({ data: [] as CandidatoCeba[] }),
   ]);
 
   // Las dosis por aplicar se agrupan por el evento que las programó.
@@ -154,6 +158,13 @@ export default async function PaginaHoy({ searchParams }: { searchParams: Promis
           ) : null}
 
           {verLeche ? <AlertasProduccion alertas={alertasProduccion} limite={5} /> : null}
+
+          {verCarne ? (
+            <AvisoCandidatosCeba
+              tocan={(candidatosCeba.data ?? []).filter((c) => c.nivel === "toca").length}
+              proximos={(candidatosCeba.data ?? []).filter((c) => c.nivel === "proxima").length}
+            />
+          ) : null}
 
           <Tarjeta>
             <dl className="grid grid-cols-3 divide-x divide-arena text-center">
