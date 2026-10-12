@@ -26,7 +26,7 @@ export type FuenteHembras = {
   endogamia: (machoId: string, ids: string[]) => Respuesta<{ hembra_id: string; f: number; sobre_umbral: boolean }[]>;
 };
 /** `limite`: el número exacto de hembras que la temporada fijó para cada semental (nulo si solo hay una recomendación, que avisa pero no bloquea). */
-export type MachoSeleccion = { id: string; etiqueta: string; asignadas: number; capacidad: number; limite?: number | null };
+export type MachoSeleccion = { id: string; etiqueta: string; asignadas: number; capacidad: number; limite?: number | null; externo?: boolean };
 /** Lo que se eligió: las hembras, las que entran como excepción y cómo se llama cada una (para mostrarlas sin volver a buscarlas). */
 export type SeleccionEmp = { machoId: string; hembraIds: string[]; excepcionIds: string[]; etiquetas: Record<string, string> };
 
@@ -83,6 +83,18 @@ export function SeleccionHembrasEmp({
       setEndo(null);
       const ids = lista.filter((f) => f.clase !== "no").map((f) => f.c.animal_id);
       const mapa = new Map<string, Endo>();
+      // De un semental de otro hato no hay genealogía: no se calcula endogamia, y no hay pareja que bloquear.
+      if (machos.find((m) => m.id === machoId)?.externo) {
+        for (const id of ids) mapa.set(id, { f: 0, sobre: false });
+        setEndo(mapa);
+        setCalculando(false);
+        if (previas) {
+          const validas = previas.hembraIds.filter((id) => mapa.has(id));
+          setElegidas(new Set(validas));
+          setExcepciones(new Set());
+        }
+        return;
+      }
       for (let i = 0; i < ids.length; i += LOTE_RPC) {
         const { data, error: e } = await fuente.endogamia(machoId, ids.slice(i, i + LOTE_RPC));
         if (e) {
@@ -101,7 +113,7 @@ export function SeleccionHembrasEmp({
       }
       setCalculando(false);
     },
-    [fuente],
+    [fuente, machos],
   );
 
   const abrir = async () => {
@@ -172,6 +184,7 @@ export function SeleccionHembrasEmp({
   const sobreCapacidad = elMacho ? quedaria > elMacho.capacidad : false;
   const conExcepcion = [...elegidas].filter((id) => excepciones.has(id)).length;
   const limite = elMacho?.limite ?? null;
+  const externo = elMacho?.externo === true;
   const cupo = limite != null ? Math.max(0, limite - (elMacho?.asignadas ?? 0)) : Infinity;
   const lleno = elegidas.size >= cupo;
 
@@ -244,9 +257,10 @@ export function SeleccionHembrasEmp({
               </p>
             )
           ) : null}
+          {externo ? <Aviso tipo="info">Este semental es de otro hato: no tenemos su genealogía, así que no se calcula la endogamia de cada pareja. Pídesela a su dueño antes de la monta.</Aviso> : null}
           <p className="text-sm text-humo">
             Solo aparecen hembras <strong>libres</strong>: sin gestación, sin servicio esperando diagnóstico y fuera de otra temporada abierta, y que cumplan los
-            requisitos. Antes de asignar, calculamos la endogamia de cada pareja: las que llegan al umbral de tu finca ({porcentaje(umbral)}) quedan bloqueadas.
+            requisitos. Antes de asignar, {externo ? "se revisa que cada hembra siga libre." : `calculamos la endogamia de cada pareja: las que llegan al umbral de tu finca (${porcentaje(umbral)}) quedan bloqueadas.`}
           </p>
 
           {filas === null && !error ? <Cargando texto="Buscando hembras libres…" /> : null}
@@ -303,7 +317,7 @@ export function SeleccionHembrasEmp({
                                 </span>
                               ) : null}
                             </span>
-                            {e ? (
+                            {e && !externo ? (
                               <span className="flex shrink-0 flex-col items-end gap-1 py-1.5">
                                 <span className="text-sm font-bold tabular-nums">{porcentaje(e.f)}</span>
                                 <NivelEndogamia f={e.f} umbral={umbral} />

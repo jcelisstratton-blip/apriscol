@@ -8,6 +8,7 @@ import { Insignia } from "@/components/Insignia";
 import { crearClienteServidor } from "@/lib/supabase/server";
 import { animalesPorIds } from "@/lib/animal-etiquetas";
 import { etiquetaAnimal } from "@/lib/animal";
+import { etiquetaExterno } from "@/lib/semental-externo";
 import { avanceEmp, capacidadSemental, ETIQUETA_CAPACIDAD, mesesDesde } from "@/lib/empadronamiento";
 import { formatoFecha, hoyBogota } from "@/lib/fechas";
 
@@ -39,18 +40,25 @@ export async function Monta({
 
   const [machosDB, hembrasDB] = ids.length
     ? await Promise.all([
-        supabase.from("empadronamiento_machos").select("empadronamiento_id, macho_id, num_hembras").in("empadronamiento_id", ids).eq("finca_id", fincaId).limit(1000),
+        supabase.from("empadronamiento_machos").select("empadronamiento_id, macho_id, num_hembras, externo").in("empadronamiento_id", ids).eq("finca_id", fincaId).limit(1000),
         supabase.from("empadronamiento_hembras").select("empadronamiento_id, macho_id").in("empadronamiento_id", ids).eq("finca_id", fincaId).limit(5000),
       ])
     : [{ data: [] }, { data: [] }];
   const machos = machosDB.data ?? [];
-  const machoIds = [...new Set(machos.map((m) => m.macho_id))];
-  const [nombresLista, edadesDB] = await Promise.all([
+  const externoIds = [...new Set(machos.filter((m) => m.externo).map((m) => m.macho_id))];
+  const machoIds = [...new Set(machos.filter((m) => !m.externo).map((m) => m.macho_id))];
+  const [nombresLista, edadesDB, externosDB] = await Promise.all([
     animalesPorIds(supabase, fincaId, machoIds),
     machoIds.length ? supabase.from("animales").select("id, fecha_nacimiento").in("id", machoIds).eq("finca_id", fincaId) : Promise.resolve({ data: [] as { id: string; fecha_nacimiento: string | null }[] }),
+    externoIds.length ? supabase.from("sementales_externos").select("id, nombre, chip, fecha_nacimiento").in("id", externoIds).eq("finca_id", fincaId) : Promise.resolve({ data: [] as { id: string; nombre: string; chip: string; fecha_nacimiento: string | null }[] }),
   ]);
   const nombres = new Map(nombresLista.map((a) => [a.id, etiquetaAnimal(a)]));
   const edades = new Map((edadesDB.data ?? []).map((e) => [e.id, e.fecha_nacimiento]));
+  // Un semental de otro hato (prestado) se nombra con su nombre y chip, y su edad sale de su propia ficha de préstamo.
+  for (const e of externosDB.data ?? []) {
+    nombres.set(e.id, etiquetaExterno(e));
+    edades.set(e.id, e.fecha_nacimiento);
+  }
   const cuenta = new Map<string, number>();
   for (const h of hembrasDB.data ?? []) cuenta.set(`${h.empadronamiento_id}|${h.macho_id}`, (cuenta.get(`${h.empadronamiento_id}|${h.macho_id}`) ?? 0) + 1);
 
@@ -84,7 +92,7 @@ export async function Monta({
               const a = avanceEmp(l, hoy);
               const susMachos = machos.filter((m) => m.empadronamiento_id === l.id).map((m) => {
                 const cap = capacidadSemental(l.especie, mesesDesde(edades.get(m.macho_id) ?? null, hoy), m.num_hembras);
-                return { id: m.macho_id, etiqueta: nombres.get(m.macho_id) ?? "Semental", asignadas: cuenta.get(`${l.id}|${m.macho_id}`) ?? 0, capacidad: cap.max, origen: cap.origen, limite: m.num_hembras };
+                return { id: m.macho_id, etiqueta: nombres.get(m.macho_id) ?? "Semental", asignadas: cuenta.get(`${l.id}|${m.macho_id}`) ?? 0, capacidad: cap.max, origen: cap.origen, limite: m.num_hembras, externo: m.externo };
               });
               return (
                 <li key={l.id} className="min-w-0 space-y-3 rounded-2xl bg-papel p-3.5 ring-1 ring-arena">

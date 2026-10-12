@@ -8,12 +8,14 @@ import { Campo, CLASE_INPUT } from "@/components/Campo";
 import { CampoNumeroHembras } from "@/components/CampoNumeroHembras";
 import { Segmentado } from "@/components/Segmentado";
 import { Selector } from "@/components/Selector";
-import { SelectorAnimal } from "@/components/SelectorAnimal";
+import { OrigenYSemental, type OrigenSemental } from "@/components/OrigenYSemental";
+import { X } from "lucide-react";
 import { Insignia } from "@/components/Insignia";
 import { SeleccionHembrasEmp, type FuenteHembras, type SeleccionEmp } from "@/components/SeleccionHembrasEmp";
 import { crearEmpadronamiento, editarEmpadronamiento } from "@/app/(app)/reproduccion/empadronamiento/actions";
 import { crearClienteNavegador } from "@/lib/supabase/client";
 import { etiquetaAnimal } from "@/lib/animal";
+import { datosExternoVacios, etiquetaExterno, faltantesExterno, type DatosExterno } from "@/lib/semental-externo";
 import { capacidadSemental, CRITERIOS_POR_DEFECTO, DURACION_DEFECTO_DIAS, DURACION_MAX_DIAS, leerNumeroHembras, mesesDesde, textoCC, VALORES_CC } from "@/lib/empadronamiento";
 import { diasHasta, formatoFecha, sumarDias } from "@/lib/fechas";
 import { leerNumero } from "@/lib/numeros";
@@ -22,7 +24,6 @@ import type { Empadronamiento, Especie } from "@/lib/tipos";
 const coma = (n: number | null | undefined) => (n == null ? "" : String(n).replace(".", ","));
 type Macho = { id: string; numero_arete: string; nombre: string | null; fecha_nacimiento?: string | null };
 type HembrasElegidas = { ids: string[]; excepciones: string[]; etiquetas: Record<string, string>; clave: string };
-const MUESTRA_ELEGIDAS = 8;
 
 /**
  * Crear o corregir un empadronamiento (temporada de monta): fechas, criterios para elegir hembras y, al crearlo, el primer semental con
@@ -56,8 +57,14 @@ export function FormEmpadronamiento({
   const [peso, setPeso] = useState(lote ? coma(lote.peso_min_kg) : String(CRITERIOS_POR_DEFECTO[especies[0] ?? "caprino"].pesoKg));
   const [cc, setCc] = useState<number>(lote?.cc_min ?? CRITERIOS_POR_DEFECTO[lote?.especie ?? especies[0] ?? "caprino"].cc);
   const [macho, setMacho] = useState<Macho | null>(null);
+  const [origen, setOrigen] = useState<OrigenSemental>("propio");
+  const [extBase, setExtBase] = useState<DatosExterno>(() => datosExternoVacios("", ""));
+  const [prestamo, setPrestamo] = useState<{ desde?: string; hasta?: string }>({});
   const [numHembras, setNumHembras] = useState("");
   const [hembras, setHembras] = useState<HembrasElegidas | null>(null);
+
+  const dias = Number(duracion);
+  const cierrePrevisto = /^\d{4}-\d{2}-\d{2}$/.test(inicio) && Number.isInteger(dias) && dias >= 1 && dias <= DURACION_MAX_DIAS ? sumarDias(inicio, dias) : null;
 
   // Los requisitos que filtran a las hembras: si no son números válidos todavía no se puede buscar.
   const edadN = Number(edad);
@@ -66,13 +73,25 @@ export function FormEmpadronamiento({
   const claveCriterios = `${especie}|${edadN}|${pesoN}|${cc}`;
   // El número de hembras que tendrá el semental lo decide la persona y es exacto: lo elegido debe coincidir con él.
   const fijado = leerNumeroHembras(numHembras);
-  const recomendado = capacidadSemental(especie, mesesDesde(macho?.fecha_nacimiento ?? null), null).max;
+  // Un semental de otro hato: el préstamo empieza con la temporada y termina con ella, salvo que la persona lo cambie.
+  const externo: DatosExterno = { ...extBase, desde: prestamo.desde ?? inicio, hasta: prestamo.hasta ?? cierrePrevisto ?? inicio };
+  const cambiarExterno = (d: DatosExterno) => {
+    setExtBase(d);
+    setPrestamo((p) => ({ desde: d.desde !== externo.desde ? d.desde : p.desde, hasta: d.hasta !== externo.hasta ? d.hasta : p.hasta }));
+  };
+  const faltanExterno = origen === "externo" ? faltantesExterno(externo) : [];
+  const sementalListo = origen === "propio" ? macho != null : faltanExterno.length === 0;
+  const nacimientoSemental = origen === "propio" ? (macho?.fecha_nacimiento ?? null) : externo.nacimiento || null;
+  const etiquetaSemental = origen === "propio" ? (macho ? etiquetaAnimal(macho) : "") : etiquetaExterno({ nombre: externo.nombre.trim() || "Semental de otro hato", chip: externo.chip.trim() || "sin chip" });
+  const recomendado = capacidadSemental(especie, mesesDesde(nacimientoSemental), null).max;
   const elegidasN = hembras?.ids.length ?? 0;
   const desactualizada = Boolean(hembras && hembras.clave !== claveCriterios);
   const requisito = editando
     ? null
-    : !macho
-      ? "Elige el semental."
+    : !sementalListo
+      ? origen === "propio"
+        ? "Elige el semental."
+        : `Completa los datos del semental: falta ${faltanExterno.join(", ")}.`
       : fijado == null
         ? "Escribe cuántas hembras tendrá el semental."
         : elegidasN !== fijado
@@ -80,7 +99,13 @@ export function FormEmpadronamiento({
           : desactualizada
             ? "Cambiaste los requisitos después de elegir las hembras: ábrelas de nuevo para confirmarlas."
             : null;
-  const machoId = macho?.id;
+  const quitarElegida = (id: string) =>
+    setHembras((h) => {
+      if (!h) return h;
+      const ids = h.ids.filter((x) => x !== id);
+      return ids.length === 0 ? null : { ...h, ids, excepciones: h.excepciones.filter((x) => x !== id) };
+    });
+  const llaveSemental = origen === "externo" ? "externo" : (macho?.id ?? "");
   const fuente = useMemo<FuenteHembras>(
     () => ({
       candidatas: () => crearClienteNavegador().rpc("empadronamiento_candidatas_criterios", { p_finca: fincaId, p_especie: especie, p_edad_min: edadN, p_peso_min: pesoN ?? 0, p_cc_min: cc }),
@@ -92,9 +117,6 @@ export function FormEmpadronamiento({
     setHembras({ ids: sel.hembraIds, excepciones: sel.excepcionIds, etiquetas: sel.etiquetas, clave: claveCriterios });
     return null;
   };
-
-  const dias = Number(duracion);
-  const cierrePrevisto = /^\d{4}-\d{2}-\d{2}$/.test(inicio) && Number.isInteger(dias) && dias >= 1 && dias <= DURACION_MAX_DIAS ? sumarDias(inicio, dias) : null;
 
   const cambiarEspecie = (e: Especie) => {
     setEspecie(e);
@@ -192,41 +214,46 @@ export function FormEmpadronamiento({
 
       {!editando ? (
         <div className="space-y-1.5">
-          <p className="text-sm font-semibold">Semental</p>
-          <SelectorAnimal
-            key={especie}
-            nombre="macho_id"
+          {origen === "externo" ? <input type="hidden" name="semental_externo" value={JSON.stringify(externo)} /> : null}
+          <OrigenYSemental
             fincaId={fincaId}
-            sexo="macho"
             especie={especie}
-            titulo="Elegir semental"
-            valor={macho}
-            onCambio={(m) => {
+            origen={origen}
+            onOrigen={(o) => {
+              if (o !== origen) setHembras(null);
+              setOrigen(o);
+            }}
+            macho={macho}
+            onMacho={(m) => {
               if (m?.id !== macho?.id) setHembras(null);
               setMacho(m);
             }}
-            vacio="Elegir un macho de tu hato"
+            externo={externo}
+            onExterno={cambiarExterno}
+            finTemporada={cierrePrevisto}
+            nombreOrigen="origen"
+            nombreMacho="macho_id"
           />
           <p className="text-[0.8125rem] text-humo">Después puedes sumar más sementales a la temporada.</p>
         </div>
       ) : null}
 
-      {!editando ? <CampoNumeroHembras valor={numHembras} onCambio={setNumHembras} especie={especie} nacimiento={macho?.fecha_nacimiento} /> : null}
+      {!editando ? <CampoNumeroHembras valor={numHembras} onCambio={setNumHembras} especie={especie} nacimiento={nacimientoSemental} /> : null}
 
       {!editando ? (
         <fieldset className="space-y-3 rounded-2xl bg-lana p-3.5">
           <legend className="px-1 text-sm font-semibold">Hembras con este semental</legend>
           <input type="hidden" name="hembra_ids" value={JSON.stringify(hembras?.ids ?? [])} />
           <input type="hidden" name="excepcion_ids" value={JSON.stringify(hembras?.excepciones ?? [])} />
-          {!macho ? (
-            <p className="text-[0.9375rem] text-humo">Elige primero el semental: aquí escoges con qué hembras va, y solo aparecen hembras libres (sin gestación).</p>
+          {!sementalListo ? (
+            <p className="text-[0.9375rem] text-humo">{origen === "externo" ? "Completa primero los datos del semental" : "Elige primero el semental"}: aquí escoges con qué hembras va, y solo aparecen hembras libres (sin gestación).</p>
           ) : (
             <>
               {hembras && hembras.ids.length > 0 ? (
                 <div className="space-y-2">
                   <p className="text-[0.9375rem]">
                     <strong>{hembras.ids.length}</strong>
-                    {fijado != null ? ` de ${fijado}` : ""} {hembras.ids.length === 1 ? "hembra" : "hembras"} con <span className="font-semibold [overflow-wrap:anywhere]">{etiquetaAnimal(macho)}</span>
+                    {fijado != null ? ` de ${fijado}` : ""} {hembras.ids.length === 1 ? "hembra" : "hembras"} con <span className="font-semibold [overflow-wrap:anywhere]">{etiquetaSemental}</span>
                     {hembras.excepciones.length > 0 ? (
                       <>
                         {" "}
@@ -234,11 +261,18 @@ export function FormEmpadronamiento({
                       </>
                     ) : null}
                   </p>
-                  <ul className="flex flex-wrap gap-1.5">
-                    {hembras.ids.slice(0, MUESTRA_ELEGIDAS).map((id) => (
-                      <li key={id} className="max-w-full rounded-full bg-papel px-2.5 py-1 text-sm ring-1 ring-arena [overflow-wrap:anywhere]">{hembras.etiquetas[id] ?? "Hembra"}</li>
+                  <ul className="max-h-60 divide-y divide-arena overflow-y-auto overscroll-contain rounded-xl bg-papel px-3 ring-1 ring-arena" aria-label="Hembras elegidas" tabIndex={0}>
+                    {hembras.ids.map((id) => (
+                      <li key={id} className="flex items-center justify-between gap-2 py-0.5">
+                        <span className="min-w-0 py-2 text-[0.9375rem] [overflow-wrap:anywhere]">
+                          {hembras.etiquetas[id] ?? "Hembra"}
+                          {hembras.excepciones.includes(id) ? <Insignia tono="alerta">Excepción</Insignia> : null}
+                        </span>
+                        <button type="button" onClick={() => quitarElegida(id)} aria-label={`Quitar a ${hembras.etiquetas[id] ?? "la hembra"} de la lista`} className="grid size-11 shrink-0 place-items-center rounded-full text-humo hover:bg-arena hover:text-rojo">
+                          <X className="size-5" strokeWidth={1.75} aria-hidden="true" />
+                        </button>
+                      </li>
                     ))}
-                    {hembras.ids.length > MUESTRA_ELEGIDAS ? <li className="rounded-full px-2.5 py-1 text-sm text-humo">y {hembras.ids.length - MUESTRA_ELEGIDAS} más</li> : null}
                   </ul>
                   {fijado != null && hembras.ids.length > fijado ? (
                     <Aviso tipo="error">Elegiste {hembras.ids.length} hembras y el semental tendrá {fijado}. Cambia el número o abre la lista y quita hembras.</Aviso>
@@ -250,11 +284,11 @@ export function FormEmpadronamiento({
                 </p>
               )}
               <SeleccionHembrasEmp
-                key={`${machoId}`}
-                machos={[{ id: macho.id, etiqueta: etiquetaAnimal(macho), asignadas: 0, capacidad: fijado ?? recomendado, limite: fijado }]}
+                key={llaveSemental}
+                machos={[{ id: origen === "externo" ? "externo" : (macho?.id ?? ""), etiqueta: etiquetaSemental, asignadas: 0, capacidad: fijado ?? recomendado, limite: fijado, externo: origen === "externo" }]}
                 umbral={umbral}
                 fuente={fuente}
-                inicial={hembras && hembras.ids.length > 0 ? { machoId: macho.id, hembraIds: hembras.ids, excepcionIds: hembras.excepciones } : undefined}
+                inicial={hembras && hembras.ids.length > 0 ? { machoId: origen === "externo" ? "externo" : (macho?.id ?? ""), hembraIds: hembras.ids, excepcionIds: hembras.excepciones } : undefined}
                 titulo="Elegir las hembras"
                 boton={{ texto: hembras && hembras.ids.length > 0 ? "Cambiar las hembras" : "Elegir las hembras", variante: "secundario" }}
                 deshabilitado={!criteriosOk || fijado == null}

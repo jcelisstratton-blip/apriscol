@@ -821,7 +821,36 @@ export type Empadronamiento = {
 };
 
 /** `num_hembras`: cuántas hembras tendrá este semental en la temporada (tope exacto); nulo solo en filas antiguas. */
-export type EmpadronamientoMacho = { finca_id: string; empadronamiento_id: string; macho_id: string; num_hembras: number | null; created_at: string };
+export type EmpadronamientoMacho = {
+  finca_id: string;
+  empadronamiento_id: string;
+  /** El animal del hato o, si `externo`, el id del semental de otro hato (`sementales_externos`). */
+  macho_id: string;
+  num_hembras: number | null;
+  externo: boolean;
+  created_at: string;
+};
+
+/** Un semental prestado por otro hato para una temporada de monta: sus datos y las condiciones del préstamo. */
+export type SementalExterno = {
+  id: string;
+  finca_id: string;
+  especie: Especie;
+  /** Chip o identificación del animal. */
+  chip: string;
+  nombre: string;
+  hato_origen: string;
+  propietario: string | null;
+  telefono: string | null;
+  raza: string | null;
+  fecha_nacimiento: string | null;
+  prestamo_desde: string;
+  prestamo_hasta: string;
+  sanidad: string | null;
+  condiciones: string | null;
+  created_at: string;
+  updated_at: string;
+};
 
 export type EmpadronamientoHembra = {
   id: string;
@@ -894,6 +923,7 @@ export type Database = {
       pesajes: Tabla<Pesaje, "finca_id" | "animal_id" | "peso_kg">;
       empadronamientos: Tabla<Empadronamiento, "finca_id" | "especie" | "nombre" | "fecha_fin_prevista" | "edad_min_meses" | "peso_min_kg">;
       empadronamiento_machos: Tabla<EmpadronamientoMacho, "finca_id" | "empadronamiento_id" | "macho_id">;
+      sementales_externos: Tabla<SementalExterno, "finca_id" | "especie" | "chip" | "nombre" | "hato_origen" | "prestamo_desde" | "prestamo_hasta">;
       empadronamiento_hembras: Tabla<EmpadronamientoHembra, "finca_id" | "empadronamiento_id" | "hembra_id" | "macho_id" | "endogamia">;
       consumo_lote: Tabla<ConsumoLote, "finca_id" | "lote_id" | "kg_alimento">;
       canales: Tabla<Omit<Canal, "tipo_baja">, "finca_id" | "animal_id" | "peso_canal_caliente_kg">;

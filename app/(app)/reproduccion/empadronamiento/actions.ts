@@ -7,11 +7,12 @@ import { crearClienteServidor } from "@/lib/supabase/server";
 import { obtenerContexto } from "@/lib/contexto";
 import { puedeEscribir, puedeGestionar } from "@/lib/permisos";
 import { mensajeAmigable } from "@/lib/mensaje-amigable";
-import { hoyBogota, sumarDias } from "@/lib/fechas";
+import { diasHasta, hoyBogota, sumarDias } from "@/lib/fechas";
+import { PRESTAMO_MAX_DIAS } from "@/lib/semental-externo";
 import { aptitud, DURACION_MAX_DIAS, VALORES_CC } from "@/lib/empadronamiento";
 import { decimal, opcional, texto } from "@/lib/validacion";
 import { porcentaje } from "@/lib/endogamia";
-import type { Empadronamiento } from "@/lib/tipos";
+import type { Empadronamiento, Especie } from "@/lib/tipos";
 
 export type EstadoForm = { error?: string } | undefined;
 type Resultado = { ok: true; destino?: string } | { ok: false; error: string };
@@ -60,6 +61,57 @@ const listaIds = (mensaje: string) =>
     }
   }, z.array(z.uuid(), mensaje).max(500, "Elige hasta 500 hembras a la vez."));
 
+/** El semental de otro hato: sus datos y las condiciones del préstamo. Los textos vacíos opcionales quedan como nulos. */
+const textoOpc = (max: number, msg: string) => z.string().trim().max(max, msg).optional().transform((v) => (v ? v : null));
+const esquemaExterno = z
+  .object({
+    chip: z.string().trim().min(1, "Escribe el chip o la identificación del semental.").max(40, "El chip es muy largo (máximo 40 caracteres)."),
+    nombre: z.string().trim().min(1, "Escribe el nombre del animal.").max(80, "El nombre del animal es muy largo (máximo 80 letras)."),
+    hato: z.string().trim().min(1, "Escribe el nombre del hato de donde viene.").max(120, "El nombre del hato es muy largo (máximo 120 letras)."),
+    propietario: textoOpc(120, "El nombre del propietario es muy largo."),
+    telefono: textoOpc(30, "El teléfono es muy largo."),
+    raza: textoOpc(60, "La raza es muy larga."),
+    nacimiento: z.union([z.iso.date("La fecha de nacimiento no es válida."), z.literal("")]).optional().transform((v) => (v ? v : null)),
+    desde: z.iso.date("Indica cuándo llega el semental."),
+    hasta: z.iso.date("Indica cuándo se devuelve el semental."),
+    sanidad: textoOpc(500, "Lo de sanidad es muy largo (máximo 500 letras)."),
+    condiciones: textoOpc(500, "Las condiciones son muy largas (máximo 500 letras)."),
+  })
+  .refine((d) => d.hasta >= d.desde, { message: "La devolución no puede ser antes de la llegada.", path: ["hasta"] })
+  .refine((d) => diasHasta(d.hasta, d.desde) <= PRESTAMO_MAX_DIAS, { message: `El préstamo puede durar como máximo ${PRESTAMO_MAX_DIAS} días.`, path: ["hasta"] })
+  .refine((d) => !d.nacimiento || d.nacimiento <= hoyBogota(), { message: "La fecha de nacimiento no puede ser futura.", path: ["nacimiento"] });
+type DatosExternoValidos = z.output<typeof esquemaExterno>;
+
+/** Lee el semental externo que llega como texto JSON (formulario) o como objeto (acciones). */
+function leerExterno(v: unknown): { ok: true; datos: DatosExternoValidos } | { ok: false; error: string } {
+  let crudo = v;
+  if (typeof v === "string") {
+    try {
+      crudo = JSON.parse(v);
+    } catch {
+      return { ok: false, error: "Los datos del semental no son válidos." };
+    }
+  }
+  const r = esquemaExterno.safeParse(crudo);
+  return r.success ? { ok: true, datos: r.data } : { ok: false, error: r.error.issues[0]?.message ?? "Revisa los datos del semental." };
+}
+
+const filaExterno = (fincaId: string, especie: Especie, d: DatosExternoValidos) => ({
+  finca_id: fincaId,
+  especie,
+  chip: d.chip,
+  nombre: d.nombre,
+  hato_origen: d.hato,
+  propietario: d.propietario,
+  telefono: d.telefono,
+  raza: d.raza,
+  fecha_nacimiento: d.nacimiento,
+  prestamo_desde: d.desde,
+  prestamo_hasta: d.hasta,
+  sanidad: d.sanidad,
+  condiciones: d.condiciones,
+});
+
 const esquema = z.object({
   nombre: z.string().trim().min(1, "Ponle un nombre al empadronamiento.").max(80, "El nombre es muy largo (máximo 80 letras)."),
   especie: z.enum(["caprino", "ovino"], "Elige la especie."),
@@ -72,6 +124,9 @@ const esquema = z.object({
   num_hembras: opcional(numeroHembras),
   observaciones: texto(1000, "Las observaciones son muy largas."),
   macho_id: opcional(z.uuid("El semental no es válido.")),
+  /** De dónde viene el semental: de este hato o prestado por otro (sus datos van en `semental_externo`, en JSON). */
+  origen: z.enum(["propio", "externo"]).default("propio"),
+  semental_externo: opcional(z.string()),
   client_request_id: opcional(z.uuid()),
   empadronamiento_id: opcional(z.uuid()),
   /** Al crear: las hembras que van con el semental (lista de ids en JSON) y las que entran como excepción de endogamia. */
@@ -92,15 +147,19 @@ export async function crearEmpadronamiento(_: EstadoForm, form: FormData): Promi
   const d = datos.data;
   const malaFecha = fechasValidas(d.fecha_inicio, d.duracion_dias, hoyBogota());
   if (malaFecha) return { error: malaFecha };
-  if (!d.macho_id) return { error: "Elige al menos un semental para la temporada." };
+  const externo = d.origen === "externo" ? leerExterno(d.semental_externo) : null;
+  if (externo && !externo.ok) return { error: externo.error };
+  if (!externo && !d.macho_id) return { error: "Elige al menos un semental para la temporada." };
   if (d.num_hembras == null) return { error: "Indica cuántas hembras tendrá el semental." };
   if (d.hembra_ids.length !== d.num_hembras) {
     return { error: `Elegiste ${d.hembra_ids.length} de ${d.num_hembras} hembras. ${d.hembra_ids.length < d.num_hembras ? `Faltan ${d.num_hembras - d.hembra_ids.length}: elígelas o cambia el número.` : "Cambia el número o quita hembras de la lista."}` };
   }
 
   const supabase = await crearClienteServidor();
-  const malMacho = await machosValidos(supabase, p.finca.id, d.especie, [d.macho_id]);
-  if (malMacho) return { error: malMacho };
+  if (!externo) {
+    const malMacho = await machosValidos(supabase, p.finca.id, d.especie, [d.macho_id as string]);
+    if (malMacho) return { error: malMacho };
+  }
 
   const { data: lote, error } = await supabase
     .from("empadronamientos")
@@ -126,16 +185,30 @@ export async function crearEmpadronamiento(_: EstadoForm, form: FormData): Promi
   }
   if (error || !lote) return { error: mensajeAmigable(error?.message ?? "") };
 
-  const { error: eMacho } = await supabase.from("empadronamiento_machos").insert({ finca_id: p.finca.id, empadronamiento_id: lote.id, macho_id: d.macho_id, num_hembras: d.num_hembras });
-  if (eMacho) {
+  // Si algo falla de aquí en adelante, la temporada no se crea a medias: se borra (y el semental de otro hato que se haya guardado).
+  const deshacer = async (externoId: string | null) => {
     await supabase.from("empadronamientos").delete().eq("id", lote.id).eq("finca_id", p.finca.id);
+    if (externoId) await supabase.from("sementales_externos").delete().eq("id", externoId).eq("finca_id", p.finca.id);
+  };
+  let machoId = d.macho_id as string;
+  let externoId: string | null = null;
+  if (externo?.ok) {
+    const { data: ext, error: eExt } = await supabase.from("sementales_externos").insert(filaExterno(p.finca.id, d.especie, externo.datos)).select("id").single();
+    if (eExt || !ext) {
+      await deshacer(null);
+      return { error: mensajeAmigable(eExt?.message ?? "") };
+    }
+    machoId = externoId = ext.id;
+  }
+  const { error: eMacho } = await supabase.from("empadronamiento_machos").insert({ finca_id: p.finca.id, empadronamiento_id: lote.id, macho_id: machoId, num_hembras: d.num_hembras, externo: externoId != null });
+  if (eMacho) {
+    await deshacer(externoId);
     return { error: mensajeAmigable(eMacho.message) };
   }
   if (d.hembra_ids.length > 0) {
-    const r = await insertarHembras(supabase, p.finca.id, lote.id, d.macho_id, d.hembra_ids, d.excepcion_ids);
+    const r = await insertarHembras(supabase, p.finca.id, lote.id, machoId, d.hembra_ids, d.excepcion_ids);
     if (!r.ok) {
-      // Si no se pueden guardar las hembras, la temporada no se crea a medias: se borra y se explica qué pasó.
-      await supabase.from("empadronamientos").delete().eq("id", lote.id).eq("finca_id", p.finca.id);
+      await deshacer(externoId);
       return { error: r.error };
     }
   }
@@ -185,28 +258,72 @@ export async function eliminarEmpadronamiento(id: string): Promise<Resultado> {
   const c = await cargarLote(supabase, finca.id, id, false);
   if (!c.ok) return { ok: false, error: c.error };
   if (c.lote.cerrado_en) return { ok: false, error: "Un empadronamiento cerrado queda como historia: ya generó los servicios de sus hembras y no se elimina." };
+  const { data: ext } = await supabase.from("empadronamiento_machos").select("macho_id").eq("empadronamiento_id", id).eq("externo", true).eq("finca_id", finca.id);
   const { error } = await supabase.from("empadronamientos").delete().eq("id", id).eq("finca_id", finca.id);
   if (error) return { ok: false, error: mensajeAmigable(error.message) };
+  const externos = (ext ?? []).map((e) => e.macho_id);
+  if (externos.length > 0) await supabase.from("sementales_externos").delete().in("id", externos).eq("finca_id", finca.id);
   revalidatePath("/reproduccion");
   return { ok: true, destino: "/hato?vista=empadronamiento" };
 }
 
 // ───────────────────────── Sementales ─────────────────────────
-export async function agregarSemental(loteId: string, machoId: string, numHembras: number): Promise<Resultado> {
+/** Suma otro semental a la temporada: uno del hato (`machoId`) o uno prestado por otro hato (`externo`), con el número de hembras que tendrá. */
+export async function agregarSemental(entrada: { loteId: string; numHembras: number; machoId?: string; externo?: unknown }): Promise<Resultado> {
   const p = await permiso("agregar sementales");
   if (!p.ok) return { ok: false, error: p.error };
-  if (!ID_UUID.safeParse(machoId).success) return { ok: false, error: "Semental no válido." };
-  const n = numeroHembras.safeParse(numHembras);
+  const n = numeroHembras.safeParse(entrada.numHembras);
   if (!n.success) return { ok: false, error: n.error.issues[0]?.message ?? "Indica cuántas hembras tendrá el semental." };
   const supabase = await crearClienteServidor();
-  const c = await cargarLote(supabase, p.finca.id, loteId);
+  const c = await cargarLote(supabase, p.finca.id, entrada.loteId);
   if (!c.ok) return { ok: false, error: c.error };
+  const loteId = entrada.loteId;
+
+  if (entrada.externo !== undefined) {
+    const e = leerExterno(entrada.externo);
+    if (!e.ok) return { ok: false, error: e.error };
+    const { data: ext, error: eExt } = await supabase.from("sementales_externos").insert(filaExterno(p.finca.id, c.lote.especie, e.datos)).select("id").single();
+    if (eExt || !ext) return { ok: false, error: mensajeAmigable(eExt?.message ?? "") };
+    const { error } = await supabase.from("empadronamiento_machos").insert({ finca_id: p.finca.id, empadronamiento_id: loteId, macho_id: ext.id, num_hembras: n.data, externo: true });
+    if (error) {
+      await supabase.from("sementales_externos").delete().eq("id", ext.id).eq("finca_id", p.finca.id);
+      return { ok: false, error: mensajeAmigable(error.message) };
+    }
+    revalidatePath(destinoLote(loteId));
+    return { ok: true };
+  }
+
+  const machoId = entrada.machoId ?? "";
+  if (!ID_UUID.safeParse(machoId).success) return { ok: false, error: "Semental no válido." };
   const mal = await machosValidos(supabase, p.finca.id, c.lote.especie, [machoId]);
   if (mal) return { ok: false, error: mal };
-  const { error } = await supabase.from("empadronamiento_machos").insert({ finca_id: p.finca.id, empadronamiento_id: loteId, macho_id: machoId, num_hembras: n.data });
+  const { error } = await supabase.from("empadronamiento_machos").insert({ finca_id: p.finca.id, empadronamiento_id: loteId, macho_id: machoId, num_hembras: n.data, externo: false });
   if (error?.code === "23505") return { ok: false, error: "Ese semental ya está en la temporada." };
   if (error) return { ok: false, error: mensajeAmigable(error.message) };
   revalidatePath(destinoLote(loteId));
+  return { ok: true };
+}
+
+/** Corrige los datos de un semental de otro hato (chip, hato, préstamo…) mientras la temporada siga abierta. */
+export async function editarSementalExterno(loteId: string, machoId: string, datos: unknown): Promise<Resultado> {
+  const p = await permiso("editar sementales");
+  if (!p.ok) return { ok: false, error: p.error };
+  if (!ID_UUID.safeParse(machoId).success) return { ok: false, error: "Semental no válido." };
+  const e = leerExterno(datos);
+  if (!e.ok) return { ok: false, error: e.error };
+  const supabase = await crearClienteServidor();
+  const c = await cargarLote(supabase, p.finca.id, loteId);
+  if (!c.ok) return { ok: false, error: c.error };
+  const { data: fila } = await supabase.from("empadronamiento_machos").select("macho_id").eq("empadronamiento_id", loteId).eq("macho_id", machoId).eq("externo", true).maybeSingle();
+  if (!fila) return { ok: false, error: "Ese semental no es de otro hato o no está en esta temporada." };
+  const { finca_id: _f, especie: _e, ...cambios } = filaExterno(p.finca.id, c.lote.especie, e.datos);
+  void _f;
+  void _e;
+  const { data, error } = await supabase.from("sementales_externos").update(cambios).eq("id", machoId).eq("finca_id", p.finca.id).select("id");
+  if (error) return { ok: false, error: mensajeAmigable(error.message) };
+  if (!data || data.length === 0) return { ok: false, error: "No encontramos ese semental." };
+  revalidatePath(destinoLote(loteId));
+  revalidatePath("/reproduccion");
   return { ok: true };
 }
 
@@ -237,8 +354,10 @@ export async function quitarSemental(loteId: string, machoId: string): Promise<R
   if (!c.ok) return { ok: false, error: c.error };
   const { count } = await supabase.from("empadronamiento_hembras").select("id", { count: "exact", head: true }).eq("empadronamiento_id", loteId).eq("macho_id", machoId);
   if ((count ?? 0) > 0) return { ok: false, error: `Ese semental tiene ${count} ${count === 1 ? "hembra asignada" : "hembras asignadas"}. Quítalas primero.` };
-  const { error } = await supabase.from("empadronamiento_machos").delete().eq("empadronamiento_id", loteId).eq("macho_id", machoId).eq("finca_id", p.finca.id);
+  const { data: borrado, error } = await supabase.from("empadronamiento_machos").delete().eq("empadronamiento_id", loteId).eq("macho_id", machoId).eq("finca_id", p.finca.id).select("externo");
   if (error) return { ok: false, error: mensajeAmigable(error.message) };
+  // Un semental de otro hato no tiene más vida que su temporada: al quitarlo se borran también sus datos.
+  if (borrado?.some((b) => b.externo)) await supabase.from("sementales_externos").delete().eq("id", machoId).eq("finca_id", p.finca.id);
   revalidatePath(destinoLote(loteId));
   return { ok: true };
 }
@@ -262,8 +381,9 @@ type ResultadoHembras = { ok: true; agregadas: number } | { ok: false; error: st
 async function insertarHembras(supabase: Cliente, fincaId: string, loteId: string, machoId: string, hembraIds: string[], excepcionIds: string[]): Promise<ResultadoHembras> {
   const ids = [...new Set(hembraIds)];
   // El número de hembras que se fijó para este semental es exacto: no se asigna ni una más.
-  const { data: fila } = await supabase.from("empadronamiento_machos").select("num_hembras").eq("empadronamiento_id", loteId).eq("macho_id", machoId).maybeSingle();
+  const { data: fila } = await supabase.from("empadronamiento_machos").select("num_hembras, externo").eq("empadronamiento_id", loteId).eq("macho_id", machoId).maybeSingle();
   const limite = fila?.num_hembras ?? null;
+  const esExterno = fila?.externo === true;
   if (limite != null) {
     const { count } = await supabase.from("empadronamiento_hembras").select("id", { count: "exact", head: true }).eq("empadronamiento_id", loteId).eq("macho_id", machoId);
     const ya = count ?? 0;
@@ -274,7 +394,8 @@ async function insertarHembras(supabase: Cliente, fincaId: string, loteId: strin
   }
   const [cand, endo] = await Promise.all([
     supabase.rpc("empadronamiento_candidatas", { p_lote: loteId }),
-    supabase.rpc("empadronamiento_endogamia", { p_lote: loteId, p_macho: machoId, p_hembras: ids }),
+    // De un semental de otro hato no hay genealogía: no se calcula endogamia (la base la deja en 0 y sin excepción).
+    esExterno ? Promise.resolve({ data: ids.map((id) => ({ hembra_id: id, f: 0, sobre_umbral: false })), error: null }) : supabase.rpc("empadronamiento_endogamia", { p_lote: loteId, p_macho: machoId, p_hembras: ids }),
   ]);
   if (cand.error) return { ok: false, error: mensajeAmigable(cand.error.message) };
   if (endo.error) return { ok: false, error: mensajeAmigable(endo.error.message) };

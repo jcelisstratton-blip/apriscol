@@ -8,6 +8,7 @@ import { NivelEndogamia } from "@/components/NivelEndogamia";
 import { crearClienteServidor } from "@/lib/supabase/server";
 import { animalesPorIds } from "@/lib/animal-etiquetas";
 import { etiquetaAnimal } from "@/lib/animal";
+import { etiquetaExterno } from "@/lib/semental-externo";
 import { avanceEmp, PERIODOS_EMP, rangoPeriodo, type PeriodoEmp } from "@/lib/empadronamiento";
 import { formatoFecha, hoyBogota } from "@/lib/fechas";
 import { porcentaje } from "@/lib/endogamia";
@@ -72,7 +73,18 @@ export async function ResumenEmpadronamientos({
     const { data: h } = await supabase.from("empadronamiento_hembras").select("*").in("empadronamiento_id", lotes.slice(i, i + 50).map((l) => l.id)).eq("finca_id", fincaId).limit(5000);
     hembras.push(...(h ?? []));
   }
-  const nombres = new Map((await animalesPorIds(supabase, fincaId, hembras.flatMap((h) => [h.hembra_id, h.macho_id]))).map((a) => [a.id, etiquetaAnimal(a)]));
+  const todos = hembras.flatMap((h) => [h.hembra_id, h.macho_id]);
+  const nombres = new Map((await animalesPorIds(supabase, fincaId, todos)).map((a) => [a.id, etiquetaAnimal(a)]));
+  // Los sementales de otro hato (prestados) no están en `animales`: se nombran con su nombre y chip y no tienen endogamia que mostrar.
+  const machoIds = [...new Set(hembras.map((h) => h.macho_id))];
+  const externos = new Set<string>();
+  for (let i = 0; i < machoIds.length; i += 100) {
+    const { data: ext } = await supabase.from("sementales_externos").select("id, nombre, chip").in("id", machoIds.slice(i, i + 100)).eq("finca_id", fincaId);
+    for (const e of ext ?? []) {
+      externos.add(e.id);
+      nombres.set(e.id, etiquetaExterno(e));
+    }
+  }
   const etiqueta = (id: string) => nombres.get(id) ?? "Animal";
   const porLote = new Map<string, EmpadronamientoHembra[]>();
   for (const h of hembras) porLote.set(h.empadronamiento_id, [...(porLote.get(h.empadronamiento_id) ?? []), h]);
@@ -210,8 +222,14 @@ export async function ResumenEmpadronamientos({
                                     </Link>
                                     <span className="flex shrink-0 items-center gap-1.5">
                                       {h.excepcion ? <Insignia tono="alerta">Excepción</Insignia> : null}
-                                      <span className="text-xs tabular-nums text-humo">{porcentaje(Number(h.endogamia))}</span>
-                                      <NivelEndogamia f={Number(h.endogamia)} umbral={umbral} />
+                                      {externos.has(h.macho_id) ? (
+                                        <span className="text-xs text-humo">Sin dato de endogamia</span>
+                                      ) : (
+                                        <>
+                                          <span className="text-xs tabular-nums text-humo">{porcentaje(Number(h.endogamia))}</span>
+                                          <NivelEndogamia f={Number(h.endogamia)} umbral={umbral} />
+                                        </>
+                                      )}
                                     </span>
                                   </li>
                                 );

@@ -7,7 +7,7 @@ import { Encabezado } from "@/components/Encabezado";
 import { Insignia } from "@/components/Insignia";
 import { ListaHembrasEmp, type FilaHembraEmp } from "@/components/ListaHembrasEmp";
 import { Tarjeta } from "@/components/Tarjeta";
-import { AgregarSemental, CambiarNumeroHembras, QuitarDeEmp } from "@/components/AccionesEmpadronamiento";
+import { AgregarSemental, CambiarNumeroHembras, EditarSementalExterno, QuitarDeEmp } from "@/components/AccionesEmpadronamiento";
 import { crearClienteServidor } from "@/lib/supabase/server";
 import { puedeEscribir, puedeGestionar } from "@/lib/permisos";
 import { animalesPorIds } from "@/lib/animal-etiquetas";
@@ -15,8 +15,36 @@ import { etiquetaAnimal } from "@/lib/animal";
 import { avanceEmp, capacidadSemental, ETIQUETA_CAPACIDAD, mesesDesde, textoCC } from "@/lib/empadronamiento";
 import { porcentaje } from "@/lib/endogamia";
 import { formatoFecha, hoyBogota } from "@/lib/fechas";
-import type { ReproHembra, RolFinca } from "@/lib/tipos";
+import { datosDesdeExterno, diasPrestamo, estadoPrestamo, etiquetaExterno } from "@/lib/semental-externo";
+import type { ReproHembra, RolFinca, SementalExterno } from "@/lib/tipos";
 
+
+/** Los datos de un semental de otro hato: de dónde viene, a quién se le devuelve y cuánto dura el préstamo. */
+function DatosPrestamo({ e, hoy, editable, loteId, finTemporada, etiqueta }: { e: SementalExterno; hoy: string; editable: boolean; loteId: string; finTemporada: string; etiqueta: string }) {
+  const p = estadoPrestamo(e.prestamo_hasta, hoy);
+  const dias = diasPrestamo(e.prestamo_desde, e.prestamo_hasta);
+  const fila = (k: string, v: React.ReactNode) => (
+    <div className="flex items-baseline justify-between gap-4 py-1">
+      <dt className="shrink-0 text-sm text-humo">{k}</dt>
+      <dd className="min-w-0 text-right text-[0.9375rem] [overflow-wrap:anywhere]">{v}</dd>
+    </div>
+  );
+  return (
+    <div className="mt-2 rounded-xl bg-lana px-3 py-2">
+      <dl className="divide-y divide-arena">
+        {fila("Hato", <strong>{e.hato_origen}</strong>)}
+        {e.propietario ? fila("Propietario", e.propietario) : null}
+        {e.telefono ? fila("Teléfono", <a href={`tel:${e.telefono.replace(/[^\d+]/g, "")}`} className="font-semibold text-musgo underline-offset-4 hover:underline">{e.telefono}</a>) : null}
+        {e.raza ? fila("Raza", e.raza) : null}
+        {fila("Préstamo", `${formatoFecha(e.prestamo_desde, { day: "numeric", month: "short" })} al ${formatoFecha(e.prestamo_hasta, { day: "numeric", month: "short", year: "numeric" })} (${dias} ${dias === 1 ? "día" : "días"})`)}
+        {fila("Devolución", p.vencido ? <Insignia tono="aviso">Ya pasó la fecha</Insignia> : <Insignia tono="musgo">{p.faltan === 0 ? "Hoy" : `En ${p.faltan} ${p.faltan === 1 ? "día" : "días"}`}</Insignia>)}
+        {e.sanidad ? fila("Sanidad", e.sanidad) : null}
+        {e.condiciones ? fila("Condiciones", e.condiciones) : null}
+      </dl>
+      {editable ? <EditarSementalExterno loteId={loteId} machoId={e.id} etiqueta={etiqueta} datos={datosDesdeExterno(e)} finTemporada={finTemporada} /> : null}
+    </div>
+  );
+}
 
 function Dato({ etiqueta, children }: { etiqueta: string; children: React.ReactNode }) {
   return (
@@ -46,15 +74,22 @@ export async function Detalle({
   if (!lote) notFound();
 
   const [machosDB, hembrasDB, paramDB] = await Promise.all([
-    supabase.from("empadronamiento_machos").select("macho_id, num_hembras").eq("empadronamiento_id", id).eq("finca_id", finca.id).order("created_at"),
+    supabase.from("empadronamiento_machos").select("macho_id, num_hembras, externo").eq("empadronamiento_id", id).eq("finca_id", finca.id).order("created_at"),
     supabase.from("empadronamiento_hembras").select("*").eq("empadronamiento_id", id).eq("finca_id", finca.id).order("created_at").limit(2000),
     supabase.from("parametros_especie").select("gestacion_dias").eq("especie", lote.especie).maybeSingle(),
   ]);
   const numeros = new Map((machosDB.data ?? []).map((m) => [m.macho_id, m.num_hembras]));
   const machoIds = (machosDB.data ?? []).map((m) => m.macho_id);
+  // Los sementales de otro hato (prestados) no están en `animales`: sus datos vienen de `sementales_externos`.
+  const externoIds = (machosDB.data ?? []).filter((m) => m.externo).map((m) => m.macho_id);
+  const propiosIds = machoIds.filter((m) => !externoIds.includes(m));
   const hembras = hembrasDB.data ?? [];
-  const edades = machoIds.length > 0 ? ((await supabase.from("animales").select("id, fecha_nacimiento").in("id", machoIds).eq("finca_id", finca.id)).data ?? []) : [];
-  const nombres = new Map((await animalesPorIds(supabase, finca.id, [...machoIds, ...hembras.map((h) => h.hembra_id)])).map((a) => [a.id, etiquetaAnimal(a)]));
+  const edades = propiosIds.length > 0 ? ((await supabase.from("animales").select("id, fecha_nacimiento").in("id", propiosIds).eq("finca_id", finca.id)).data ?? []) : [];
+  const externos = new Map(
+    (externoIds.length > 0 ? ((await supabase.from("sementales_externos").select("*").in("id", externoIds).eq("finca_id", finca.id)).data ?? []) : []).map((e) => [e.id, e]),
+  );
+  const nombres = new Map((await animalesPorIds(supabase, finca.id, [...propiosIds, ...hembras.map((h) => h.hembra_id)])).map((a) => [a.id, etiquetaAnimal(a)]));
+  for (const e of externos.values()) nombres.set(e.id, etiquetaExterno(e));
   const etiqueta = (x: string) => nombres.get(x) ?? "Animal";
 
   // Cerrada: cómo quedó cada hembra (servida, gestante…) y cuándo se espera su parto.
@@ -73,10 +108,11 @@ export async function Detalle({
   const porMacho = new Map<string, number>();
   for (const h of hembras) porMacho.set(h.macho_id, (porMacho.get(h.macho_id) ?? 0) + 1);
   const machos = machoIds.map((m) => {
-    const nacimiento = edades.find((e) => e.id === m)?.fecha_nacimiento ?? null;
+    const ext = externos.get(m) ?? null;
+    const nacimiento = ext ? ext.fecha_nacimiento : (edades.find((e) => e.id === m)?.fecha_nacimiento ?? null);
     const fijado = numeros.get(m) ?? null;
     const cap = capacidadSemental(lote.especie, mesesDesde(nacimiento, hoy), fijado);
-    return { id: m, etiqueta: etiqueta(m), asignadas: porMacho.get(m) ?? 0, capacidad: cap.max, origen: cap.origen, limite: fijado, nacimiento };
+    return { id: m, etiqueta: etiqueta(m), asignadas: porMacho.get(m) ?? 0, capacidad: cap.max, origen: cap.origen, limite: fijado, nacimiento, externo: ext != null, datosExt: ext };
   });
   const filas: FilaHembraEmp[] = hembras.map((h) => ({
     hembraId: h.hembra_id,
@@ -84,6 +120,7 @@ export async function Detalle({
     machoId: h.macho_id,
     machoEtiqueta: etiqueta(h.macho_id),
     endogamia: Number(h.endogamia),
+    machoExterno: externos.has(h.macho_id),
     excepcion: h.excepcion,
     estado: repro.get(h.hembra_id)?.estado ?? null,
     prevista: repro.get(h.hembra_id)?.fecha_prevista_parto ?? null,
@@ -136,26 +173,36 @@ export async function Detalle({
           ) : (
             <ul className="divide-y divide-arena">
               {machos.map((m) => (
-                <li key={m.id} className="flex items-center gap-2 py-1">
-                  <Link href={`/hato/${m.id}`} className="min-w-0 flex-1 py-2">
-                    <span className="block font-semibold [overflow-wrap:anywhere]">{m.etiqueta}</span>
-                    <span className="block text-sm text-humo">
-                      {m.limite != null ? `${m.asignadas} de ${m.limite} ${m.limite === 1 ? "hembra" : "hembras"}` : `${m.asignadas} de ${m.capacidad} hembras recomendadas (${ETIQUETA_CAPACIDAD[m.origen]})`}
-                    </span>
-                    {abierto && m.limite != null && m.asignadas < m.limite ? (
-                      <span className="mt-1 inline-block"><Insignia tono="aviso">Faltan {m.limite - m.asignadas} {m.limite - m.asignadas === 1 ? "hembra" : "hembras"}</Insignia></span>
-                    ) : null}
-                    {m.limite == null && m.asignadas > m.capacidad ? <span className="mt-1 inline-block"><Insignia tono="aviso">Pasa de lo recomendado</Insignia></span> : null}
-                  </Link>
-                  {abierto && puedeEditar ? <CambiarNumeroHembras loteId={id} machoId={m.id} etiqueta={m.etiqueta} especie={lote.especie} nacimiento={m.nacimiento} actual={m.limite} asignadas={m.asignadas} /> : null}
-                  {abierto && puedeGestionar(rol) ? <QuitarDeEmp loteId={id} animalId={m.id} tipo="semental" nombre={m.etiqueta} /> : null}
+                <li key={m.id} className="py-1">
+                  <div className="flex items-center gap-2">
+                    {m.datosExt ? (
+                      <div className="min-w-0 flex-1 py-2">
+                        <span className="block font-semibold [overflow-wrap:anywhere]">{m.etiqueta}</span>
+                        <span className="mt-0.5 inline-block"><Insignia>De otro hato</Insignia></span>
+                      </div>
+                    ) : (
+                      <Link href={`/hato/${m.id}`} className="min-w-0 flex-1 py-2">
+                        <span className="block font-semibold [overflow-wrap:anywhere]">{m.etiqueta}</span>
+                      </Link>
+                    )}
+                    {abierto && puedeEditar ? <CambiarNumeroHembras loteId={id} machoId={m.id} etiqueta={m.etiqueta} especie={lote.especie} nacimiento={m.nacimiento} actual={m.limite} asignadas={m.asignadas} /> : null}
+                    {abierto && puedeGestionar(rol) ? <QuitarDeEmp loteId={id} animalId={m.id} tipo="semental" nombre={m.etiqueta} /> : null}
+                  </div>
+                  <span className="block text-sm text-humo">
+                    {m.limite != null ? `${m.asignadas} de ${m.limite} ${m.limite === 1 ? "hembra" : "hembras"}` : `${m.asignadas} de ${m.capacidad} hembras recomendadas (${ETIQUETA_CAPACIDAD[m.origen]})`}
+                  </span>
+                  {abierto && m.limite != null && m.asignadas < m.limite ? (
+                    <span className="mt-1 inline-block"><Insignia tono="aviso">Faltan {m.limite - m.asignadas} {m.limite - m.asignadas === 1 ? "hembra" : "hembras"}</Insignia></span>
+                  ) : null}
+                  {m.limite == null && m.asignadas > m.capacidad ? <span className="mt-1 inline-block"><Insignia tono="aviso">Pasa de lo recomendado</Insignia></span> : null}
+                  {m.datosExt ? <DatosPrestamo e={m.datosExt} hoy={hoy} editable={abierto && puedeEditar} loteId={id} finTemporada={lote.fecha_fin_prevista} etiqueta={m.etiqueta} /> : null}
                 </li>
               ))}
             </ul>
           )}
           {abierto && puedeEditar ? (
             <div className="mt-2">
-              <AgregarSemental fincaId={finca.id} loteId={id} especie={lote.especie} />
+              <AgregarSemental fincaId={finca.id} loteId={id} especie={lote.especie} inicio={lote.fecha_inicio} fin={lote.fecha_fin_prevista} />
             </div>
           ) : null}
         </Tarjeta>
@@ -167,7 +214,7 @@ export async function Detalle({
             {lote.cerrado_en && hembras.length > 0 ? (
               <p className="text-sm text-humo">
                 Al cerrar, cada hembra quedó servida por su semental (monta natural) con su fecha prevista de parto. Para corregir un servicio o confirmar la gestación, entra a la ficha de la hembra.
-                Endogamia máxima de las parejas: {porcentaje(Math.max(...hembras.map((h) => Number(h.endogamia))))}.
+                {hembras.some((h) => !externos.has(h.macho_id)) ? `Endogamia máxima de las parejas del hato: ${porcentaje(Math.max(...hembras.filter((h) => !externos.has(h.macho_id)).map((h) => Number(h.endogamia))))}.` : null}
               </p>
             ) : null}
           </div>

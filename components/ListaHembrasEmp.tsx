@@ -19,6 +19,8 @@ export type FilaHembraEmp = {
   machoId: string;
   machoEtiqueta: string;
   endogamia: number;
+  /** El semental es de otro hato: no hay genealogía, así que no hay endogamia que mostrar. */
+  machoExterno?: boolean;
   excepcion: boolean;
   /** Solo en temporadas cerradas: cómo quedó la hembra después del cierre. */
   estado: EstadoRepro | null;
@@ -72,8 +74,14 @@ export function ListaHembrasEmp({
                 <span className="block font-semibold [overflow-wrap:anywhere]">{f.etiqueta}</span>
                 <span className="block text-sm text-humo [overflow-wrap:anywhere]">con {f.machoEtiqueta}</span>
                 <span className="mt-1 flex flex-wrap items-center gap-1.5">
-                  <NivelEndogamia f={f.endogamia} umbral={umbral} />
-                  <span className="text-xs text-humo">Endogamia {porcentaje(f.endogamia)}</span>
+                  {f.machoExterno ? (
+                    <span className="text-xs text-humo">Semental de otro hato: sin dato de endogamia</span>
+                  ) : (
+                    <>
+                      <NivelEndogamia f={f.endogamia} umbral={umbral} />
+                      <span className="text-xs text-humo">Endogamia {porcentaje(f.endogamia)}</span>
+                    </>
+                  )}
                   {f.excepcion ? <Insignia tono="alerta">Excepción</Insignia> : null}
                   {f.estado ? <Insignia tono={TONO_ESTADO[f.estado]}>{ETIQUETA_ESTADO[f.estado]}</Insignia> : null}
                   {f.prevista ? (

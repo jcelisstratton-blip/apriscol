@@ -6,11 +6,13 @@ import { Pencil, Plus, X } from "lucide-react";
 import { Aviso } from "@/components/Aviso";
 import { Boton } from "@/components/Boton";
 import { CampoNumeroHembras } from "@/components/CampoNumeroHembras";
+import { CamposSementalExterno } from "@/components/CamposSementalExterno";
+import { OrigenYSemental, type OrigenSemental } from "@/components/OrigenYSemental";
 import { Sheet } from "@/components/Sheet";
-import { SelectorAnimal } from "@/components/SelectorAnimal";
 import { useToast } from "@/components/Toast";
-import { agregarSemental, cambiarNumeroHembras, quitarHembra, quitarSemental } from "@/app/(app)/reproduccion/empadronamiento/actions";
+import { agregarSemental, cambiarNumeroHembras, editarSementalExterno, quitarHembra, quitarSemental } from "@/app/(app)/reproduccion/empadronamiento/actions";
 import { leerNumeroHembras } from "@/lib/empadronamiento";
+import { datosExternoVacios, faltantesExterno, type DatosExterno } from "@/lib/semental-externo";
 import type { Especie } from "@/lib/tipos";
 
 type Ref = { id: string; numero_arete: string; nombre: string | null; fecha_nacimiento?: string | null };
@@ -45,54 +47,121 @@ export function QuitarDeEmp({ loteId, animalId, tipo, nombre }: { loteId: string
   );
 }
 
-/** Sumar otro semental a la temporada, con el número de hembras que va a tener. */
-export function AgregarSemental({ fincaId, loteId, especie }: { fincaId: string; loteId: string; especie: Especie }) {
+/** Sumar otro semental a la temporada (del hato o prestado por otro hato), con el número de hembras que va a tener. */
+export function AgregarSemental({ fincaId, loteId, especie, inicio, fin }: { fincaId: string; loteId: string; especie: Especie; inicio: string; fin: string }) {
   const router = useRouter();
   const toast = useToast();
-  const [abierto, setAbierto] = useState(false);
+  const [abierta, setAbierta] = useState(false);
+  const [origen, setOrigen] = useState<OrigenSemental>("propio");
   const [macho, setMacho] = useState<Ref | null>(null);
+  const [externo, setExterno] = useState<DatosExterno>(() => datosExternoVacios(inicio, fin));
   const [numero, setNumero] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pendiente, iniciar] = useTransition();
   const n = leerNumeroHembras(numero);
-  const cerrar = () => {
-    setAbierto(false);
+  const faltan = origen === "propio" ? (macho ? [] : ["el semental"]) : faltantesExterno(externo);
+  const listo = n != null && faltan.length === 0;
+  const abrir = () => {
+    setOrigen("propio");
     setMacho(null);
+    setExterno(datosExternoVacios(inicio, fin));
     setNumero("");
     setError(null);
+    setAbierta(true);
   };
-  const agregar = () => {
-    if (!macho || n == null) return;
+  const agregar = () =>
     iniciar(async () => {
       setError(null);
-      const r = await agregarSemental(loteId, macho.id, n);
+      const r = await agregarSemental({ loteId, numHembras: n ?? 0, ...(origen === "propio" ? { machoId: macho?.id } : { externo }) });
       if (!r.ok) return setError(r.error);
       toast.exito("Semental agregado");
-      cerrar();
+      setAbierta(false);
       router.refresh();
     });
-  };
-  if (!abierto) {
-    return (
-      <button type="button" onClick={() => setAbierto(true)} className="inline-flex min-h-11 items-center gap-1.5 text-[0.9375rem] font-semibold text-musgo underline-offset-4 hover:underline">
+  return (
+    <>
+      <button type="button" onClick={abrir} className="inline-flex min-h-11 items-center gap-1.5 text-[0.9375rem] font-semibold text-musgo underline-offset-4 hover:underline">
         <Plus className="size-4" strokeWidth={2.2} aria-hidden="true" /> Agregar semental
       </button>
-    );
-  }
+      <Sheet
+        abierta={abierta}
+        onCerrar={() => (pendiente ? undefined : setAbierta(false))}
+        titulo="Agregar semental"
+        pie={
+          <div className="space-y-2">
+            {!listo ? <p className="text-sm text-humo">{n == null && faltan.length === 0 ? "Escribe cuántas hembras tendrá el semental." : faltan.length > 0 ? `Falta ${faltan.join(", ")}.` : "Escribe cuántas hembras tendrá el semental."}</p> : null}
+            <Boton onClick={agregar} pendiente={pendiente} cargando="Agregando…" disabled={!listo}>Agregar semental</Boton>
+          </div>
+        }
+      >
+        <div className="space-y-5">
+          <OrigenYSemental
+            fincaId={fincaId}
+            especie={especie}
+            origen={origen}
+            onOrigen={setOrigen}
+            macho={macho}
+            onMacho={setMacho}
+            externo={externo}
+            onExterno={setExterno}
+            finTemporada={fin}
+          />
+          <CampoNumeroHembras valor={numero} onCambio={setNumero} especie={especie} nacimiento={origen === "propio" ? macho?.fecha_nacimiento : externo.nacimiento || null} nombre="num_hembras_nuevo" />
+          {error ? <Aviso tipo="error">{error}</Aviso> : null}
+        </div>
+      </Sheet>
+    </>
+  );
+}
+
+/** Corregir los datos de un semental de otro hato (chip, hato, préstamo…). */
+export function EditarSementalExterno({ loteId, machoId, etiqueta, datos, finTemporada }: { loteId: string; machoId: string; etiqueta: string; datos: DatosExterno; finTemporada: string }) {
+  const router = useRouter();
+  const toast = useToast();
+  const [abierta, setAbierta] = useState(false);
+  const [valor, setValor] = useState<DatosExterno>(datos);
+  const [error, setError] = useState<string | null>(null);
+  const [pendiente, iniciar] = useTransition();
+  const faltan = faltantesExterno(valor);
+  const guardar = () =>
+    iniciar(async () => {
+      setError(null);
+      const r = await editarSementalExterno(loteId, machoId, valor);
+      if (!r.ok) return setError(r.error);
+      toast.exito("Datos del semental guardados");
+      setAbierta(false);
+      router.refresh();
+    });
   return (
-    <div className="space-y-3 rounded-2xl bg-lana p-3.5">
-      <div className="space-y-1.5">
-        <p className="text-sm font-semibold">Semental</p>
-        <SelectorAnimal nombre="semental" fincaId={fincaId} sexo="macho" especie={especie} titulo="Agregar semental" valor={macho} onCambio={setMacho} vacio="Elegir un macho de tu hato" />
-      </div>
-      <CampoNumeroHembras valor={numero} onCambio={setNumero} especie={especie} nacimiento={macho?.fecha_nacimiento} nombre="num_hembras_nuevo" />
-      {error ? <Aviso tipo="error">{error}</Aviso> : null}
-      {!macho || n == null ? <Aviso tipo="atencion">{!macho ? "Elige el semental." : "Escribe cuántas hembras tendrá el semental."}</Aviso> : null}
-      <div className="space-y-2">
-        <Boton onClick={agregar} pendiente={pendiente} cargando="Agregando…" disabled={!macho || n == null}>Agregar semental</Boton>
-        <Boton variante="fantasma" onClick={cerrar} disabled={pendiente}>Cancelar</Boton>
-      </div>
-    </div>
+    <>
+      <button
+        type="button"
+        onClick={() => {
+          setValor(datos);
+          setError(null);
+          setAbierta(true);
+        }}
+        className="inline-flex min-h-11 items-center gap-1.5 text-sm font-semibold text-musgo underline-offset-4 hover:underline"
+        aria-label={`Editar los datos de ${etiqueta}`}
+      >
+        <Pencil className="size-3.5" strokeWidth={2} aria-hidden="true" /> Editar datos
+      </button>
+      <Sheet
+        abierta={abierta}
+        onCerrar={() => (pendiente ? undefined : setAbierta(false))}
+        titulo="Datos del semental"
+        pie={
+          <Boton onClick={guardar} pendiente={pendiente} cargando="Guardando…" disabled={faltan.length > 0}>
+            Guardar
+          </Boton>
+        }
+      >
+        <div className="space-y-4">
+          <CamposSementalExterno valor={valor} onCambio={setValor} finTemporada={finTemporada} />
+          {error ? <Aviso tipo="error">{error}</Aviso> : null}
+        </div>
+      </Sheet>
+    </>
   );
 }
 
