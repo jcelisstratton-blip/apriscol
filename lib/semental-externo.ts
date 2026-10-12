@@ -8,7 +8,8 @@ export type DatosExterno = {
   hato: string;
   propietario: string;
   telefono: string;
-  raza: string;
+  /** La raza (de `razas`): obligatoria y de la especie del semental. */
+  razaId: number | "";
   nacimiento: string;
   desde: string;
   hasta: string;
@@ -24,7 +25,7 @@ export const datosExternoVacios = (desde: string, hasta: string): DatosExterno =
   hato: "",
   propietario: "",
   telefono: "",
-  raza: "",
+  razaId: "",
   nacimiento: "",
   desde,
   hasta,
@@ -38,7 +39,7 @@ export const datosDesdeExterno = (e: SementalExterno): DatosExterno => ({
   hato: e.hato_origen,
   propietario: e.propietario ?? "",
   telefono: e.telefono ?? "",
-  raza: e.raza ?? "",
+  razaId: e.raza_id,
   nacimiento: e.fecha_nacimiento ?? "",
   desde: e.prestamo_desde,
   hasta: e.prestamo_hasta,
@@ -56,6 +57,7 @@ export function faltantesExterno(d: DatosExterno): string[] {
   const f: string[] = [];
   if (!d.chip.trim()) f.push("el chip");
   if (!d.nombre.trim()) f.push("el nombre del animal");
+  if (d.razaId === "") f.push("la raza");
   if (!d.hato.trim()) f.push("el nombre del hato");
   if (!FECHA.test(d.desde)) f.push("cuándo llega");
   if (!FECHA.test(d.hasta)) f.push("cuándo se devuelve");

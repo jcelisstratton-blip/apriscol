@@ -70,7 +70,7 @@ const esquemaExterno = z
     hato: z.string().trim().min(1, "Escribe el nombre del hato de donde viene.").max(120, "El nombre del hato es muy largo (máximo 120 letras)."),
     propietario: textoOpc(120, "El nombre del propietario es muy largo."),
     telefono: textoOpc(30, "El teléfono es muy largo."),
-    raza: textoOpc(60, "La raza es muy larga."),
+    razaId: z.number("Elige la raza del semental.").int("Elige la raza del semental.").positive("Elige la raza del semental."),
     nacimiento: z.union([z.iso.date("La fecha de nacimiento no es válida."), z.literal("")]).optional().transform((v) => (v ? v : null)),
     desde: z.iso.date("Indica cuándo llega el semental."),
     hasta: z.iso.date("Indica cuándo se devuelve el semental."),
@@ -96,6 +96,12 @@ function leerExterno(v: unknown): { ok: true; datos: DatosExternoValidos } | { o
   return r.success ? { ok: true, datos: r.data } : { ok: false, error: r.error.issues[0]?.message ?? "Revisa los datos del semental." };
 }
 
+/** La raza existe y es de la especie de la temporada (la base también lo exige). */
+async function razaValida(supabase: Cliente, especie: Especie, razaId: number): Promise<string | null> {
+  const { data } = await supabase.from("razas").select("id").eq("id", razaId).eq("especie", especie).maybeSingle();
+  return data ? null : `Esa raza no es de ${especie === "caprino" ? "las cabras" : "las ovejas"}: elige una raza de la lista.`;
+}
+
 const filaExterno = (fincaId: string, especie: Especie, d: DatosExternoValidos) => ({
   finca_id: fincaId,
   especie,
@@ -104,7 +110,7 @@ const filaExterno = (fincaId: string, especie: Especie, d: DatosExternoValidos) 
   hato_origen: d.hato,
   propietario: d.propietario,
   telefono: d.telefono,
-  raza: d.raza,
+  raza_id: d.razaId,
   fecha_nacimiento: d.nacimiento,
   prestamo_desde: d.desde,
   prestamo_hasta: d.hasta,
@@ -150,6 +156,10 @@ export async function crearEmpadronamiento(_: EstadoForm, form: FormData): Promi
   const externo = d.origen === "externo" ? leerExterno(d.semental_externo) : null;
   if (externo && !externo.ok) return { error: externo.error };
   if (!externo && !d.macho_id) return { error: "Elige al menos un semental para la temporada." };
+  if (externo?.ok) {
+    const malaRaza = await razaValida(await crearClienteServidor(), d.especie, externo.datos.razaId);
+    if (malaRaza) return { error: malaRaza };
+  }
   if (d.num_hembras == null) return { error: "Indica cuántas hembras tendrá el semental." };
   if (d.hembra_ids.length !== d.num_hembras) {
     return { error: `Elegiste ${d.hembra_ids.length} de ${d.num_hembras} hembras. ${d.hembra_ids.length < d.num_hembras ? `Faltan ${d.num_hembras - d.hembra_ids.length}: elígelas o cambia el número.` : "Cambia el número o quita hembras de la lista."}` };
@@ -282,6 +292,8 @@ export async function agregarSemental(entrada: { loteId: string; numHembras: num
   if (entrada.externo !== undefined) {
     const e = leerExterno(entrada.externo);
     if (!e.ok) return { ok: false, error: e.error };
+    const malaRaza = await razaValida(supabase, c.lote.especie, e.datos.razaId);
+    if (malaRaza) return { ok: false, error: malaRaza };
     const { data: ext, error: eExt } = await supabase.from("sementales_externos").insert(filaExterno(p.finca.id, c.lote.especie, e.datos)).select("id").single();
     if (eExt || !ext) return { ok: false, error: mensajeAmigable(eExt?.message ?? "") };
     const { error } = await supabase.from("empadronamiento_machos").insert({ finca_id: p.finca.id, empadronamiento_id: loteId, macho_id: ext.id, num_hembras: n.data, externo: true });
@@ -316,6 +328,8 @@ export async function editarSementalExterno(loteId: string, machoId: string, dat
   if (!c.ok) return { ok: false, error: c.error };
   const { data: fila } = await supabase.from("empadronamiento_machos").select("macho_id").eq("empadronamiento_id", loteId).eq("macho_id", machoId).eq("externo", true).maybeSingle();
   if (!fila) return { ok: false, error: "Ese semental no es de otro hato o no está en esta temporada." };
+  const malaRaza = await razaValida(supabase, c.lote.especie, e.datos.razaId);
+  if (malaRaza) return { ok: false, error: malaRaza };
   const { finca_id: _f, especie: _e, ...cambios } = filaExterno(p.finca.id, c.lote.especie, e.datos);
   void _f;
   void _e;

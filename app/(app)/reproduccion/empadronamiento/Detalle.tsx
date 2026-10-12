@@ -16,11 +16,11 @@ import { avanceEmp, capacidadSemental, ETIQUETA_CAPACIDAD, mesesDesde, textoCC }
 import { porcentaje } from "@/lib/endogamia";
 import { formatoFecha, hoyBogota } from "@/lib/fechas";
 import { datosDesdeExterno, diasPrestamo, estadoPrestamo, etiquetaExterno } from "@/lib/semental-externo";
-import type { ReproHembra, RolFinca, SementalExterno } from "@/lib/tipos";
+import type { Raza, ReproHembra, RolFinca, SementalExterno } from "@/lib/tipos";
 
 
 /** Los datos de un semental de otro hato: de dónde viene, a quién se le devuelve y cuánto dura el préstamo. */
-function DatosPrestamo({ e, hoy, editable, loteId, finTemporada, etiqueta }: { e: SementalExterno; hoy: string; editable: boolean; loteId: string; finTemporada: string; etiqueta: string }) {
+function DatosPrestamo({ e, hoy, editable, loteId, finTemporada, etiqueta, razas }: { e: SementalExterno; hoy: string; editable: boolean; loteId: string; finTemporada: string; etiqueta: string; razas: Raza[] }) {
   const p = estadoPrestamo(e.prestamo_hasta, hoy);
   const dias = diasPrestamo(e.prestamo_desde, e.prestamo_hasta);
   const fila = (k: string, v: React.ReactNode) => (
@@ -35,13 +35,13 @@ function DatosPrestamo({ e, hoy, editable, loteId, finTemporada, etiqueta }: { e
         {fila("Hato", <strong>{e.hato_origen}</strong>)}
         {e.propietario ? fila("Propietario", e.propietario) : null}
         {e.telefono ? fila("Teléfono", <a href={`tel:${e.telefono.replace(/[^\d+]/g, "")}`} className="font-semibold text-musgo underline-offset-4 hover:underline">{e.telefono}</a>) : null}
-        {e.raza ? fila("Raza", e.raza) : null}
+        {fila("Raza", razas.find((r) => r.id === e.raza_id)?.nombre ?? "—")}
         {fila("Préstamo", `${formatoFecha(e.prestamo_desde, { day: "numeric", month: "short" })} al ${formatoFecha(e.prestamo_hasta, { day: "numeric", month: "short", year: "numeric" })} (${dias} ${dias === 1 ? "día" : "días"})`)}
         {fila("Devolución", p.vencido ? <Insignia tono="aviso">Ya pasó la fecha</Insignia> : <Insignia tono="musgo">{p.faltan === 0 ? "Hoy" : `En ${p.faltan} ${p.faltan === 1 ? "día" : "días"}`}</Insignia>)}
         {e.sanidad ? fila("Sanidad", e.sanidad) : null}
         {e.condiciones ? fila("Condiciones", e.condiciones) : null}
       </dl>
-      {editable ? <EditarSementalExterno loteId={loteId} machoId={e.id} etiqueta={etiqueta} datos={datosDesdeExterno(e)} finTemporada={finTemporada} /> : null}
+      {editable ? <EditarSementalExterno loteId={loteId} machoId={e.id} etiqueta={etiqueta} datos={datosDesdeExterno(e)} finTemporada={finTemporada} especie={e.especie} razas={razas} /> : null}
     </div>
   );
 }
@@ -88,6 +88,7 @@ export async function Detalle({
   const externos = new Map(
     (externoIds.length > 0 ? ((await supabase.from("sementales_externos").select("*").in("id", externoIds).eq("finca_id", finca.id)).data ?? []) : []).map((e) => [e.id, e]),
   );
+  const razas = (await supabase.from("razas").select("*").eq("especie", lote.especie).order("nombre")).data ?? [];
   const nombres = new Map((await animalesPorIds(supabase, finca.id, [...propiosIds, ...hembras.map((h) => h.hembra_id)])).map((a) => [a.id, etiquetaAnimal(a)]));
   for (const e of externos.values()) nombres.set(e.id, etiquetaExterno(e));
   const etiqueta = (x: string) => nombres.get(x) ?? "Animal";
@@ -195,14 +196,14 @@ export async function Detalle({
                     <span className="mt-1 inline-block"><Insignia tono="aviso">Faltan {m.limite - m.asignadas} {m.limite - m.asignadas === 1 ? "hembra" : "hembras"}</Insignia></span>
                   ) : null}
                   {m.limite == null && m.asignadas > m.capacidad ? <span className="mt-1 inline-block"><Insignia tono="aviso">Pasa de lo recomendado</Insignia></span> : null}
-                  {m.datosExt ? <DatosPrestamo e={m.datosExt} hoy={hoy} editable={abierto && puedeEditar} loteId={id} finTemporada={lote.fecha_fin_prevista} etiqueta={m.etiqueta} /> : null}
+                  {m.datosExt ? <DatosPrestamo razas={razas} e={m.datosExt} hoy={hoy} editable={abierto && puedeEditar} loteId={id} finTemporada={lote.fecha_fin_prevista} etiqueta={m.etiqueta} /> : null}
                 </li>
               ))}
             </ul>
           )}
           {abierto && puedeEditar ? (
             <div className="mt-2">
-              <AgregarSemental fincaId={finca.id} loteId={id} especie={lote.especie} inicio={lote.fecha_inicio} fin={lote.fecha_fin_prevista} />
+              <AgregarSemental fincaId={finca.id} loteId={id} especie={lote.especie} inicio={lote.fecha_inicio} fin={lote.fecha_fin_prevista} razas={razas} />
             </div>
           ) : null}
         </Tarjeta>

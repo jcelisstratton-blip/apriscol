@@ -19,7 +19,7 @@ import { datosExternoVacios, etiquetaExterno, faltantesExterno, type DatosExtern
 import { capacidadSemental, CRITERIOS_POR_DEFECTO, DURACION_DEFECTO_DIAS, DURACION_MAX_DIAS, leerNumeroHembras, mesesDesde, textoCC, VALORES_CC } from "@/lib/empadronamiento";
 import { diasHasta, formatoFecha, sumarDias } from "@/lib/fechas";
 import { leerNumero } from "@/lib/numeros";
-import type { Empadronamiento, Especie } from "@/lib/tipos";
+import type { Empadronamiento, Especie, Raza } from "@/lib/tipos";
 
 const coma = (n: number | null | undefined) => (n == null ? "" : String(n).replace(".", ","));
 type Macho = { id: string; numero_arete: string; nombre: string | null; fecha_nacimiento?: string | null };
@@ -33,6 +33,7 @@ type HembrasElegidas = { ids: string[]; excepciones: string[]; etiquetas: Record
 export function FormEmpadronamiento({
   fincaId,
   umbral,
+  razas = [],
   especies,
   hoy,
   lote,
@@ -41,6 +42,8 @@ export function FormEmpadronamiento({
   fincaId: string;
   /** Umbral de endogamia de la finca (para bloquear parejas al elegir las hembras). */
   umbral: number;
+  /** Las razas de las especies de la finca: la del semental externo se elige de aquí y debe ser de la especie de la temporada. */
+  razas?: Raza[];
   especies: Especie[];
   hoy: string;
   lote?: Empadronamiento;
@@ -122,6 +125,7 @@ export function FormEmpadronamiento({
     setEspecie(e);
     setMacho(null);
     setHembras(null);
+    setExtBase((d) => ({ ...d, razaId: "" }));
     setEdad(String(CRITERIOS_POR_DEFECTO[e].edadMeses));
     setPeso(String(CRITERIOS_POR_DEFECTO[e].pesoKg));
     setCc(CRITERIOS_POR_DEFECTO[e].cc);
@@ -231,6 +235,7 @@ export function FormEmpadronamiento({
             externo={externo}
             onExterno={cambiarExterno}
             finTemporada={cierrePrevisto}
+            razas={razas}
             nombreOrigen="origen"
             nombreMacho="macho_id"
           />

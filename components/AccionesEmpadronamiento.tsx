@@ -13,7 +13,7 @@ import { useToast } from "@/components/Toast";
 import { agregarSemental, cambiarNumeroHembras, editarSementalExterno, quitarHembra, quitarSemental } from "@/app/(app)/reproduccion/empadronamiento/actions";
 import { leerNumeroHembras } from "@/lib/empadronamiento";
 import { datosExternoVacios, faltantesExterno, type DatosExterno } from "@/lib/semental-externo";
-import type { Especie } from "@/lib/tipos";
+import type { Especie, Raza } from "@/lib/tipos";
 
 type Ref = { id: string; numero_arete: string; nombre: string | null; fecha_nacimiento?: string | null };
 
@@ -48,7 +48,7 @@ export function QuitarDeEmp({ loteId, animalId, tipo, nombre }: { loteId: string
 }
 
 /** Sumar otro semental a la temporada (del hato o prestado por otro hato), con el número de hembras que va a tener. */
-export function AgregarSemental({ fincaId, loteId, especie, inicio, fin }: { fincaId: string; loteId: string; especie: Especie; inicio: string; fin: string }) {
+export function AgregarSemental({ fincaId, loteId, especie, inicio, fin, razas }: { fincaId: string; loteId: string; especie: Especie; inicio: string; fin: string; razas: Raza[] }) {
   const router = useRouter();
   const toast = useToast();
   const [abierta, setAbierta] = useState(false);
@@ -105,6 +105,7 @@ export function AgregarSemental({ fincaId, loteId, especie, inicio, fin }: { fin
             externo={externo}
             onExterno={setExterno}
             finTemporada={fin}
+            razas={razas}
           />
           <CampoNumeroHembras valor={numero} onCambio={setNumero} especie={especie} nacimiento={origen === "propio" ? macho?.fecha_nacimiento : externo.nacimiento || null} nombre="num_hembras_nuevo" />
           {error ? <Aviso tipo="error">{error}</Aviso> : null}
@@ -115,7 +116,7 @@ export function AgregarSemental({ fincaId, loteId, especie, inicio, fin }: { fin
 }
 
 /** Corregir los datos de un semental de otro hato (chip, hato, préstamo…). */
-export function EditarSementalExterno({ loteId, machoId, etiqueta, datos, finTemporada }: { loteId: string; machoId: string; etiqueta: string; datos: DatosExterno; finTemporada: string }) {
+export function EditarSementalExterno({ loteId, machoId, etiqueta, datos, finTemporada, especie, razas }: { loteId: string; machoId: string; etiqueta: string; datos: DatosExterno; finTemporada: string; especie: Especie; razas: Raza[] }) {
   const router = useRouter();
   const toast = useToast();
   const [abierta, setAbierta] = useState(false);
@@ -157,7 +158,7 @@ export function EditarSementalExterno({ loteId, machoId, etiqueta, datos, finTem
         }
       >
         <div className="space-y-4">
-          <CamposSementalExterno valor={valor} onCambio={setValor} finTemporada={finTemporada} />
+          <CamposSementalExterno valor={valor} onCambio={setValor} finTemporada={finTemporada} especie={especie} razas={razas} />
           {error ? <Aviso tipo="error">{error}</Aviso> : null}
         </div>
       </Sheet>

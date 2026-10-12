@@ -4,7 +4,7 @@ import { CamposSementalExterno } from "@/components/CamposSementalExterno";
 import { Segmentado } from "@/components/Segmentado";
 import { SelectorAnimal } from "@/components/SelectorAnimal";
 import type { DatosExterno } from "@/lib/semental-externo";
-import type { Especie } from "@/lib/tipos";
+import type { Especie, Raza } from "@/lib/tipos";
 
 export type OrigenSemental = "propio" | "externo";
 type Ref = { id: string; numero_arete: string; nombre: string | null; fecha_nacimiento?: string | null };
@@ -23,6 +23,7 @@ export function OrigenYSemental({
   externo,
   onExterno,
   finTemporada,
+  razas,
   nombreOrigen,
   nombreMacho,
 }: {
@@ -35,6 +36,7 @@ export function OrigenYSemental({
   externo: DatosExterno;
   onExterno: (d: DatosExterno) => void;
   finTemporada?: string | null;
+  razas: Raza[];
   /** Si el selector va dentro de un formulario, el nombre de los campos que viajan con él. */
   nombreOrigen?: string;
   nombreMacho?: string;
@@ -60,7 +62,7 @@ export function OrigenYSemental({
       {origen === "propio" ? (
         <SelectorAnimal key={especie} nombre={nombreMacho ?? "semental"} fincaId={fincaId} sexo="macho" especie={especie} titulo="Elegir semental" valor={macho} onCambio={onMacho} vacio="Elegir un macho de tu hato" />
       ) : (
-        <CamposSementalExterno valor={externo} onCambio={onExterno} finTemporada={finTemporada} />
+        <CamposSementalExterno valor={externo} onCambio={onExterno} finTemporada={finTemporada} especie={especie} razas={razas} />
       )}
     </div>
   );

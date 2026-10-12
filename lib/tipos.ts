@@ -842,7 +842,8 @@ export type SementalExterno = {
   hato_origen: string;
   propietario: string | null;
   telefono: string | null;
-  raza: string | null;
+  /** La raza sale de `razas` y va ligada a la especie del semental. */
+  raza_id: number;
   fecha_nacimiento: string | null;
   prestamo_desde: string;
   prestamo_hasta: string;
@@ -923,7 +924,7 @@ export type Database = {
       pesajes: Tabla<Pesaje, "finca_id" | "animal_id" | "peso_kg">;
       empadronamientos: Tabla<Empadronamiento, "finca_id" | "especie" | "nombre" | "fecha_fin_prevista" | "edad_min_meses" | "peso_min_kg">;
       empadronamiento_machos: Tabla<EmpadronamientoMacho, "finca_id" | "empadronamiento_id" | "macho_id">;
-      sementales_externos: Tabla<SementalExterno, "finca_id" | "especie" | "chip" | "nombre" | "hato_origen" | "prestamo_desde" | "prestamo_hasta">;
+      sementales_externos: Tabla<SementalExterno, "finca_id" | "especie" | "chip" | "nombre" | "hato_origen" | "raza_id" | "prestamo_desde" | "prestamo_hasta">;
       empadronamiento_hembras: Tabla<EmpadronamientoHembra, "finca_id" | "empadronamiento_id" | "hembra_id" | "macho_id" | "endogamia">;
       consumo_lote: Tabla<ConsumoLote, "finca_id" | "lote_id" | "kg_alimento">;
       canales: Tabla<Omit<Canal, "tipo_baja">, "finca_id" | "animal_id" | "peso_canal_caliente_kg">;

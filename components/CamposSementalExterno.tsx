@@ -2,8 +2,10 @@
 
 import { Aviso } from "@/components/Aviso";
 import { Campo, CLASE_INPUT } from "@/components/Campo";
+import { Selector } from "@/components/Selector";
 import { diasPrestamo, faltantesExterno, PRESTAMO_MAX_DIAS, type DatosExterno } from "@/lib/semental-externo";
 import { formatoFecha } from "@/lib/fechas";
+import type { Especie, Raza } from "@/lib/tipos";
 
 /**
  * Los datos de un semental que viene de otro hato: quién es (chip, nombre, raza, nacimiento), de dónde viene y a quién se le devuelve
@@ -14,11 +16,17 @@ export function CamposSementalExterno({
   valor,
   onCambio,
   finTemporada,
+  especie,
+  razas,
 }: {
   valor: DatosExterno;
   onCambio: (v: DatosExterno) => void;
   finTemporada?: string | null;
+  /** La especie de la temporada: la raza solo puede ser de esa especie. */
+  especie: Especie;
+  razas: Raza[];
 }) {
+  const opcionesRaza = razas.filter((r) => r.especie === especie).map((r) => ({ valor: r.id, etiqueta: r.nombre }));
   const poner = (k: keyof DatosExterno) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => onCambio({ ...valor, [k]: e.target.value });
   const fechasOk = /^\d{4}-\d{2}-\d{2}$/.test(valor.desde) && /^\d{4}-\d{2}-\d{2}$/.test(valor.hasta);
   const dias = fechasOk ? diasPrestamo(valor.desde, valor.hasta) : null;
@@ -39,8 +47,17 @@ export function CamposSementalExterno({
           {(id) => <input id={id} value={valor.nombre} onChange={poner("nombre")} required maxLength={80} autoComplete="off" enterKeyHint="next" className={CLASE_INPUT} />}
         </Campo>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <Campo etiqueta="Raza" ayuda="Opcional.">
-            {(id) => <input id={id} value={valor.raza} onChange={poner("raza")} maxLength={60} autoComplete="off" className={CLASE_INPUT} />}
+          <Campo etiqueta="Raza" ayuda={`Razas de ${especie === "caprino" ? "cabras" : "ovejas"}. Es obligatoria.`}>
+            {(id) => (
+              <Selector
+                id={id}
+                valor={valor.razaId}
+                opciones={opcionesRaza}
+                onCambio={(v) => onCambio({ ...valor, razaId: v === "" ? "" : Number(v) })}
+                titulo={`Raza (${especie === "caprino" ? "cabra" : "oveja"})`}
+                placeholder="Elegir la raza"
+              />
+            )}
           </Campo>
           <Campo etiqueta="Fecha de nacimiento" ayuda="Opcional. Sirve para saber su edad y cuántas hembras se le recomiendan.">
             {(id) => <input id={id} type="date" value={valor.nacimiento} onChange={poner("nacimiento")} className={CLASE_INPUT} />}
