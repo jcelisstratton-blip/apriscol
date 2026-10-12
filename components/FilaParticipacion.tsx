@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Pencil } from "lucide-react";
 import { Insignia } from "@/components/Insignia";
 import { VisorFoto } from "@/components/VisorFoto";
 import { formatoFecha, litros } from "@/lib/fechas";
@@ -22,12 +23,15 @@ export function FilaParticipacion({
   enlace,
   detalle,
   fotoUrl,
+  editar,
 }: {
   p: DatosParticipacion;
   titulo: string;
   enlace?: string;
   detalle?: string;
   fotoUrl?: string;
+  /** Dirección de la pantalla para corregir este premio (solo quien puede editar ferias). */
+  editar?: string;
 }) {
   const cuerpo = (
     <span className="block min-w-0">
@@ -59,6 +63,11 @@ export function FilaParticipacion({
         ) : (
           cuerpo
         )}
+        {editar ? (
+          <Link href={editar} className="mt-1.5 inline-flex min-h-11 items-center gap-1.5 text-sm font-semibold text-musgo underline-offset-4 hover:underline">
+            <Pencil className="size-3.5" strokeWidth={2} aria-hidden="true" /> Editar
+          </Link>
+        ) : null}
       </div>
       {fotoUrl ? <VisorFoto url={fotoUrl} titulo={`${titulo} · ${p.categoria}`} /> : null}
     </div>
