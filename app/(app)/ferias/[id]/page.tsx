@@ -48,8 +48,8 @@ export default async function DetalleFeria({ params, searchParams }: { params: P
     <>
       <AvisoGuardado activo={guardado === "1"} />
       <div className="mt-3 flex items-center justify-between gap-3">
-        <Link href="/hato" className="-ml-2 inline-flex min-h-11 items-center gap-1 rounded-full px-2 text-[0.9375rem] font-semibold text-musgo">
-          <ChevronLeft className="size-5" strokeWidth={2} /> Hato
+        <Link href="/ferias?vista=ferias" className="-ml-2 inline-flex min-h-11 items-center gap-1 rounded-full px-2 text-[0.9375rem] font-semibold text-musgo">
+          <ChevronLeft className="size-5" strokeWidth={2} /> Ferias
         </Link>
         {puedeEscribir(rol, "ferias") ? (
           <Link
