@@ -37,6 +37,8 @@ export type Animal = {
   peso_nacer_kg: number | null;
   lote_id: string | null;
   lote_ceba_id: string | null;
+  /** Partos que ya había tenido antes de registrarlos aquí (nulo = no se sabe). */
+  partos_previos: number | null;
   vocacion: Vocacion;
   /** Solo machos: para qué es. `null` = por definir. */
   uso_macho: UsoMacho | null;
@@ -194,9 +196,15 @@ export type Parto = {
   id: string;
   finca_id: string;
   madre_id: string;
+  servicio_id: string | null;
   fecha: string;
-  tipo: string;
+  tipo: TipoParto;
   numero_crias: number;
+  complicaciones: string | null;
+  client_request_id: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
 };
 
 export type NivelFeria = "local" | "regional" | "nacional" | "internacional";
@@ -668,6 +676,77 @@ export type ControlCalidad = {
   updated_at: string;
 };
 
+// ───────────────────────── Reproducción: servicios, gestación, partos y crías ─────────────────────────
+export type TipoServicio = "monta_natural" | "inseminacion" | "transferencia_embrionaria";
+export type MetodoDiagnostico = "ecografia" | "palpacion" | "otro";
+export type ResultadoDiagnostico = "gestante" | "vacia" | "dudoso";
+export type TipoParto = "normal" | "asistido" | "cesarea" | "aborto";
+/** Dónde está una hembra en su ciclo: sin datos, vacía, servida (esperando diagnóstico) o gestante. */
+export type EstadoRepro = "sin_datos" | "vacia" | "servida" | "gestante";
+
+export type Servicio = {
+  id: string;
+  finca_id: string;
+  hembra_id: string;
+  fecha: string;
+  tipo: TipoServicio;
+  macho_id: string | null;
+  macho_externo: string | null;
+  semen_lote: string | null;
+  responsable: string | null;
+  observaciones: string | null;
+  client_request_id: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type DiagnosticoGestacion = {
+  id: string;
+  finca_id: string;
+  hembra_id: string;
+  servicio_id: string | null;
+  fecha: string;
+  metodo: MetodoDiagnostico;
+  resultado: ResultadoDiagnostico;
+  observaciones: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type Cria = {
+  id: string;
+  finca_id: string;
+  parto_id: string;
+  animal_id: string | null;
+  sexo: SexoAnimal | null;
+  peso_nacer_kg: number | null;
+  vivo: boolean;
+  notas: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+/** Una fila de `v_repro_hembras`: el estado reproductivo de una hembra activa y sus partos (calculados por la base). */
+export type ReproHembra = {
+  animal_id: string;
+  finca_id: string;
+  especie: Especie;
+  ultimo_parto: string | null;
+  partos_registrados: number;
+  partos_previos: number | null;
+  /** Partos previos + los registrados aquí. Nulo si no se sabe cuántos tuvo antes. */
+  partos_totales: number | null;
+  servicio_id: string | null;
+  ultimo_servicio: string | null;
+  fecha_prevista_parto: string | null;
+  diagnostico: ResultadoDiagnostico | null;
+  fecha_diagnostico: string | null;
+  estado: EstadoRepro;
+  en_lactancia: boolean;
+};
+
 export type { AncestroEndogamia } from "@/lib/endogamia";
 import type { AncestroEndogamia } from "@/lib/endogamia";
 
@@ -685,6 +764,10 @@ export type Database = {
       ordenos: Tabla<Ordeno, "finca_id" | "animal_id" | "jornada" | "litros">;
       lactancias: Tabla<Lactancia, "finca_id" | "animal_id" | "numero" | "fecha_parto">;
       partos: Tabla<Parto, "finca_id" | "madre_id">;
+      parametros_especie: Tabla<{ especie: Especie; gestacion_dias: number; ciclo_estral_dias: number }, "especie">;
+      servicios: Tabla<Servicio, "finca_id" | "hembra_id" | "tipo">;
+      diagnosticos_gestacion: Tabla<DiagnosticoGestacion, "finca_id" | "hembra_id" | "resultado">;
+      crias: Tabla<Cria, "finca_id" | "parto_id">;
       ferias: Tabla<Feria, "finca_id" | "nombre" | "fecha_inicio">;
       participaciones_feria: Tabla<Participacion, "finca_id" | "feria_id" | "animal_id" | "categoria">;
       libro_genealogico: Tabla<LibroAnimal, "numero_registro" | "chip" | "nombre" | "especie" | "sexo">;
@@ -716,6 +799,7 @@ export type Database = {
       v_analisis_leche_ultimo: { Row: AnalisisLeche; Relationships: [] };
       v_rcs_leche_ultimo: { Row: AnalisisLeche; Relationships: [] };
       v_canales: { Row: CanalVista; Relationships: [] };
+      v_repro_hembras: { Row: ReproHembra; Relationships: [] };
     };
     Functions: {
       aceptar_invitacion: { Args: { p_token: string }; Returns: string };

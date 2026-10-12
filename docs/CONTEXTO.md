@@ -184,6 +184,15 @@
 - **Dónde se ve:** un despacho nuevo y una salida para consumo llevan directo a sus controles (`/leche/despachos/<id>/controles`, `/hato/<id>/controles`); las listas de Despachos y de Salidas muestran la etiqueta («Faltan por responder 2 controles», «1 control no realizado», «4 controles realizados»); Despachos resume los últimos 30 días; la ficha tiene el resumen en «Salida del hato». Responder de nuevo cambia la respuesta anterior.
 - **Pendiente:** otros resultados de laboratorio de carne (microbiología) y un historial de cambios de cada constancia (hoy queda la última respuesta con su fecha).
 
+## 8e. Reproducción (servicios, diagnóstico de gestación, partos)
+- **Dónde vive (regla del menú):** lo global es el menú **Reproducción** (`/reproduccion`, en el celular dentro de «Más»): pestañas **Resumen** (gestantes, servidas por confirmar, partos en 45 días y atrasados; listas «Próximos partos» y «Servicios por confirmar» con enlace a registrar el diagnóstico), **Servicios** y **Partos** (todo el compendio de la finca, con buscador por arete o nombre y `ListaEscalable`). Lo de **una sola hembra** vive en su ficha: tarjeta **«Reproducción»** (`#reproduccion`: estado, parto previsto, último servicio y parto, partos, historial de los 8 más recientes con «Editar», botones **Servicio / Diagnóstico / Parto**). Registrar y corregir siempre se hace desde la ficha y se vuelve a ella.
+- **Datos (tablas ya existentes, migración `20261011161706_reproduccion`):** `servicios` (monta natural, inseminación, transferencia de embrión; reproductor del hato o de otra finca; lote de semen solo si no es monta), `diagnosticos_gestacion` (ecografía, palpación u otro; resultado gestante / vacía / dudosa; el último manda), `partos` (normal, asistido, cesárea, aborto) y `crias` (sexo, peso al nacer, viva o no, y el animal creado si tenía arete). Un parto con crías vivas **con arete** crea esas crías como animales del hato (madre, padre del servicio —del hato o externo—, vocación: macho «carne», hembra la de la madre); si alguna no se puede crear, el parto queda y la ficha lo dice. Un parto de hembra de leche abre su lactancia (disparador existente `partos_abre_lactancia`); un aborto no.
+- **Lo derivado no se guarda (`20261012084412_reproduccion_estado`, `…084448_reproduccion_estado_prevista`):** la vista `v_repro_hembras` (modo invoker) da por hembra activa el **estado** (sin datos / vacía / servida / gestante), la **fecha prevista de parto** (servicio + días de gestación de la especie; solo si está servida o gestante), el último parto, los **partos registrados**, `animales.partos_previos` (los que tuvo antes de usar Apriscol; vacío = no se sabe) y **partos totales = previos + registrados** (los abortos no cuentan). De los partos totales y de la edad dependerá el aviso de pasar a ceba.
+- **Correcciones:** editar un servicio, diagnóstico o parto (el parto solo cambia fecha, tipo y complicaciones; no se pasa de parto a aborto ni al revés). Cambiar la fecha de un parto mueve también la lactancia que abrió (`20261012090911_parto_sincroniza_lactancia`). Eliminar (solo propietario/administrador): el parto se lleva sus crías y la lactancia que abrió si aún no tiene ordeños; si ya tiene, no se deja. Los animales creados desde las crías no se tocan.
+- **Permisos:** propietario y administrador todo; **veterinario** registra y corrige (módulo `reproduccion`) pero no elimina ni cambia `partos_previos` (eso es edición del animal); ordeñador y contador no ven el módulo.
+- **Criterios (orientativos, no una norma):** se sugiere confirmar con diagnóstico desde 45 días del servicio; un parto se marca atrasado a los 7 días de pasada la fecha prevista.
+- **Pendiente:** parámetros de ceba por finca y la lista de **candidatos a ceba** con alertas (hembras por partos/edad, gestantes y lactantes con advertencia, machos «por definir»).
+
 ## 9. Panel del superadmin
 
 - **Espacio propio** `app/(admin)` (layout con navegación Resumen · Fincas · Importaciones, "Mi finca" si además tiene una; cerrar sesión). Guardia: quien no es superadmin vuelve a `/`.
@@ -225,7 +234,7 @@
 
 **Módulos sin interfaz todavía**
 - **Sanidad:** hecha (ver sección 8b). Faltan el soporte adjunto de las pruebas y un plan sanitario por edad/etapa (propuesta de vacunación automática).
-- **Reproducción / partos** (servicios, gestación, parto con cría y apertura automática de lactancia).
+- **Reproducción / partos:** hecha (ver sección 8e).
 - **Pesos / GDP**, nutrición, ambiente (ITH) y contabilidad (módulos previstos en `modulo_app`).
 - **Modo sin conexión** para el ordeño en el campo.
 - Verificar con sesión real: subida de fotos, limpieza de fotos huérfanas.

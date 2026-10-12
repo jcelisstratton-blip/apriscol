@@ -12,7 +12,7 @@ import { urlsFotos, urlsFotosPremios } from "@/lib/fotos";
 import { VisorFoto } from "@/components/VisorFoto";
 import { FilaParticipacion } from "@/components/FilaParticipacion";
 import { clasesBoton } from "@/components/Boton";
-import { edadTexto, formatoFecha, hoyBogota, litros, sumarDias } from "@/lib/fechas";
+import { diasHasta, edadTexto, formatoFecha, hoyBogota, litros, sumarDias } from "@/lib/fechas";
 import { GraficoProduccion } from "@/components/GraficoProduccion";
 import { CONSEJO_BAJA, esBaja, mensajeBaja } from "@/lib/produccion";
 import { pesos } from "@/lib/ferias";
@@ -29,6 +29,8 @@ import { estadoRcs, formatoMiles } from "@/lib/leche-calidad";
 import { ETIQUETA_CONFORMACION, ETIQUETA_ENGRASAMIENTO, ETIQUETA_GRASA_VISCERAL, ETIQUETA_PESAJE, faltaParaMeta, gdp, kg, pctUno } from "@/lib/carne";
 import { LoteAnimal } from "@/components/LoteAnimal";
 import { direccionSoporte } from "@/lib/soportes";
+import { DIAS_PARA_DIAGNOSTICO, ETIQUETA_ESTADO, ETIQUETA_METODO, ETIQUETA_PARTO, ETIQUETA_RESULTADO, ETIQUETA_SERVICIO, plazoParto, textoPartos, TONO_ESTADO } from "@/lib/reproduccion";
+import { PartosPrevios } from "@/components/PartosPrevios";
 import { controlesDeSalida, etiquetaResumen, resumenControles } from "@/lib/controles";
 import { describirParentesco, nivelEndogamia, pedigriTexto, porcentaje, primeraMayuscula, type AncestroEndogamia } from "@/lib/endogamia";
 
@@ -45,9 +47,11 @@ function Dato({ etiqueta, children }: { etiqueta: string; children: React.ReactN
   );
 }
 
-export default async function FichaAnimal({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ guardado?: string }> }) {
+export default async function FichaAnimal({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ guardado?: string; sin_crear?: string }> }) {
   const { id } = await params;
-  const { guardado } = await searchParams;
+  const { guardado, sin_crear: sinCrearBruto } = await searchParams;
+  // Aretes de crías que no se pudieron crear (viene en la dirección: se limpia para mostrar solo texto simple).
+  const sin_crear = (sinCrearBruto ?? "").replace(/[^\p{L}\p{N}*\-_., ]/gu, "").slice(0, 200);
   if (!ID_UUID.test(id)) notFound();
 
   const { finca, rol } = await obtenerContexto();
@@ -62,6 +66,7 @@ export default async function FichaAnimal({ params, searchParams }: { params: Pr
   const verFerias = puedeVer(rol, "ferias");
   const verSanidad = puedeVer(rol, "sanidad");
   const verCarne = puedeVer(rol, "carne");
+  const verRepro = puedeVer(rol, "reproduccion") && animal.sexo === "hembra";
   const idsPadres = [animal.padre_id, animal.madre_id].filter((x): x is string => !!x);
 
   const [raza, padres, endo, completitud, lactancia, retiro, palmares, participaciones, baja] = await Promise.all([
@@ -134,6 +139,23 @@ export default async function FichaAnimal({ params, searchParams }: { params: Pr
   const listaPesos = pesosDB.data ?? [];
   const lotesCeba = lotesDB.data ?? [];
   const miLote = lotesCeba.find((l) => l.id === animal.lote_ceba_id);
+  // Reproducción de la hembra: su estado (vacía, servida, gestante), partos y el historial de servicios, diagnósticos y partos.
+  const [reproDB, serviciosDB, diagnosticosDB, partosDB] = verRepro
+    ? await Promise.all([
+        supabase.from("v_repro_hembras").select("*").eq("animal_id", id).maybeSingle(),
+        supabase.from("servicios").select("*").eq("hembra_id", id).eq("finca_id", finca.id).order("fecha", { ascending: false }).limit(10),
+        supabase.from("diagnosticos_gestacion").select("*").eq("hembra_id", id).eq("finca_id", finca.id).order("fecha", { ascending: false }).limit(10),
+        supabase.from("partos").select("*").eq("madre_id", id).eq("finca_id", finca.id).order("fecha", { ascending: false }).limit(10),
+      ])
+    : [{ data: null }, { data: [] }, { data: [] }, { data: [] }];
+  const repro = reproDB.data;
+  const todoRepro = [
+    ...(serviciosDB.data ?? []).map((x) => ({ clave: `s-${x.id}`, fecha: x.fecha, tipo: "servicio" as const, href: `/reproduccion/servicios/${x.id}`, texto: `Servicio · ${ETIQUETA_SERVICIO[x.tipo]}` })),
+    ...(diagnosticosDB.data ?? []).map((x) => ({ clave: `d-${x.id}`, fecha: x.fecha, tipo: "diagnostico" as const, href: `/reproduccion/diagnosticos/${x.id}`, texto: `Diagnóstico · ${ETIQUETA_RESULTADO[x.resultado]} (${ETIQUETA_METODO[x.metodo].toLowerCase()})` })),
+    ...(partosDB.data ?? []).map((x) => ({ clave: `p-${x.id}`, fecha: x.fecha, tipo: "parto" as const, href: `/reproduccion/partos/${x.id}`, texto: `${ETIQUETA_PARTO[x.tipo]}${x.tipo === "aborto" ? "" : ` · ${x.numero_crias} ${x.numero_crias === 1 ? "cría" : "crías"}`}` })),
+  ].sort((a, b) => (a.fecha < b.fecha ? 1 : -1));
+  const historialRepro = todoRepro.slice(0, 8);
+  const mostrarRepro = verRepro && (animal.estado === "activo" || historialRepro.length > 0);
   // Controles de calidad de un animal que salió para consumo (condición corporal, inspección en el matadero).
   const aplicanControles = baja.data ? controlesDeSalida(baja.data.tipo, baja.data.destino_consumo) : [];
   const controlesAnimal =
@@ -289,6 +311,76 @@ export default async function FichaAnimal({ params, searchParams }: { params: Pr
                 ) : null}
               </div>
             )}
+          </Tarjeta>
+        ) : null}
+
+        {mostrarRepro ? (
+          <Tarjeta titulo="Reproducción" id="reproduccion">
+            {sin_crear ? (
+              <Aviso tipo="atencion" className="mb-3">
+                El parto quedó registrado, pero no se pudieron crear como animales las crías con arete {sin_crear.split(",").join(", ")}. Créalas desde «Animal nuevo» (ponle a esta hembra como madre).
+              </Aviso>
+            ) : null}
+            {repro ? (
+              <div className="space-y-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Insignia tono={TONO_ESTADO[repro.estado]}>{ETIQUETA_ESTADO[repro.estado]}</Insignia>
+                  {repro.fecha_prevista_parto ? <Insignia tono={plazoParto(repro.fecha_prevista_parto, hoyBogota()).tono}>{plazoParto(repro.fecha_prevista_parto, hoyBogota()).texto}</Insignia> : null}
+                  {repro.en_lactancia ? <Insignia tono="musgo">En lactancia</Insignia> : null}
+                </div>
+                <dl className="divide-y divide-arena">
+                  {repro.fecha_prevista_parto ? <Dato etiqueta="Parto previsto">{formatoFecha(repro.fecha_prevista_parto)}</Dato> : null}
+                  {repro.ultimo_servicio ? <Dato etiqueta="Último servicio">{formatoFecha(repro.ultimo_servicio)}</Dato> : null}
+                  {repro.ultimo_parto ? <Dato etiqueta="Último parto">{formatoFecha(repro.ultimo_parto)}</Dato> : null}
+                  <Dato etiqueta="Partos">{textoPartos(repro.partos_totales)}</Dato>
+                </dl>
+                {repro.estado === "servida" && repro.ultimo_servicio && diasHasta(hoyBogota(), repro.ultimo_servicio) >= DIAS_PARA_DIAGNOSTICO ? (
+                  <Aviso tipo="atencion">Ya pasaron {diasHasta(hoyBogota(), repro.ultimo_servicio)} días del servicio: conviene confirmar con un diagnóstico si quedó gestante.</Aviso>
+                ) : null}
+                {animal.estado === "activo" ? <PartosPrevios animalId={id} previos={animal.partos_previos} registrados={repro.partos_registrados} puedeEditar={puedeEscribir(rol, "hato")} /> : null}
+              </div>
+            ) : null}
+            {historialRepro.length > 0 ? (
+              <ul className="mt-3 divide-y divide-arena">
+                {historialRepro.map((e) => (
+                  <li key={e.clave} className="flex items-center justify-between gap-3 py-2">
+                    <span className="min-w-0 text-[0.9375rem] [overflow-wrap:anywhere]">
+                      <span className="font-semibold">{e.texto}</span>
+                      <span className="block text-sm text-humo">{formatoFecha(e.fecha, { day: "numeric", month: "short", year: "numeric" })}</span>
+                    </span>
+                    {puedeEscribir(rol, "reproduccion") ? (
+                      <Link href={e.href} className="inline-flex min-h-11 shrink-0 items-center text-sm font-semibold text-musgo underline-offset-4 hover:underline">
+                        Editar
+                      </Link>
+                    ) : null}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="mt-3 text-[0.9375rem] text-humo">Todavía no tiene servicios, diagnósticos ni partos registrados.</p>
+            )}
+            {todoRepro.length > historialRepro.length ? (
+              <p className="mt-1 text-sm text-humo">
+                Se muestran los {historialRepro.length} más recientes. Todos están en{" "}
+                <Link href="/reproduccion?vista=servicios" className="font-semibold text-musgo underline-offset-4 hover:underline">
+                  Reproducción
+                </Link>
+                .
+              </p>
+            ) : null}
+            {puedeEscribir(rol, "reproduccion") && animal.estado === "activo" ? (
+              <div className="mt-3 grid grid-cols-1 gap-2 min-[420px]:grid-cols-3">
+                <Link href={`/hato/${id}/reproduccion/servicio/nuevo`} className={clasesBoton("secundario")}>
+                  Servicio
+                </Link>
+                <Link href={`/hato/${id}/reproduccion/diagnostico/nuevo`} className={clasesBoton("secundario")}>
+                  Diagnóstico
+                </Link>
+                <Link href={`/hato/${id}/reproduccion/parto/nuevo`} className={clasesBoton("secundario")}>
+                  Parto
+                </Link>
+              </div>
+            ) : null}
           </Tarjeta>
         ) : null}
 
