@@ -1,10 +1,12 @@
 import { AgregarAlOrdeno } from "@/components/AgregarAlOrdeno";
+import { CalidadAnimales } from "@/components/CalidadAnimales";
 import { ListaHato } from "@/components/ListaHato";
 import { ProgramaOrdeno } from "@/components/ProgramaOrdeno";
 import { crearClienteServidor } from "@/lib/supabase/server";
 import { etiquetaAnimal } from "@/lib/animal";
 import { hoyBogota } from "@/lib/fechas";
 import type { FiltroHato } from "@/lib/hato";
+import type { AnalisisLeche } from "@/lib/tipos";
 
 export async function Animales({
   fincaId,
@@ -65,6 +67,51 @@ export async function ProgramaLeche({
         puedeEditar={puedeEditar}
       />
       {puedeEditar ? <AgregarAlOrdeno fincaId={fincaId} hoy={hoyBogota()} enLeche={ids} /> : null}
+    </div>
+  );
+}
+
+/** Calidad de la leche por animal: las hembras en leche con su último análisis (grasa, proteína, células somáticas). */
+export async function CalidadLeche({
+  fincaId,
+  puedeEditar,
+  cliente,
+}: {
+  fincaId: string;
+  puedeEditar: boolean;
+  /** Solo para pruebas: un cliente de base de datos en lugar del de la sesión. */
+  cliente?: Awaited<ReturnType<typeof crearClienteServidor>>;
+}) {
+  const supabase = cliente ?? (await crearClienteServidor());
+  const { data: lactancias } = await supabase.from("lactancias").select("animal_id").eq("finca_id", fincaId).is("fecha_secado", null);
+  const ids = (lactancias ?? []).map((l) => l.animal_id);
+  const activas: { id: string; numero_arete: string; nombre: string | null }[] = [];
+  const analisis: AnalisisLeche[] = [];
+  for (let i = 0; i < ids.length; i += 100) {
+    const tramo = ids.slice(i, i + 100);
+    const [animales, resultados] = await Promise.all([
+      supabase.from("animales").select("id, numero_arete, nombre").eq("finca_id", fincaId).eq("sexo", "hembra").eq("estado", "activo").is("deleted_at", null).in("id", tramo),
+      supabase.from("v_analisis_leche_ultimo").select("*").eq("finca_id", fincaId).in("animal_id", tramo),
+    ]);
+    activas.push(...(animales.data ?? []));
+    analisis.push(...((resultados.data ?? []) as AnalisisLeche[]));
+  }
+  activas.sort((a, b) => a.numero_arete.localeCompare(b.numero_arete, "es", { numeric: true }));
+  const ultimos = new Map(analisis.map((a) => [a.animal_id!, a]));
+
+  return (
+    <div className="lg:max-w-3xl">
+      <CalidadAnimales
+        puedeEditar={puedeEditar}
+        hembras={activas.map((a) => {
+          const u = ultimos.get(a.id);
+          return {
+            id: a.id,
+            etiqueta: etiquetaAnimal(a),
+            ultimo: u ? { fecha: u.fecha, grasa_pct: u.grasa_pct, proteina_pct: u.proteina_pct, rcs_miles_ml: u.rcs_miles_ml } : null,
+          };
+        })}
+      />
     </div>
   );
 }

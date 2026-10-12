@@ -446,6 +446,80 @@ export type RespuestaTraer =
   | { encontrado: false }
   | { encontrado: true; importados: number; padres_enlazados?: number; madres_enlazadas?: number };
 
+// ───────────────────────── Leche: calidad, frío, despachos y equipo ─────────────────────────
+export type MomentoFrio = "tras_ordeno" | "almacenada" | "despacho";
+export type DestinoLeche = "industria" | "queseria" | "venta_directa" | "otro";
+export type TipoMantenimiento = "lavado_alcalino" | "lavado_acido" | "presion_vacio" | "pulsadores" | "revision" | "otro";
+
+export type AnalisisLeche = {
+  id: string;
+  finca_id: string;
+  /** Nulo cuando el análisis es de la leche mezclada (tanque o lote). */
+  animal_id: string | null;
+  muestra: string | null;
+  fecha: string;
+  grasa_pct: number | null;
+  proteina_pct: number | null;
+  rcs_miles_ml: number | null;
+  laboratorio: string | null;
+  observaciones: string | null;
+  client_request_id: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type ControlFrio = {
+  id: string;
+  finca_id: string;
+  fecha: string;
+  hora: string | null;
+  momento: MomentoFrio;
+  temperatura_c: number;
+  equipo: string | null;
+  observaciones: string | null;
+  client_request_id: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type DespachoLeche = {
+  id: string;
+  finca_id: string;
+  fecha: string;
+  litros: number;
+  destino_tipo: DestinoLeche;
+  comprador: string | null;
+  tanque: string | null;
+  guia: string | null;
+  precio_litro: number | null;
+  /** Generada por la base: litros × precio por litro. */
+  valor_total: number | null;
+  temperatura_c: number | null;
+  observaciones: string | null;
+  client_request_id: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type MantenimientoOrdeno = {
+  id: string;
+  finca_id: string;
+  fecha: string;
+  tipo: TipoMantenimiento;
+  equipo: string | null;
+  presion_kpa: number | null;
+  responsable: string | null;
+  proxima_fecha: string | null;
+  observaciones: string | null;
+  client_request_id: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
 export type { AncestroEndogamia } from "@/lib/endogamia";
 import type { AncestroEndogamia } from "@/lib/endogamia";
 
@@ -472,6 +546,10 @@ export type Database = {
       eventos_sanitarios: Tabla<EventoSanitario, "finca_id" | "tipo">;
       evento_sanitario_animales: Tabla<EventoSanitarioAnimal, "evento_id" | "animal_id" | "finca_id">;
       pruebas_sanitarias: Tabla<PruebaSanitaria, "finca_id" | "animal_id" | "prueba">;
+      analisis_leche: Tabla<AnalisisLeche, "finca_id">;
+      controles_frio: Tabla<ControlFrio, "finca_id" | "momento" | "temperatura_c">;
+      despachos_leche: Tabla<Omit<DespachoLeche, "valor_total">, "finca_id" | "litros" | "destino_tipo">;
+      mantenimiento_ordeno: Tabla<MantenimientoOrdeno, "finca_id" | "tipo">;
     };
     Views: {
       v_produccion_diaria: { Row: ProduccionDiaria; Relationships: [] };
@@ -482,6 +560,8 @@ export type Database = {
       v_eventos_sanitarios: { Row: EventoResumen; Relationships: [] };
       v_eventos_animal: { Row: EventoDeAnimal; Relationships: [] };
       v_sanidad_pendiente: { Row: SanidadPendiente; Relationships: [] };
+      v_analisis_leche_ultimo: { Row: AnalisisLeche; Relationships: [] };
+      v_rcs_leche_ultimo: { Row: AnalisisLeche; Relationships: [] };
     };
     Functions: {
       aceptar_invitacion: { Args: { p_token: string }; Returns: string };
@@ -512,6 +592,10 @@ export type Database = {
       produccion_por_animal: {
         Args: { p_finca: string; p_desde: string; p_hasta: string };
         Returns: { animal_id: string; litros_tanque: number; litros_descartados: number; ordenos: number; dias: number }[];
+      };
+      leche_balance: {
+        Args: { p_finca: string; p_desde: string; p_hasta: string };
+        Returns: { producida: number; descartada: number; despachada: number; valor_despachado: number }[];
       };
       guardar_evento_sanitario: {
         Args: { p_finca: string; p_evento: string | null; p_datos: Record<string, unknown>; p_animales: string[] };

@@ -69,6 +69,7 @@ correspondiente en `node_modules/next/dist/docs/` (esta versión cambia APIs: `m
 - **Cada pantalla muestra solo lo que aplica al registro que se mira.** Un macho no tiene aptitud, lactancia, ordeño ni último parto: tiene un **uso** (`animales.uso_macho`: reproductor, carne o por definir; `vocacion` de un macho se
   guarda como «carne» solo por ser columna obligatoria y **no se usa**: para un reporte de machos, leer `uso_macho`); un animal que ya salió del hato (vendido, muerto…) no ofrece acciones ni tarjetas de uno activo, como «Ferias y premios» (solo su historial,
   si lo tiene). Antes de dar una pantalla por terminada se revisa con un animal de cada tipo: hembra, macho y dado de baja.
+- **Los números se escriben a la colombiana:** coma decimal y punto de miles («3,6», «2.500» = dos mil quinientos). Todo campo numérico que llega del navegador se lee con `leerNumero` (`lib/numeros.ts`), nunca con `replace(",", ".")` (que convertía «25.000» en 25).
 - Objetivos táctiles ≥ 44 px, campos de 16 px (evita el zoom de iOS), respetar `env(safe-area-inset-*)`.
 - Navegación: barra inferior de 4 pestañas + botón central de acción (`BottomNav`). Elegir/confirmar/capturar en
   **hojas inferiores** (`Sheet`). Números con el **teclado propio** (`Teclado`), un solo botón principal fijo abajo.

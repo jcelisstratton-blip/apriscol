@@ -8,6 +8,7 @@ import { obtenerContexto } from "@/lib/contexto";
 import { puedeEscribir, puedeGestionar } from "@/lib/permisos";
 import { mensajeAmigable } from "@/lib/mensaje-amigable";
 import { hoyBogota } from "@/lib/fechas";
+import { leerNumero } from "@/lib/numeros";
 import { EVENTO_CON_PRODUCTO, RESULTADOS_PRUEBA, TIPOS_EVENTO, TIPOS_PRODUCTO, TIPOS_PRUEBA, VIAS } from "@/lib/sanidad";
 
 export type EstadoForm = { error?: string } | undefined;
@@ -15,7 +16,8 @@ type Resultado = { ok: true } | { ok: false; error: string };
 
 const vacio = (v: unknown) => (typeof v === "string" && v.trim() === "" ? undefined : v);
 const opcional = <T extends z.ZodType>(s: T) => z.preprocess(vacio, s.optional());
-const numero = (s: z.ZodType<number>) => z.preprocess((v) => (typeof v === "string" ? v.replace(",", ".") : v), opcional(s));
+/** Un número escrito a la colombiana: «25.000» son veinticinco mil, no veinticinco; «1,5» es uno y medio. */
+const numero = (s: z.ZodType<number>) => z.preprocess((v) => (typeof v === "string" ? (leerNumero(v) ?? v) : v), opcional(s));
 const dias = (mensaje: string) => z.preprocess((v) => (typeof v === "string" && v.trim() !== "" ? v : 0), z.coerce.number(mensaje).int(mensaje).min(0, mensaje).max(365, "Los días de retiro no pueden pasar de 365."));
 const ID_UUID = z.uuid();
 
