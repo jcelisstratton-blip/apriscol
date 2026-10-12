@@ -503,6 +503,14 @@ export type Database = {
         Args: { p_finca: string };
         Returns: { animal_id: string; retiro_leche_hasta: string | null; retiro_carne_hasta: string | null }[];
       };
+      produccion_historial: {
+        Args: { p_finca: string; p_desde: string; p_hasta: string; p_animal?: string | null };
+        Returns: { fecha: string; jornada: string; litros_tanque: number; litros_descartados: number; ordenos: number; animales: number }[];
+      };
+      produccion_por_animal: {
+        Args: { p_finca: string; p_desde: string; p_hasta: string };
+        Returns: { animal_id: string; litros_tanque: number; litros_descartados: number; ordenos: number; dias: number }[];
+      };
       guardar_evento_sanitario: {
         Args: { p_finca: string; p_evento: string | null; p_datos: Record<string, unknown>; p_animales: string[] };
         Returns: string;

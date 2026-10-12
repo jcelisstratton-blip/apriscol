@@ -213,6 +213,9 @@ export default async function FichaAnimal({ params, searchParams }: { params: Pr
                 <Dato etiqueta="Promedio por día">{lac.promedio_diario == null ? "—" : `${litros(lac.promedio_diario)} L`}</Dato>
                 <Dato etiqueta="Pico en un día">{lac.pico_diario == null ? "—" : `${litros(lac.pico_diario)} L`}</Dato>
               </dl>
+              <Link href={`/leche?animal=${id}`} className="mt-3 inline-flex min-h-11 items-center text-[0.9375rem] font-semibold text-musgo underline-offset-4 hover:underline">
+                Ver toda su producción
+              </Link>
               {vigilarProduccion ? (
                 <div className="mt-4 space-y-3">
                   {tendenciaAnimal && esBaja(tendenciaAnimal) ? (

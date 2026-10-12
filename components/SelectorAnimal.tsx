@@ -25,6 +25,7 @@ export function SelectorAnimal({
   onCambio,
   excluir,
   incluirInactivos = false,
+  vacio = "Sin registrar",
 }: {
   id?: string;
   nombre: string;
@@ -38,6 +39,8 @@ export function SelectorAnimal({
   excluir?: string;
   /** Para padres y madres: el padre de una cría suele estar ya vendido o muerto. */
   incluirInactivos?: boolean;
+  /** Lo que se lee cuando no hay animal elegido. */
+  vacio?: string;
 }) {
   const [abierta, setAbierta] = useState(false);
   const [resultados, setResultados] = useState<Resultado[] | null>(null);
@@ -77,7 +80,7 @@ export function SelectorAnimal({
           aria-haspopup="dialog"
           className={`${CLASE_INPUT} flex items-center justify-between gap-3 pr-12 text-left`}
         >
-          <span className={`min-w-0 flex-1 ${valor ? "" : "text-humo/70"}`}>{valor ? etiquetaAnimal(valor) : "Sin registrar"}</span>
+          <span className={`min-w-0 flex-1 ${valor ? "" : "text-humo/70"}`}>{valor ? etiquetaAnimal(valor) : vacio}</span>
           {!valor ? <ChevronDown className="size-5 shrink-0 text-humo" strokeWidth={1.75} /> : null}
         </button>
         {valor ? (
