@@ -160,3 +160,17 @@ export function construirSerie(filas: FilaHistorial[], desde: string, hasta: str
 }
 
 export const ETIQUETA_JORNADA: Record<string, string> = { manana: "Mañana", tarde: "Tarde", noche: "Noche", unico: "Único" };
+
+/** Dirección de la pantalla Leche con lo que se pide: periodo, fechas y animal. */
+export function direccionLeche(p: { periodo?: PeriodoId; desde?: string; hasta?: string; animal?: string | null }): string {
+  const q = new URLSearchParams();
+  if (p.periodo && p.periodo !== "30") q.set("periodo", p.periodo);
+  if (p.periodo === "rango" && p.desde && p.hasta) {
+    q.set("desde", p.desde);
+    q.set("hasta", p.hasta);
+  }
+  if (p.animal) q.set("animal", p.animal);
+  const s = q.toString();
+  return s ? `/leche?${s}` : "/leche";
+}
+

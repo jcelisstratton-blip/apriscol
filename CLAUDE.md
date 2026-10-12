@@ -81,6 +81,14 @@ correspondiente en `node_modules/next/dist/docs/` (esta versión cambia APIs: `m
   `<Boton pendiente cargando="…">`.
 - Identidad: lana, musgo y ocre (`globals.css`), Fraunces para títulos y Figtree para interfaz. Nada genérico.
 
+## Un servidor no puede llamar a un archivo de cliente
+
+Un archivo con `"use client"` solo puede exportar **componentes**: una función normal exportada desde él (por ejemplo, un armador de direcciones)
+**revienta en producción** si un componente de servidor la llama («Attempted to call … from the server»), aunque `tsc`, `lint` y `build` pasen. Las
+funciones compartidas viven en `lib/`. Los componentes de servidor con consultas (`Historial`, `Registrar`, `Resumen`, `ProgramaLeche`…) aceptan un
+`cliente` opcional para ejecutarse en pruebas con una base de mentira en memoria: **una pantalla de servidor se da por buena solo si se ejecutó de
+verdad por todas sus ramas** (con datos, vacía, con un animal, con otro periodo), no solo sus piezas de cliente con datos inventados.
+
 ## Verificación antes de dar algo por hecho
 
 `npx tsc --noEmit` · `npm run lint` · `npm run build` · auditoría de celular de arriba · pruebas de RLS con usuarios

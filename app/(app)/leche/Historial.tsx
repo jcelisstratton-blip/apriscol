@@ -1,11 +1,10 @@
-import { direccionLeche } from "@/components/FiltrosLeche";
 import type { FilaRanking } from "@/components/RankingLeche";
 import type { DiaLeche } from "@/components/TablaDiasLeche";
 import { crearClienteServidor } from "@/lib/supabase/server";
 import { animalesPorIds } from "@/lib/animal-etiquetas";
 import { etiquetaAnimal } from "@/lib/animal";
 import { hoyBogota } from "@/lib/fechas";
-import { resolverPeriodo, type FilaHistorial } from "@/lib/leche";
+import { direccionLeche, resolverPeriodo, type FilaHistorial } from "@/lib/leche";
 import { esBaja } from "@/lib/produccion";
 import { VistaHistorial } from "./VistaHistorial";
 
@@ -23,12 +22,15 @@ export async function Historial({
   fincaId,
   puedeEditar,
   pedido,
+  cliente,
 }: {
   fincaId: string;
   puedeEditar: boolean;
   pedido: { periodo?: string; desde?: string; hasta?: string; animal?: string };
+  /** Solo para pruebas: un cliente de base de datos en lugar del de la sesión. */
+  cliente?: Awaited<ReturnType<typeof crearClienteServidor>>;
 }) {
-  const supabase = await crearClienteServidor();
+  const supabase = cliente ?? (await crearClienteServidor());
   const hoy = hoyBogota();
   const { data: primero } = await supabase.from("ordenos").select("fecha").eq("finca_id", fincaId).order("fecha", { ascending: true }).limit(1).maybeSingle();
   const periodo = resolverPeriodo(pedido, hoy, primero?.fecha ?? null);

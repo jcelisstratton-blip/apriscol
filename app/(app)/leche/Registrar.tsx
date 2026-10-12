@@ -10,8 +10,19 @@ import { etiquetaAnimal } from "@/lib/animal";
 import { esBaja } from "@/lib/produccion";
 
 /** Registrar el ordeño de una jornada: los litros de cada hembra en leche. */
-export async function Registrar({ fincaId, puedeEditar, agregar }: { fincaId: string; puedeEditar: boolean; agregar?: string }) {
-  const supabase = await crearClienteServidor();
+export async function Registrar({
+  fincaId,
+  puedeEditar,
+  agregar,
+  cliente,
+}: {
+  fincaId: string;
+  puedeEditar: boolean;
+  agregar?: string;
+  /** Solo para pruebas: un cliente de base de datos en lugar del de la sesión. */
+  cliente?: Awaited<ReturnType<typeof crearClienteServidor>>;
+}) {
+  const supabase = cliente ?? (await crearClienteServidor());
   const { data: lactancias } = await supabase.from("lactancias").select("animal_id").eq("finca_id", fincaId).is("fecha_secado", null);
   const ids = (lactancias ?? []).map((l) => l.animal_id);
   const [animales, retiro, tendencia, habitualFilas] = await Promise.all([

@@ -5,22 +5,9 @@ import { Chip, FilaDesplazable } from "@/components/FilaDesplazable";
 import { SelectorAnimal } from "@/components/SelectorAnimal";
 import { Boton } from "@/components/Boton";
 import { Campo, CLASE_INPUT } from "@/components/Campo";
-import { PERIODOS, type PeriodoId } from "@/lib/leche";
+import { PERIODOS, direccionLeche, type PeriodoId } from "@/lib/leche";
 
 type Ref = { id: string; numero_arete: string; nombre: string | null };
-
-/** Dirección de la pantalla Leche con lo que se pide: periodo, fechas y animal. */
-export function direccionLeche(p: { periodo?: PeriodoId; desde?: string; hasta?: string; animal?: string | null }): string {
-  const q = new URLSearchParams();
-  if (p.periodo && p.periodo !== "30") q.set("periodo", p.periodo);
-  if (p.periodo === "rango" && p.desde && p.hasta) {
-    q.set("desde", p.desde);
-    q.set("hasta", p.hasta);
-  }
-  if (p.animal) q.set("animal", p.animal);
-  const s = q.toString();
-  return s ? `/leche?${s}` : "/leche";
-}
 
 /**
  * Qué se mira en Leche: todo el hato o un animal, y de cuándo a cuándo (7, 30 o 90 días, un año, todo el historial o unas fechas).

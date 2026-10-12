@@ -3,7 +3,7 @@ import { Droplets } from "lucide-react";
 import { AlertasProduccion } from "@/components/AlertasProduccion";
 import { EnlaceBoton } from "@/components/Boton";
 import { EstadoVacio } from "@/components/EstadoVacio";
-import { FiltrosLeche, direccionLeche } from "@/components/FiltrosLeche";
+import { FiltrosLeche } from "@/components/FiltrosLeche";
 import { GraficoHistorialLeche } from "@/components/GraficoHistorialLeche";
 import { Insignia } from "@/components/Insignia";
 import { RankingLeche, type FilaRanking } from "@/components/RankingLeche";
@@ -11,7 +11,7 @@ import { Tarjeta } from "@/components/Tarjeta";
 import { TablaDiasLeche, type DiaLeche } from "@/components/TablaDiasLeche";
 import { etiquetaAnimal } from "@/lib/animal";
 import { formatoFecha, litros as fmt } from "@/lib/fechas";
-import { ETIQUETA_JORNADA, calcularTotales, construirSerie, variacion, type FilaHistorial, type PeriodoResuelto } from "@/lib/leche";
+import { ETIQUETA_JORNADA, calcularTotales, construirSerie, direccionLeche, variacion, type FilaHistorial, type PeriodoResuelto } from "@/lib/leche";
 import { CONSEJO_BAJA, mensajeBaja, type TendenciaBaja } from "@/lib/produccion";
 
 function Cifra({ etiqueta, valor, unidad, nota }: { etiqueta: string; valor: string; unidad?: string; nota?: React.ReactNode }) {
