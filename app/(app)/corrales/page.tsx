@@ -76,7 +76,7 @@ export default async function PaginaCorrales({
       </div>
 
       {vista === "resumen" ? <Resumen fincaId={finca.id} filtros={{ ...filtroFechas, motivo }} /> : null}
-      {vista === "movimientos" ? <ListaMovimientos fincaId={finca.id} ubicaciones={nombres} rango={rango} /> : null}
+      {vista === "movimientos" ? <ListaMovimientos fincaId={finca.id} ubicaciones={nombres} rango={rango} puedeEditar={puedeEditar} /> : null}
     </>
   );
 }

@@ -27,6 +27,7 @@ import { HistorialSanidadAnimal } from "@/components/HistorialSanidadAnimal";
 import { TurnosAnimal } from "@/components/TurnosAnimal";
 import { ListaMovimientos } from "@/components/ListaMovimientos";
 import { ETIQUETA_MOTIVO } from "@/lib/corrales";
+import { aplicaFamacha, estadoFamacha, FAMACHA } from "@/lib/famacha";
 import { estadoDosis, estadoFechaPrograma, ETIQUETA_EVENTO, ETIQUETA_RESULTADO_PRUEBA, nombreEvento, TIPOS_EVENTO } from "@/lib/sanidad";
 import { estadoRcs, formatoMiles } from "@/lib/leche-calidad";
 import { ETIQUETA_CONFORMACION, ETIQUETA_ENGRASAMIENTO, ETIQUETA_GRASA_VISCERAL, ETIQUETA_PESAJE, faltaParaMeta, gdp, kg, pctUno } from "@/lib/carne";
@@ -124,6 +125,15 @@ export default async function FichaAnimal({ params, searchParams }: { params: Pr
         supabase.from("v_sanidad_pendiente").select("evento_id, tipo, producto_nombre, proxima_fecha").eq("animal_id", id).order("proxima_fecha"),
       ])
     : [{ data: [] }, { data: [] }, { data: [] }];
+  // FAMACHA: sus evaluaciones y qué toca según la última (solo animales activos de 3 meses o más).
+  const aplicaEvaluarFamacha = aplicaFamacha(animal, hoyBogota());
+  const [famachaSan, famachaActual] = verSanidad
+    ? await Promise.all([
+        supabase.from("evaluaciones_famacha").select("id, fecha, puntaje, observaciones").eq("animal_id", id).eq("finca_id", finca.id).order("fecha", { ascending: false }).limit(50),
+        supabase.from("v_famacha_animal").select("*").eq("animal_id", id).maybeSingle(),
+      ])
+    : [{ data: [] }, { data: null }];
+  const estadoFama = famachaActual.data ? estadoFamacha(famachaActual.data) : null;
   // Lo programado para este animal que aún no se aplica (Hato → Sanidad).
   const pendientesProg = verSanidad ? ((await supabase.from("programa_sanitario_animales").select("programa_id").eq("animal_id", id).eq("finca_id", finca.id).is("evento_id", null).limit(50)).data ?? []) : [];
   const programasAnimal = pendientesProg.length > 0
@@ -200,6 +210,7 @@ export default async function FichaAnimal({ params, searchParams }: { params: Pr
     ? ((await supabase.from("analisis_leche").select("*").eq("animal_id", id).eq("finca_id", finca.id).order("fecha", { ascending: false }).order("created_at", { ascending: false }).limit(20)).data ?? [])
     : [];
   const historialPruebas = (pruebasSan.data ?? []).map((p) => ({ clave: `p-${p.id}`, id: p.id, fecha: p.fecha, prueba: p.prueba, resultado: p.resultado, laboratorio: p.laboratorio }));
+  const historialFamacha = (famachaSan.data ?? []).map((f) => ({ clave: `f-${f.id}`, id: f.id, fecha: f.fecha, puntaje: f.puntaje, observaciones: f.observaciones }));
   const dosisPendientes = pendientesSan.data ?? [];
   const ultimoCmt = (pruebasSan.data ?? []).find((p) => p.prueba === "cmt");
 
@@ -605,8 +616,27 @@ export default async function FichaAnimal({ params, searchParams }: { params: Pr
           </Tarjeta>
         ) : null}
 
-        {verSanidad && (animal.estado === "activo" || historialEventos.length > 0 || historialPruebas.length > 0) ? (
+        {verSanidad && (animal.estado === "activo" || historialEventos.length > 0 || historialPruebas.length > 0 || historialFamacha.length > 0) ? (
           <Tarjeta titulo="Sanidad" id="sanidad">
+            {estadoFama && famachaActual.data ? (
+              <div className="mb-3 rounded-2xl bg-lana px-3 py-2.5">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <span className="min-w-0 text-[0.9375rem]">
+                    <span className="font-semibold">FAMACHA {famachaActual.data.puntaje}</span>
+                    <span className="block text-sm text-humo">
+                      {FAMACHA[famachaActual.data.puntaje].color} · {formatoFecha(famachaActual.data.ultima_fecha, { day: "numeric", month: "short", year: "numeric" })}
+                    </span>
+                  </span>
+                  <Insignia tono={estadoFama.tono}>{estadoFama.texto}</Insignia>
+                </div>
+                {estadoFama.clave === "desparasitar" || estadoFama.clave === "vigilar" ? <p className="mt-1.5 text-sm text-humo">{FAMACHA[famachaActual.data.puntaje].accion}</p> : null}
+                {estadoFama.clave === "desparasitar" && puedeEscribir(rol, "sanidad") && animal.estado === "activo" ? (
+                  <Link href={`/hato/sanidad/nuevo?animal=${id}&tipo=desparasitacion`} className="mt-1 inline-flex min-h-11 items-center text-sm font-semibold text-musgo underline-offset-4 hover:underline">
+                    Registrar la desparasitación
+                  </Link>
+                ) : null}
+              </div>
+            ) : null}
             {dosisPendientes.length > 0 ? (
               <ul className="mb-3 space-y-2">
                 {dosisPendientes.map((d) => {
@@ -646,10 +676,10 @@ export default async function FichaAnimal({ params, searchParams }: { params: Pr
                 })}
               </ul>
             ) : null}
-            {historialEventos.length === 0 && historialPruebas.length === 0 ? (
+            {historialEventos.length === 0 && historialPruebas.length === 0 && historialFamacha.length === 0 ? (
               <p className="text-[0.9375rem] text-humo">Todavía no tiene vacunas, tratamientos ni pruebas registrados.</p>
             ) : (
-              <HistorialSanidadAnimal eventos={historialEventos} pruebas={historialPruebas} puedeEditar={puedeEscribir(rol, "sanidad")} />
+              <HistorialSanidadAnimal eventos={historialEventos} pruebas={historialPruebas} famacha={historialFamacha} puedeEditar={puedeEscribir(rol, "sanidad")} />
             )}
             {puedeEscribir(rol, "sanidad") && animal.estado === "activo" ? (
               <div className="mt-3 space-y-3">
@@ -670,6 +700,11 @@ export default async function FichaAnimal({ params, searchParams }: { params: Pr
                   <Link href={`/sanidad/pruebas/nueva?animal=${id}`} className={clasesBoton("secundario")}>
                     Prueba diagnóstica
                   </Link>
+                  {aplicaEvaluarFamacha ? (
+                    <Link href={`/hato/sanidad/famacha/nueva?animal=${id}`} className={clasesBoton("secundario")}>
+                      Evaluación FAMACHA
+                    </Link>
+                  ) : null}
                 </div>
               </div>
             ) : null}
@@ -702,7 +737,7 @@ export default async function FichaAnimal({ params, searchParams }: { params: Pr
             {(totalMovimientos.count ?? 0) > 0 ? (
               <div className="mt-3">
                 <p className="mb-1.5 text-sm font-semibold">Por dónde ha pasado</p>
-                <ListaMovimientos fincaId={finca.id} ubicaciones={nombresUbicacion} animalId={id} />
+                <ListaMovimientos fincaId={finca.id} ubicaciones={nombresUbicacion} animalId={id} puedeEditar={puedeEscribir(rol, "corrales")} />
               </div>
             ) : null}
             {puedeEscribir(rol, "corrales") && animal.estado === "activo" ? (

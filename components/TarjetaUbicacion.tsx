@@ -10,6 +10,7 @@ export function TarjetaUbicacion({ u, puedeEditar, href }: { u: UbicacionVista; 
   const llenado = u.capacidad ? Math.min(100, (u.ocupantes / u.capacidad) * 100) : 0;
   const m2 = u.area_m2 && u.ocupantes > 0 ? u.area_m2 / u.ocupantes : null;
   const destino = href ?? `/hato/corrales/${u.id}`;
+  const llena = Boolean(u.capacidad && u.ocupantes >= u.capacidad);
   return (
     <li className="min-w-0 rounded-2xl bg-papel p-3.5 ring-1 ring-arena">
       <Link href={destino} className="block">
@@ -54,9 +55,13 @@ export function TarjetaUbicacion({ u, puedeEditar, href }: { u: UbicacionVista; 
       </Link>
       {puedeEditar && u.activa ? (
         <div className="mt-2 flex flex-wrap items-center gap-x-4 border-t border-arena pt-1">
-          <Link href={`/hato/corrales/mover?destino=${u.id}`} className="inline-flex min-h-11 items-center gap-1.5 text-sm font-semibold text-musgo underline-offset-4 hover:underline">
-            <ArrowRightLeft className="size-4" strokeWidth={2} aria-hidden="true" /> Mover animales aquí
-          </Link>
+          {llena ? (
+            <span className="inline-flex min-h-11 items-center text-sm text-humo">Llena: no caben más animales</span>
+          ) : (
+            <Link href={`/hato/corrales/mover?destino=${u.id}`} className="inline-flex min-h-11 items-center gap-1.5 text-sm font-semibold text-musgo underline-offset-4 hover:underline">
+              <ArrowRightLeft className="size-4" strokeWidth={2} aria-hidden="true" /> Mover animales aquí
+            </Link>
+          )}
           {u.ocupantes > 0 ? (
             <Link href={`/hato/corrales/mover?de=${u.id}`} className="inline-flex min-h-11 items-center text-sm font-semibold text-musgo underline-offset-4 hover:underline">
               {corral ? "Mover el lote" : "Rotar el lote"}

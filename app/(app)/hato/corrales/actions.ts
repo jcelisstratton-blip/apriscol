@@ -158,3 +158,35 @@ export async function moverAnimales(_: EstadoForm, form: FormData): Promise<Esta
   for (const a of ids.slice(0, 50)) revalidatePath(`/hato/${a}`);
   redirect(d.animal ? `/hato/${d.animal}?guardado=1#ubicacion` : d.volver ? `/hato/corrales/${d.volver}?guardado=1` : `${DIRECCION_CORRALES}&guardado=1`);
 }
+
+// ───────────────────────── Corregir un movimiento ─────────────────────────
+const esquemaEditarMovimiento = z.object({
+  movimiento_id: z.uuid("El movimiento no es válido."),
+  ubicacion_id: z.uuid("Elige la instalación."),
+  desde: z.iso.date("Indica desde cuándo estuvo ahí."),
+  motivo: z.enum(MOTIVOS as [string, ...string[]], "Elige el motivo."),
+  observaciones: opcional(z.string().trim().max(300, "Las observaciones son muy largas (máximo 300 letras).")),
+  /** Si se llegó desde una instalación, al guardar se vuelve a ella; si no, a la ficha del animal. */
+  volver: opcional(z.uuid()),
+});
+
+/** Corrige un movimiento ya registrado: a qué instalación fue el animal, desde cuándo, el motivo y la nota. */
+export async function editarMovimiento(_: EstadoForm, form: FormData): Promise<EstadoForm> {
+  const { finca, rol } = await obtenerContexto();
+  if (!puedeEscribir(rol, "corrales")) return { error: "No tienes permiso para editar movimientos en esta finca." };
+  const datos = esquemaEditarMovimiento.safeParse(Object.fromEntries(form));
+  if (!datos.success) return { error: datos.error.issues[0]?.message ?? "Revisa los datos." };
+  const d = datos.data;
+  if (d.desde > hoyBogota()) return { error: "La fecha de entrada no puede ser futura." };
+  const supabase = await crearClienteServidor();
+  const { data: mov } = await supabase.from("movimientos_animales").select("animal_id").eq("id", d.movimiento_id).eq("finca_id", finca.id).maybeSingle();
+  if (!mov) return { error: "No encontramos ese movimiento." };
+  const { error } = await supabase.rpc("editar_movimiento", { p_id: d.movimiento_id, p_ubicacion: d.ubicacion_id, p_desde: d.desde, p_motivo: d.motivo, p_observaciones: d.observaciones ?? "" });
+  if (error) return { error: mensajeAmigable(error.message) };
+
+  revalidatePath("/hato");
+  revalidatePath("/corrales");
+  revalidatePath("/");
+  revalidatePath(`/hato/${mov.animal_id}`);
+  redirect(d.volver ? `/hato/corrales/${d.volver}?guardado=1` : `/hato/${mov.animal_id}?guardado=1#ubicacion`);
+}

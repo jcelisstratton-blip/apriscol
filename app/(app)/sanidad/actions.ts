@@ -324,6 +324,71 @@ export async function eliminarPrueba(pruebaId: string): Promise<{ ok: true; anim
 }
 
 
+// ───────────────────────── FAMACHA (de un animal) ─────────────────────────
+const esquemaFamacha = z.object({
+  animal_id: z.uuid("Elige el animal."),
+  fecha: z.iso.date("Indica la fecha."),
+  puntaje: z.coerce.number("Elige el puntaje FAMACHA (1 a 5).").int("Elige el puntaje FAMACHA (1 a 5).").min(1, "Elige el puntaje FAMACHA (1 a 5).").max(5, "Elige el puntaje FAMACHA (1 a 5)."),
+  observaciones: opcional(z.string().trim().max(300, "Las observaciones son muy largas (máximo 300 letras).")),
+});
+const esquemaEdicionFamacha = esquemaFamacha.extend({ evaluacion_id: z.uuid() });
+const FAMACHA_REPETIDA = "Ya registraste una evaluación FAMACHA de este animal en esa fecha. Edítala o elige otra fecha.";
+
+export async function crearFamacha(_: EstadoForm, form: FormData): Promise<EstadoForm> {
+  const { finca, rol } = await obtenerContexto();
+  if (!puedeEscribir(rol, "sanidad")) return { error: "No tienes permiso para registrar sanidad en esta finca." };
+  const datos = esquemaFamacha.safeParse(Object.fromEntries(form));
+  if (!datos.success) return { error: datos.error.issues[0]?.message };
+  const d = datos.data;
+  if (d.fecha > hoyBogota()) return { error: "La fecha no puede ser futura." };
+  const supabase = await crearClienteServidor();
+  const { error } = await supabase.from("evaluaciones_famacha").insert({ finca_id: finca.id, animal_id: d.animal_id, fecha: d.fecha, puntaje: d.puntaje, observaciones: d.observaciones ?? null });
+  if (error?.code === "23505") return { error: FAMACHA_REPETIDA };
+  if (error) return { error: mensajeAmigable(error.message) };
+  revalidatePath("/sanidad");
+  revalidatePath("/hato");
+  revalidatePath(`/hato/${d.animal_id}`);
+  redirect(`/hato/${d.animal_id}?guardado=1#sanidad`);
+}
+
+export async function editarFamacha(_: EstadoForm, form: FormData): Promise<EstadoForm> {
+  const { finca, rol } = await obtenerContexto();
+  if (!puedeEscribir(rol, "sanidad")) return { error: "No tienes permiso para editar sanidad en esta finca." };
+  const datos = esquemaEdicionFamacha.safeParse(Object.fromEntries(form));
+  if (!datos.success) return { error: datos.error.issues[0]?.message };
+  const d = datos.data;
+  if (d.fecha > hoyBogota()) return { error: "La fecha no puede ser futura." };
+  const supabase = await crearClienteServidor();
+  const { data, error } = await supabase
+    .from("evaluaciones_famacha")
+    .update({ fecha: d.fecha, puntaje: d.puntaje, observaciones: d.observaciones ?? null })
+    .eq("id", d.evaluacion_id)
+    .eq("finca_id", finca.id)
+    .eq("animal_id", d.animal_id)
+    .select("id");
+  if (error?.code === "23505") return { error: FAMACHA_REPETIDA };
+  if (error) return { error: mensajeAmigable(error.message) };
+  if (!data || data.length === 0) return { error: "No encontramos esa evaluación." };
+  revalidatePath("/sanidad");
+  revalidatePath("/hato");
+  revalidatePath(`/hato/${d.animal_id}`);
+  redirect(`/hato/${d.animal_id}?guardado=1#sanidad`);
+}
+
+export async function eliminarFamacha(evaluacionId: string): Promise<Resultado> {
+  const { finca, rol } = await obtenerContexto();
+  if (!puedeEscribir(rol, "sanidad")) return { ok: false, error: "No tienes permiso para eliminar evaluaciones en esta finca." };
+  if (!ID_UUID.safeParse(evaluacionId).success) return { ok: false, error: "Evaluación no válida." };
+  const supabase = await crearClienteServidor();
+  const { data, error } = await supabase.from("evaluaciones_famacha").delete().eq("id", evaluacionId).eq("finca_id", finca.id).select("animal_id");
+  if (error) return { ok: false, error: mensajeAmigable(error.message) };
+  if (!data || data.length === 0) return { ok: false, error: "No encontramos esa evaluación." };
+  revalidatePath("/sanidad");
+  revalidatePath("/hato");
+  revalidatePath(`/hato/${data[0].animal_id}`);
+  return { ok: true };
+}
+
 // ───────────────────────── Programación sanitaria ─────────────────────────
 const esquemaPrograma = z.object({
   tipo: z.enum(TIPOS_PROGRAMABLES as [string, ...string[]], "Elige qué se va a aplicar."),

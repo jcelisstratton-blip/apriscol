@@ -27,7 +27,7 @@ export type UbicacionOpcion = {
 const SIN_DESTINO = "__sin_destino";
 
 /**
- * Mover animales a un corral o potrero (o sacarlos de donde están). Avisa antes de guardar si el destino quedaría hacinado, si un potrero
+ * Mover animales a un corral o potrero (o sacarlos de donde están). Bloquea el guardado si el destino no tiene cupo para todos (hacinamiento), y avisa si un potrero
  * todavía descansa o si es una cuarentena. Desde un lote (`animalesIniciales`) sirve para rotarlo de potrero.
  */
 export function FormMover({
@@ -103,8 +103,10 @@ export function FormMover({
     else if (u) setMotivo("traslado");
   };
 
-  const quedaria = elDestino ? elDestino.ocupantes + Math.max(0, animales.length - yaAhi) : 0;
-  const hacinado = Boolean(elDestino?.capacidad && quedaria > elDestino.capacidad);
+  // El hacinamiento se bloquea: no caben más animales que la capacidad (los que ya están en el destino no cuentan, no se mueven).
+  const entran = Math.max(0, animales.length - yaAhi);
+  const libres = elDestino?.capacidad ? Math.max(0, elDestino.capacidad - elDestino.ocupantes) : null;
+  const sinCupo = Boolean(elDestino && libres !== null && entran > libres);
   const faltan = animales.length === 0 ? "Elige los animales." : !destino ? "Elige a dónde van." : null;
 
   const alEnviar = (e: React.FormEvent<HTMLFormElement>) => {
@@ -153,9 +155,11 @@ export function FormMover({
         {() => <SelectorAnimales fincaId={fincaId} especies={especies} valor={animales} onCambio={setAnimales} />}
       </Campo>
 
-      {hacinado && elDestino ? (
+      {sinCupo && elDestino && libres !== null ? (
         <Aviso tipo="atencion">
-          {elDestino.nombre} quedaría con {quedaria} animales y le caben {elDestino.capacidad}. El hacinamiento causa estrés, peleas y enfermedades respiratorias. Puedes seguir, pero conviene repartirlos.
+          {libres === 0
+            ? `${elDestino.nombre} está llena: caben ${elDestino.capacidad} animales y ya tiene ${elDestino.ocupantes}. Elige otra instalación o saca a algunos antes.`
+            : `En ${elDestino.nombre} solo caben ${libres} ${libres === 1 ? "animal más" : "animales más"} y elegiste ${entran}. Quita ${entran - libres} o elige otra instalación: el hacinamiento causa estrés, peleas y enfermedades respiratorias.`}
         </Aviso>
       ) : null}
       {elDestino?.estado === "descanso" ? (
@@ -181,7 +185,7 @@ export function FormMover({
       {faltan ? <Aviso tipo="atencion">{faltan}</Aviso> : null}
       {estado?.error ? <Aviso tipo="error">{estado.error}</Aviso> : null}
       <div className="space-y-2">
-        <Boton type="submit" pendiente={pendiente} cargando="Moviendo…" disabled={faltan != null}>
+        <Boton type="submit" pendiente={pendiente} cargando="Moviendo…" disabled={faltan != null || sinCupo}>
           {sinDestino ? "Sacar de su ubicación" : animales.length > 1 ? `Mover ${animales.length} animales` : "Mover"}
         </Boton>
         <Link href={volver} className={clasesBoton("fantasma")}>Cancelar</Link>

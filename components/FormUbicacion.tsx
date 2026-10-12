@@ -17,7 +17,7 @@ const coma = (n: number | null | undefined) => (n == null ? "" : String(n).repla
  * Crear o corregir un corral (bajo techo) o un potrero (pastoreo): para qué se usa, cuántos animales caben, el piso y el agua del corral,
  * y las reglas de rotación del potrero (días de ocupación y de descanso). El tipo no cambia una vez creada.
  */
-export function FormUbicacion({ ubicacion, volver }: { ubicacion?: Ubicacion; volver: string }) {
+export function FormUbicacion({ ubicacion, volver, ocupantes = 0 }: { ubicacion?: Ubicacion; volver: string; /** Cuántos animales hay hoy (al editar): la capacidad no puede bajar de ahí. */ ocupantes?: number }) {
   const editando = Boolean(ubicacion);
   const [estado, enviar, pendiente] = useActionState(editando ? editarUbicacion : crearUbicacion, undefined);
   const [, iniciar] = useTransition();
@@ -69,7 +69,7 @@ export function FormUbicacion({ ubicacion, volver }: { ubicacion?: Ubicacion; vo
       </Campo>
 
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-        <Campo etiqueta={corral ? "Cuántos animales caben" : "Cuántos animales caben (opcional)"} ayuda={corral ? "Si se pasa de ese número, la app avisa que hay hacinamiento." : "Opcional: si no lo pones, no se avisa de sobrecarga."}>
+        <Campo etiqueta={corral ? "Cuántos animales caben" : "Cuántos animales caben (opcional)"} ayuda={`${corral ? "La app no deja pasar de ese número: así se evita el hacinamiento." : "Opcional: si lo pones, la app no deja pasar de ese número; si no, no hay tope."}${ocupantes ? ` Hoy hay ${ocupantes}: no puede ser menos.` : ""}`}>
           {(id) => <input id={id} name="capacidad" defaultValue={ubicacion?.capacidad ?? ""} required={corral} inputMode="numeric" autoComplete="off" className={CLASE_INPUT} />}
         </Campo>
         <Campo etiqueta="Área en m² (opcional)" ayuda="Sirve para ver cuánto espacio tiene cada animal.">

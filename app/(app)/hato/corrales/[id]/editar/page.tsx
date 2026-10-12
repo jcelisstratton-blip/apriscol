@@ -19,6 +19,7 @@ export default async function PaginaUbicacionEditar({ params }: { params: Promis
   const supabase = await crearClienteServidor();
   const { data: u } = await supabase.from("ubicaciones").select("*").eq("id", id).eq("finca_id", finca.id).maybeSingle();
   if (!u) notFound();
+  const { count: ocupantes } = await supabase.from("movimientos_animales").select("id", { count: "exact", head: true }).eq("ubicacion_id", id).is("hasta", null);
   return (
     <>
       <Link href={`/hato/corrales/${id}`} className="-ml-2 mt-3 inline-flex min-h-11 items-center gap-1 rounded-full px-2 text-[0.9375rem] font-semibold text-musgo">
@@ -26,7 +27,7 @@ export default async function PaginaUbicacionEditar({ params }: { params: Promis
       </Link>
       <Encabezado titulo="Editar instalación" subtitulo={finca.nombre} />
       <div className="lg:max-w-xl">
-        <FormUbicacion ubicacion={u} volver={`/hato/corrales/${id}`} />
+        <FormUbicacion ubicacion={u} volver={`/hato/corrales/${id}`} ocupantes={ocupantes ?? 0} />
       </div>
     </>
   );

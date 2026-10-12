@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Check, Users, X } from "lucide-react";
 import { Aviso } from "@/components/Aviso";
 import { Boton } from "@/components/Boton";
@@ -12,6 +12,7 @@ import { Sheet } from "@/components/Sheet";
 import { crearClienteNavegador } from "@/lib/supabase/client";
 import { etiquetaAnimal } from "@/lib/animal";
 import { hoyBogota, sumarDias } from "@/lib/fechas";
+import { estadoFamacha } from "@/lib/famacha";
 import { DIAS_PODOLOGIA } from "@/lib/sanidad";
 import type { Especie } from "@/lib/tipos";
 
@@ -39,6 +40,26 @@ export function SelectorAnimales({
   const [error, setError] = useState<string | null>(null);
   const [cargandoGrupo, setCargandoGrupo] = useState<string | null>(null);
   const elegidos = new Set(valor.map((a) => a.id));
+  // Los corrales y potreros con animales: se cargan al abrir la hoja por primera vez, para ofrecer «los de este corral».
+  const [instalaciones, setInstalaciones] = useState<{ id: string; nombre: string; ocupantes: number }[] | null>(null);
+  useEffect(() => {
+    if (!abierta || instalaciones !== null) return;
+    let vigente = true;
+    void crearClienteNavegador()
+      .from("v_ubicaciones")
+      .select("id, nombre, ocupantes")
+      .eq("finca_id", fincaId)
+      .eq("activa", true)
+      .gt("ocupantes", 0)
+      .order("nombre")
+      .limit(100)
+      .then(({ data }) => {
+        if (vigente) setInstalaciones((data ?? []) as { id: string; nombre: string; ocupantes: number }[]);
+      });
+    return () => {
+      vigente = false;
+    };
+  }, [abierta, instalaciones, fincaId]);
 
   const buscar = useCallback(
     async (texto: string) => {
@@ -137,6 +158,24 @@ export function SelectorAnimales({
         return animalesPorId((data ?? []).filter((p) => !p.ultima_fecha || p.ultima_fecha < limite).map((p) => p.animal_id));
       },
     },
+    {
+      clave: "famacha",
+      texto: "FAMACHA 4 o 5 sin desparasitar",
+      cargar: async () => {
+        const { data, error: e } = await crearClienteNavegador().from("v_famacha_animal").select("animal_id, puntaje, ultima_fecha, desparasitado_en").eq("finca_id", fincaId).gte("puntaje", 4).limit(2000);
+        if (e) throw new Error(e.message);
+        return animalesPorId((data ?? []).filter((f) => estadoFamacha(f).clave === "desparasitar").map((f) => f.animal_id));
+      },
+    },
+    ...(instalaciones ?? []).map((u) => ({
+      clave: `ub-${u.id}`,
+      texto: `En ${u.nombre} (${u.ocupantes})`,
+      cargar: async () => {
+        const { data, error: e } = await crearClienteNavegador().from("movimientos_animales").select("animal_id").eq("finca_id", fincaId).eq("ubicacion_id", u.id).is("hasta", null).limit(MAXIMO);
+        if (e) throw new Error(e.message);
+        return animalesPorId((data ?? []).map((m) => m.animal_id));
+      },
+    })),
   ];
 
   const resumen =

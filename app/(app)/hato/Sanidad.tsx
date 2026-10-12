@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { CalendarClock, Footprints, Plus, Syringe } from "lucide-react";
+import { AvisoFamacha } from "@/components/AvisoFamacha";
 import { AvisoGuardado } from "@/components/AvisoGuardado";
 import { CancelarPrograma } from "@/components/AccionesPrograma";
 import { clasesBoton } from "@/components/Boton";
@@ -7,6 +8,7 @@ import { EstadoVacio } from "@/components/EstadoVacio";
 import { IconoEvento } from "@/components/IconoEvento";
 import { Insignia } from "@/components/Insignia";
 import { crearClienteServidor } from "@/lib/supabase/server";
+import { estadoFamacha } from "@/lib/famacha";
 import { formatoFecha, hoyBogota, sumarDias } from "@/lib/fechas";
 import { DIAS_PODOLOGIA, ETIQUETA_EVENTO, estadoDosis, estadoFechaPrograma, nombreEvento } from "@/lib/sanidad";
 import type { ProgramaSanitarioResumen, SanidadPendiente, TipoEvento } from "@/lib/tipos";
@@ -33,10 +35,11 @@ export async function Sanidad({
   const supabase = cliente ?? (await crearClienteServidor());
   const hoy = hoyBogota();
   const limitePodologia = sumarDias(hoy, -DIAS_PODOLOGIA);
-  const [programasDB, pendientesDB, podologiaDB] = await Promise.all([
+  const [programasDB, pendientesDB, podologiaDB, famachaDB] = await Promise.all([
     supabase.from("v_programas_sanitarios").select("*").eq("finca_id", fincaId).eq("estado", "abierto").order("fecha_programada").limit(50),
     supabase.from("v_sanidad_pendiente").select("*").eq("finca_id", fincaId).order("proxima_fecha").limit(1000),
     supabase.from("v_podologia_animal").select("animal_id, ultima_fecha").eq("finca_id", fincaId).limit(2000),
+    supabase.from("v_famacha_animal").select("*").eq("finca_id", fincaId).gte("puntaje", 3).limit(2000),
   ]);
   const programas = (programasDB.data ?? []) as ProgramaSanitarioResumen[];
 
@@ -49,6 +52,9 @@ export async function Sanidad({
     grupos.set(p.evento_id, g);
   }
   const refuerzos = [...grupos.values()].sort((a, b) => a.proxima_fecha.localeCompare(b.proxima_fecha));
+  const estadosFamacha = (famachaDB.data ?? []).map((f) => estadoFamacha(f).clave);
+  const famachaDesparasitar = estadosFamacha.filter((c) => c === "desparasitar").length;
+  const famachaVigilar = estadosFamacha.filter((c) => c === "vigilar").length;
   const sinPodologia = (podologiaDB.data ?? []).filter((p) => !p.ultima_fecha || p.ultima_fecha < limitePodologia).length;
 
   const botones = puedeEditar ? (
@@ -66,7 +72,7 @@ export async function Sanidad({
     <div className="space-y-4">
       <AvisoGuardado activo={guardado} />
       <p className="text-[0.9375rem] text-humo">
-        Aquí programas vacunas, desparasitaciones, tratamientos o podología para los animales que aplican, y registras lo que ya se aplicó. El resumen de toda la
+        Aquí programas vacunas, desparasitaciones, tratamientos, podología o pediluvio para los animales que aplican, y registras lo que ya se aplicó. El resumen de toda la
         finca, con filtros por fechas, está en{" "}
         <Link href="/sanidad" className="font-semibold text-musgo underline underline-offset-2">Sanidad</Link>.
       </p>
@@ -154,6 +160,13 @@ export async function Sanidad({
               );
             })}
           </ul>
+        </section>
+      ) : null}
+
+      {famachaDesparasitar > 0 || famachaVigilar > 0 ? (
+        <section className="rounded-2xl bg-lana p-3.5" aria-label="FAMACHA">
+          <p className="mb-1 font-bold">FAMACHA</p>
+          <AvisoFamacha desparasitar={famachaDesparasitar} vigilar={famachaVigilar} puedeProgramar={puedeEditar} />
         </section>
       ) : null}
 

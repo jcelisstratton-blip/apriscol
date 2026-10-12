@@ -2,7 +2,7 @@
 
 import { useCallback, useState } from "react";
 import Link from "next/link";
-import { ArrowRightLeft } from "lucide-react";
+import { ArrowRightLeft, Pencil } from "lucide-react";
 import { CampoBusqueda } from "@/components/CampoBusqueda";
 import { EstadoVacio } from "@/components/EstadoVacio";
 import { Insignia } from "@/components/Insignia";
@@ -25,6 +25,7 @@ export function ListaMovimientos({
   ubicacionId,
   rango = { desde: null, hasta: null },
   animalId,
+  puedeEditar = false,
 }: {
   fincaId: string;
   /** Los nombres de las instalaciones por id (para no pedirlos en cada fila). */
@@ -32,6 +33,8 @@ export function ListaMovimientos({
   ubicacionId?: string;
   rango?: { desde: string | null; hasta: string | null };
   animalId?: string;
+  /** Muestra «Corregir» en cada movimiento (a qué instalación fue, desde cuándo, motivo). */
+  puedeEditar?: boolean;
 }) {
   const [busqueda, setBusqueda] = useState("");
   const alBuscar = useCallback((t: string) => setBusqueda(t), []);
@@ -71,7 +74,8 @@ export function ListaMovimientos({
         cargar={cargar}
         clave={(m) => m.id}
         fila={(m) => (
-          <Link href={`/hato/${m.animal_id}#ubicacion`} className="block min-w-0 rounded-2xl bg-papel px-3.5 py-3 ring-1 ring-arena">
+          <div className="min-w-0 rounded-2xl bg-papel px-3.5 py-3 ring-1 ring-arena">
+            <Link href={`/hato/${m.animal_id}#ubicacion`} className="block min-w-0">
             <span className="block font-bold [overflow-wrap:anywhere]">{m.animal ? etiquetaAnimal(m.animal) : "Animal"}</span>
             <span className="block text-sm text-humo [overflow-wrap:anywhere]">
               {ubicaciones[m.ubicacion_id] ?? "Instalación"} · desde el {formatoFecha(m.desde, { day: "numeric", month: "short", year: "numeric" })}
@@ -82,7 +86,16 @@ export function ListaMovimientos({
               <Insignia>{ETIQUETA_MOTIVO[m.motivo]}</Insignia>
             </span>
             {m.observaciones ? <span className="mt-1 block text-sm text-humo [overflow-wrap:anywhere]">{m.observaciones}</span> : null}
-          </Link>
+            </Link>
+            {puedeEditar ? (
+              <Link
+                href={`/hato/corrales/movimiento/${m.id}/editar${ubicacionId ? `?volver=${ubicacionId}` : ""}`}
+                className="mt-1 inline-flex min-h-11 items-center gap-1.5 text-sm font-semibold text-musgo underline-offset-4 hover:underline"
+              >
+                <Pencil className="size-3.5" strokeWidth={2} aria-hidden="true" /> Corregir
+              </Link>
+            ) : null}
+          </div>
         )}
         vacio={<EstadoVacio icono={<ArrowRightLeft strokeWidth={1.5} />} titulo="Sin movimientos" descripcion={busqueda || rango.desde || rango.hasta ? "No hay movimientos con ese filtro." : "Cuando muevas animales entre corrales y potreros, aquí queda el historial."} />}
       />

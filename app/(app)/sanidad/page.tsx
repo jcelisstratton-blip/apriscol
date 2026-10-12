@@ -74,7 +74,7 @@ export default async function PaginaSanidad({
         </div>
       ) : null}
 
-      {vista === "resumen" ? <Resumen fincaId={finca.id} filtros={{ ...filtroFechas, tipo }} /> : null}
+      {vista === "resumen" ? <Resumen fincaId={finca.id} filtros={{ ...filtroFechas, tipo }} puedeProgramar={puedeEditar} /> : null}
       {vista === "historial" ? <ListaEventos fincaId={finca.id} puedeRegistrar={puedeEditar} rango={rango} tipoInicial={tipo} /> : null}
       {vista === "productos" ? <ListaProductos fincaId={finca.id} puedeEditar={puedeEditar} /> : null}
       {vista === "pruebas" ? <ListaPruebas fincaId={finca.id} puedeEditar={puedeEditar} rango={rango} /> : null}

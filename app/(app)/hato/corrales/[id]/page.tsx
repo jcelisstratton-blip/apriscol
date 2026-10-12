@@ -101,7 +101,7 @@ export default async function PaginaUbicacion({ params, searchParams }: { params
             {u.hacinada ? (
               <div className="mt-3">
                 <Aviso tipo="atencion">
-                  Tiene {u.ocupantes} animales y le caben {u.capacidad}. El hacinamiento sube el estrés, las peleas y las enfermedades: conviene pasar {u.ocupantes - (u.capacidad ?? 0)} a otra instalación.
+                  Tiene {u.ocupantes} animales y le caben {u.capacidad}. El hacinamiento sube el estrés, las peleas y las enfermedades: pasa {u.ocupantes - (u.capacidad ?? 0)} a otra instalación.
                 </Aviso>
               </div>
             ) : null}
@@ -112,9 +112,13 @@ export default async function PaginaUbicacion({ params, searchParams }: { params
             ) : null}
             {puedeEditar && u.activa ? (
               <div className="mt-3 grid grid-cols-1 gap-2 min-[420px]:grid-cols-2">
-                <Link href={`/hato/corrales/mover?destino=${u.id}`} className={clasesBoton("primario")}>
-                  <ArrowRightLeft className="size-5" strokeWidth={2} aria-hidden="true" /> Mover animales aquí
-                </Link>
+                {u.capacidad && u.ocupantes >= u.capacidad ? (
+                  <Aviso tipo="info">Está llena: no caben más animales. Saca a algunos o sube la capacidad si el espacio lo permite.</Aviso>
+                ) : (
+                  <Link href={`/hato/corrales/mover?destino=${u.id}`} className={clasesBoton("primario")}>
+                    <ArrowRightLeft className="size-5" strokeWidth={2} aria-hidden="true" /> Mover animales aquí
+                  </Link>
+                )}
                 {u.ocupantes > 0 ? (
                   <Link href={`/hato/corrales/mover?de=${u.id}`} className={clasesBoton("secundario")}>
                     {corral ? "Mover el lote" : "Rotar el lote"}
@@ -152,7 +156,7 @@ export default async function PaginaUbicacion({ params, searchParams }: { params
             )}
           </Tarjeta>
           <Tarjeta titulo="Historial">
-            <ListaMovimientos fincaId={finca.id} ubicaciones={nombres} ubicacionId={u.id} />
+            <ListaMovimientos fincaId={finca.id} ubicaciones={nombres} ubicacionId={u.id} puedeEditar={puedeEditar} />
           </Tarjeta>
         </div>
       </div>

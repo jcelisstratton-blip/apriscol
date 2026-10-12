@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { CalendarClock, ChevronRight, SearchX, Syringe } from "lucide-react";
+import { AvisoFamacha } from "@/components/AvisoFamacha";
 import { EstadoVacio } from "@/components/EstadoVacio";
 import { FilaDesplazable } from "@/components/FilaDesplazable";
 import { ChipEnlace } from "@/components/ChipEnlace";
@@ -7,6 +8,7 @@ import { IconoEvento } from "@/components/IconoEvento";
 import { Insignia } from "@/components/Insignia";
 import { Tarjeta } from "@/components/Tarjeta";
 import { crearClienteServidor } from "@/lib/supabase/server";
+import { estadoFamacha } from "@/lib/famacha";
 import { animalesPorIds } from "@/lib/animal-etiquetas";
 import { etiquetaAnimal } from "@/lib/animal";
 import { formatoFecha, hoyBogota, sumarDias } from "@/lib/fechas";
@@ -39,10 +41,13 @@ function direccion(f: FiltrosSanidad, cambios: Partial<FiltrosSanidad>): string 
 export async function Resumen({
   fincaId,
   filtros,
+  puedeProgramar = false,
   cliente,
 }: {
   fincaId: string;
   filtros: FiltrosSanidad;
+  /** Si la persona puede programar sanidad (muestra el atajo para programar a partir de FAMACHA). */
+  puedeProgramar?: boolean;
   /** Solo para pruebas: un cliente de base de datos en lugar del de la sesión. */
   cliente?: Awaited<ReturnType<typeof crearClienteServidor>>;
 }) {
@@ -73,13 +78,14 @@ export async function Resumen({
     qRefuerzos = qRefuerzos.lte("proxima_fecha", rango.hasta);
   }
 
-  const [retiro, eventosDB, programasDB, pruebasDB, refuerzosDB, podologiaDB] = await Promise.all([
+  const [retiro, eventosDB, programasDB, pruebasDB, refuerzosDB, podologiaDB, famachaDB] = await Promise.all([
     supabase.rpc("animales_en_retiro", { p_finca: fincaId }),
     qEventos.order("fecha", { ascending: false }).limit(1000),
     qProgramas.order("fecha_programada").limit(500),
     qPruebas.order("fecha", { ascending: false }).limit(8),
     qRefuerzos.order("proxima_fecha").limit(1000),
     supabase.from("v_podologia_animal").select("animal_id, ultima_fecha").eq("finca_id", fincaId).limit(2000),
+    supabase.from("v_famacha_animal").select("*").eq("finca_id", fincaId).gte("puntaje", 3).limit(2000),
   ]);
 
   const eventos = (eventosDB.data ?? []) as EventoResumen[];
@@ -103,13 +109,16 @@ export async function Resumen({
 
   const enRetiro = (retiro.data ?? []).slice().sort((a, b) => (a.retiro_carne_hasta ?? a.retiro_leche_hasta ?? "").localeCompare(b.retiro_carne_hasta ?? b.retiro_leche_hasta ?? ""));
   const pruebas = pruebasDB.data ?? [];
+  const estadosFamacha = (famachaDB.data ?? []).map((f) => estadoFamacha(f).clave);
+  const famachaDesparasitar = estadosFamacha.filter((c) => c === "desparasitar").length;
+  const famachaVigilar = estadosFamacha.filter((c) => c === "vigilar").length;
   const limitePodologia = sumarDias(hoy, -DIAS_PODOLOGIA);
   const sinPodologia = (podologiaDB.data ?? []).filter((p) => !p.ultima_fecha || p.ultima_fecha < limitePodologia).length;
 
   const nombres = new Map((await animalesPorIds(supabase, fincaId, [...enRetiro.map((r) => r.animal_id), ...pruebas.map((p) => p.animal_id), ...refuerzos.filter((g) => g.animales.length === 1).map((g) => g.animales[0])])).map((a) => [a.id, etiquetaAnimal(a)]));
 
   const hayTipo = filtros.tipo !== "todos";
-  const sinNada = eventos.length === 0 && programas.length === 0 && refuerzos.length === 0 && pruebas.length === 0 && enRetiro.length === 0;
+  const sinNada = eventos.length === 0 && programas.length === 0 && refuerzos.length === 0 && pruebas.length === 0 && enRetiro.length === 0 && famachaDesparasitar + famachaVigilar === 0;
   const cifras: [string, number, boolean][] = [
     ["Registros", eventos.length, false],
     ["Aplicaciones", aplicaciones, false],
@@ -289,6 +298,12 @@ export async function Resumen({
                     </li>
                   ))}
                 </ul>
+              </Tarjeta>
+            ) : null}
+
+            {(famachaDesparasitar > 0 || famachaVigilar > 0) && (filtros.tipo === "todos" || filtros.tipo === "desparasitacion") ? (
+              <Tarjeta titulo="FAMACHA (ahora)">
+                <AvisoFamacha desparasitar={famachaDesparasitar} vigilar={famachaVigilar} puedeProgramar={puedeProgramar} />
               </Tarjeta>
             ) : null}
 

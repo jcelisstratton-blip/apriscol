@@ -12,6 +12,7 @@ import { animalesPorIds } from "@/lib/animal-etiquetas";
 import { etiquetaAnimal } from "@/lib/animal";
 import { hoyBogota, sumarDias } from "@/lib/fechas";
 import { DIAS_PODOLOGIA, TIPOS_PROGRAMABLES } from "@/lib/sanidad";
+import { estadoFamacha } from "@/lib/famacha";
 import type { TipoEvento } from "@/lib/tipos";
 
 export const metadata: Metadata = { title: "Programar sanidad" };
@@ -19,7 +20,7 @@ const ID_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 
 /**
  * Programar una vacuna, desparasitación, tratamiento o podología. Desde la ficha de un animal (`?animal=`) ya viene ese animal; con `?id=`
- * se corrige una programación; con `?grupo=podologia` vienen los animales que llevan más de seis meses sin recorte de pezuñas.
+ * se corrige una programación; con `?grupo=podologia` vienen los animales que llevan más de seis meses sin recorte de pezuñas y con `?grupo=famacha` los que sacaron 4 o 5 en FAMACHA y siguen sin desparasitar.
  */
 export default async function PaginaProgramar({ searchParams }: { searchParams: Promise<{ id?: string; animal?: string; tipo?: string; grupo?: string }> }) {
   const { finca, rol } = await obtenerContexto();
@@ -50,6 +51,9 @@ export default async function PaginaProgramar({ searchParams }: { searchParams: 
       const { data } = await supabase.from("v_podologia_animal").select("animal_id, ultima_fecha").eq("finca_id", finca.id).limit(2000);
       const limite = sumarDias(hoy, -DIAS_PODOLOGIA);
       ids = (data ?? []).filter((p) => !p.ultima_fecha || p.ultima_fecha < limite).map((p) => p.animal_id).slice(0, 1000);
+    } else if (grupo === "famacha") {
+      const { data } = await supabase.from("v_famacha_animal").select("animal_id, puntaje, ultima_fecha, desparasitado_en").eq("finca_id", finca.id).gte("puntaje", 4).limit(2000);
+      ids = (data ?? []).filter((f) => estadoFamacha(f).clave === "desparasitar").map((f) => f.animal_id).slice(0, 1000);
     }
   }
   const animales = await animalesPorIds(supabase, finca.id, ids);

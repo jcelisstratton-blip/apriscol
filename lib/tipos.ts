@@ -259,7 +259,7 @@ export type PalmaresAnimal = {
 
 // ───────────────────────── Sanidad ─────────────────────────
 export type TipoProducto = "vacuna" | "desparasitante" | "antibiotico" | "antiinflamatorio" | "vitamina" | "otro";
-export type TipoEvento = "vacunacion" | "desparasitacion" | "tratamiento" | "cirugia" | "podologia" | "otro";
+export type TipoEvento = "vacunacion" | "desparasitacion" | "tratamiento" | "cirugia" | "podologia" | "pediluvio" | "otro";
 export type ViaAplicacion = "oral" | "subcutanea" | "intramuscular" | "intravenosa" | "topica" | "intramamaria" | "otra";
 export type TipoPrueba = "cae" | "brucelosis" | "cmt" | "mastitis_cultivo" | "paratuberculosis" | "otra";
 export type ResultadoPrueba = "negativo" | "positivo" | "sospechoso" | "pendiente";
@@ -322,6 +322,21 @@ export type PruebaSanitaria = {
   created_at: string;
   updated_at: string;
 };
+
+/** Una evaluación FAMACHA: el color de la mucosa del ojo (1 a 5) de un animal en una fecha. */
+export type EvaluacionFamacha = {
+  id: string;
+  finca_id: string;
+  animal_id: string;
+  fecha: string;
+  puntaje: number;
+  observaciones: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+};
+/** La última evaluación FAMACHA de un animal activo y cuándo se le desparasitó desde entonces (vista `v_famacha_animal`). */
+export type FamachaAnimal = { animal_id: string; finca_id: string; evaluacion_id: string; ultima_fecha: string; puntaje: number; desparasitado_en: string | null };
 
 /** Un evento con cuántos animales lo recibieron (vista `v_eventos_sanitarios`). */
 export type EventoResumen = {
@@ -986,6 +1001,7 @@ export type Database = {
       eventos_sanitarios: Tabla<EventoSanitario, "finca_id" | "tipo">;
       evento_sanitario_animales: Tabla<EventoSanitarioAnimal, "evento_id" | "animal_id" | "finca_id">;
       pruebas_sanitarias: Tabla<PruebaSanitaria, "finca_id" | "animal_id" | "prueba">;
+      evaluaciones_famacha: Tabla<EvaluacionFamacha, "finca_id" | "animal_id" | "fecha" | "puntaje">;
       analisis_leche: Tabla<AnalisisLeche, "finca_id">;
       controles_frio: Tabla<ControlFrio, "finca_id" | "momento" | "temperatura_c">;
       despachos_leche: Tabla<Omit<DespachoLeche, "valor_total">, "finca_id" | "litros" | "destino_tipo">;
@@ -1022,12 +1038,17 @@ export type Database = {
       v_programas_sanitarios: { Row: ProgramaSanitarioResumen; Relationships: [] };
       v_ubicaciones: { Row: UbicacionVista; Relationships: [] };
       v_cuarentena_alerta: { Row: CuarentenaAlerta; Relationships: [] };
+      v_famacha_animal: { Row: FamachaAnimal; Relationships: [] };
       v_podologia_animal: { Row: { animal_id: string; finca_id: string; ultima_fecha: string | null }; Relationships: [] };
     };
     Functions: {
       mover_animales: {
         Args: { p_finca: string; p_ubicacion: string | null; p_animales: string[]; p_fecha: string; p_motivo: string; p_observaciones: string };
         Returns: number;
+      };
+      editar_movimiento: {
+        Args: { p_id: string; p_ubicacion: string; p_desde: string; p_motivo: string; p_observaciones: string };
+        Returns: undefined;
       };
       guardar_programa_sanitario: {
         Args: { p_finca: string; p_programa: string | null; p_datos: Record<string, unknown>; p_animales: string[] };
