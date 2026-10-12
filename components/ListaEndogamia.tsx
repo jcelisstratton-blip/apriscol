@@ -14,7 +14,7 @@ import { porcentaje } from "@/lib/endogamia";
 import type { Especie, SexoAnimal } from "@/lib/tipos";
 
 export type FilaEndogamia = { animal_id: string; numero_arete: string; nombre: string | null; sexo: SexoAnimal; especie: Especie; f: number };
-type Filtro = "umbral" | "todos";
+type Filtro = "umbral" | "bajo" | "todos";
 
 function FilaEndogamiaAnimal({ a, umbral }: { a: FilaEndogamia; umbral: number }) {
   const [abierta, setAbierta] = useState(false);
@@ -39,7 +39,7 @@ function FilaEndogamiaAnimal({ a, umbral }: { a: FilaEndogamia; umbral: number }
         aria-expanded={abierta}
         className="flex min-h-11 w-full items-center justify-between gap-2 border-t border-arena px-3.5 text-sm font-semibold text-musgo"
       >
-        ¿Por qué tiene endogamia?
+        {a.f >= umbral ? "¿Por qué tiene endogamia alta?" : "¿De dónde viene esta endogamia?"}
         <ChevronDown className={`size-4 transition ${abierta ? "rotate-180" : ""}`} strokeWidth={2} aria-hidden="true" />
       </button>
       {abierta ? (
@@ -51,7 +51,7 @@ function FilaEndogamiaAnimal({ a, umbral }: { a: FilaEndogamia; umbral: number }
   );
 }
 
-/** Animales con endogamia mayor que cero, de mayor a menor. Llegan ya calculados desde el servidor. */
+/** Animales con endogamia mayor que cero, de mayor a menor. Llegan ya calculados desde el servidor. Se pueden ver los que están sobre el umbral de la finca, los que están por debajo (aceptables) o todos. */
 export function ListaEndogamia({ filas, umbral }: { filas: FilaEndogamia[]; umbral: number }) {
   const [filtro, setFiltro] = useState<Filtro>("umbral");
   const [busqueda, setBusqueda] = useState("");
@@ -62,7 +62,7 @@ export function ListaEndogamia({ filas, umbral }: { filas: FilaEndogamia[]; umbr
       const texto = busqueda.toLowerCase();
       const visibles = filas.filter(
         (a) =>
-          (filtro === "todos" || a.f >= umbral) &&
+          (filtro === "todos" || (filtro === "umbral" ? a.f >= umbral : a.f < umbral)) &&
           (!texto || a.numero_arete.toLowerCase().includes(texto) || (a.nombre ?? "").toLowerCase().includes(texto)),
       );
       return { filas: visibles.slice(desde, desde + cantidad), total: visibles.length };
@@ -70,13 +70,23 @@ export function ListaEndogamia({ filas, umbral }: { filas: FilaEndogamia[]; umbr
     [filas, filtro, busqueda, umbral],
   );
 
+  const sobre = filas.filter((a) => a.f >= umbral).length;
+  const bajo = filas.length - sobre;
+  const DEFINICION: Record<Filtro, string> = {
+    umbral: `Endogamia igual o mayor al umbral de tu finca (${porcentaje(umbral)}). Conviene evitar repetir esas cruzas.`,
+    bajo: `Tienen algo de endogamia, pero por debajo de tu umbral (${porcentaje(umbral)}): es un nivel aceptable. «A vigilar» marca los que ya se acercan.`,
+    todos: "Todos los animales con algo de endogamia, de la más alta a la más baja.",
+  };
+
   return (
     <div className="space-y-3">
       {filas.length > 8 ? <CampoBusqueda onBuscar={alBuscar} placeholder="Buscar por arete o nombre" /> : null}
       <FilaDesplazable>
-        <Chip activo={filtro === "umbral"} onClick={() => setFiltro("umbral")}>Sobre el umbral</Chip>
-        <Chip activo={filtro === "todos"} onClick={() => setFiltro("todos")}>Con endogamia</Chip>
+        <Chip activo={filtro === "umbral"} onClick={() => setFiltro("umbral")}>Sobre el umbral · {sobre}</Chip>
+        <Chip activo={filtro === "bajo"} onClick={() => setFiltro("bajo")}>Bajo el umbral · {bajo}</Chip>
+        <Chip activo={filtro === "todos"} onClick={() => setFiltro("todos")}>Todos con endogamia · {filas.length}</Chip>
       </FilaDesplazable>
+      <p className="px-1 text-sm text-humo" aria-live="polite">{DEFINICION[filtro]}</p>
       <ListaEscalable<FilaEndogamia>
         key={`${filtro}|${busqueda}`}
         cargar={cargar}
@@ -90,6 +100,12 @@ export function ListaEndogamia({ filas, umbral }: { filas: FilaEndogamia[]; umbr
               icono={<CheckCircle2 strokeWidth={1.5} />}
               titulo="Ningún animal supera el umbral"
               descripcion="Ninguno de tus animales activos tiene una endogamia igual o mayor al umbral de tu finca."
+            />
+          ) : filtro === "bajo" ? (
+            <EstadoVacio
+              icono={<CheckCircle2 strokeWidth={1.5} />}
+              titulo="Ningún animal con endogamia bajo el umbral"
+              descripcion="Los animales que tienen algo de endogamia ya están sobre el umbral de tu finca."
             />
           ) : (
             <EstadoVacio icono={<CheckCircle2 strokeWidth={1.5} />} titulo="Sin endogamia" descripcion="Ninguno de tus animales con pedigrí conocido tiene endogamia." />

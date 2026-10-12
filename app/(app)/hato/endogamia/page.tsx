@@ -6,10 +6,10 @@ import { clasesBoton } from "@/components/Boton";
 import { Encabezado } from "@/components/Encabezado";
 import { EstadoVacio } from "@/components/EstadoVacio";
 import { ListaEndogamia } from "@/components/ListaEndogamia";
+import { LeyendaEndogamia, ResumenEndogamia } from "@/components/ResumenEndogamia";
 import { Tarjeta } from "@/components/Tarjeta";
 import { UmbralEndogamia } from "@/components/UmbralEndogamia";
 import { obtenerContexto } from "@/lib/contexto";
-import { porcentaje } from "@/lib/endogamia";
 import { puedeGestionar, puedeVer } from "@/lib/permisos";
 import { crearClienteServidor } from "@/lib/supabase/server";
 
@@ -30,6 +30,7 @@ export default async function PaginaEndogamia() {
   const sobreUmbral = conEndogamia.filter((a) => a.f >= finca.umbral_endogamia);
   const totalActivos = activos.count ?? 0;
   const mayor = conEndogamia[0]?.f;
+  const bajoUmbral = conEndogamia.length - sobreUmbral.length;
 
   return (
     <>
@@ -50,21 +51,8 @@ export default async function PaginaEndogamia() {
           </Tarjeta>
         ) : (
           <>
-            <dl className="grid grid-cols-3 gap-2 text-center">
-              {[
-                ["Medidos", String(evaluados.length)],
-                ["Sobre el umbral", String(sobreUmbral.length)],
-                ["La más alta", mayor ? porcentaje(mayor) : "0 %"],
-              ].map(([etiqueta, valor]) => (
-                <div key={etiqueta} className="min-w-0 rounded-2xl bg-papel px-1.5 py-3 ring-1 ring-arena">
-                  <dd className="font-display text-xl font-semibold tabular-nums sm:text-2xl">{valor}</dd>
-                  <dt className="mt-0.5 text-xs font-medium text-humo">{etiqueta}</dt>
-                </div>
-              ))}
-            </dl>
-            <p className="px-1 text-sm text-humo">
-              {evaluados.length} de tus {totalActivos} animales activos tienen padre y madre registrados. En el resto no se puede medir.
-            </p>
+            <ResumenEndogamia medidos={evaluados.length} sobre={sobreUmbral.length} bajo={bajoUmbral} mayor={mayor} activos={totalActivos} />
+            <LeyendaEndogamia umbral={finca.umbral_endogamia} />
             <ListaEndogamia
               filas={conEndogamia.map((a) => ({
                 animal_id: a.animal_id,

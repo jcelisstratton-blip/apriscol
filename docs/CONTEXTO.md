@@ -106,12 +106,12 @@
 - **Escala (relativa al umbral de la finca, `fincas.umbral_endogamia`, por defecto 6,25 %):** baja < ½ umbral · a vigilar < umbral · alta < 2× · muy alta. El umbral se edita desde `/hato/endogamia` (Estricto 3,13 % · Estándar 6,25 % · Flexible 12,5 %).
 - **Pantallas:**
   - Ficha del animal: F + nivel + pedigrí conocido, fila "Parentesco de sus padres" y tarjeta "¿Por qué hay endogamia?".
-  - `/hato/endogamia`: resumen y lista de mayor a menor F; cada animal se despliega con su origen.
+  - `/hato/endogamia` (entrada «Endogamia» del menú): cuatro cifras (animales medidos, sobre el umbral, bajo el umbral con algo de endogamia, la más alta) y la frase de reparto («de los 41 medidos, 35 no tienen endogamia»); «¿Cómo leer estos porcentajes?» (`LeyendaEndogamia`, qué mide la endogamia y los rangos reales de cada nivel según el umbral de la finca); y la lista de mayor a menor con **tres filtros con conteo**: *Sobre el umbral* (F ≥ umbral), *Bajo el umbral* (0 < F < umbral: aceptable; ahí «A vigilar» marca los que se acercan) y *Todos con endogamia*, cada uno con su definición en una línea. Cada animal se despliega con su origen («¿Por qué tiene endogamia alta?» / «¿De dónde viene esta endogamia?»).
   - `/hato/cruza`: simulador macho × hembra (misma finca y especie) con recomendación y explicación.
 - **Explicación por rutas** (`explicar_endogamia`, `explicar_cruza`; `private.explicar_pares`): F = Σ (½)^(n1+n2+1)·(1+F_ancestro) sobre pares de rutas disjuntas padre→ancestro y madre→ancestro. **Los aportes suman exactamente F** (verificado en los 5 animales con endogamia de La yulianca). Las rutas se muestran con **identificador original (microchip) + nombre** de cada animal.
 - **Parentesco entre padres** (`describirParentesco` en `lib/endogamia.ts`): medios hermanos, hermanos completos, padre e hija, tío y sobrina, primos hermanos, etc., deducido de las rutas al ancestro principal.
 - **Ejemplo real:** CAROLINA `605*564*832` (12,50 %): sus padres TORBELLINO y MARIPOSA son medios hermanos por TROYANO.
-- **Archivos:** `lib/endogamia.ts`, `components/{NivelEndogamia,RutasEndogamia,OrigenEndogamia,ListaEndogamia,UmbralEndogamia,FormCruza}.tsx`, `app/(app)/hato/{[id],endogamia,cruza}`.
+- **Archivos:** `lib/endogamia.ts`, `components/{NivelEndogamia,RutasEndogamia,OrigenEndogamia,ListaEndogamia,ResumenEndogamia,UmbralEndogamia,FormCruza}.tsx`, `app/(app)/hato/{[id],endogamia,cruza}`.
 - **Código sobrante:** `ancestros_comunes(...)` (SQL) ya no se usa en la UI; se puede eliminar en una migración de limpieza.
 
 ---
