@@ -37,7 +37,7 @@ export default async function PaginaEmpadronamientoEditar({ params }: { params: 
             resumen={lote.nombre}
             consecuencia={lote.hembras > 0 ? `Las ${lote.hembras} hembras asignadas salen de la temporada (los animales no se tocan)` : undefined}
             accion={eliminarEmpadronamiento.bind(null, id)}
-            destino="/reproduccion?vista=empadronamiento"
+            destino="/hato?vista=empadronamiento"
             mensaje="Empadronamiento eliminado"
           />
         ) : null}

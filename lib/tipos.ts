@@ -816,6 +816,8 @@ export type Empadronamiento = {
   machos: number;
   hembras: number;
   excepciones: number;
+  /** Hembras por semental que fijó la temporada (nulo = el recomendado según especie y edad). */
+  hembras_por_macho: number | null;
 };
 
 export type EmpadronamientoMacho = { finca_id: string; empadronamiento_id: string; macho_id: string; created_at: string };

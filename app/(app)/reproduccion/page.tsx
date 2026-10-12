@@ -4,12 +4,13 @@ import { redirect } from "next/navigation";
 import { AvisoGuardado } from "@/components/AvisoGuardado";
 import { Encabezado } from "@/components/Encabezado";
 import { FilaDesplazable } from "@/components/FilaDesplazable";
-import { ListaEmpadronamientos } from "@/components/ListaEmpadronamientos";
 import { ListaPartosRepro } from "@/components/ListaPartosRepro";
 import { ListaServiciosRepro } from "@/components/ListaServiciosRepro";
 import { obtenerContexto } from "@/lib/contexto";
 import { puedeEscribir, puedeVer } from "@/lib/permisos";
 import { Resumen } from "./Resumen";
+import { ResumenEmpadronamientos, type EstadoFiltroEmp } from "./ResumenEmpadronamientos";
+import { esPeriodoEmp } from "@/lib/empadronamiento";
 
 export const metadata: Metadata = { title: "Reproducción" };
 
@@ -25,7 +26,7 @@ type Vista = (typeof PESTANAS)[number]["valor"];
  * Reproducción, a nivel de toda la finca: quiénes están gestantes y cuándo paren, y el compendio de servicios y partos. Registrar un
  * servicio, un diagnóstico o un parto se hace desde la ficha de cada hembra.
  */
-export default async function PaginaReproduccion({ searchParams }: { searchParams: Promise<{ vista?: string; guardado?: string }> }) {
+export default async function PaginaReproduccion({ searchParams }: { searchParams: Promise<{ vista?: string; guardado?: string; estado?: string; periodo?: string; desde?: string; hasta?: string }> }) {
   const { finca, rol } = await obtenerContexto();
   if (!puedeVer(rol, "reproduccion")) redirect("/");
   const sp = await searchParams;
@@ -52,7 +53,18 @@ export default async function PaginaReproduccion({ searchParams }: { searchParam
       </FilaDesplazable>
 
       {vista === "resumen" ? <Resumen fincaId={finca.id} /> : null}
-      {vista === "empadronamiento" ? <ListaEmpadronamientos fincaId={finca.id} puedeEditar={puedeEditar} /> : null}
+      {vista === "empadronamiento" ? (
+        <ResumenEmpadronamientos
+          fincaId={finca.id}
+          umbral={finca.umbral_endogamia}
+          filtros={{
+            estado: (["abiertas", "cerradas"].includes(sp.estado ?? "") ? sp.estado : "todas") as EstadoFiltroEmp,
+            periodo: esPeriodoEmp(sp.periodo) ? sp.periodo : "todo",
+            desde: sp.desde,
+            hasta: sp.hasta,
+          }}
+        />
+      ) : null}
       {vista === "servicios" ? <ListaServiciosRepro fincaId={finca.id} puedeEditar={puedeEditar} /> : null}
       {vista === "partos" ? <ListaPartosRepro fincaId={finca.id} puedeEditar={puedeEditar} /> : null}
     </>

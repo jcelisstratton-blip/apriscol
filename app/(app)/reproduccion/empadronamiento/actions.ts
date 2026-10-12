@@ -53,6 +53,7 @@ const esquema = z.object({
   edad_min_meses: z.preprocess((v) => (typeof v === "string" ? Number(v) : v), z.number("Indica la edad mínima en meses.").int("La edad debe ser un número entero de meses.").min(1, "La edad mínima es de al menos 1 mes.").max(60, "La edad mínima no puede pasar de 60 meses.")),
   peso_min_kg: decimal(z.number("El peso mínimo debe ser un número.").positive("El peso mínimo debe ser mayor que cero.").max(250, "El peso mínimo no puede pasar de 250 kg.")).pipe(z.number("Indica el peso mínimo.")),
   cc_min: z.preprocess((v) => (typeof v === "string" ? Number(v.replace(",", ".")) : v), z.number("Elige la condición corporal mínima.").refine((n) => (VALORES_CC as readonly number[]).includes(n), "La condición corporal va de 1 a 5, de medio en medio.")),
+  hembras_por_macho: opcional(z.preprocess((v) => (typeof v === "string" ? Number(v) : v), z.number("Las hembras por semental deben ser un número.").int("Las hembras por semental deben ser un número entero.").min(1, "Mínimo 1 hembra por semental.").max(100, "Máximo 100 hembras por semental."))),
   observaciones: texto(1000, "Las observaciones son muy largas."),
   macho_id: opcional(z.uuid("El semental no es válido.")),
   client_request_id: opcional(z.uuid()),
@@ -89,6 +90,7 @@ export async function crearEmpadronamiento(_: EstadoForm, form: FormData): Promi
       edad_min_meses: d.edad_min_meses,
       peso_min_kg: Math.round(d.peso_min_kg * 10) / 10,
       cc_min: d.cc_min,
+      hembras_por_macho: d.hembras_por_macho ?? null,
       observaciones: d.observaciones ?? null,
       client_request_id: d.client_request_id ?? null,
     })
@@ -132,6 +134,7 @@ export async function editarEmpadronamiento(_: EstadoForm, form: FormData): Prom
         edad_min_meses: d.edad_min_meses,
         peso_min_kg: Math.round(d.peso_min_kg * 10) / 10,
         cc_min: d.cc_min,
+        hembras_por_macho: d.hembras_por_macho ?? null,
         observaciones: d.observaciones ?? null,
       };
   if (!c.lote.cerrado_en) {
@@ -156,7 +159,7 @@ export async function eliminarEmpadronamiento(id: string): Promise<Resultado> {
   const { error } = await supabase.from("empadronamientos").delete().eq("id", id).eq("finca_id", finca.id);
   if (error) return { ok: false, error: mensajeAmigable(error.message) };
   revalidatePath("/reproduccion");
-  return { ok: true, destino: "/reproduccion?vista=empadronamiento" };
+  return { ok: true, destino: "/hato?vista=empadronamiento" };
 }
 
 // ───────────────────────── Sementales ─────────────────────────

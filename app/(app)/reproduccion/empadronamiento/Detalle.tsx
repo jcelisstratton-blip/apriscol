@@ -12,7 +12,7 @@ import { crearClienteServidor } from "@/lib/supabase/server";
 import { puedeEscribir, puedeGestionar } from "@/lib/permisos";
 import { animalesPorIds } from "@/lib/animal-etiquetas";
 import { etiquetaAnimal } from "@/lib/animal";
-import { avanceEmp, textoCC } from "@/lib/empadronamiento";
+import { avanceEmp, capacidadSemental, ETIQUETA_CAPACIDAD, mesesDesde, textoCC } from "@/lib/empadronamiento";
 import { porcentaje } from "@/lib/endogamia";
 import { formatoFecha, hoyBogota } from "@/lib/fechas";
 import type { ReproHembra, RolFinca } from "@/lib/tipos";
@@ -52,6 +52,7 @@ export async function Detalle({
   ]);
   const machoIds = (machosDB.data ?? []).map((m) => m.macho_id);
   const hembras = hembrasDB.data ?? [];
+  const edades = machoIds.length > 0 ? ((await supabase.from("animales").select("id, fecha_nacimiento").in("id", machoIds).eq("finca_id", finca.id)).data ?? []) : [];
   const nombres = new Map((await animalesPorIds(supabase, finca.id, [...machoIds, ...hembras.map((h) => h.hembra_id)])).map((a) => [a.id, etiquetaAnimal(a)]));
   const etiqueta = (x: string) => nombres.get(x) ?? "Animal";
 
@@ -68,9 +69,12 @@ export async function Detalle({
   const abierto = !lote.cerrado_en;
   const a = avanceEmp(lote, hoy);
   const puedeEditar = puedeEscribir(rol, "reproduccion");
-  const machos = machoIds.map((m) => ({ id: m, etiqueta: etiqueta(m) }));
   const porMacho = new Map<string, number>();
   for (const h of hembras) porMacho.set(h.macho_id, (porMacho.get(h.macho_id) ?? 0) + 1);
+  const machos = machoIds.map((m) => {
+    const cap = capacidadSemental(lote.especie, mesesDesde(edades.find((e) => e.id === m)?.fecha_nacimiento ?? null, hoy), lote.hembras_por_macho);
+    return { id: m, etiqueta: etiqueta(m), asignadas: porMacho.get(m) ?? 0, capacidad: cap.max, origen: cap.origen };
+  });
   const filas: FilaHembraEmp[] = hembras.map((h) => ({
     hembraId: h.hembra_id,
     etiqueta: etiqueta(h.hembra_id),
@@ -84,8 +88,8 @@ export async function Detalle({
 
   return (
     <>
-      <Link href="/reproduccion?vista=empadronamiento" className="-ml-2 mt-3 inline-flex min-h-11 items-center gap-1 rounded-full px-2 text-[0.9375rem] font-semibold text-musgo">
-        <ChevronLeft className="size-5" strokeWidth={2} /> Reproducción
+      <Link href={abierto ? "/hato?vista=empadronamiento" : "/reproduccion?vista=empadronamiento"} className="-ml-2 mt-3 inline-flex min-h-11 items-center gap-1 rounded-full px-2 text-[0.9375rem] font-semibold text-musgo">
+        <ChevronLeft className="size-5" strokeWidth={2} /> {abierto ? "Hato" : "Reproducción"}
       </Link>
       <Encabezado titulo={lote.nombre} subtitulo={`${lote.especie === "caprino" ? "Cabras" : "Ovejas"} · ${finca.nombre}`} />
 
@@ -114,6 +118,7 @@ export async function Detalle({
             <Dato etiqueta="Criterios de las hembras">
               {lote.edad_min_meses}+ meses · {String(lote.peso_min_kg).replace(".", ",")}+ kg · CC {textoCC(lote.cc_min)}+
             </Dato>
+            {lote.hembras_por_macho != null ? <Dato etiqueta="Hembras por semental">Hasta {lote.hembras_por_macho}</Dato> : null}
           </dl>
           {lote.observaciones ? <p className="mt-3 whitespace-pre-wrap text-[0.9375rem] [overflow-wrap:anywhere]">{lote.observaciones}</p> : null}
           {puedeEditar ? (
@@ -132,7 +137,10 @@ export async function Detalle({
                 <li key={m.id} className="flex items-center gap-2 py-1">
                   <Link href={`/hato/${m.id}`} className="min-w-0 flex-1 py-2">
                     <span className="block font-semibold [overflow-wrap:anywhere]">{m.etiqueta}</span>
-                    <span className="block text-sm text-humo">{porMacho.get(m.id) ?? 0} {(porMacho.get(m.id) ?? 0) === 1 ? "hembra" : "hembras"}</span>
+                    <span className="block text-sm text-humo">
+                      {m.asignadas} de {m.capacidad} hembras recomendadas ({ETIQUETA_CAPACIDAD[m.origen]})
+                    </span>
+                    {m.asignadas > m.capacidad ? <span className="mt-1 inline-block"><Insignia tono="aviso">Pasa de lo recomendado</Insignia></span> : null}
                   </Link>
                   {abierto && puedeGestionar(rol) ? <QuitarDeEmp loteId={id} animalId={m.id} tipo="semental" nombre={m.etiqueta} /> : null}
                 </li>

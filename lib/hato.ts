@@ -19,3 +19,4 @@ export const esFiltroHato = (v: string | undefined): v is FiltroHato => ["todos"
 export const direccionHato = (f: FiltroHato) => (f === "todos" ? "/hato" : `/hato?filtro=${f}`);
 export const DIRECCION_ORDENO = "/hato?vista=ordeno";
 export const DIRECCION_CEBA = "/hato?vista=ceba";
+export const DIRECCION_EMPADRONAMIENTO = "/hato?vista=empadronamiento";

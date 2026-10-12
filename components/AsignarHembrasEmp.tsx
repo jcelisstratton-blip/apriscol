@@ -30,7 +30,7 @@ const LOTE_RPC = 400;
  * endogamia de cada pareja ANTES de confirmar y bloquea las que llegan al umbral de la finca (solo se pueden asignar como excepción
  * consciente, que queda registrada).
  */
-export function AsignarHembrasEmp({ loteId, machos, umbral }: { loteId: string; machos: { id: string; etiqueta: string }[]; umbral: number }) {
+export function AsignarHembrasEmp({ loteId, machos, umbral }: { loteId: string; machos: { id: string; etiqueta: string; asignadas: number; capacidad: number }[]; umbral: number }) {
   const router = useRouter();
   const toast = useToast();
   const [abierta, setAbierta] = useState(false);
@@ -120,7 +120,10 @@ export function AsignarHembrasEmp({ loteId, machos, umbral }: { loteId: string; 
   const visibles = asignables.slice(0, MOSTRAR);
   const bloqueada = (id: string) => Boolean(endo?.get(id)?.sobre) && !excepciones.has(id);
   const aptasLibres = asignables.filter((f) => f.clase === "apta" && endo?.has(f.c.animal_id) && !bloqueada(f.c.animal_id));
-  const nombreMacho = machos.find((m) => m.id === macho)?.etiqueta ?? "";
+  const elMacho = machos.find((m) => m.id === macho);
+  const nombreMacho = elMacho?.etiqueta ?? "";
+  const quedaria = (elMacho?.asignadas ?? 0) + elegidas.size;
+  const sobreCapacidad = elMacho ? quedaria > elMacho.capacidad : false;
   const conExcepcion = [...elegidas].filter((id) => excepciones.has(id)).length;
 
   const guardar = () =>
@@ -163,6 +166,11 @@ export function AsignarHembrasEmp({ loteId, machos, umbral }: { loteId: string; 
               Semental: <strong className="[overflow-wrap:anywhere]">{nombreMacho}</strong>
             </p>
           )}
+          {elMacho ? (
+            <p className="text-sm text-humo">
+              {nombreMacho} tiene {elMacho.asignadas} {elMacho.asignadas === 1 ? "hembra asignada" : "hembras asignadas"}; lo recomendado es hasta {elMacho.capacidad}.
+            </p>
+          ) : null}
           <p className="text-sm text-humo">
             Solo aparecen las hembras que cumplen los criterios de la temporada. Antes de asignar, calculamos la endogamia de cada pareja: las que llegan
             al umbral de tu finca ({porcentaje(umbral)}) quedan bloqueadas.
@@ -275,6 +283,12 @@ export function AsignarHembrasEmp({ loteId, machos, umbral }: { loteId: string; 
                 </div>
               ) : null}
             </div>
+          ) : null}
+
+          {sobreCapacidad && elMacho ? (
+            <Aviso tipo="atencion">
+              {nombreMacho} quedaría con {quedaria} hembras y lo recomendado es hasta {elMacho.capacidad}. Puedes seguir, pero con tantas hembras baja la fertilidad del grupo.
+            </Aviso>
           ) : null}
 
           {conExcepcion > 0 ? (

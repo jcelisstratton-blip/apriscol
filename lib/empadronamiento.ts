@@ -1,4 +1,4 @@
-import { diasHasta, hoyBogota } from "@/lib/fechas";
+import { diasHasta, hoyBogota, sumarDias } from "@/lib/fechas";
 import type { CandidataEmp, CriterioEmp, Empadronamiento, Especie } from "@/lib/tipos";
 
 /**
@@ -53,3 +53,69 @@ export function aptitud(c: CandidataEmp): Aptitud {
 }
 
 export const textoEdad = (meses: number | null) => (meses == null ? "Sin dato" : meses < 24 ? `${meses} ${meses === 1 ? "mes" : "meses"}` : `${Math.floor(meses / 12)} años`);
+
+/**
+ * Hembras por semental que se recomiendan (monta natural). Referencias de extensión: cabros de 1 a 2 años, 15 a 20 hembras (Kentucky State
+ * University); cabros adultos, 20 a 30 (NC State) y hasta 40 los probados; carneros adultos y de un año, unas 35 ovejas; carnero corderito,
+ * 25 a 30. Aquí se usa el valor prudente de cada rango. Es una guía: la temporada puede fijar su propio número.
+ */
+export const RELACION_RECOMENDADA: Record<Especie, { joven: number; adulto: number; edadAdultoMeses: number }> = {
+  caprino: { joven: 20, adulto: 30, edadAdultoMeses: 24 },
+  ovino: { joven: 25, adulto: 35, edadAdultoMeses: 12 },
+};
+
+export type Capacidad = { max: number; origen: "fijada" | "joven" | "adulto" };
+
+/** Cuántas hembras puede atender un semental en la temporada: el número que fijó la temporada o el recomendado por especie y edad (sin edad se toma el del joven, que es el prudente). */
+export function capacidadSemental(especie: Especie, edadMeses: number | null, fijada: number | null): Capacidad {
+  if (fijada != null) return { max: fijada, origen: "fijada" };
+  const r = RELACION_RECOMENDADA[especie];
+  return edadMeses != null && edadMeses >= r.edadAdultoMeses ? { max: r.adulto, origen: "adulto" } : { max: r.joven, origen: "joven" };
+}
+
+/** Meses cumplidos desde un nacimiento (nulo si no se sabe). */
+export function mesesDesde(nacimiento: string | null, hoy = hoyBogota()): number | null {
+  if (!nacimiento) return null;
+  const a = new Date(`${nacimiento}T12:00:00Z`);
+  const b = new Date(`${hoy}T12:00:00Z`);
+  let m = (b.getUTCFullYear() - a.getUTCFullYear()) * 12 + (b.getUTCMonth() - a.getUTCMonth());
+  if (b.getUTCDate() < a.getUTCDate()) m -= 1;
+  return Math.max(0, m);
+}
+
+export const ETIQUETA_CAPACIDAD = { fijada: "fijado en la temporada", joven: "macho joven", adulto: "macho adulto" } as const;
+
+// ───────────────────────── Filtro por fechas del resumen ─────────────────────────
+export type PeriodoEmp = "todo" | "anio" | "12m" | "6m" | "3m" | "rango";
+export const PERIODOS_EMP: { valor: PeriodoEmp; etiqueta: string }[] = [
+  { valor: "todo", etiqueta: "Todo" },
+  { valor: "anio", etiqueta: "Este año" },
+  { valor: "12m", etiqueta: "12 meses" },
+  { valor: "6m", etiqueta: "6 meses" },
+  { valor: "3m", etiqueta: "3 meses" },
+  { valor: "rango", etiqueta: "Entre fechas" },
+];
+export const esPeriodoEmp = (v: string | undefined): v is PeriodoEmp => PERIODOS_EMP.some((p) => p.valor === v);
+const FECHA = /^\d{4}-\d{2}-\d{2}$/;
+
+/** Entre qué fechas de inicio se miran las temporadas (nulo = sin límite). Una fecha mal escrita se ignora. */
+export function rangoPeriodo(periodo: PeriodoEmp, hoy: string, desde?: string, hasta?: string): { desde: string | null; hasta: string | null } {
+  const dias = (n: number) => sumarDias(hoy, -n);
+  switch (periodo) {
+    case "anio":
+      return { desde: `${hoy.slice(0, 4)}-01-01`, hasta: null };
+    case "12m":
+      return { desde: dias(365), hasta: null };
+    case "6m":
+      return { desde: dias(182), hasta: null };
+    case "3m":
+      return { desde: dias(91), hasta: null };
+    case "rango": {
+      const d = desde && FECHA.test(desde) ? desde : null;
+      const h = hasta && FECHA.test(hasta) ? hasta : null;
+      return d && h && d > h ? { desde: h, hasta: d } : { desde: d, hasta: h };
+    }
+    default:
+      return { desde: null, hasta: null };
+  }
+}

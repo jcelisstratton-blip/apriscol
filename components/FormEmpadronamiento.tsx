@@ -9,7 +9,7 @@ import { Segmentado } from "@/components/Segmentado";
 import { Selector } from "@/components/Selector";
 import { SelectorAnimal } from "@/components/SelectorAnimal";
 import { crearEmpadronamiento, editarEmpadronamiento } from "@/app/(app)/reproduccion/empadronamiento/actions";
-import { CRITERIOS_POR_DEFECTO, DURACION_DEFECTO_DIAS, DURACION_MAX_DIAS, textoCC, VALORES_CC } from "@/lib/empadronamiento";
+import { CRITERIOS_POR_DEFECTO, DURACION_DEFECTO_DIAS, RELACION_RECOMENDADA, DURACION_MAX_DIAS, textoCC, VALORES_CC } from "@/lib/empadronamiento";
 import { diasHasta, formatoFecha, sumarDias } from "@/lib/fechas";
 import type { Empadronamiento, Especie } from "@/lib/tipos";
 
@@ -44,6 +44,7 @@ export function FormEmpadronamiento({
   const [peso, setPeso] = useState(lote ? coma(lote.peso_min_kg) : String(CRITERIOS_POR_DEFECTO[especies[0] ?? "caprino"].pesoKg));
   const [cc, setCc] = useState<number>(lote?.cc_min ?? CRITERIOS_POR_DEFECTO[lote?.especie ?? especies[0] ?? "caprino"].cc);
   const [macho, setMacho] = useState<Macho | null>(null);
+  const rec = RELACION_RECOMENDADA[especie];
 
   const dias = Number(duracion);
   const cierrePrevisto = /^\d{4}-\d{2}-\d{2}$/.test(inicio) && Number.isInteger(dias) && dias >= 1 && dias <= DURACION_MAX_DIAS ? sumarDias(inicio, dias) : null;
@@ -62,7 +63,7 @@ export function FormEmpadronamiento({
     iniciar(() => enviar(datos));
   };
 
-  const volver = lote ? `/reproduccion/empadronamiento/${lote.id}` : "/reproduccion?vista=empadronamiento";
+  const volver = lote ? `/reproduccion/empadronamiento/${lote.id}` : "/hato?vista=empadronamiento";
 
   if (cerrado && lote) {
     return (
@@ -75,6 +76,7 @@ export function FormEmpadronamiento({
         <input type="hidden" name="edad_min_meses" value={lote.edad_min_meses} />
         <input type="hidden" name="peso_min_kg" value={lote.peso_min_kg} />
         <input type="hidden" name="cc_min" value={lote.cc_min} />
+        <input type="hidden" name="hembras_por_macho" value={lote.hembras_por_macho ?? ""} />
         <Aviso tipo="info">Este empadronamiento ya está cerrado y es parte de la historia: solo se pueden corregir sus observaciones.</Aviso>
         <Campo etiqueta="Observaciones" ayuda="Opcional.">
           {(id) => <textarea id={id} name="observaciones" defaultValue={lote.observaciones ?? ""} rows={4} maxLength={1000} className={`${CLASE_INPUT} py-3`} />}
@@ -140,6 +142,13 @@ export function FormEmpadronamiento({
           </Campo>
         </div>
       </fieldset>
+
+      <Campo
+        etiqueta="Hembras por semental (máximo)"
+        ayuda={`Opcional. Si lo dejas vacío usamos lo recomendado según la edad de cada semental: ${especie === "caprino" ? "cabros" : "carneros"} jóvenes ${rec.joven} y adultos ${rec.adulto}. Es una guía: si te pasas, la app avisa, no bloquea.`}
+      >
+        {(id) => <input id={id} name="hembras_por_macho" defaultValue={lote?.hembras_por_macho ?? ""} inputMode="numeric" autoComplete="off" placeholder={`Recomendado: ${rec.joven} a ${rec.adulto}`} className={CLASE_INPUT} />}
+      </Campo>
 
       {!editando ? (
         <div className="space-y-1.5">

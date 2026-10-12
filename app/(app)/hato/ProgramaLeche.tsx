@@ -16,6 +16,7 @@ export async function Animales({
   filtroInicial,
   conOrdeno,
   conCeba,
+  conMonta,
 }: {
   fincaId: string;
   especies: ("caprino" | "ovino")[];
@@ -24,11 +25,12 @@ export async function Animales({
   filtroInicial?: FiltroHato;
   conOrdeno?: boolean;
   conCeba?: boolean;
+  conMonta?: boolean;
 }) {
   const supabase = await crearClienteServidor();
   const { data } = await supabase.rpc("animales_en_retiro", { p_finca: fincaId });
   const retiros = Object.fromEntries((data ?? []).map((r) => [r.animal_id, { leche: r.retiro_leche_hasta, carne: r.retiro_carne_hasta }]));
-  return <ListaHato fincaId={fincaId} especies={especies} retiros={retiros} puedeCrear={puedeCrear} puedeTraer={puedeTraer} filtroInicial={filtroInicial} conOrdeno={conOrdeno} conCeba={conCeba} />;
+  return <ListaHato fincaId={fincaId} especies={especies} retiros={retiros} puedeCrear={puedeCrear} puedeTraer={puedeTraer} filtroInicial={filtroInicial} conOrdeno={conOrdeno} conCeba={conCeba} conMonta={conMonta} />;
 }
 
 /** El programa del ordeño: las hembras en leche con sus turnos, y agregar más hembras al ordeño. */
