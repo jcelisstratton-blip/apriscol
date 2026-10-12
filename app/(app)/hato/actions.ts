@@ -234,7 +234,17 @@ const esquemaBaja = z.object({
   valor: z.preprocess(vacio, z.number().min(0, "El valor no puede ser negativo.").max(9_999_999_999, "Revisa el valor: es demasiado alto.").optional()),
   destinoConsumo: z.boolean(),
   detalle: z.preprocess(vacio, z.string().trim().max(1000, "Las notas son muy largas.").optional()),
+  // Trazabilidad de la salida comercial (venta o sacrificio): peso en vivo, guía de movilización y a dónde fue.
+  pesoKg: z.preprocess(vacio, z.number("El peso debe ser un número.").positive("El peso debe ser mayor que cero.").max(250, "El peso no puede pasar de 250 kg.").optional()),
+  guiaMovilizacion: z.preprocess(vacio, z.string().trim().max(60, "La guía de movilización es muy larga.").optional()),
+  destino: z.preprocess(vacio, z.string().trim().max(160, "El destino es muy largo.").optional()),
 });
+
+/** La trazabilidad solo aplica a una salida comercial: una muerte o una pérdida no tienen guía, peso ni destino. */
+const datosComerciales = (d: { tipo: string; pesoKg?: number; guiaMovilizacion?: string; destino?: string }) =>
+  d.tipo === "venta" || d.tipo === "sacrificio"
+    ? { peso_kg: d.pesoKg ?? null, guia_movilizacion: d.guiaMovilizacion ?? null, destino: d.destino ?? null }
+    : { peso_kg: null, guia_movilizacion: null, destino: null };
 
 /**
  * Da de baja a un animal (venta, muerte, sacrificio o pérdida). La base marca el estado y la fecha, y rechaza sacar para consumo
@@ -271,6 +281,7 @@ export async function darDeBaja(entrada: z.input<typeof esquemaBaja>): Promise<R
     valor: esVenta ? (d.valor ?? null) : null,
     destino_consumo: esVenta && d.destinoConsumo,
     detalle: d.detalle ?? null,
+    ...datosComerciales(d),
   });
   if (error) {
     if (error.code === "23505") return { ok: false, error: "Ese animal ya tiene una baja registrada." };
@@ -388,4 +399,46 @@ export async function programarOrdenoLote(turno: string, activo: boolean): Promi
   revalidatePath("/hato");
   revalidatePath("/leche");
   return { ok: true, afectadas: actuales.length };
+}
+
+const esquemaSalida = z.object({
+  animalId: z.uuid(),
+  motivo: z.preprocess(vacio, z.enum(["edad", "partos", "baja_produccion", "sanidad", "reproductivo", "accidente", "otro"]).optional()),
+  comprador: z.preprocess(vacio, z.string().trim().max(160, "El nombre del comprador es muy largo.").optional()),
+  valor: z.preprocess(vacio, z.number("El valor debe ser un número.").min(0, "El valor no puede ser negativo.").max(9_999_999_999, "Revisa el valor: es demasiado alto.").optional()),
+  detalle: z.preprocess(vacio, z.string().trim().max(1000, "Las notas son muy largas.").optional()),
+  pesoKg: z.preprocess(vacio, z.number("El peso debe ser un número.").positive("El peso debe ser mayor que cero.").max(250, "El peso no puede pasar de 250 kg.").optional()),
+  guiaMovilizacion: z.preprocess(vacio, z.string().trim().max(60, "La guía de movilización es muy larga.").optional()),
+  destino: z.preprocess(vacio, z.string().trim().max(160, "El destino es muy largo.").optional()),
+});
+
+/**
+ * Corrige los datos de una salida ya registrada: motivo, comprador, valor, peso en vivo, guía de movilización, destino y notas.
+ * Qué pasó (venta, sacrificio…), la fecha y si fue para consumo no se cambian aquí: de eso depende el estado del animal y el control
+ * del retiro de carne; si estaban mal, se deshace la baja y se registra de nuevo.
+ */
+export async function corregirSalida(entrada: z.input<typeof esquemaSalida>): Promise<ResultadoBaja> {
+  const { finca, rol } = await obtenerContexto();
+  if (!puedeEscribir(rol, "hato")) return { ok: false, error: "No tienes permiso para corregir salidas en esta finca." };
+  const datos = esquemaSalida.safeParse(entrada);
+  if (!datos.success) return { ok: false, error: datos.error.issues[0]?.message ?? "Dato inválido." };
+  const d = datos.data;
+  const supabase = await crearClienteServidor();
+  const { data: baja } = await supabase.from("bajas").select("id, tipo").eq("animal_id", d.animalId).eq("finca_id", finca.id).maybeSingle();
+  if (!baja) return { ok: false, error: "No encontramos la salida de ese animal." };
+  const { error } = await supabase
+    .from("bajas")
+    .update({
+      motivo: d.motivo ?? null,
+      detalle: d.detalle ?? null,
+      comprador: baja.tipo === "venta" ? (d.comprador ?? null) : null,
+      valor: baja.tipo === "venta" ? (d.valor ?? null) : null,
+      ...datosComerciales({ tipo: baja.tipo, pesoKg: d.pesoKg, guiaMovilizacion: d.guiaMovilizacion, destino: d.destino }),
+    })
+    .eq("id", baja.id)
+    .eq("finca_id", finca.id);
+  if (error) return { ok: false, error: mensajeAmigable(error.message) };
+  revalidatePath("/carne");
+  revalidatePath(`/hato/${d.animalId}`);
+  return { ok: true };
 }

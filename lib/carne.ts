@@ -1,5 +1,5 @@
 import type { FilaLote } from "@/components/ListaLotes";
-import type { CebaLote, LoteCeba, TipoPesaje } from "@/lib/tipos";
+import type { CebaLote, Conformacion, GrasaVisceral, LoteCeba, TipoPesaje } from "@/lib/tipos";
 
 export const TIPOS_PESAJE: TipoPesaje[] = ["control", "destete", "pre_beneficio"];
 export const ETIQUETA_PESAJE: Record<TipoPesaje, string> = {
@@ -54,3 +54,24 @@ export function filasLotes(lotes: LoteCeba[], estadisticas: CebaLote[]): FilaLot
     };
   });
 }
+
+
+/** Conformación muscular de la canal en la escala EUROP, la que usa el comercio de carne de cordero y cabrito. */
+export const CONFORMACIONES: Conformacion[] = ["E", "U", "R", "O", "P"];
+export const ETIQUETA_CONFORMACION: Record<Conformacion, string> = {
+  E: "E · Excelente",
+  U: "U · Muy buena",
+  R: "R · Buena",
+  O: "O · Regular",
+  P: "P · Pobre",
+};
+
+/** Cobertura de grasa de la canal, de 1 (muy poca) a 5 (muy alta). */
+export const ENGRASAMIENTOS = [1, 2, 3, 4, 5] as const;
+export const ETIQUETA_ENGRASAMIENTO: Record<number, string> = { 1: "1 · Muy poca", 2: "2 · Poca", 3: "3 · Media", 4: "4 · Alta", 5: "5 · Muy alta" };
+
+export const GRASAS_VISCERALES: GrasaVisceral[] = ["baja", "media", "alta"];
+export const ETIQUETA_GRASA_VISCERAL: Record<GrasaVisceral, string> = { baja: "Baja", media: "Media", alta: "Alta" };
+
+/** Porcentaje con un decimal y coma: «48,5 %». */
+export const pctUno = (n: number | null | undefined) => (n == null ? "—" : `${n.toLocaleString("es-CO", { maximumFractionDigits: 1 })} %`);

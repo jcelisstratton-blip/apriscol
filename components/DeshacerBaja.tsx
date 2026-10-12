@@ -34,7 +34,7 @@ export function DeshacerBaja({ animalId, etiqueta, esHembra }: { animalId: strin
   }
   return (
     <div className="space-y-3 rounded-2xl bg-lana p-3.5">
-      <p className="text-[0.9375rem]">¿Fue un error? El animal vuelve al hato como activo y se borran los datos de su salida.</p>
+      <p className="text-[0.9375rem]">¿Fue un error? El animal vuelve al hato como activo y se borran los datos de su salida (y su canal, si la tenía).</p>
       {error ? <Aviso tipo="error">{error}</Aviso> : null}
       <div className="grid grid-cols-2 gap-2">
         <Boton variante="secundario" onClick={() => setConfirmando(false)} disabled={pendiente}>Cancelar</Boton>

@@ -6,8 +6,10 @@ import { EnlaceBoton } from "@/components/Boton";
 import { Encabezado } from "@/components/Encabezado";
 import { FilaDesplazable } from "@/components/FilaDesplazable";
 import { ListaPesajes } from "@/components/ListaPesajes";
+import { ListaSalidas } from "@/components/ListaSalidas";
 import { obtenerContexto } from "@/lib/contexto";
 import { puedeEscribir, puedeVer } from "@/lib/permisos";
+import { Canales } from "./Canales";
 import { Lotes } from "./Lotes";
 import { Resumen } from "./Resumen";
 
@@ -17,12 +19,15 @@ const PESTANAS = [
   { valor: "resumen", etiqueta: "Resumen" },
   { valor: "lotes", etiqueta: "Lotes" },
   { valor: "pesajes", etiqueta: "Pesos" },
+  { valor: "canales", etiqueta: "Canales" },
+  { valor: "salidas", etiqueta: "Salidas" },
 ] as const;
 type Vista = (typeof PESTANAS)[number]["valor"];
 
 /**
  * Carne, a nivel de toda la finca: cuántos animales hay en ceba, cuánto pesan y ganan, cuánto alimento gastan y cuáles ya están listos
- * para beneficio. Pesar animales vive en Hato → Ceba; el peso y el lote de un solo animal, en su ficha.
+ * para beneficio, qué rendimiento dan en canal y hacia dónde salen. Pesar animales vive en Hato → Ceba; el peso, el lote y la canal de un solo
+ * animal, en su ficha.
  */
 export default async function PaginaCarne({ searchParams }: { searchParams: Promise<{ vista?: string; guardado?: string }> }) {
   const { finca, rol } = await obtenerContexto();
@@ -57,6 +62,8 @@ export default async function PaginaCarne({ searchParams }: { searchParams: Prom
       {vista === "resumen" ? <Resumen fincaId={finca.id} puedeEditar={puedeEditar} /> : null}
       {vista === "lotes" ? <Lotes fincaId={finca.id} puedeEditar={puedeEditar} /> : null}
       {vista === "pesajes" ? <ListaPesajes fincaId={finca.id} puedeEditar={puedeEditar} /> : null}
+      {vista === "canales" ? <Canales fincaId={finca.id} puedeEditar={puedeEditar} /> : null}
+      {vista === "salidas" ? <ListaSalidas fincaId={finca.id} puedeEditar={puedeEscribir(rol, "hato")} /> : null}
     </>
   );
 }

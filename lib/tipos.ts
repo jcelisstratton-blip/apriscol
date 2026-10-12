@@ -593,6 +593,47 @@ export type CebaLote = {
   listos: number;
 };
 
+// ───────────────────────── Carne: canales (rendimiento) ─────────────────────────
+export type Conformacion = "E" | "U" | "R" | "O" | "P";
+export type GrasaVisceral = "baja" | "media" | "alta";
+
+export type Canal = {
+  id: string;
+  finca_id: string;
+  animal_id: string;
+  /** Siempre «sacrificio»: la canal es de un animal con baja por sacrificio. La pone la base. */
+  tipo_baja: string;
+  fecha: string;
+  peso_vivo_kg: number | null;
+  peso_canal_caliente_kg: number;
+  peso_canal_fria_kg: number | null;
+  conformacion: Conformacion | null;
+  engrasamiento: number | null;
+  grasa_dorsal_mm: number | null;
+  grasa_visceral: GrasaVisceral | null;
+  planta: string | null;
+  observaciones: string | null;
+  client_request_id: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+/** Una fila de `v_canales`: la canal con su rendimiento (canal ÷ peso vivo) y la merma de oreo, calculados por la base. */
+export type CanalVista = Canal & {
+  rendimiento_caliente_pct: number | null;
+  rendimiento_frio_pct: number | null;
+  merma_oreo_pct: number | null;
+};
+
+export type CanalesResumen = {
+  n: number;
+  peso_caliente_prom: number | null;
+  rendimiento_caliente_prom: number | null;
+  rendimiento_frio_prom: number | null;
+  merma_prom: number | null;
+};
+
 export type { AncestroEndogamia } from "@/lib/endogamia";
 import type { AncestroEndogamia } from "@/lib/endogamia";
 
@@ -626,6 +667,7 @@ export type Database = {
       lotes_ceba: Tabla<LoteCeba, "finca_id" | "nombre">;
       pesajes: Tabla<Pesaje, "finca_id" | "animal_id" | "peso_kg">;
       consumo_lote: Tabla<ConsumoLote, "finca_id" | "lote_id" | "kg_alimento">;
+      canales: Tabla<Omit<Canal, "tipo_baja">, "finca_id" | "animal_id" | "peso_canal_caliente_kg">;
     };
     Views: {
       v_produccion_diaria: { Row: ProduccionDiaria; Relationships: [] };
@@ -638,6 +680,7 @@ export type Database = {
       v_sanidad_pendiente: { Row: SanidadPendiente; Relationships: [] };
       v_analisis_leche_ultimo: { Row: AnalisisLeche; Relationships: [] };
       v_rcs_leche_ultimo: { Row: AnalisisLeche; Relationships: [] };
+      v_canales: { Row: CanalVista; Relationships: [] };
     };
     Functions: {
       aceptar_invitacion: { Args: { p_token: string }; Returns: string };
@@ -671,6 +714,7 @@ export type Database = {
       };
       ceba_animales: { Args: { p_finca: string }; Returns: CebaAnimal[] };
       ceba_lotes: { Args: { p_finca: string }; Returns: CebaLote[] };
+      canales_resumen: { Args: { p_finca: string }; Returns: CanalesResumen[] };
       leche_balance: {
         Args: { p_finca: string; p_desde: string; p_hasta: string };
         Returns: { producida: number; descartada: number; despachada: number; valor_despachado: number }[];

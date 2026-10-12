@@ -9,7 +9,9 @@ import { Campo, CLASE_INPUT } from "@/components/Campo";
 import { Selector } from "@/components/Selector";
 import { useToast } from "@/components/Toast";
 import { darDeBaja } from "@/app/(app)/hato/actions";
+import { CamposTrazabilidad } from "@/components/CamposTrazabilidad";
 import { MOTIVOS_BAJA, TIPOS_BAJA } from "@/lib/bajas";
+import { leerNumero } from "@/lib/numeros";
 import type { MotivoBaja, TipoBaja } from "@/lib/tipos";
 
 /** Dar de baja a un animal: qué pasó, cuándo y, si fue una venta, a quién y por cuánto. */
@@ -36,11 +38,17 @@ export function FormBaja({
   const [valor, setValor] = useState("");
   const [consumo, setConsumo] = useState(false);
   const [detalle, setDetalle] = useState("");
+  const [peso, setPeso] = useState("");
+  const [guia, setGuia] = useState("");
+  const [destino, setDestino] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [guardando, iniciar] = useTransition();
 
   const numeroValor = valor.trim() === "" ? undefined : Number(valor.replace(/[.\s]/g, "").replace(",", "."));
   const valorInvalido = numeroValor !== undefined && !Number.isFinite(numeroValor);
+  const comercial = tipo === "venta" || tipo === "sacrificio";
+  const numeroPeso = peso.trim() === "" ? undefined : (leerNumero(peso) ?? Number.NaN);
+  const pesoInvalido = comercial && numeroPeso !== undefined && !Number.isFinite(numeroPeso);
 
   const guardar = () => {
     if (!tipo) return;
@@ -55,6 +63,7 @@ export function FormBaja({
         valor: numeroValor,
         destinoConsumo: consumo,
         detalle,
+        ...(comercial ? { pesoKg: numeroPeso, guiaMovilizacion: guia, destino } : {}),
       });
       if (!r.ok) return setError(r.error);
       toast.exito(`${etiqueta} salió del hato`);
@@ -115,6 +124,10 @@ export function FormBaja({
         </>
       ) : null}
 
+      {comercial ? (
+        <CamposTrazabilidad tipo={tipo} peso={peso} onPeso={setPeso} pesoInvalido={pesoInvalido} guia={guia} onGuia={setGuia} destino={destino} onDestino={setDestino} />
+      ) : null}
+
       <Campo etiqueta="¿Por qué sale del hato?" ayuda="Opcional. Sirve para saber con el tiempo por qué se descartan animales.">
         {(id) => (
           <Selector
@@ -137,7 +150,7 @@ export function FormBaja({
       {error ? <Aviso tipo="error">{error}</Aviso> : null}
       {!tipo ? <Aviso tipo="atencion">Elige qué pasó con el animal para continuar.</Aviso> : null}
 
-      <Boton variante="peligro" onClick={guardar} pendiente={guardando} cargando="Guardando…" disabled={!tipo || !fecha || valorInvalido}>
+      <Boton variante="peligro" onClick={guardar} pendiente={guardando} cargando="Guardando…" disabled={!tipo || !fecha || valorInvalido || pesoInvalido}>
         Dar de baja
       </Boton>
     </div>

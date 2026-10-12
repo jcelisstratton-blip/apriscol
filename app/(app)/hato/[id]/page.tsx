@@ -26,7 +26,7 @@ import { HistorialSanidadAnimal } from "@/components/HistorialSanidadAnimal";
 import { TurnosAnimal } from "@/components/TurnosAnimal";
 import { estadoDosis, ETIQUETA_RESULTADO_PRUEBA, nombreEvento } from "@/lib/sanidad";
 import { estadoRcs, formatoMiles } from "@/lib/leche-calidad";
-import { ETIQUETA_PESAJE, faltaParaMeta, gdp, kg } from "@/lib/carne";
+import { ETIQUETA_CONFORMACION, ETIQUETA_ENGRASAMIENTO, ETIQUETA_GRASA_VISCERAL, ETIQUETA_PESAJE, faltaParaMeta, gdp, kg, pctUno } from "@/lib/carne";
 import { LoteAnimal } from "@/components/LoteAnimal";
 import { describirParentesco, nivelEndogamia, pedigriTexto, porcentaje, primeraMayuscula, type AncestroEndogamia } from "@/lib/endogamia";
 
@@ -132,6 +132,11 @@ export default async function FichaAnimal({ params, searchParams }: { params: Pr
   const listaPesos = pesosDB.data ?? [];
   const lotesCeba = lotesDB.data ?? [];
   const miLote = lotesCeba.find((l) => l.id === animal.lote_ceba_id);
+  // Canal (rendimiento al beneficio) de un animal sacrificado.
+  const canal =
+    verCarne && baja.data?.tipo === "sacrificio"
+      ? (await supabase.from("v_canales").select("*").eq("animal_id", id).eq("finca_id", finca.id).maybeSingle()).data
+      : null;
   const esCeba = animal.sexo === "macho" ? animal.uso_macho === "carne" : animal.vocacion !== "leche";
   const mostrarCrecimiento = verCarne && (animal.estado === "activo" || listaPesos.length > 0);
   // Calidad de la leche de esta hembra: sus análisis (grasa, proteína, células somáticas). El CMT vive en Sanidad → Pruebas.
@@ -535,13 +540,16 @@ export default async function FichaAnimal({ params, searchParams }: { params: Pr
         ) : null}
 
         {animal.estado !== "activo" ? (
-          <Tarjeta titulo="Salida del hato">
+          <Tarjeta titulo="Salida del hato" id="salida">
             <dl className="divide-y divide-arena">
               <Dato etiqueta="Qué pasó">{baja.data ? ETIQUETA_TIPO_BAJA[baja.data.tipo] : animal.estado[0].toUpperCase() + animal.estado.slice(1)}</Dato>
               <Dato etiqueta="Fecha">{formatoFecha(baja.data?.fecha ?? animal.fecha_baja)}</Dato>
               {baja.data?.motivo ? <Dato etiqueta="Motivo">{ETIQUETA_MOTIVO_BAJA[baja.data.motivo]}</Dato> : null}
               {baja.data?.comprador ? <Dato etiqueta="Comprador">{baja.data.comprador}</Dato> : null}
               {baja.data?.valor ? <Dato etiqueta="Valor">{pesos(baja.data.valor)}</Dato> : null}
+              {baja.data?.peso_kg ? <Dato etiqueta="Peso en vivo">{kg(baja.data.peso_kg)}</Dato> : null}
+              {baja.data?.guia_movilizacion ? <Dato etiqueta="Guía de movilización">{baja.data.guia_movilizacion}</Dato> : null}
+              {baja.data?.destino ? <Dato etiqueta={baja.data.tipo === "sacrificio" ? "Lugar del beneficio" : "Destino"}>{baja.data.destino}</Dato> : null}
               {baja.data?.tipo === "sacrificio" || (baja.data?.tipo === "venta" && baja.data.destino_consumo) ? (
                 <Dato etiqueta="Carne">Para consumo</Dato>
               ) : baja.data?.tipo === "muerte" ? (
@@ -549,6 +557,41 @@ export default async function FichaAnimal({ params, searchParams }: { params: Pr
               ) : null}
             </dl>
             {baja.data?.detalle ? <p className="mt-3 whitespace-pre-wrap text-[0.9375rem] text-humo">{baja.data.detalle}</p> : null}
+            {baja.data && puedeEscribir(rol, "hato") ? (
+              <Link href={`/hato/${id}/baja/editar`} className="mt-2 inline-flex min-h-11 items-center gap-1.5 text-sm font-semibold text-musgo underline-offset-4 hover:underline">
+                Corregir datos de la salida
+              </Link>
+            ) : null}
+            {baja.data?.tipo === "sacrificio" && verCarne ? (
+              <div className="mt-3 space-y-2 border-t border-arena pt-3">
+                <p className="text-sm font-semibold">Canal</p>
+                {canal ? (
+                  <dl className="divide-y divide-arena">
+                    <Dato etiqueta="Canal caliente">{kg(canal.peso_canal_caliente_kg)}</Dato>
+                    {canal.rendimiento_caliente_pct != null ? <Dato etiqueta="Rendimiento">{pctUno(canal.rendimiento_caliente_pct)}</Dato> : null}
+                    {canal.peso_canal_fria_kg != null ? (
+                      <Dato etiqueta="Canal fría">
+                        {kg(canal.peso_canal_fria_kg)}
+                        {canal.rendimiento_frio_pct != null ? ` · ${pctUno(canal.rendimiento_frio_pct)}` : ""}
+                      </Dato>
+                    ) : null}
+                    {canal.merma_oreo_pct != null ? <Dato etiqueta="Merma al enfriar">{pctUno(canal.merma_oreo_pct)}</Dato> : null}
+                    {canal.conformacion ? <Dato etiqueta="Conformación">{ETIQUETA_CONFORMACION[canal.conformacion]}</Dato> : null}
+                    {canal.engrasamiento ? <Dato etiqueta="Engrasamiento">{ETIQUETA_ENGRASAMIENTO[canal.engrasamiento]}</Dato> : null}
+                    {canal.grasa_dorsal_mm != null ? <Dato etiqueta="Grasa dorsal">{litros(canal.grasa_dorsal_mm)} mm</Dato> : null}
+                    {canal.grasa_visceral ? <Dato etiqueta="Grasa visceral">{ETIQUETA_GRASA_VISCERAL[canal.grasa_visceral]}</Dato> : null}
+                    {canal.planta ? <Dato etiqueta="Planta">{canal.planta}</Dato> : null}
+                  </dl>
+                ) : (
+                  <p className="text-[0.9375rem] text-humo">Todavía no tiene la canal registrada. Con el peso de la canal se calcula el rendimiento.</p>
+                )}
+                {puedeEscribir(rol, "carne") ? (
+                  <Link href={canal ? `/carne/canales/${canal.id}` : `/hato/${id}/canal/nuevo`} className={clasesBoton("secundario")}>
+                    {canal ? "Editar canal" : "Registrar canal"}
+                  </Link>
+                ) : null}
+              </div>
+            ) : null}
             {puedeGestionar(rol) ? (
               <div className="mt-3">
                 <DeshacerBaja animalId={id} etiqueta={animal.nombre ?? animal.numero_arete} esHembra={animal.sexo === "hembra"} />

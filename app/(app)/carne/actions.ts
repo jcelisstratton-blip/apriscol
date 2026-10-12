@@ -8,7 +8,7 @@ import { obtenerContexto } from "@/lib/contexto";
 import { puedeEscribir, puedeGestionar } from "@/lib/permisos";
 import { mensajeAmigable } from "@/lib/mensaje-amigable";
 import { hoyBogota, sumarDias } from "@/lib/fechas";
-import { TIPOS_PESAJE } from "@/lib/carne";
+import { CONFORMACIONES, GRASAS_VISCERALES, TIPOS_PESAJE } from "@/lib/carne";
 import { decimal, opcional, texto } from "@/lib/validacion";
 
 export type EstadoForm = { error?: string } | undefined;
@@ -284,4 +284,92 @@ export async function eliminarConsumo(consumoId: string): Promise<Resultado> {
   if (!data || data.length === 0) return { ok: false, error: "No encontramos ese registro." };
   revalidatePath("/carne");
   return { ok: true, destino: `/carne/lotes/${data[0].lote_id}#consumo` };
+}
+
+// ───────────────────────── Canales (rendimiento al beneficio) ─────────────────────────
+const esquemaCanal = z.object({
+  animal_id: z.uuid("Elige el animal."),
+  fecha: z.iso.date("Indica la fecha del beneficio."),
+  peso_vivo_kg: decimal(z.coerce.number("El peso en vivo debe ser un número.").positive("El peso en vivo debe ser mayor que cero.").max(250, "El peso en vivo no puede pasar de 250 kg.")),
+  peso_canal_caliente_kg: decimal(z.coerce.number("El peso de la canal debe ser un número.").positive("El peso de la canal debe ser mayor que cero.").max(200, "El peso de la canal no puede pasar de 200 kg.")).pipe(z.number("Indica cuánto pesó la canal caliente.")),
+  peso_canal_fria_kg: decimal(z.coerce.number("El peso de la canal fría debe ser un número.").positive("El peso de la canal fría debe ser mayor que cero.").max(200, "El peso de la canal no puede pasar de 200 kg.")),
+  conformacion: opcional(z.enum(CONFORMACIONES as [string, ...string[]], "La conformación no es válida.")),
+  engrasamiento: decimal(z.coerce.number("El engrasamiento debe ser un número.").int("El engrasamiento debe ser de 1 a 5.").min(1, "El engrasamiento debe ser de 1 a 5.").max(5, "El engrasamiento debe ser de 1 a 5.")),
+  grasa_dorsal_mm: decimal(z.coerce.number("La grasa dorsal debe ser un número.").min(0, "La grasa dorsal no puede ser negativa.").max(40, "La grasa dorsal no puede pasar de 40 mm.")),
+  grasa_visceral: opcional(z.enum(GRASAS_VISCERALES as [string, ...string[]], "La grasa visceral no es válida.")),
+  planta: texto(120, "El nombre de la planta es muy largo."),
+  observaciones: texto(1000, "Las observaciones son muy largas."),
+  client_request_id: opcional(z.uuid()),
+  canal_id: opcional(z.uuid()),
+});
+
+function leerCanal(form: FormData) {
+  const datos = esquemaCanal.safeParse(Object.fromEntries(form));
+  if (!datos.success) return { error: datos.error.issues[0]?.message ?? "Revisa los datos." } as const;
+  const d = datos.data;
+  const futura = noFutura(d.fecha);
+  if (futura) return { error: futura } as const;
+  if (d.peso_vivo_kg != null && d.peso_canal_caliente_kg > d.peso_vivo_kg) return { error: "La canal no puede pesar más que el animal vivo. Revisa los pesos." } as const;
+  if (d.peso_canal_fria_kg != null && d.peso_canal_fria_kg > d.peso_canal_caliente_kg) return { error: "La canal fría no puede pesar más que la caliente: al enfriarse pierde peso." } as const;
+  return {
+    d,
+    fila: {
+      fecha: d.fecha,
+      peso_vivo_kg: d.peso_vivo_kg ?? null,
+      peso_canal_caliente_kg: d.peso_canal_caliente_kg,
+      peso_canal_fria_kg: d.peso_canal_fria_kg ?? null,
+      conformacion: (d.conformacion ?? null) as never,
+      engrasamiento: d.engrasamiento ?? null,
+      grasa_dorsal_mm: d.grasa_dorsal_mm ?? null,
+      grasa_visceral: (d.grasa_visceral ?? null) as never,
+      planta: d.planta ?? null,
+      observaciones: d.observaciones ?? null,
+    },
+  } as const;
+}
+
+const destinoCanal = (animal: string) => `/hato/${animal}?guardado=1#salida`;
+
+export async function crearCanal(_: EstadoForm, form: FormData): Promise<EstadoForm> {
+  const p = await permiso("registrar canales");
+  if (!p.ok) return { error: p.error };
+  const l = leerCanal(form);
+  if ("error" in l) return { error: l.error };
+  const supabase = await crearClienteServidor();
+  const { data: baja } = await supabase.from("bajas").select("tipo").eq("animal_id", l.d.animal_id).eq("finca_id", p.finca.id).maybeSingle();
+  if (!baja || baja.tipo !== "sacrificio") return { error: "Solo se registra la canal de un animal que salió del hato por sacrificio." };
+  const { error } = await supabase.from("canales").insert({ finca_id: p.finca.id, animal_id: l.d.animal_id, ...l.fila, client_request_id: l.d.client_request_id ?? null });
+  if (error && error.code === "23505" && /canales_animal_uk/.test(error.message)) return { error: "Ese animal ya tiene su canal registrada. Edítala en lugar de crear otra." };
+  if (error && !esRepetido(error)) return { error: mensajeAmigable(error.message) };
+  revalidatePath("/carne");
+  revalidatePath(`/hato/${l.d.animal_id}`);
+  redirect(destinoCanal(l.d.animal_id));
+}
+
+export async function editarCanal(_: EstadoForm, form: FormData): Promise<EstadoForm> {
+  const p = await permiso("editar canales");
+  if (!p.ok) return { error: p.error };
+  const l = leerCanal(form);
+  if ("error" in l) return { error: l.error };
+  if (!l.d.canal_id) return { error: "No encontramos esa canal." };
+  const supabase = await crearClienteServidor();
+  const { data, error } = await supabase.from("canales").update(l.fila).eq("id", l.d.canal_id).eq("finca_id", p.finca.id).eq("animal_id", l.d.animal_id).select("id");
+  if (error) return { error: mensajeAmigable(error.message) };
+  if (!data || data.length === 0) return { error: "No encontramos esa canal." };
+  revalidatePath("/carne");
+  revalidatePath(`/hato/${l.d.animal_id}`);
+  redirect(destinoCanal(l.d.animal_id));
+}
+
+export async function eliminarCanal(canalId: string): Promise<Resultado> {
+  const { finca, rol } = await obtenerContexto();
+  if (!puedeGestionar(rol)) return { ok: false, error: "Solo el propietario o un administrador puede eliminar canales." };
+  if (!ID_UUID.safeParse(canalId).success) return { ok: false, error: "Canal no válida." };
+  const supabase = await crearClienteServidor();
+  const { data, error } = await supabase.from("canales").delete().eq("id", canalId).eq("finca_id", finca.id).select("animal_id");
+  if (error) return { ok: false, error: mensajeAmigable(error.message) };
+  if (!data || data.length === 0) return { ok: false, error: "No encontramos esa canal." };
+  revalidatePath("/carne");
+  revalidatePath(`/hato/${data[0].animal_id}`);
+  return { ok: true, destino: `/hato/${data[0].animal_id}#salida` };
 }
