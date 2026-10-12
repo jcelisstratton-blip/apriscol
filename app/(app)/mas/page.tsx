@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ChevronRight, KeyRound, LogOut, MapPin, Plus, ShieldCheck, Trophy, Users } from "lucide-react";
+import { ChevronRight, KeyRound, LogOut, MapPin, Pencil, Plus, ShieldCheck, Trophy, Users } from "lucide-react";
 import { Encabezado } from "@/components/Encabezado";
+import { AvisoGuardado } from "@/components/AvisoGuardado";
 import { FincaSelector } from "@/components/FincaSelector";
 import { Insignia } from "@/components/Insignia";
 import { Tarjeta } from "@/components/Tarjeta";
@@ -13,7 +14,8 @@ export const metadata: Metadata = { title: "Más" };
 
 const FILA = "flex min-h-14 items-center gap-3.5 px-1 py-2";
 
-export default async function PaginaMas() {
+export default async function PaginaMas({ searchParams }: { searchParams: Promise<{ guardado?: string }> }) {
+  const { guardado } = await searchParams;
   const { user, perfil, finca, fincas, rol } = await obtenerContexto();
   const nombre = perfil?.nombre || user.email;
   const ubicacion = [finca.municipio, finca.departamento].filter(Boolean).join(", ");
@@ -21,6 +23,7 @@ export default async function PaginaMas() {
 
   return (
     <>
+      <AvisoGuardado activo={guardado === "1"} />
       <Encabezado titulo="Más" />
       <div className="space-y-3.5 lg:max-w-xl">
         {/* Una cuenta es una fila (avatar + nombre + detalle), no un aviso */}
@@ -50,6 +53,11 @@ export default async function PaginaMas() {
               <Insignia tono="musgo">{ETIQUETA_ROL[rol]}</Insignia>
             </div>
             <FincaSelector fincas={fincas.map((f) => ({ id: f.id, nombre: f.nombre, rol: f.rol }))} activa={finca.id} />
+            {puedeGestionar(rol) ? (
+              <Link href="/mas/finca" className="inline-flex min-h-11 items-center gap-1.5 text-[0.9375rem] font-semibold text-musgo underline-offset-4 hover:underline">
+                <Pencil className="size-4" strokeWidth={2} aria-hidden="true" /> Editar datos de la finca
+              </Link>
+            ) : null}
           </div>
         </Tarjeta>
 
