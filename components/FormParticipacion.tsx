@@ -1,13 +1,14 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useState, useTransition } from "react";
+import Link from "next/link";
 import { Aviso } from "@/components/Aviso";
-import { Boton } from "@/components/Boton";
+import { Boton, clasesBoton } from "@/components/Boton";
 import { Campo, CLASE_INPUT } from "@/components/Campo";
 import { FotoPremio } from "@/components/FotoPremio";
 import { Selector } from "@/components/Selector";
 import { SelectorAnimal } from "@/components/SelectorAnimal";
-import { crearParticipacion } from "@/app/(app)/ferias/actions";
+import { crearParticipacion, editarParticipacion } from "@/app/(app)/ferias/actions";
 import { ETIQUETA_RESULTADO, RESULTADOS } from "@/lib/ferias";
 import { formatoFecha } from "@/lib/fechas";
 import type { ResultadoFeria } from "@/lib/tipos";
@@ -15,29 +16,59 @@ import type { ResultadoFeria } from "@/lib/tipos";
 type Ref = { id: string; numero_arete: string; nombre: string | null };
 type FeriaOpcion = { id: string; nombre: string; fecha_inicio: string };
 
+/** Un premio ya registrado, para corregirlo. */
+export type ParticipacionEditable = {
+  id: string;
+  feria_id: string;
+  animal: Ref;
+  categoria: string;
+  resultado: ResultadoFeria;
+  puesto: number | null;
+  puntaje: number | null;
+  premio_descripcion: string | null;
+  premio_en_dinero: number | null;
+  foto: { path: string; url: string } | null;
+  observaciones: string | null;
+};
+
+const coma = (n: number | null) => (n === null ? "" : String(n).replace(".", ","));
+
 export function FormParticipacion({
   fincaId,
   ferias,
   feriaInicial,
   animalInicial,
   solicitud,
+  participacion,
 }: {
   fincaId: string;
   ferias: FeriaOpcion[];
   feriaInicial?: string;
   animalInicial: Ref | null;
-  solicitud: string;
+  /** Solo al crear: identifica la apertura del formulario para ignorar un doble toque. */
+  solicitud?: string;
+  /** Si viene, el formulario corrige este premio en lugar de crear uno nuevo. */
+  participacion?: ParticipacionEditable;
 }) {
-  const [estado, enviar, pendiente] = useActionState(crearParticipacion, undefined);
-  const [feria, setFeria] = useState<string>(feriaInicial ?? "");
-  const [animal, setAnimal] = useState<Ref | null>(animalInicial);
-  const [resultado, setResultado] = useState<ResultadoFeria>("participacion");
+  const editando = Boolean(participacion);
+  const [estado, enviar, pendiente] = useActionState(editando ? editarParticipacion : crearParticipacion, undefined);
+  const [, iniciar] = useTransition();
+  const [feria, setFeria] = useState<string>(participacion?.feria_id ?? feriaInicial ?? "");
+  const [animal, setAnimal] = useState<Ref | null>(participacion?.animal ?? animalInicial);
+  const [resultado, setResultado] = useState<ResultadoFeria>(participacion?.resultado ?? "participacion");
   const [subiendo, setSubiendo] = useState(false);
   const huboPremio = resultado !== "participacion";
 
+  // Se envía con onSubmit (no con `action`): si hay un error, lo que la persona escribió no se borra.
+  const alEnviar = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const datos = new FormData(e.currentTarget);
+    iniciar(() => enviar(datos));
+  };
+
   return (
-    <form action={enviar} className="space-y-5">
-      <input type="hidden" name="client_request_id" value={solicitud} />
+    <form onSubmit={alEnviar} className="space-y-5">
+      {participacion ? <input type="hidden" name="participacion_id" value={participacion.id} /> : <input type="hidden" name="client_request_id" value={solicitud ?? ""} />}
 
       <Campo etiqueta="Feria">
         {(id) => (
@@ -58,7 +89,7 @@ export function FormParticipacion({
       </Campo>
 
       <Campo etiqueta="Categoría" ayuda="Tal como la publicó la feria.">
-        {(id) => <input id={id} name="categoria" required maxLength={160} autoComplete="off" className={CLASE_INPUT} placeholder="Ej. Hembra joven en leche" />}
+        {(id) => <input id={id} name="categoria" defaultValue={participacion?.categoria} required maxLength={160} autoComplete="off" className={CLASE_INPUT} placeholder="Ej. Hembra joven en leche" />}
       </Campo>
 
       <Campo etiqueta="Resultado">
@@ -76,36 +107,43 @@ export function FormParticipacion({
 
       <div className="grid grid-cols-2 gap-4">
         <Campo etiqueta="Puesto" ayuda="Opcional.">
-          {(id) => <input id={id} name="puesto" inputMode="numeric" pattern="[0-9]*" maxLength={2} autoComplete="off" className={CLASE_INPUT} placeholder="1" />}
+          {(id) => <input id={id} name="puesto" defaultValue={participacion?.puesto ?? ""} inputMode="numeric" pattern="[0-9]*" maxLength={2} autoComplete="off" className={CLASE_INPUT} placeholder="1" />}
         </Campo>
         <Campo etiqueta="Puntaje" ayuda="Opcional.">
-          {(id) => <input id={id} name="puntaje" inputMode="decimal" autoComplete="off" className={CLASE_INPUT} placeholder="92,5" />}
+          {(id) => <input id={id} name="puntaje" defaultValue={coma(participacion?.puntaje ?? null)} inputMode="decimal" autoComplete="off" className={CLASE_INPUT} placeholder="92,5" />}
         </Campo>
       </div>
 
       {huboPremio ? (
         <>
           <Campo etiqueta="Premio recibido" ayuda="Trofeo, copa, banda, placa…">
-            {(id) => <input id={id} name="premio_descripcion" maxLength={200} autoComplete="off" className={CLASE_INPUT} />}
+            {(id) => <input id={id} name="premio_descripcion" defaultValue={participacion?.premio_descripcion ?? ""} maxLength={200} autoComplete="off" className={CLASE_INPUT} />}
           </Campo>
           <Campo etiqueta="Premio en dinero" ayuda="Opcional, en pesos.">
-            {(id) => <input id={id} name="premio_en_dinero" inputMode="numeric" autoComplete="off" className={CLASE_INPUT} placeholder="0" />}
+            {(id) => <input id={id} name="premio_en_dinero" defaultValue={participacion?.premio_en_dinero ?? ""} inputMode="numeric" autoComplete="off" className={CLASE_INPUT} placeholder="0" />}
           </Campo>
           <div className="space-y-2">
             <span className="block text-sm font-semibold">Foto del premio</span>
-            <FotoPremio nombre="foto_path" onEstado={setSubiendo} />
+            <FotoPremio nombre="foto_path" onEstado={setSubiendo} inicial={participacion?.foto ?? null} />
           </div>
         </>
       ) : null}
 
       <Campo etiqueta="Observaciones" ayuda="Opcional.">
-        {(id) => <textarea id={id} name="observaciones" rows={3} maxLength={1000} className={`${CLASE_INPUT} py-3`} />}
+        {(id) => <textarea id={id} name="observaciones" defaultValue={participacion?.observaciones ?? ""} rows={3} maxLength={1000} className={`${CLASE_INPUT} py-3`} />}
       </Campo>
 
       {estado?.error ? <Aviso tipo="error">{estado.error}</Aviso> : null}
-      <Boton type="submit" pendiente={pendiente} cargando="Guardando…" disabled={subiendo || !feria || !animal}>
-        {subiendo ? "Esperando la foto…" : "Guardar participación"}
-      </Boton>
+      <div className="space-y-2">
+        <Boton type="submit" pendiente={pendiente} cargando="Guardando…" disabled={subiendo || !feria || !animal}>
+          {subiendo ? "Esperando la foto…" : editando ? "Guardar cambios" : "Guardar participación"}
+        </Boton>
+        {participacion ? (
+          <Link href={`/ferias/${participacion.feria_id}`} className={clasesBoton("fantasma")}>
+            Cancelar
+          </Link>
+        ) : null}
+      </div>
     </form>
   );
 }

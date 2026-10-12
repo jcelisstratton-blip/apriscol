@@ -312,6 +312,7 @@ export default async function FichaAnimal({ params, searchParams }: { params: Pr
                           detalle={f ? formatoFecha(f.fecha_inicio) : undefined}
                           enlace={`/ferias/${p.feria_id}`}
                           fotoUrl={p.foto_path ? fotosPremios.get(p.foto_path) : undefined}
+                          editar={puedeEscribir(rol, "ferias") ? `/ferias/participacion/${p.id}/editar` : undefined}
                         />
                       </li>
                     );

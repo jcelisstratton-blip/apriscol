@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { Camera, ImagePlus, RefreshCw } from "lucide-react";
+import { Camera, ImagePlus, RefreshCw, Trash2 } from "lucide-react";
 import { Aviso } from "@/components/Aviso";
 import { Cargando } from "@/components/Cargando";
 import { prepararSubidaFoto } from "@/app/(app)/ferias/actions";
@@ -27,10 +27,19 @@ async function comprimir(archivo: File): Promise<Blob> {
 }
 
 /** Foto del premio: se sube directo a Storage con un permiso de un solo uso que arma el servidor. */
-export function FotoPremio({ nombre, onEstado }: { nombre: string; onEstado?: (subiendo: boolean) => void }) {
+export function FotoPremio({
+  nombre,
+  onEstado,
+  inicial,
+}: {
+  nombre: string;
+  onEstado?: (subiendo: boolean) => void;
+  /** Al editar: la foto que el premio ya tiene (ruta en Storage y URL firmada para verla). */
+  inicial?: { path: string; url: string } | null;
+}) {
   const entrada = useRef<HTMLInputElement>(null);
-  const [ruta, setRuta] = useState("");
-  const [vista, setVista] = useState<string | null>(null);
+  const [ruta, setRuta] = useState(inicial?.path ?? "");
+  const [vista, setVista] = useState<string | null>(inicial?.url ?? null);
   const [subiendo, setSubiendo] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -83,6 +92,17 @@ export function FotoPremio({ nombre, onEstado }: { nombre: string; onEstado?: (s
             className="absolute bottom-2.5 right-2.5 inline-flex min-h-11 items-center gap-1.5 rounded-full bg-tinta/85 px-4 text-sm font-semibold text-lana backdrop-blur"
           >
             <RefreshCw className="size-4" strokeWidth={2} /> Cambiar
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setRuta("");
+              setVista(null);
+            }}
+            disabled={subiendo}
+            className="absolute bottom-2.5 left-2.5 inline-flex min-h-11 items-center gap-1.5 rounded-full bg-tinta/85 px-4 text-sm font-semibold text-lana backdrop-blur"
+          >
+            <Trash2 className="size-4" strokeWidth={2} /> Quitar
           </button>
         </div>
       ) : (

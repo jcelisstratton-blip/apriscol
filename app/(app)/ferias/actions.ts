@@ -179,3 +179,86 @@ export async function crearParticipacion(_: EstadoForm, form: FormData): Promise
   revalidatePath(`/hato/${d.animal_id}`);
   redirect(`/ferias/${d.feria_id}`);
 }
+
+const esquemaEdicionParticipacion = esquemaParticipacion.omit({ client_request_id: true }).extend({ participacion_id: z.uuid() });
+
+/** Corrige un premio: feria, animal, categoría, resultado, premio y foto. Si cambia o se quita la foto, el archivo viejo se borra. */
+export async function editarParticipacion(_: EstadoForm, form: FormData): Promise<EstadoForm> {
+  const { finca, rol } = await obtenerContexto();
+  if (!puedeEscribir(rol, "ferias")) return { error: "No tienes permiso para editar premios en esta finca." };
+  const datos = esquemaEdicionParticipacion.safeParse(Object.fromEntries(form));
+  if (!datos.success) return { error: datos.error.issues[0]?.message };
+  const d = datos.data;
+
+  if (d.foto_path && !new RegExp(`^${finca.id}/[0-9a-f-]{36}\\.(jpg|png|webp)$`).test(d.foto_path)) {
+    return { error: "La foto no es válida. Súbela de nuevo." };
+  }
+
+  const supabase = await crearClienteServidor();
+  const { data: actual } = await supabase
+    .from("participaciones_feria")
+    .select("id, feria_id, animal_id, foto_path")
+    .eq("id", d.participacion_id)
+    .eq("finca_id", finca.id)
+    .maybeSingle();
+  if (!actual) return { error: "No encontramos ese premio." };
+
+  // Si solo participó (sin premio), no hay premio en dinero, descripción ni foto.
+  const hayPremio = d.resultado !== "participacion";
+  const fotoNueva = hayPremio ? (d.foto_path ?? null) : null;
+
+  const { error } = await supabase
+    .from("participaciones_feria")
+    .update({
+      feria_id: d.feria_id,
+      animal_id: d.animal_id,
+      categoria: d.categoria,
+      resultado: d.resultado as (typeof RESULTADOS)[number],
+      puesto: d.puesto ?? null,
+      puntaje: d.puntaje ?? null,
+      premio_descripcion: hayPremio ? (d.premio_descripcion ?? null) : null,
+      premio_en_dinero: hayPremio ? (d.premio_en_dinero ?? null) : null,
+      observaciones: d.observaciones ?? null,
+      foto_path: fotoNueva,
+    })
+    .eq("id", d.participacion_id)
+    .eq("finca_id", finca.id);
+  if (error) {
+    return { error: error.code === "23505" ? "Ese animal ya tiene registrada esa categoría en esta feria." : mensajeAmigable(error.message) };
+  }
+
+  // La foto anterior ya no se usa: se borra de Storage (si falla, solo queda un archivo suelto).
+  if (actual.foto_path && actual.foto_path !== fotoNueva) await supabase.storage.from("premios").remove([actual.foto_path]);
+
+  revalidatePath("/ferias");
+  revalidatePath(`/ferias/${actual.feria_id}`);
+  revalidatePath(`/ferias/${d.feria_id}`);
+  revalidatePath(`/hato/${actual.animal_id}`);
+  revalidatePath(`/hato/${d.animal_id}`);
+  redirect(`/ferias/${d.feria_id}?guardado=1`);
+}
+
+/** Elimina un premio y su foto. No se puede deshacer. Devuelve la feria a la que pertenecía. */
+export async function eliminarParticipacion(participacionId: string): Promise<{ ok: true; feriaId: string } | { ok: false; error: string }> {
+  const { finca, rol } = await obtenerContexto();
+  if (!puedeEscribir(rol, "ferias")) return { ok: false, error: "No tienes permiso para eliminar premios en esta finca." };
+  if (!z.uuid().safeParse(participacionId).success) return { ok: false, error: "Premio no válido." };
+
+  const supabase = await crearClienteServidor();
+  const { data: actual } = await supabase
+    .from("participaciones_feria")
+    .select("feria_id, animal_id, foto_path")
+    .eq("id", participacionId)
+    .eq("finca_id", finca.id)
+    .maybeSingle();
+  if (!actual) return { ok: false, error: "No encontramos ese premio." };
+
+  const { error } = await supabase.from("participaciones_feria").delete().eq("id", participacionId).eq("finca_id", finca.id);
+  if (error) return { ok: false, error: mensajeAmigable(error.message) };
+  if (actual.foto_path) await supabase.storage.from("premios").remove([actual.foto_path]);
+
+  revalidatePath("/ferias");
+  revalidatePath(`/ferias/${actual.feria_id}`);
+  revalidatePath(`/hato/${actual.animal_id}`);
+  return { ok: true, feriaId: actual.feria_id };
+}

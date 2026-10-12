@@ -97,6 +97,7 @@ export default async function DetalleFeria({ params, searchParams }: { params: P
                 titulo={nombres.get(p.animal_id) ?? "Animal"}
                 enlace={`/hato/${p.animal_id}`}
                 fotoUrl={p.foto_path ? fotos.get(p.foto_path) : undefined}
+                editar={puedeEscribir(rol, "ferias") ? `/ferias/participacion/${p.id}/editar` : undefined}
               />
             </li>
           ))}
