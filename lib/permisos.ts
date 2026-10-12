@@ -9,7 +9,7 @@ export function puedeEscribir(rol: RolFinca, modulo: ModuloApp): boolean {
     case "ordenador":
       return modulo === "leche";
     case "veterinario":
-      return modulo === "sanidad" || modulo === "reproduccion";
+      return modulo === "sanidad" || modulo === "reproduccion" || modulo === "corrales";
     case "contador":
       return modulo === "contabilidad";
   }
@@ -23,7 +23,7 @@ export function puedeVer(rol: RolFinca, modulo: ModuloApp): boolean {
     case "ordenador":
       return modulo === "hato" || modulo === "leche";
     case "veterinario":
-      return ["hato", "genealogia", "sanidad", "reproduccion", "leche", "carne"].includes(modulo);
+      return ["hato", "genealogia", "sanidad", "reproduccion", "leche", "carne", "corrales"].includes(modulo);
     case "contador":
       return ["hato", "leche", "carne", "contabilidad"].includes(modulo);
   }

@@ -18,7 +18,7 @@ import { diasHasta, formatoFecha, hoyBogota, litros, sumarDias } from "@/lib/fec
 import { etiquetaAnimal, saludo } from "@/lib/animal";
 import { IconoEvento } from "@/components/IconoEvento";
 import { ETIQUETA_EVENTO, estadoDosis, estadoFechaPrograma, nombreEvento } from "@/lib/sanidad";
-import type { CandidatoCeba, ProgramaSanitarioResumen, SanidadPendiente, ServicioConParto, TipoEvento } from "@/lib/tipos";
+import type { CandidatoCeba, CuarentenaAlerta, ProgramaSanitarioResumen, SanidadPendiente, ServicioConParto, TipoEvento, UbicacionVista } from "@/lib/tipos";
 
 export const metadata: Metadata = { title: "Hoy" };
 
@@ -63,6 +63,17 @@ export default async function PaginaHoy({ searchParams }: { searchParams: Promis
       ? supabase.from("v_programas_sanitarios").select("*").eq("finca_id", finca.id).eq("estado", "abierto").lte("fecha_programada", sumarDias(hoy, 7)).order("fecha_programada").limit(20)
       : Promise.resolve({ data: [] as ProgramaSanitarioResumen[] }),
   ]);
+
+  // Corrales: hacinamiento, potreros que deben desocuparse y animales comprados sin cuarentena (Hato → Corrales).
+  const verCorrales = puedeVer(rol, "corrales");
+  const [ubicacionesAlerta, cuarentenaAlerta] = verCorrales
+    ? await Promise.all([
+        supabase.from("v_ubicaciones").select("*").eq("finca_id", finca.id).eq("activa", true).or("hacinada.eq.true,estado.eq.debe_salir").limit(50),
+        supabase.from("v_cuarentena_alerta").select("*").eq("finca_id", finca.id).eq("situacion", "falta_cuarentena").limit(200),
+      ])
+    : [{ data: [] as UbicacionVista[] }, { data: [] as CuarentenaAlerta[] }];
+  const alertasCorrales = (ubicacionesAlerta.data ?? []) as UbicacionVista[];
+  const sinCuarentena = (cuarentenaAlerta.data ?? []) as CuarentenaAlerta[];
 
   // Las dosis por aplicar se agrupan por el evento que las programó.
   const dosisGrupos = new Map<string, { evento_id: string; tipo: TipoEvento | null; producto_nombre: string | null; proxima_fecha: string; animales: string[] }>();
@@ -256,6 +267,25 @@ export default async function PaginaHoy({ searchParams }: { searchParams: Promis
                   </li>
                 ))}
               </ul>
+            </Tarjeta>
+          ) : null}
+
+          {alertasCorrales.length > 0 || sinCuarentena.length > 0 ? (
+            <Tarjeta titulo="Corrales" acciones={<Link href="/hato?vista=corrales" className="text-sm font-semibold text-musgo">Ver Hato → Corrales</Link>}>
+              <ul className="space-y-1.5 text-[0.9375rem]">
+                {alertasCorrales.slice(0, 5).map((u) => (
+                  <li key={u.id}>
+                    <Link href={`/hato/corrales/${u.id}`} className="font-semibold underline-offset-4 hover:underline">{u.nombre}</Link>
+                    {u.hacinada ? ` tiene ${u.ocupantes} animales y le caben ${u.capacidad}.` : ` lleva ${u.dias_ocupacion} días ocupado: el lote debe pasar a otro potrero.`}
+                  </li>
+                ))}
+                {sinCuarentena.length > 0 ? (
+                  <li>
+                    {sinCuarentena.length} {sinCuarentena.length === 1 ? "animal comprado reciente no ha pasado" : "animales comprados recientes no han pasado"} por cuarentena.
+                  </li>
+                ) : null}
+              </ul>
+              {alertasCorrales.length > 5 ? <p className="mt-2 border-t border-arena pt-2 text-sm text-humo">Y {alertasCorrales.length - 5} más en Hato → Corrales.</p> : null}
             </Tarjeta>
           ) : null}
 

@@ -5,7 +5,7 @@ export type SexoAnimal = "hembra" | "macho";
 export type Vocacion = "leche" | "carne" | "doble";
 export type RolFinca = "propietario" | "administrador" | "ordenador" | "veterinario" | "contador";
 export type ModuloApp =
-  | "hato" | "genealogia" | "leche" | "carne" | "sanidad" | "reproduccion" | "nutricion" | "ambiente" | "contabilidad" | "ferias";
+  | "hato" | "genealogia" | "leche" | "carne" | "sanidad" | "reproduccion" | "nutricion" | "ambiente" | "contabilidad" | "ferias" | "corrales";
 export type UsoMacho = "reproductor" | "carne";
 export type Jornada = "manana" | "tarde" | "noche" | "unico";
 export type TipoBaja = "venta" | "sacrificio" | "muerte" | "perdida";
@@ -366,6 +366,54 @@ export type EventoDeAnimal = {
 };
 
 /** Próxima dosis de un animal que aún no se ha aplicado (vista `v_sanidad_pendiente`). */
+// ───────────────────────── Corrales, instalaciones y rotación ─────────────────────────
+export type TipoUbicacion = "corral" | "potrero";
+export type UsoUbicacion = "general" | "ordeno" | "maternidad" | "crias" | "cuarentena" | "alta_produccion" | "secas" | "reproductoras" | "ceba" | "reemplazos";
+export type PisoUbicacion = "elevado" | "emparrillado" | "tierra" | "cemento" | "pasto" | "otro";
+export type MotivoMovimiento = "ingreso" | "traslado" | "rotacion" | "cuarentena" | "maternidad" | "otro";
+export type EstadoUbicacion = "ocupado" | "vacio" | "debe_salir" | "descanso" | "listo";
+
+/** Un corral (bajo techo) o un potrero (pastoreo) de la finca. */
+export type Ubicacion = {
+  id: string;
+  finca_id: string;
+  tipo: TipoUbicacion;
+  nombre: string;
+  uso: UsoUbicacion;
+  capacidad: number | null;
+  area_m2: number | null;
+  piso: PisoUbicacion | null;
+  agua: boolean;
+  dias_ocupacion_max: number;
+  dias_descanso_min: number;
+  activa: boolean;
+  observaciones: string | null;
+  created_at: string;
+  updated_at: string;
+};
+/** Una ubicación con sus ocupantes y su estado de ocupación o de rotación (vista `v_ubicaciones`). */
+export type UbicacionVista = Ubicacion & {
+  ocupantes: number;
+  ocupado_desde: string | null;
+  ultimo_retiro: string | null;
+  dias_ocupacion: number | null;
+  dias_descanso: number | null;
+  hacinada: boolean;
+  estado: EstadoUbicacion;
+};
+export type MovimientoAnimal = {
+  id: string;
+  finca_id: string;
+  animal_id: string;
+  ubicacion_id: string;
+  desde: string;
+  hasta: string | null;
+  motivo: MotivoMovimiento;
+  observaciones: string | null;
+  created_at: string;
+};
+export type CuarentenaAlerta = { finca_id: string; animal_id: string; situacion: "en_cuarentena" | "falta_cuarentena"; desde: string; dias: number; ubicacion_id: string | null };
+
 /** Una programación sanitaria: qué se va a aplicar, cuándo y a cuántos animales (el estado se calcula en la vista). */
 export type ProgramaSanitario = {
   id: string;
@@ -946,6 +994,8 @@ export type Database = {
       reglas_ceba: Tabla<Omit<ReglaCeba, "personalizada"> & { finca_id: string; created_by: string | null; created_at: string; updated_at: string }, "finca_id" | "especie">;
       pesajes: Tabla<Pesaje, "finca_id" | "animal_id" | "peso_kg">;
       empadronamientos: Tabla<Empadronamiento, "finca_id" | "especie" | "nombre" | "fecha_fin_prevista" | "edad_min_meses" | "peso_min_kg">;
+      ubicaciones: Tabla<Ubicacion, "finca_id" | "tipo" | "nombre">;
+      movimientos_animales: Tabla<MovimientoAnimal, "finca_id" | "animal_id" | "ubicacion_id" | "desde">;
       programas_sanitarios: Tabla<ProgramaSanitario, "finca_id" | "tipo" | "fecha_programada">;
       programa_sanitario_animales: Tabla<ProgramaSanitarioAnimal, "programa_id" | "animal_id" | "finca_id">;
       empadronamiento_machos: Tabla<EmpadronamientoMacho, "finca_id" | "empadronamiento_id" | "macho_id">;
@@ -970,9 +1020,15 @@ export type Database = {
       v_repro_hembras: { Row: ReproHembra; Relationships: [] };
       v_empadronamientos: { Row: Empadronamiento; Relationships: [] };
       v_programas_sanitarios: { Row: ProgramaSanitarioResumen; Relationships: [] };
+      v_ubicaciones: { Row: UbicacionVista; Relationships: [] };
+      v_cuarentena_alerta: { Row: CuarentenaAlerta; Relationships: [] };
       v_podologia_animal: { Row: { animal_id: string; finca_id: string; ultima_fecha: string | null }; Relationships: [] };
     };
     Functions: {
+      mover_animales: {
+        Args: { p_finca: string; p_ubicacion: string | null; p_animales: string[]; p_fecha: string; p_motivo: string; p_observaciones: string };
+        Returns: number;
+      };
       guardar_programa_sanitario: {
         Args: { p_finca: string; p_programa: string | null; p_datos: Record<string, unknown>; p_animales: string[] };
         Returns: string;

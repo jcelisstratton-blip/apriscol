@@ -12,6 +12,7 @@ import { Registrar } from "./Registrar";
 import { Ceba } from "./Ceba";
 import { Monta } from "./Monta";
 import { Sanidad } from "./Sanidad";
+import { Corrales } from "./Corrales";
 import { Animales, CalidadLeche, ProgramaLeche } from "./ProgramaLeche";
 
 export const metadata: Metadata = { title: "Hato" };
@@ -33,7 +34,9 @@ export default async function PaginaHato({ searchParams }: { searchParams: Promi
   const enMonta = sp.vista === "empadronamiento" && verRepro;
   const verSanidad = puedeVer(rol, "sanidad");
   const enSanidad = sp.vista === "sanidad" && verSanidad;
-  const vistas = vistasHato({ leche: verLeche, carne: verCarne, repro: verRepro, sanidad: verSanidad, corrales: false });
+  const verCorrales = puedeVer(rol, "corrales");
+  const enCorrales = sp.vista === "corrales" && verCorrales;
+  const vistas = vistasHato({ leche: verLeche, carne: verCarne, repro: verRepro, sanidad: verSanidad, corrales: verCorrales });
   // Quien no puede escribir leche (veterinario, contador) no registra ordeños: ve el programa y la calidad, sin poder cambiarlos.
   const modo = sp.modo === "calidad" ? "calidad" : sp.modo === "programar" || !puedeRegistrar ? "programar" : "registrar";
 
@@ -68,6 +71,11 @@ export default async function PaginaHato({ searchParams }: { searchParams: Promi
         <div className="space-y-4">
           <ChipsHato especies={finca.especies} vistas={vistas} activa="sanidad" />
           <Sanidad fincaId={finca.id} puedeEditar={puedeEscribir(rol, "sanidad")} guardado={sp.guardado === "1"} />
+        </div>
+      ) : enCorrales ? (
+        <div className="space-y-4">
+          <ChipsHato especies={finca.especies} vistas={vistas} activa="corrales" />
+          <Corrales fincaId={finca.id} puedeEditar={puedeEscribir(rol, "corrales")} guardado={sp.guardado === "1"} />
         </div>
       ) : enOrdeno ? (
         <div className="space-y-4">

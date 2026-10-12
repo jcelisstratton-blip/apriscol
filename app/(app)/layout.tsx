@@ -23,6 +23,7 @@ export default async function LayoutApp({ children }: { children: React.ReactNod
         verLeche={puedeVer(rol, "leche")}
         verPremios={puedeVer(rol, "ferias")}
         verSanidad={puedeVer(rol, "sanidad")}
+        verCorrales={puedeVer(rol, "corrales")}
         verCarne={puedeVer(rol, "carne")}
         verRepro={puedeVer(rol, "reproduccion")}
         verEquipo={puedeGestionar(rol)}

@@ -178,6 +178,13 @@
 - **Podología (guía del aprisco):** inspección semestral; el Hato y el resumen avisan cuántos animales llevan más de 6 meses sin recorte y ofrecen programarla para ellos.
 - **MCP de Supabase:** un `apply_migration`/`execute_sql` con una sentencia `DELETE` o `DROP COLUMN` queda esperando confirmación y vence a los 60 s; los borrados que haga una función se hacen desde la app (no dentro de la migración).
 
+## 8b-ter. Corrales, instalaciones y rotación de animales
+- **Origen:** documento «Sanidad animal y manejo de corrales» del dueño del producto. Se implementó la parte de corrales, instalaciones, rotación de potreros, hacinamiento y cuarentena. **No** se implementó FAMACHA ni el pediluvio a nivel de corral (la podología sigue siendo un tipo de evento sanitario por animal).
+- **Dónde:** igual que Sanidad: trabajo en **Hato → chip «Corrales»**, menú global **Corrales** = resumen con `FiltroPeriodo` (todo, este año, 12/6/3 meses, entre fechas) y chips de motivo, pestaña Movimientos, y por animal la tarjeta **Ubicación** en su ficha (moverlo, historial). Alertas en Hoy (hacinadas, potreros que deben salir, comprados sin cuarentena). Módulo `corrales` en `modulo_app` (el veterinario lo ve).
+- **Datos (`20261012182848_modulo_corrales`, `20261012183221_corrales_ubicaciones_y_rotacion`):** `ubicaciones` (corral/potrero, uso, capacidad, área, piso, agua, días de ocupación máx. y descanso mín., archivable) y `movimientos_animales` (una fila abierta por animal, motivo: traslado, rotación, ingreso, cuarentena, maternidad, otro). Vistas `v_ubicaciones` (ocupantes, hacinada, estado: ocupado/vacío/debe salir/descanso/listo) y `v_cuarentena_alerta` (en cuarentena / comprado sin cuarentena); ambas `security_invoker`. `mover_animales` mueve en lote y cierra la fila anterior.
+- **Decisiones:** el hacinamiento es **aviso, no bloqueo** (ofrecer bloqueo si el dueño lo pide); por animal queda historial completo; no se puede eliminar una instalación que tuvo animales (se archiva); los movimientos no se editan (se registra uno nuevo).
+- **MCP de Supabase:** igual que en 8b-bis, nada de `DELETE`/`DROP COLUMN` dentro de migraciones o pruebas. Quedan sin borrar `sementales_externos.raza` y `empadronamientos.hembras_por_macho` (obsoletas).
+
 ## 8c. Carne (ceba: peso, lotes, alimento)
 - **Dónde vive (regla del menú):** lo global es el menú **Carne** (`/carne`, en el celular dentro de «Más»): pestañas **Resumen** (animales en ceba, peso promedio, ganancia por día, **listos para beneficio** con su aviso de retiro de carne, y cuántos llevan más de 30 días sin pesarse), **Lotes** (abiertos/cerrados con peso promedio, ganancia, conversión y barra hacia la meta) y **Pesos** (todos los pesos, con buscador). Lo de **un solo animal** vive en su ficha: tarjeta **«Peso y ceba»** (`#crecimiento`: peso al nacer, último peso, ganancia por día, lote, meta, historial de pesos, **Registrar peso** y elegir el lote) y en **Hato → filtro «Ceba»** (`/hato?vista=ceba`): la lista de animales en engorde para **pesar** rápido (peso por animal, día del pesaje, filtro por lote; se guarda al instante, un peso por animal y día).
 - **Tablas** (migraciones `20261012074336_permisos_carne`, `20261012074402_carne_ceba`; RLS del módulo `carne`): `lotes_ceba` (nombre único por finca, inicio, **peso meta**, cierre), `pesajes` (control, destete, antes del beneficio; uno por animal y día), `consumo_lote` (kg de alimento, qué alimento, costo) y `animales.lote_ceba_id`. El peso al nacer sigue en `animales.peso_nacer_kg`. Permisos: propietario y administrador manejan carne; veterinario y contador la ven.
@@ -261,6 +268,7 @@
 **Módulos sin interfaz todavía**
 - **Sanidad:** hecha (ver sección 8b). Faltan el soporte adjunto de las pruebas y un plan sanitario por edad/etapa (propuesta de vacunación automática).
 - **Reproducción / partos:** hecha (ver sección 8e).
+- **Corrales:** hecha (ver sección 8b-ter). Faltan FAMACA y pediluvio por corral, y pruebas con sesión real de las acciones de mover.
 - **Pesos / GDP**, nutrición, ambiente (ITH) y contabilidad (módulos previstos en `modulo_app`).
 - **Modo sin conexión** para el ordeño en el campo.
 - Verificar con sesión real: subida de fotos, limpieza de fotos huérfanas.

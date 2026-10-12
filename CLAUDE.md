@@ -90,6 +90,10 @@ Se trabaja en **Hato → filtro «Empadronamiento»** (`/hato?vista=empadronamie
 
 Se **trabaja en Hato → filtro «Sanidad»** (`/hato?vista=sanidad`): programar vacunas, desparasitaciones, tratamientos o podología para los animales que aplican (`programas_sanitarios`), aplicarlos cuando llega el día (`/hato/sanidad/nuevo?programa=…`) y ver las próximas dosis. El menú **Sanidad** es el resumen con filtros de periodo (`FiltroPeriodo`) y de tipo; no registra. A nivel de animal, la ficha ofrece los botones por tipo de tratamiento y «Programar una aplicación». Un programa no guarda su estado: sale de `v_programas_sanitarios` (animales sin `evento_id` = pendientes). Las vistas de trabajo del Hato (Ordeño, Ceba, Empadronamiento, Sanidad, Corrales) se listan una sola vez en `vistasHato` (`lib/hato.ts`) y se pintan con `ChipsHato`.
 
+## Corrales, instalaciones y rotación
+
+Se **trabaja en Hato → filtro «Corrales»** (`/hato?vista=corrales`, `app/(app)/hato/Corrales.tsx`): crear corrales y potreros (`ubicaciones`), mover animales o un lote entero (`/hato/corrales/mover`, función `mover_animales`) y ver alertas. El menú **Corrales** (`/corrales`) es el resumen con filtros de periodo y de motivo, más la pestaña «Movimientos»; no registra. Cada instalación tiene su detalle (`/hato/corrales/<id>`, editable y archivable) y la ficha del animal tiene la tarjeta «Ubicación» (`#ubicacion`). Cada animal tiene **una sola fila abierta** en `movimientos_animales` (`hasta is null`); nada derivado se guarda: ocupación, hacinamiento, estado de rotación y cuarentena salen de `v_ubicaciones` y `v_cuarentena_alerta`. **El hacinamiento avisa, no bloquea** (se puede seguir); un potrero se avisa si está en descanso o debe salir (por defecto 5 días de ocupación máx. y 35 de descanso mín., configurables por potrero); cuarentena: 21 días mínimo, 30 recomendados. Un movimiento no se edita ni se deshace: se registra uno nuevo. Un animal dado de baja cierra su fila (disparador).
+
 ## Un servidor no puede llamar a un archivo de cliente
 
 Un archivo con `"use client"` solo puede exportar **componentes**: una función normal exportada desde él (por ejemplo, un armador de direcciones)
