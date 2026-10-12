@@ -42,6 +42,7 @@ export function UmbralEndogamia({ fincaId, umbral, puedeEditar }: { fincaId: str
         <div className="min-w-0">
           <p className="text-sm text-humo">Umbral de alerta de tu finca</p>
           <p className="font-display text-2xl font-semibold tabular-nums">{porcentaje(umbral)}</p>
+          <p className="mt-0.5 text-[0.8125rem] text-humo">Un animal con endogamia igual o mayor a este valor se marca como alta.</p>
         </div>
         {puedeEditar ? (
           <button
