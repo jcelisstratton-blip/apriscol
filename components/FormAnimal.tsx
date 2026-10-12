@@ -6,6 +6,7 @@ import { Aviso } from "@/components/Aviso";
 import { Boton, clasesBoton } from "@/components/Boton";
 import { Campo, CLASE_INPUT } from "@/components/Campo";
 import { Chip, FilaDesplazable } from "@/components/FilaDesplazable";
+import { FotoAnimal } from "@/components/FotoAnimal";
 import { Segmentado } from "@/components/Segmentado";
 import { Selector } from "@/components/Selector";
 import { SelectorAnimal } from "@/components/SelectorAnimal";
@@ -39,6 +40,7 @@ export type AnimalEditable = {
   padre_externo: string | null;
   madre_externa: string | null;
   notas: string | null;
+  foto: { path: string; url: string } | null;
 };
 
 /** Colores más usados en el libro genealógico: un toque los escribe; el campo sigue siendo libre. */
@@ -85,6 +87,7 @@ export function FormAnimal({
   const [padre, setPadre] = useState<Ref | null>(animal?.padre ?? null);
   const [madre, setMadre] = useState<Ref | null>(animal?.madre ?? null);
   const [color, setColor] = useState(animal?.color ?? "");
+  const [subiendoFoto, setSubiendoFoto] = useState(false);
   const hoy = hoyBogota();
   const identidadBloqueada = editando && bloqueoIdentidad !== null;
 
@@ -112,6 +115,13 @@ export function FormAnimal({
   return (
     <form onSubmit={alEnviar} className="space-y-8">
       {animal ? <input type="hidden" name="animal_id" value={animal.id} /> : <input type="hidden" name="client_request_id" value={solicitud ?? ""} />}
+
+      <Seccion titulo="Foto">
+        <div className="space-y-2 lg:max-w-md">
+          <FotoAnimal nombre="foto_path" onEstado={setSubiendoFoto} inicial={animal?.foto ?? null} />
+          <p className="text-[0.8125rem] text-humo">Opcional. Sirve para reconocerlo de un vistazo en el hato.</p>
+        </div>
+      </Seccion>
 
       <Seccion titulo="Identificación">
         <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
@@ -336,8 +346,8 @@ export function FormAnimal({
       {estado?.error ? <Aviso tipo="error">{estado.error}</Aviso> : null}
 
       <div className="space-y-2">
-        <Boton type="submit" pendiente={pendiente} cargando={editando ? "Guardando cambios…" : "Guardando animal…"}>
-          {editando ? "Guardar cambios" : "Guardar animal"}
+        <Boton type="submit" pendiente={pendiente} cargando={editando ? "Guardando cambios…" : "Guardando animal…"} disabled={subiendoFoto}>
+          {subiendoFoto ? "Esperando la foto…" : editando ? "Guardar cambios" : "Guardar animal"}
         </Boton>
         {animal ? (
           <Link href={`/hato/${animal.id}`} className={clasesBoton("fantasma")}>

@@ -10,6 +10,7 @@ import { crearClienteServidor } from "@/lib/supabase/server";
 import { puedeEscribir } from "@/lib/permisos";
 import { motivoBloqueoIdentidad } from "@/lib/animal-historia";
 import { etiquetaAnimal } from "@/lib/animal";
+import { urlsFotos } from "@/lib/fotos";
 
 export const metadata: Metadata = { title: "Editar animal" };
 
@@ -26,11 +27,13 @@ export default async function PaginaEditarAnimal({ params }: { params: Promise<{
   if (!animal) notFound();
 
   const idsPadres = [animal.padre_id, animal.madre_id].filter((x): x is string => !!x);
-  const [razas, padres, bloqueo] = await Promise.all([
+  const [razas, padres, bloqueo, fotos] = await Promise.all([
     supabase.from("razas").select("*").in("especie", finca.especies).order("nombre"),
     idsPadres.length ? supabase.from("animales").select("id, numero_arete, nombre").in("id", idsPadres) : Promise.resolve({ data: [] }),
     motivoBloqueoIdentidad(supabase, id, finca.id),
+    urlsFotos(supabase, "fotos-animales", [animal.foto_path]),
   ]);
+  const fotoUrl = animal.foto_path ? fotos.get(animal.foto_path) : undefined;
   const padre = padres.data?.find((p) => p.id === animal.padre_id) ?? null;
   const madre = padres.data?.find((p) => p.id === animal.madre_id) ?? null;
 
@@ -72,6 +75,7 @@ export default async function PaginaEditarAnimal({ params }: { params: Promise<{
             padre_externo: animal.padre_externo,
             madre_externa: animal.madre_externa,
             notas: animal.notas,
+            foto: animal.foto_path && fotoUrl ? { path: animal.foto_path, url: fotoUrl } : null,
           }}
         />
       </div>

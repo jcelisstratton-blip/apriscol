@@ -1,5 +1,6 @@
 "use server";
 
+import { randomUUID } from "node:crypto";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
@@ -9,6 +10,7 @@ import { puedeEscribir, puedeGestionar } from "@/lib/permisos";
 import { mensajeAmigable } from "@/lib/mensaje-amigable";
 import { hoyBogota } from "@/lib/fechas";
 import { motivoBloqueoIdentidad } from "@/lib/animal-historia";
+import { TIPOS_FOTO } from "@/lib/ferias";
 
 export type EstadoAnimal = { error?: string } | undefined;
 
@@ -40,8 +42,29 @@ const esquema = z.object({
   ),
   notas: opcional(z.string().trim().max(1000, "Las notas son muy largas.")),
   fecha_ultimo_parto: opcional(z.iso.date("La fecha del parto no es válida.")),
+  foto_path: opcional(z.string().max(200)),
   client_request_id: opcional(z.uuid()),
 });
+
+/** La ruta de una foto de animal debe estar en la carpeta de esta finca (la base también lo exige). */
+const fotoValida = (ruta: string | undefined, fincaId: string) => !ruta || new RegExp(`^${fincaId}/[0-9a-f-]{36}\\.(jpg|png|webp)$`).test(ruta);
+
+/**
+ * El servidor arma la ruta (<finca>/<uuid>.<ext>) y emite un permiso de subida de un solo uso para la foto de un animal.
+ * Además, la política de Storage solo deja escribir en la carpeta de una finca donde la persona puede gestionar el hato.
+ */
+export async function prepararSubidaFotoAnimal(tipoMime: string): Promise<{ path: string; token: string } | { error: string }> {
+  const { finca, rol } = await obtenerContexto();
+  if (!puedeEscribir(rol, "hato")) return { error: "No tienes permiso para subir fotos en esta finca." };
+  const ext = TIPOS_FOTO[tipoMime];
+  if (!ext) return { error: "Usa una foto en formato JPG, PNG o WebP." };
+
+  const path = `${finca.id}/${randomUUID()}.${ext}`;
+  const supabase = await crearClienteServidor();
+  const { data, error } = await supabase.storage.from("fotos-animales").createSignedUploadUrl(path);
+  if (error || !data) return { error: mensajeAmigable(error?.message ?? "No se pudo preparar la subida de la foto.") };
+  return { path: data.path, token: data.token };
+}
 
 export async function crearAnimal(_: EstadoAnimal, form: FormData): Promise<EstadoAnimal> {
   const { finca, rol } = await obtenerContexto();
@@ -57,6 +80,7 @@ export async function crearAnimal(_: EstadoAnimal, form: FormData): Promise<Esta
   if (animal.origen === "comprado") animal.peso_nacer_kg = undefined;
 
   if (!finca.especies.includes(animal.especie)) return { error: "Esa especie no está activa en tu finca." };
+  if (!fotoValida(animal.foto_path, finca.id)) return { error: "La foto no es válida. Súbela de nuevo." };
   if (fecha_ultimo_parto && animal.sexo !== "hembra") return { error: "Solo una hembra puede tener un parto." };
   if (fecha_ultimo_parto && animal.fecha_nacimiento && fecha_ultimo_parto <= animal.fecha_nacimiento) {
     return { error: "El parto debe ser posterior al nacimiento de la hembra." };
@@ -136,7 +160,7 @@ export async function editarAnimal(_: EstadoAnimal, form: FormData): Promise<Est
   const supabase = await crearClienteServidor();
   const { data: actual } = await supabase
     .from("animales")
-    .select("id, especie, sexo")
+    .select("id, especie, sexo, foto_path")
     .eq("id", d.animal_id)
     .eq("finca_id", finca.id)
     .is("deleted_at", null)
@@ -144,6 +168,7 @@ export async function editarAnimal(_: EstadoAnimal, form: FormData): Promise<Est
   if (!actual) return { error: "No encontramos ese animal en tu finca." };
 
   if (!finca.especies.includes(d.especie)) return { error: "Esa especie no está activa en tu finca." };
+  if (!fotoValida(d.foto_path, finca.id)) return { error: "La foto no es válida. Súbela de nuevo." };
   if (d.padre_id === d.animal_id || d.madre_id === d.animal_id) return { error: "Un animal no puede ser su propio padre o madre." };
   if (d.padre_id && d.madre_id && d.padre_id === d.madre_id) return { error: "El padre y la madre no pueden ser el mismo animal." };
 
@@ -181,10 +206,14 @@ export async function editarAnimal(_: EstadoAnimal, form: FormData): Promise<Est
       padre_externo: d.padre_externo ?? null,
       madre_externa: d.madre_externa ?? null,
       notas: d.notas ?? null,
+      foto_path: d.foto_path ?? null,
     })
     .eq("id", d.animal_id)
     .eq("finca_id", finca.id);
   if (error) return { error: mensajeAmigable(error.message) };
+
+  // La foto anterior ya no se usa: se borra de Storage (si falla, solo queda un archivo suelto).
+  if (actual.foto_path && actual.foto_path !== (d.foto_path ?? null)) await supabase.storage.from("fotos-animales").remove([actual.foto_path]);
 
   revalidatePath("/hato");
   revalidatePath(`/hato/${d.animal_id}`);
