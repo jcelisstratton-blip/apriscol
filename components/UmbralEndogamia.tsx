@@ -11,7 +11,7 @@ import { crearClienteNavegador } from "@/lib/supabase/client";
 import { porcentaje } from "@/lib/endogamia";
 
 const OPCIONES = [
-  { valor: "0.0313", etiqueta: "Estricto", f: 0.0313 },
+  { valor: "0.03125", etiqueta: "Estricto", f: 0.03125 },
   { valor: "0.0625", etiqueta: "Estándar", f: 0.0625 },
   { valor: "0.125", etiqueta: "Flexible", f: 0.125 },
 ] as const;
@@ -79,7 +79,7 @@ export function UmbralEndogamia({ fincaId, umbral, puedeEditar }: { fincaId: str
             opciones={OPCIONES.map((o) => ({ valor: o.valor, etiqueta: o.etiqueta }))}
           />
           <p className="text-sm text-humo">
-            {valor === "0.0313" ? "3,13 %: alerta temprano, para quien prioriza la diversidad." : null}
+            {valor === "0.03125" ? "3,13 %: alerta temprano, para quien prioriza la diversidad." : null}
             {valor === "0.0625" ? "6,25 %: equilibrado, el que recomendamos." : null}
             {valor === "0.125" ? "12,5 %: tolera cruces cercanos, como medio hermanos." : null}
           </p>

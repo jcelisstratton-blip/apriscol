@@ -7,6 +7,7 @@ import { Encabezado } from "@/components/Encabezado";
 import { EstadoVacio } from "@/components/EstadoVacio";
 import { ListaEndogamia } from "@/components/ListaEndogamia";
 import { LeyendaEndogamia, ResumenEndogamia } from "@/components/ResumenEndogamia";
+import { repartirPorNivel } from "@/lib/endogamia";
 import { Tarjeta } from "@/components/Tarjeta";
 import { UmbralEndogamia } from "@/components/UmbralEndogamia";
 import { obtenerContexto } from "@/lib/contexto";
@@ -26,11 +27,10 @@ export default async function PaginaEndogamia() {
   ]);
 
   const evaluados = (calculo.data ?? []).filter((a) => a.estado === "activo");
-  const conEndogamia = evaluados.filter((a) => a.f > 0);
-  const sobreUmbral = conEndogamia.filter((a) => a.f >= finca.umbral_endogamia);
+  const ordenados = evaluados.slice().sort((a, b) => b.f - a.f);
   const totalActivos = activos.count ?? 0;
-  const mayor = conEndogamia[0]?.f;
-  const bajoUmbral = conEndogamia.length - sobreUmbral.length;
+  const mayor = ordenados[0]?.f;
+  const reparto = repartirPorNivel(ordenados.map((a) => a.f), finca.umbral_endogamia);
 
   return (
     <>
@@ -51,10 +51,10 @@ export default async function PaginaEndogamia() {
           </Tarjeta>
         ) : (
           <>
-            <ResumenEndogamia medidos={evaluados.length} sobre={sobreUmbral.length} bajo={bajoUmbral} mayor={mayor} activos={totalActivos} />
+            <ResumenEndogamia medidos={evaluados.length} reparto={reparto} mayor={mayor} activos={totalActivos} />
             <LeyendaEndogamia umbral={finca.umbral_endogamia} />
             <ListaEndogamia
-              filas={conEndogamia.map((a) => ({
+              filas={ordenados.map((a) => ({
                 animal_id: a.animal_id,
                 numero_arete: a.numero_arete,
                 nombre: a.nombre,
