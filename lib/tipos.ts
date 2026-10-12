@@ -39,6 +39,8 @@ export type Animal = {
   lote_ceba_id: string | null;
   /** Partos que ya había tenido antes de registrarlos aquí (nulo = no se sabe). */
   partos_previos: number | null;
+  /** «Recordármelo después»: hasta esa fecha el animal no aparece como candidato a ceba. */
+  ceba_pospuesto_hasta: string | null;
   vocacion: Vocacion;
   /** Solo machos: para qué es. `null` = por definir. */
   uso_macho: UsoMacho | null;
@@ -609,6 +611,44 @@ export type CebaLote = {
   listos: number;
 };
 
+/** Las reglas de ceba de una especie (`reglas_ceba_efectivas`): las de la finca o, si no guardó nada, las sugeridas. */
+export type ReglaCeba = {
+  especie: Especie;
+  hembra_partos_proxima: number;
+  hembra_partos_toca: number;
+  hembra_meses_proxima: number;
+  hembra_meses_toca: number;
+  macho_meses_proxima: number;
+  macho_meses_toca: number;
+  reproductor_meses_viejo: number;
+  dias_entre_pesajes: number;
+  hembra_dias_entre_pesajes: number;
+  personalizada: boolean;
+};
+
+export type NivelCeba = "proxima" | "toca";
+export type MotivoCeba = "partos" | "edad" | "definir_uso" | "reproductor_viejo" | "carne_sin_lote";
+export type AdvertenciaCeba = "gestante" | "probable_gestante" | "lactancia" | "retiro_carne" | "sin_pesar";
+
+/** Una fila de `candidatos_ceba`: un animal que conviene pasar a ceba (o que está por llegar a ese punto) y por qué. */
+export type CandidatoCeba = {
+  animal_id: string;
+  sexo: SexoAnimal;
+  especie: Especie;
+  edad_meses: number | null;
+  partos_totales: number | null;
+  uso_macho: UsoMacho | null;
+  nivel: NivelCeba;
+  motivos: MotivoCeba[];
+  advertencias: AdvertenciaCeba[];
+  estado_repro: EstadoRepro | null;
+  en_lactancia: boolean;
+  retiro_carne_hasta: string | null;
+  peso_ultimo: number | null;
+  fecha_ultimo_peso: string | null;
+  gdp_reciente_g: number | null;
+};
+
 // ───────────────────────── Carne: canales (rendimiento) ─────────────────────────
 export type Conformacion = "E" | "U" | "R" | "O" | "P";
 export type GrasaVisceral = "baja" | "media" | "alta";
@@ -782,6 +822,7 @@ export type Database = {
       despachos_leche: Tabla<Omit<DespachoLeche, "valor_total">, "finca_id" | "litros" | "destino_tipo">;
       mantenimiento_ordeno: Tabla<MantenimientoOrdeno, "finca_id" | "tipo">;
       lotes_ceba: Tabla<LoteCeba, "finca_id" | "nombre">;
+      reglas_ceba: Tabla<Omit<ReglaCeba, "personalizada"> & { finca_id: string; created_by: string | null; created_at: string; updated_at: string }, "finca_id" | "especie">;
       pesajes: Tabla<Pesaje, "finca_id" | "animal_id" | "peso_kg">;
       consumo_lote: Tabla<ConsumoLote, "finca_id" | "lote_id" | "kg_alimento">;
       canales: Tabla<Omit<Canal, "tipo_baja">, "finca_id" | "animal_id" | "peso_canal_caliente_kg">;
@@ -833,6 +874,8 @@ export type Database = {
       };
       ceba_animales: { Args: { p_finca: string }; Returns: CebaAnimal[] };
       ceba_lotes: { Args: { p_finca: string }; Returns: CebaLote[] };
+      reglas_ceba_efectivas: { Args: { p_finca: string }; Returns: ReglaCeba[] };
+      candidatos_ceba: { Args: { p_finca: string; p_animal?: string }; Returns: CandidatoCeba[] };
       canales_resumen: { Args: { p_finca: string }; Returns: CanalesResumen[] };
       leche_balance: {
         Args: { p_finca: string; p_desde: string; p_hasta: string };

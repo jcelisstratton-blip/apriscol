@@ -28,6 +28,9 @@ import { estadoDosis, ETIQUETA_RESULTADO_PRUEBA, nombreEvento } from "@/lib/sani
 import { estadoRcs, formatoMiles } from "@/lib/leche-calidad";
 import { ETIQUETA_CONFORMACION, ETIQUETA_ENGRASAMIENTO, ETIQUETA_GRASA_VISCERAL, ETIQUETA_PESAJE, faltaParaMeta, gdp, kg, pctUno } from "@/lib/carne";
 import { LoteAnimal } from "@/components/LoteAnimal";
+import { AplazadoCeba, CandidatoCeba as AvisoCandidatoCeba } from "@/components/CandidatoCeba";
+import { textosAdvertencias, textosMotivos } from "@/lib/ceba-candidatos";
+import type { CandidatoCeba, ReglaCeba } from "@/lib/tipos";
 import { direccionSoporte } from "@/lib/soportes";
 import { DIAS_PARA_DIAGNOSTICO, ETIQUETA_ESTADO, ETIQUETA_METODO, ETIQUETA_PARTO, ETIQUETA_RESULTADO, ETIQUETA_SERVICIO, plazoParto, textoPartos, TONO_ESTADO } from "@/lib/reproduccion";
 import { PartosPrevios } from "@/components/PartosPrevios";
@@ -128,13 +131,17 @@ export default async function FichaAnimal({ params, searchParams }: { params: Pr
     retiro_carne_hasta: e.fin_retiro_carne && (e.retiro_carne_dias ?? 0) > 0 && e.fin_retiro_carne >= hoyBogota() ? e.fin_retiro_carne : null,
   }));
   // Crecimiento y ceba: pesos del animal, su ganancia diaria (la calcula la base) y el lote en el que está.
-  const [pesosDB, cebaDB, lotesDB] = verCarne
+  const [pesosDB, cebaDB, lotesDB, candidatoDB, reglasDB] = verCarne
     ? await Promise.all([
         supabase.from("pesajes").select("*").eq("animal_id", id).eq("finca_id", finca.id).order("fecha", { ascending: false }).limit(50),
         supabase.rpc("ceba_animales", { p_finca: finca.id }),
         supabase.from("lotes_ceba").select("id, nombre, peso_meta_kg, cerrado_en").eq("finca_id", finca.id).order("nombre").limit(500),
+        animal.estado === "activo" ? supabase.rpc("candidatos_ceba", { p_finca: finca.id, p_animal: id }) : Promise.resolve({ data: [] as CandidatoCeba[] }),
+        animal.estado === "activo" ? supabase.rpc("reglas_ceba_efectivas", { p_finca: finca.id }) : Promise.resolve({ data: [] as ReglaCeba[] }),
       ])
-    : [{ data: [] }, { data: [] }, { data: [] }];
+    : [{ data: [] }, { data: [] }, { data: [] }, { data: [] as CandidatoCeba[] }, { data: [] as ReglaCeba[] }];
+  const miCandidato = (candidatoDB.data ?? [])[0] ?? null;
+  const reglaCandidato = miCandidato ? (reglasDB.data ?? []).find((r) => r.especie === miCandidato.especie) ?? null : null;
   const miCeba = (cebaDB.data ?? []).find((c) => c.animal_id === id);
   const listaPesos = pesosDB.data ?? [];
   const lotesCeba = lotesDB.data ?? [];
@@ -441,6 +448,20 @@ export default async function FichaAnimal({ params, searchParams }: { params: Pr
 
         {mostrarCrecimiento ? (
           <Tarjeta titulo="Peso y ceba" id="crecimiento">
+            {miCandidato && reglaCandidato ? (
+              <AvisoCandidatoCeba
+                animalId={id}
+                sexo={animal.sexo}
+                usoMacho={animal.uso_macho}
+                nivel={miCandidato.nivel}
+                motivos={textosMotivos(miCandidato, reglaCandidato)}
+                advertencias={textosAdvertencias(miCandidato, reglaCandidato, hoy)}
+                puedeEditar={puedeEscribir(rol, "carne") && puedeEscribir(rol, "hato")}
+              />
+            ) : null}
+            {animal.ceba_pospuesto_hasta && animal.ceba_pospuesto_hasta > hoy && animal.estado === "activo" ? (
+              <AplazadoCeba animalId={id} hasta={animal.ceba_pospuesto_hasta} puedeEditar={puedeEscribir(rol, "carne") && puedeEscribir(rol, "hato")} />
+            ) : null}
             <dl className="divide-y divide-arena">
               {animal.peso_nacer_kg ? <Dato etiqueta="Peso al nacer">{litros(animal.peso_nacer_kg)} kg</Dato> : null}
               <Dato etiqueta="Último peso">
@@ -484,7 +505,7 @@ export default async function FichaAnimal({ params, searchParams }: { params: Pr
             {listaPesos.length > 8 ? <p className="mt-1 text-sm text-humo">Y {listaPesos.length - 8} pesos más en Carne → Pesos.</p> : null}
             {puedeEscribir(rol, "carne") && animal.estado === "activo" ? (
               <div className="mt-3 space-y-3">
-                {esCeba || miLote ? <LoteAnimal animalId={id} loteId={miLote && !miLote.cerrado_en ? miLote.id : null} lotes={lotesCeba.filter((l) => !l.cerrado_en).map((l) => ({ id: l.id, nombre: l.nombre }))} /> : null}
+                {esCeba || miLote || miCandidato ? <LoteAnimal animalId={id} loteId={miLote && !miLote.cerrado_en ? miLote.id : null} lotes={lotesCeba.filter((l) => !l.cerrado_en).map((l) => ({ id: l.id, nombre: l.nombre }))} /> : null}
                 <Link href={`/hato/${id}/peso/nuevo`} className={clasesBoton("secundario")}>
                   Registrar peso
                 </Link>
