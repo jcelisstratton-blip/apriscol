@@ -60,7 +60,8 @@ export function CapturaLeche({
   const router = useRouter();
   const toast = useToast();
   const [jornada, setJornada] = useState<JornadaSimple>(jornadaInicial);
-  const [dia, setDia] = useState<"hoy" | "ayer">("hoy");
+  const [dia, setDia] = useState<"hoy" | "ayer" | "otro">("hoy");
+  const [otraFecha, setOtraFecha] = useState(sumarDias(hoy, -2));
   const [vista, setVista] = useState<"pendientes" | "hechas">("pendientes");
   const [busqueda, setBusqueda] = useState("");
   const [carga, setCarga] = useState<{ clave: string; registros: Record<string, Registro>; error: string | null } | null>(null);
@@ -71,7 +72,7 @@ export function CapturaLeche({
   const [confirmandoSalida, setConfirmandoSalida] = useState(false);
   const [guardando, iniciar] = useTransition();
 
-  const fecha = dia === "hoy" ? hoy : sumarDias(hoy, -1);
+  const fecha = dia === "hoy" ? hoy : dia === "ayer" ? sumarDias(hoy, -1) : otraFecha > hoy ? hoy : otraFecha;
   const clave = `${fecha}|${jornada}`;
   const cargando = carga?.clave !== clave;
   const registros = useMemo(() => (carga?.clave === clave ? carga.registros : {}), [carga, clave]);
@@ -204,7 +205,21 @@ export function CapturaLeche({
           <FilaDesplazable>
             <Chip activo={dia === "hoy"} onClick={() => setDia("hoy")}>Hoy</Chip>
             <Chip activo={dia === "ayer"} onClick={() => setDia("ayer")}>Ayer</Chip>
+            <Chip activo={dia === "otro"} onClick={() => setDia("otro")}>Otro día</Chip>
           </FilaDesplazable>
+          {dia === "otro" ? (
+            <label className="block space-y-1.5">
+              <span className="block text-sm font-semibold">¿Qué día?</span>
+              <input
+                type="date"
+                value={otraFecha}
+                max={hoy}
+                min={sumarDias(hoy, -365)}
+                onChange={(e) => e.target.value && setOtraFecha(e.target.value)}
+                className="min-h-12 w-full rounded-2xl border border-arena bg-papel px-4 text-base text-tinta focus:border-musgo focus:outline-none focus:ring-2 focus:ring-musgo/25"
+              />
+            </label>
+          ) : null}
         </div>
 
         <section className="rounded-3xl bg-musgo p-4 text-sobre-musgo" aria-live="polite">

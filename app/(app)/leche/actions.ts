@@ -6,7 +6,7 @@ import { crearClienteServidor } from "@/lib/supabase/server";
 import { obtenerContexto } from "@/lib/contexto";
 import { puedeEscribir } from "@/lib/permisos";
 import { mensajeAmigable } from "@/lib/mensaje-amigable";
-import { hoyBogota } from "@/lib/fechas";
+import { hoyBogota, sumarDias } from "@/lib/fechas";
 
 export type ResultadoOrdeno =
   | { ok: true; litros: number; descartada: boolean; motivo: string | null }
@@ -29,6 +29,9 @@ export async function guardarOrdeno(entrada: z.input<typeof esquema>): Promise<R
   const datos = esquema.safeParse(entrada);
   if (!datos.success) return { ok: false, error: datos.error.issues[0]?.message ?? "Dato inválido." };
   const d = datos.data;
+  const hoy = hoyBogota();
+  if (d.fecha > hoy) return { ok: false, error: "No se puede registrar un ordeño de un día que todavía no llega." };
+  if (d.fecha < sumarDias(hoy, -365)) return { ok: false, error: "Solo se pueden registrar ordeños de hasta un año atrás." };
 
   const supabase = await crearClienteServidor();
   const { data, error } = await supabase
@@ -51,6 +54,7 @@ export async function guardarOrdeno(entrada: z.input<typeof esquema>): Promise<R
   if (error || !data) return { ok: false, error: mensajeAmigable(error?.message ?? "") };
 
   revalidatePath("/");
+  revalidatePath("/leche");
   return { ok: true, litros: Number(data.litros), descartada: data.descartada, motivo: data.motivo_descarte };
 }
 

@@ -1,88 +1,56 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Droplets } from "lucide-react";
-import { AgregarAlOrdeno } from "@/components/AgregarAlOrdeno";
-import { AlertasProduccion } from "@/components/AlertasProduccion";
-import { CapturaLeche } from "@/components/CapturaLeche";
 import { Encabezado } from "@/components/Encabezado";
-import { EstadoVacio } from "@/components/EstadoVacio";
-import { EnlaceBoton } from "@/components/Boton";
+import { FilaDesplazable } from "@/components/FilaDesplazable";
 import { obtenerContexto } from "@/lib/contexto";
-import { crearClienteServidor } from "@/lib/supabase/server";
 import { puedeEscribir, puedeVer } from "@/lib/permisos";
-import { hoyBogota } from "@/lib/fechas";
-import { etiquetaAnimal } from "@/lib/animal";
-import { esBaja } from "@/lib/produccion";
+import { Historial } from "./Historial";
+import { Registrar } from "./Registrar";
 
 export const metadata: Metadata = { title: "Leche" };
 
-export default async function PaginaLeche({ searchParams }: { searchParams: Promise<{ agregar?: string }> }) {
+/**
+ * Leche, a nivel de toda la finca: lo que ha producido el hato (o un animal) en cualquier periodo, con su gráfica, y el registro del ordeño.
+ * Qué hembras se ordeñan y en qué turnos se programa dentro de Hato.
+ */
+export default async function PaginaLeche({
+  searchParams,
+}: {
+  searchParams: Promise<{ vista?: string; agregar?: string; periodo?: string; desde?: string; hasta?: string; animal?: string }>;
+}) {
   const { finca, rol } = await obtenerContexto();
   if (!puedeVer(rol, "leche")) redirect("/");
-  const { agregar } = await searchParams;
-  const supabase = await crearClienteServidor();
-
-  const { data: lactancias } = await supabase.from("lactancias").select("animal_id").eq("finca_id", finca.id).is("fecha_secado", null);
-  const ids = (lactancias ?? []).map((l) => l.animal_id);
-  const [animales, retiro, tendencia, habitualFilas] = await Promise.all([
-    ids.length
-      ? supabase.from("animales").select("id, numero_arete, nombre").in("id", ids).eq("estado", "activo").is("deleted_at", null).order("numero_arete")
-      : Promise.resolve({ data: [] as { id: string; numero_arete: string; nombre: string | null }[] }),
-    supabase.rpc("animales_en_retiro", { p_finca: finca.id }),
-    supabase.rpc("produccion_tendencia", { p_finca: finca.id }),
-    supabase.rpc("produccion_habitual", { p_finca: finca.id }),
-  ]);
-
-  const lista = animales.data ?? [];
+  const sp = await searchParams;
   const puedeEditar = puedeEscribir(rol, "leche");
-  const hoy = hoyBogota();
-  const inicial = agregar && /^[0-9a-f-]{36}$/i.test(agregar) ? agregar : undefined;
-  const retiros = Object.fromEntries((retiro.data ?? []).filter((r) => r.retiro_leche_hasta).map((r) => [r.animal_id, r.retiro_leche_hasta!]));
-  // Hembras cuya producción viene bajando, y lo que cada una da habitualmente por jornada (para avisar al registrar).
-  const tendenciasBaja = (tendencia.data ?? []).filter(esBaja);
-  const etiquetas = new Map(lista.map((a) => [a.id, etiquetaAnimal(a)]));
-  const alertas = tendenciasBaja.map((t) => ({ ...t, etiqueta: etiquetas.get(t.animal_id) ?? "Animal" }));
-  const tendencias = Object.fromEntries(tendenciasBaja.map((t) => [t.animal_id, { nivel: t.nivel, variacion: t.variacion, base: t.litros_base ?? 0, recientes: t.litros_recientes ?? 0 }]));
-  const habitual: Record<string, Record<string, number>> = {};
-  for (const h of habitualFilas.data ?? []) (habitual[h.animal_id] ??= {})[h.jornada] = Number(h.litros_habitual);
-  const hora = Number(new Intl.DateTimeFormat("es-CO", { timeZone: "America/Bogota", hour: "2-digit", hour12: false }).format(new Date()));
-  const jornadaInicial = hora < 12 ? "manana" : hora < 19 ? "tarde" : "noche";
+  const vista = sp.vista === "registrar" && puedeEditar ? "registrar" : "resumen";
 
   return (
     <>
       <Encabezado titulo="Leche" subtitulo={finca.nombre} />
-      {lista.length === 0 ? (
-        <EstadoVacio
-          icono={<Droplets strokeWidth={1.5} />}
-          titulo="Aún no hay hembras en leche"
-          descripcion="Aquí aparecen las hembras con lactancia abierta. Se abre al registrar un parto, o al crear la hembra con la fecha de su último parto."
-        >
-          {puedeEditar ? (
-            <div className="space-y-2">
-              <AgregarAlOrdeno fincaId={finca.id} hoy={hoy} enLeche={ids} inicial={inicial} />
-              <EnlaceBoton href="/hato/nuevo" variante="fantasma">Registrar una hembra nueva</EnlaceBoton>
-            </div>
-          ) : null}
-        </EstadoVacio>
+      {puedeEditar ? (
+        <FilaDesplazable className="mb-3">
+          {[
+            { v: "resumen", t: "Producción", href: "/leche" },
+            { v: "registrar", t: "Registrar ordeño", href: "/leche?vista=registrar" },
+          ].map((p) => (
+            <Link
+              key={p.v}
+              href={p.href}
+              aria-current={vista === p.v ? "page" : undefined}
+              className={`inline-flex min-h-10 shrink-0 items-center rounded-full px-4 text-sm font-semibold transition ${
+                vista === p.v ? "bg-musgo text-sobre-musgo" : "bg-papel text-humo ring-1 ring-arena hover:text-tinta"
+              }`}
+            >
+              {p.t}
+            </Link>
+          ))}
+        </FilaDesplazable>
+      ) : null}
+      {vista === "registrar" ? (
+        <Registrar fincaId={finca.id} puedeEditar={puedeEditar} agregar={sp.agregar} />
       ) : (
-        <>
-        {alertas.length > 0 ? (
-          <div className="mb-4">
-            <AlertasProduccion alertas={alertas} />
-          </div>
-        ) : null}
-        <CapturaLeche
-          fincaId={finca.id}
-          hoy={hoy}
-          animales={lista}
-          retiros={retiros}
-          jornadaInicial={jornadaInicial}
-          tendencias={tendencias}
-          habitual={habitual}
-          puedeEditar={puedeEditar}
-          pie={puedeEditar ? <AgregarAlOrdeno fincaId={finca.id} hoy={hoy} enLeche={ids} inicial={inicial} /> : null}
-        />
-        </>
+        <Historial fincaId={finca.id} puedeEditar={puedeEditar} pedido={{ periodo: sp.periodo, desde: sp.desde, hasta: sp.hasta, animal: sp.animal }} />
       )}
     </>
   );

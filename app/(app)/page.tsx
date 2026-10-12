@@ -144,7 +144,7 @@ export default async function PaginaHoy({ searchParams }: { searchParams: Promis
               </p>
               {puedeEscribir(rol, "leche") ? (
                 <Link
-                  href="/leche"
+                  href="/leche?vista=registrar"
                   className="mt-4 inline-flex min-h-11 items-center gap-1 rounded-full bg-sobre-musgo/15 px-4 text-sm font-semibold"
                 >
                   Registrar ordeño <ChevronRight className="size-4" strokeWidth={2} />
