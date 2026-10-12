@@ -38,6 +38,7 @@ export async function Resumen({
     .sort((a, b) => a.ultimo_servicio!.localeCompare(b.ultimo_servicio!));
   const gestantes = filas.filter((f) => f.estado === "gestante").length;
   const sinDatos = filas.filter((f) => f.estado === "sin_datos").length;
+  const enMonta = filas.filter((f) => f.empadronamiento_id).length;
 
   const ids = [...proximos.slice(0, 10), ...atrasados.slice(0, 10), ...porConfirmar.slice(0, 10)].map((f) => f.animal_id);
   const nombres = new Map((await animalesPorIds(supabase, fincaId, ids)).map((a) => [a.id, etiquetaAnimal(a)]));
@@ -64,6 +65,13 @@ export async function Resumen({
           </div>
         ))}
       </dl>
+
+      {enMonta > 0 ? (
+        <Aviso tipo="info">
+          {enMonta === 1 ? "1 hembra está" : `${enMonta} hembras están`} en una temporada de monta abierta.{" "}
+          <Link href="/reproduccion?vista=empadronamiento" className="font-semibold text-musgo underline underline-offset-2">Ver empadronamientos</Link>
+        </Aviso>
+      ) : null}
 
       {atrasados.length > 0 ? (
         <Aviso tipo="atencion">

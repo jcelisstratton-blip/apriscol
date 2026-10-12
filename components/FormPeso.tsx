@@ -8,6 +8,7 @@ import { Campo, CLASE_INPUT } from "@/components/Campo";
 import { Selector } from "@/components/Selector";
 import { crearPesaje, editarPesaje } from "@/app/(app)/carne/actions";
 import { ETIQUETA_PESAJE, TIPOS_PESAJE } from "@/lib/carne";
+import { textoCC, VALORES_CC } from "@/lib/empadronamiento";
 import type { Pesaje, TipoPesaje } from "@/lib/tipos";
 
 const coma = (n: number | null | undefined) => (n == null ? "" : String(n).replace(".", ","));
@@ -18,6 +19,7 @@ export function FormPeso({ animalId, hoy, pesaje, solicitud }: { animalId: strin
   const [estado, enviar, pendiente] = useActionState(editando ? editarPesaje : crearPesaje, undefined);
   const [, iniciar] = useTransition();
   const [tipo, setTipo] = useState<TipoPesaje>(pesaje?.tipo ?? "control");
+  const [cc, setCc] = useState<number | "">(pesaje?.condicion_corporal ?? "");
 
   const alEnviar = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -41,6 +43,12 @@ export function FormPeso({ animalId, hoy, pesaje, solicitud }: { animalId: strin
       <Campo etiqueta="Tipo de pesaje">
         {(id) => (
           <Selector id={id} nombre="tipo" valor={tipo} onCambio={(v) => v && setTipo(v)} titulo="¿Qué pesaje es?" opciones={TIPOS_PESAJE.map((t) => ({ valor: t, etiqueta: ETIQUETA_PESAJE[t] }))} />
+        )}
+      </Campo>
+
+      <Campo etiqueta="Condición corporal" ayuda="Opcional. De 1 (muy flaca) a 5 (muy gorda). La temporada de monta la usa para elegir hembras.">
+        {(id) => (
+          <Selector id={id} nombre="condicion_corporal" valor={cc} onCambio={setCc} titulo="Condición corporal" placeholder="Sin anotar" permitirVacio opciones={VALORES_CC.map((v) => ({ valor: v, etiqueta: textoCC(v) }))} />
         )}
       </Campo>
 

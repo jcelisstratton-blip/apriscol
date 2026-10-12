@@ -562,6 +562,8 @@ export type Pesaje = {
   animal_id: string;
   fecha: string;
   peso_kg: number;
+  /** Condición corporal (1 a 5, de medio en medio). Se anota al pesar. */
+  condicion_corporal: number | null;
   tipo: TipoPesaje;
   observaciones: string | null;
   client_request_id: string | null;
@@ -785,6 +787,69 @@ export type ReproHembra = {
   fecha_diagnostico: string | null;
   estado: EstadoRepro;
   en_lactancia: boolean;
+  /** Empadronamiento abierto en el que está la hembra (nulo si no está en ninguno). */
+  empadronamiento_id: string | null;
+  empadronamiento_nombre: string | null;
+  empadronamiento_macho_id: string | null;
+};
+
+/** Un empadronamiento (temporada de monta) con sus conteos: `v_empadronamientos`. */
+export type Empadronamiento = {
+  id: string;
+  finca_id: string;
+  especie: Especie;
+  nombre: string;
+  fecha_inicio: string;
+  fecha_fin_prevista: string;
+  /** Fecha de cierre real; nulo mientras siga abierto. */
+  cerrado_en: string | null;
+  /** Fecha desde la que se contó la gestación al cerrar. */
+  fecha_base: string | null;
+  edad_min_meses: number;
+  peso_min_kg: number;
+  cc_min: number;
+  observaciones: string | null;
+  client_request_id: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+  machos: number;
+  hembras: number;
+  excepciones: number;
+};
+
+export type EmpadronamientoMacho = { finca_id: string; empadronamiento_id: string; macho_id: string; created_at: string };
+
+export type EmpadronamientoHembra = {
+  id: string;
+  finca_id: string;
+  empadronamiento_id: string;
+  hembra_id: string;
+  macho_id: string;
+  /** Endogamia de la pareja cuando se asignó. */
+  endogamia: number;
+  /** Se asignó aunque la pareja llegaba al umbral. */
+  excepcion: boolean;
+  created_at: string;
+};
+
+export type CriterioEmp = "ok" | "no" | "sin_dato";
+
+/** Una hembra que podría entrar al empadronamiento (`empadronamiento_candidatas`): sus datos y si cumple cada criterio. */
+export type CandidataEmp = {
+  animal_id: string;
+  numero_arete: string;
+  nombre: string | null;
+  edad_meses: number | null;
+  peso_kg: number | null;
+  fecha_peso: string | null;
+  cc: number | null;
+  fecha_cc: string | null;
+  estado_repro: EstadoRepro | null;
+  otro_lote: string | null;
+  edad_ok: CriterioEmp;
+  peso_ok: CriterioEmp;
+  cc_ok: CriterioEmp;
 };
 
 export type { AncestroEndogamia } from "@/lib/endogamia";
@@ -824,6 +889,9 @@ export type Database = {
       lotes_ceba: Tabla<LoteCeba, "finca_id" | "nombre">;
       reglas_ceba: Tabla<Omit<ReglaCeba, "personalizada"> & { finca_id: string; created_by: string | null; created_at: string; updated_at: string }, "finca_id" | "especie">;
       pesajes: Tabla<Pesaje, "finca_id" | "animal_id" | "peso_kg">;
+      empadronamientos: Tabla<Empadronamiento, "finca_id" | "especie" | "nombre" | "fecha_fin_prevista" | "edad_min_meses" | "peso_min_kg">;
+      empadronamiento_machos: Tabla<EmpadronamientoMacho, "finca_id" | "empadronamiento_id" | "macho_id">;
+      empadronamiento_hembras: Tabla<EmpadronamientoHembra, "finca_id" | "empadronamiento_id" | "hembra_id" | "macho_id" | "endogamia">;
       consumo_lote: Tabla<ConsumoLote, "finca_id" | "lote_id" | "kg_alimento">;
       canales: Tabla<Omit<Canal, "tipo_baja">, "finca_id" | "animal_id" | "peso_canal_caliente_kg">;
       controles_calidad: Tabla<ControlCalidad, "finca_id" | "tipo" | "estado">;
@@ -841,6 +909,7 @@ export type Database = {
       v_rcs_leche_ultimo: { Row: AnalisisLeche; Relationships: [] };
       v_canales: { Row: CanalVista; Relationships: [] };
       v_repro_hembras: { Row: ReproHembra; Relationships: [] };
+      v_empadronamientos: { Row: Empadronamiento; Relationships: [] };
     };
     Functions: {
       aceptar_invitacion: { Args: { p_token: string }; Returns: string };
@@ -875,6 +944,15 @@ export type Database = {
       ceba_animales: { Args: { p_finca: string }; Returns: CebaAnimal[] };
       ceba_lotes: { Args: { p_finca: string }; Returns: CebaLote[] };
       reglas_ceba_efectivas: { Args: { p_finca: string }; Returns: ReglaCeba[] };
+      empadronamiento_candidatas: { Args: { p_lote: string }; Returns: CandidataEmp[] };
+      empadronamiento_endogamia: {
+        Args: { p_lote: string; p_macho: string; p_hembras: string[] };
+        Returns: { hembra_id: string; f: number; sobre_umbral: boolean }[];
+      };
+      cerrar_empadronamiento: {
+        Args: { p_lote: string; p_cierre: string; p_base?: string | null };
+        Returns: { hembras: number; servicios_creados: number };
+      };
       candidatos_ceba: { Args: { p_finca: string; p_animal?: string }; Returns: CandidatoCeba[] };
       canales_resumen: { Args: { p_finca: string }; Returns: CanalesResumen[] };
       leche_balance: {

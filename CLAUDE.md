@@ -82,6 +82,10 @@ correspondiente en `node_modules/next/dist/docs/` (esta versión cambia APIs: `m
   `<Boton pendiente cargando="…">`.
 - Identidad: lana, musgo y ocre (`globals.css`), Fraunces para títulos y Figtree para interfaz. Nada genérico.
 
+## Empadronamiento (temporada de monta)
+
+Vive en Reproducción (`/reproduccion?vista=empadronamiento`). La endogamia de una pareja **se calcula y se bloquea antes de asignarla** (`empadronamiento_endogamia`, disparador `emp_hembras_validar`): «llega al umbral» = misma regla que el color «Alta» (`private.sobre_umbral`); solo entra como **excepción registrada**. Al cerrar, cada hembra queda **servida** (monta natural en la fecha base) y de ahí manda `v_repro_hembras`; nunca se guarda una fecha de parto aparte. Una temporada cerrada no se cambia.
+
 ## Un servidor no puede llamar a un archivo de cliente
 
 Un archivo con `"use client"` solo puede exportar **componentes**: una función normal exportada desde él (por ejemplo, un armador de direcciones)

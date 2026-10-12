@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { textoCC } from "@/lib/empadronamiento";
 import { notFound } from "next/navigation";
 import { ChevronLeft, Pencil } from "lucide-react";
 import { Aviso } from "@/components/Aviso";
@@ -334,8 +335,14 @@ export default async function FichaAnimal({ params, searchParams }: { params: Pr
                   <Insignia tono={TONO_ESTADO[repro.estado]}>{ETIQUETA_ESTADO[repro.estado]}</Insignia>
                   {repro.fecha_prevista_parto ? <Insignia tono={plazoParto(repro.fecha_prevista_parto, hoyBogota()).tono}>{plazoParto(repro.fecha_prevista_parto, hoyBogota()).texto}</Insignia> : null}
                   {repro.en_lactancia ? <Insignia tono="musgo">En lactancia</Insignia> : null}
+                  {repro.empadronamiento_id ? <Insignia tono="aviso">En empadronamiento</Insignia> : null}
                 </div>
                 <dl className="divide-y divide-arena">
+                  {repro.empadronamiento_id ? (
+                    <Dato etiqueta="Temporada de monta">
+                      <Link href={`/reproduccion/empadronamiento/${repro.empadronamiento_id}`} className="text-musgo underline-offset-4 hover:underline">{repro.empadronamiento_nombre}</Link>
+                    </Dato>
+                  ) : null}
                   {repro.fecha_prevista_parto ? <Dato etiqueta="Parto previsto">{formatoFecha(repro.fecha_prevista_parto)}</Dato> : null}
                   {repro.ultimo_servicio ? <Dato etiqueta="Último servicio">{formatoFecha(repro.ultimo_servicio)}</Dato> : null}
                   {repro.ultimo_parto ? <Dato etiqueta="Último parto">{formatoFecha(repro.ultimo_parto)}</Dato> : null}
@@ -491,7 +498,7 @@ export default async function FichaAnimal({ params, searchParams }: { params: Pr
                   <li key={p.id} className="flex items-center justify-between gap-3 py-2">
                     <span className="min-w-0 text-[0.9375rem] [overflow-wrap:anywhere]">
                       <span className="font-semibold">{kg(p.peso_kg)}</span>
-                      <span className="text-humo"> · {formatoFecha(p.fecha, { day: "numeric", month: "short", year: "numeric" })}{p.tipo !== "control" ? ` · ${ETIQUETA_PESAJE[p.tipo]}` : ""}</span>
+                      <span className="text-humo"> · {formatoFecha(p.fecha, { day: "numeric", month: "short", year: "numeric" })}{p.tipo !== "control" ? ` · ${ETIQUETA_PESAJE[p.tipo]}` : ""}{p.condicion_corporal != null ? ` · CC ${textoCC(p.condicion_corporal)}` : ""}</span>
                     </span>
                     {puedeEscribir(rol, "carne") ? (
                       <Link href={`/carne/pesajes/${p.id}`} className="inline-flex min-h-11 shrink-0 items-center text-sm font-semibold text-musgo underline-offset-4 hover:underline">

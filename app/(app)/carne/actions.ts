@@ -1,5 +1,6 @@
 "use server";
 
+import { VALORES_CC } from "@/lib/empadronamiento";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
@@ -162,6 +163,9 @@ const esquemaPesaje = z.object({
   fecha: z.iso.date("Indica la fecha."),
   peso_kg: decimal(pesoValido).pipe(z.number("Indica el peso.")),
   tipo: z.enum(TIPOS_PESAJE as [string, ...string[]], "Elige qué tipo de pesaje es."),
+  condicion_corporal: opcional(
+    z.preprocess((v) => (typeof v === "string" ? Number(v.replace(",", ".")) : v), z.number("La condición corporal debe ser un número.").refine((n) => (VALORES_CC as readonly number[]).includes(n), "La condición corporal va de 1 a 5, de medio en medio.")),
+  ),
   observaciones: texto(1000, "Las observaciones son muy largas."),
   client_request_id: opcional(z.uuid()),
   pesaje_id: opcional(z.uuid()),
@@ -173,7 +177,7 @@ function leerPesaje(form: FormData) {
   const d = datos.data;
   const futura = noFutura(d.fecha);
   if (futura) return { error: futura } as const;
-  return { d, fila: { fecha: d.fecha, peso_kg: Math.round(d.peso_kg * 10) / 10, tipo: d.tipo as never, observaciones: d.observaciones ?? null } } as const;
+  return { d, fila: { fecha: d.fecha, peso_kg: Math.round(d.peso_kg * 10) / 10, tipo: d.tipo as never, condicion_corporal: d.condicion_corporal ?? null, observaciones: d.observaciones ?? null } } as const;
 }
 
 const REPETIDO_PESAJE = "Ese animal ya tiene un peso registrado ese día. Edita ese peso en lugar de crear otro.";
