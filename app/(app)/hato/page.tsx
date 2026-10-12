@@ -1,24 +1,31 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Plus } from "lucide-react";
+import { ChipEnlace } from "@/components/ChipEnlace";
 import { Encabezado } from "@/components/Encabezado";
 import { FilaDesplazable } from "@/components/FilaDesplazable";
 import { obtenerContexto } from "@/lib/contexto";
 import { puedeEscribir, puedeGestionar, puedeVer } from "@/lib/permisos";
+import { DIRECCION_ORDENO, direccionHato, esFiltroHato, filtrosHato } from "@/lib/hato";
+import { Registrar } from "./Registrar";
 import { Animales, ProgramaLeche } from "./ProgramaLeche";
 
 export const metadata: Metadata = { title: "Hato" };
 
 /**
- * Hato: los animales y, en la pestaña «Leche», el programa del ordeño (qué hembras se ordeñan y en qué turnos). Lo que se mira o se hace
- * sobre la producción de todo el hato está en el menú «Leche».
+ * Hato: los animales (con sus filtros) y, como un filtro más, «Ordeño»: el registro del ordeño de cada jornada y el programa de qué
+ * hembras se ordeñan y en qué turnos. Lo que se mira de la producción de todo el hato (totales, gráficas) está en el menú «Leche».
  */
-export default async function PaginaHato({ searchParams }: { searchParams: Promise<{ vista?: string }> }) {
-  const { vista: vistaPedida } = await searchParams;
+export default async function PaginaHato({ searchParams }: { searchParams: Promise<{ vista?: string; modo?: string; filtro?: string; agregar?: string }> }) {
+  const sp = await searchParams;
   const { finca, rol, perfil } = await obtenerContexto();
   const puedeCrear = puedeEscribir(rol, "hato");
   const verLeche = puedeVer(rol, "leche");
-  const vista = vistaPedida === "leche" && verLeche ? "leche" : "animales";
+  const puedeRegistrar = puedeEscribir(rol, "leche");
+  const enOrdeno = sp.vista === "ordeno" && verLeche;
+  // Quien no puede escribir leche (veterinario, contador) solo ve el programa, sin poder cambiarlo.
+  const modo = sp.modo === "programar" || !puedeRegistrar ? "programar" : "registrar";
+  const filtros = filtrosHato(finca.especies);
 
   return (
     <>
@@ -36,30 +43,46 @@ export default async function PaginaHato({ searchParams }: { searchParams: Promi
           ) : null
         }
       />
-      {verLeche ? (
-        <FilaDesplazable className="mb-3">
-          {[
-            { v: "animales", t: "Animales", href: "/hato" },
-            { v: "leche", t: "Leche", href: "/hato?vista=leche" },
-          ].map((p) => (
-            <Link
-              key={p.v}
-              href={p.href}
-              aria-current={vista === p.v ? "page" : undefined}
-              className={`inline-flex min-h-10 shrink-0 items-center rounded-full px-4 text-sm font-semibold transition ${
-                vista === p.v ? "bg-musgo text-sobre-musgo" : "bg-papel text-humo ring-1 ring-arena hover:text-tinta"
-              }`}
-            >
-              {p.t}
-            </Link>
-          ))}
-        </FilaDesplazable>
-      ) : null}
 
-      {vista === "leche" ? (
-        <ProgramaLeche fincaId={finca.id} puedeEditar={puedeCrear} />
+      {enOrdeno ? (
+        <div className="space-y-4">
+          <FilaDesplazable>
+            {filtros.map((f) => (
+              <ChipEnlace key={f.id} href={direccionHato(f.id)} activo={false}>
+                {f.texto}
+              </ChipEnlace>
+            ))}
+            <ChipEnlace href={DIRECCION_ORDENO} activo>
+              Ordeño
+            </ChipEnlace>
+          </FilaDesplazable>
+
+          {puedeRegistrar ? (
+            <FilaDesplazable>
+              <ChipEnlace href={DIRECCION_ORDENO} activo={modo === "registrar"}>
+                Registrar ordeño
+              </ChipEnlace>
+              <ChipEnlace href={`${DIRECCION_ORDENO}&modo=programar`} activo={modo === "programar"}>
+                Programar turnos
+              </ChipEnlace>
+            </FilaDesplazable>
+          ) : null}
+
+          {modo === "registrar" ? (
+            <Registrar fincaId={finca.id} puedeEditar={puedeRegistrar} agregar={sp.agregar} />
+          ) : (
+            <ProgramaLeche fincaId={finca.id} puedeEditar={puedeCrear} />
+          )}
+        </div>
       ) : (
-        <Animales fincaId={finca.id} especies={finca.especies} puedeCrear={puedeCrear} puedeTraer={puedeGestionar(rol) && !perfil?.libro_resuelto_en} />
+        <Animales
+          fincaId={finca.id}
+          especies={finca.especies}
+          puedeCrear={puedeCrear}
+          puedeTraer={puedeGestionar(rol) && !perfil?.libro_resuelto_en}
+          filtroInicial={esFiltroHato(sp.filtro) ? sp.filtro : "todos"}
+          conOrdeno={verLeche}
+        />
       )}
     </>
   );

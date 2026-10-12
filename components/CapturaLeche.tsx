@@ -272,7 +272,7 @@ export function CapturaLeche({
             {buscando
               ? "Ningún animal coincide con tu búsqueda."
               : vista === "pendientes" && delTurno.length === 0
-                ? `Ninguna hembra está programada para la ${etiquetaJornada}. Prográmalas en Hato → Leche.`
+                ? `Ninguna hembra está programada para la ${etiquetaJornada}. Prográmalas en «Programar turnos».`
               : vista === "pendientes"
                 ? "No queda ningún animal por ordeñar en esta jornada."
                 : "Todavía no has registrado ningún animal en esta jornada."}

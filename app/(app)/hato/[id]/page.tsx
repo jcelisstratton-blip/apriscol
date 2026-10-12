@@ -246,7 +246,7 @@ export default async function FichaAnimal({ params, searchParams }: { params: Pr
               <div className="space-y-3">
                 <p className="text-[0.9375rem] text-humo">Todavía no está en ordeño. Si ya da leche, ponla en el ordeño para registrar sus litros.</p>
                 {puedeEscribir(rol, "leche") && animal.estado === "activo" ? (
-                  <Link href={`/leche?agregar=${id}`} className={clasesBoton("secundario")}>
+                  <Link href={`/hato?vista=ordeno&agregar=${id}`} className={clasesBoton("secundario")}>
                     Poner en ordeño
                   </Link>
                 ) : null}

@@ -11,7 +11,7 @@ export type PermisosRegistro = { puedeOrdenar: boolean; puedeCrearAnimal: boolea
 export function accionesRegistro({ puedeOrdenar, puedeCrearAnimal, puedeSanidad }: PermisosRegistro): Accion[] {
   return [
     ...(puedeOrdenar
-      ? [{ href: "/leche?vista=registrar", titulo: "Registrar ordeño", detalle: "Litros por animal, jornada de hoy", icono: <Droplets className="size-6" strokeWidth={1.75} /> }]
+      ? [{ href: "/hato?vista=ordeno", titulo: "Registrar ordeño", detalle: "Litros por animal, jornada de hoy", icono: <Droplets className="size-6" strokeWidth={1.75} /> }]
       : []),
     ...(puedeCrearAnimal
       ? [{ href: "/hato/nuevo", titulo: "Animal nuevo", detalle: "Cabra, cabro, oveja o carnero", icono: <Rabbit className="size-6" strokeWidth={1.75} /> }]
