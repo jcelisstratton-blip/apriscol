@@ -1,3 +1,4 @@
+import { leerNumero } from "@/lib/numeros";
 import { diasHasta, hoyBogota, sumarDias } from "@/lib/fechas";
 import type { CandidataEmp, CriterioEmp, Empadronamiento, Especie } from "@/lib/tipos";
 
@@ -81,6 +82,12 @@ export function mesesDesde(nacimiento: string | null, hoy = hoyBogota()): number
   let m = (b.getUTCFullYear() - a.getUTCFullYear()) * 12 + (b.getUTCMonth() - a.getUTCMonth());
   if (b.getUTCDate() < a.getUTCDate()) m -= 1;
   return Math.max(0, m);
+}
+
+/** El número de hembras que escribe la persona: entero de 1 a 100 (nulo si no lo es). */
+export function leerNumeroHembras(texto: string): number | null {
+  const n = leerNumero(texto);
+  return n != null && Number.isInteger(n) && n >= 1 && n <= 100 ? n : null;
 }
 
 export const ETIQUETA_CAPACIDAD = { fijada: "fijado en la temporada", joven: "macho joven", adulto: "macho adulto" } as const;

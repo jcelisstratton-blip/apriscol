@@ -7,7 +7,7 @@ import { Encabezado } from "@/components/Encabezado";
 import { Insignia } from "@/components/Insignia";
 import { ListaHembrasEmp, type FilaHembraEmp } from "@/components/ListaHembrasEmp";
 import { Tarjeta } from "@/components/Tarjeta";
-import { AgregarSemental, QuitarDeEmp } from "@/components/AccionesEmpadronamiento";
+import { AgregarSemental, CambiarNumeroHembras, QuitarDeEmp } from "@/components/AccionesEmpadronamiento";
 import { crearClienteServidor } from "@/lib/supabase/server";
 import { puedeEscribir, puedeGestionar } from "@/lib/permisos";
 import { animalesPorIds } from "@/lib/animal-etiquetas";
@@ -46,10 +46,11 @@ export async function Detalle({
   if (!lote) notFound();
 
   const [machosDB, hembrasDB, paramDB] = await Promise.all([
-    supabase.from("empadronamiento_machos").select("macho_id").eq("empadronamiento_id", id).eq("finca_id", finca.id).order("created_at"),
+    supabase.from("empadronamiento_machos").select("macho_id, num_hembras").eq("empadronamiento_id", id).eq("finca_id", finca.id).order("created_at"),
     supabase.from("empadronamiento_hembras").select("*").eq("empadronamiento_id", id).eq("finca_id", finca.id).order("created_at").limit(2000),
     supabase.from("parametros_especie").select("gestacion_dias").eq("especie", lote.especie).maybeSingle(),
   ]);
+  const numeros = new Map((machosDB.data ?? []).map((m) => [m.macho_id, m.num_hembras]));
   const machoIds = (machosDB.data ?? []).map((m) => m.macho_id);
   const hembras = hembrasDB.data ?? [];
   const edades = machoIds.length > 0 ? ((await supabase.from("animales").select("id, fecha_nacimiento").in("id", machoIds).eq("finca_id", finca.id)).data ?? []) : [];
@@ -72,8 +73,10 @@ export async function Detalle({
   const porMacho = new Map<string, number>();
   for (const h of hembras) porMacho.set(h.macho_id, (porMacho.get(h.macho_id) ?? 0) + 1);
   const machos = machoIds.map((m) => {
-    const cap = capacidadSemental(lote.especie, mesesDesde(edades.find((e) => e.id === m)?.fecha_nacimiento ?? null, hoy), lote.hembras_por_macho);
-    return { id: m, etiqueta: etiqueta(m), asignadas: porMacho.get(m) ?? 0, capacidad: cap.max, origen: cap.origen, limite: cap.origen === "fijada" ? cap.max : null };
+    const nacimiento = edades.find((e) => e.id === m)?.fecha_nacimiento ?? null;
+    const fijado = numeros.get(m) ?? null;
+    const cap = capacidadSemental(lote.especie, mesesDesde(nacimiento, hoy), fijado);
+    return { id: m, etiqueta: etiqueta(m), asignadas: porMacho.get(m) ?? 0, capacidad: cap.max, origen: cap.origen, limite: fijado, nacimiento };
   });
   const filas: FilaHembraEmp[] = hembras.map((h) => ({
     hembraId: h.hembra_id,
@@ -118,7 +121,6 @@ export async function Detalle({
             <Dato etiqueta="Criterios de las hembras">
               {lote.edad_min_meses}+ meses · {String(lote.peso_min_kg).replace(".", ",")}+ kg · CC {textoCC(lote.cc_min)}+
             </Dato>
-            {lote.hembras_por_macho != null ? <Dato etiqueta="Hembras por semental">{lote.hembras_por_macho} (tope exacto)</Dato> : null}
           </dl>
           {lote.observaciones ? <p className="mt-3 whitespace-pre-wrap text-[0.9375rem] [overflow-wrap:anywhere]">{lote.observaciones}</p> : null}
           {puedeEditar ? (
@@ -138,10 +140,14 @@ export async function Detalle({
                   <Link href={`/hato/${m.id}`} className="min-w-0 flex-1 py-2">
                     <span className="block font-semibold [overflow-wrap:anywhere]">{m.etiqueta}</span>
                     <span className="block text-sm text-humo">
-                      {m.limite != null ? `${m.asignadas} de ${m.limite} hembras (número fijado en la temporada)` : `${m.asignadas} de ${m.capacidad} hembras recomendadas (${ETIQUETA_CAPACIDAD[m.origen]})`}
+                      {m.limite != null ? `${m.asignadas} de ${m.limite} ${m.limite === 1 ? "hembra" : "hembras"}` : `${m.asignadas} de ${m.capacidad} hembras recomendadas (${ETIQUETA_CAPACIDAD[m.origen]})`}
                     </span>
-                    {m.asignadas > m.capacidad ? <span className="mt-1 inline-block"><Insignia tono="aviso">Pasa de lo recomendado</Insignia></span> : null}
+                    {abierto && m.limite != null && m.asignadas < m.limite ? (
+                      <span className="mt-1 inline-block"><Insignia tono="aviso">Faltan {m.limite - m.asignadas} {m.limite - m.asignadas === 1 ? "hembra" : "hembras"}</Insignia></span>
+                    ) : null}
+                    {m.limite == null && m.asignadas > m.capacidad ? <span className="mt-1 inline-block"><Insignia tono="aviso">Pasa de lo recomendado</Insignia></span> : null}
                   </Link>
+                  {abierto && puedeEditar ? <CambiarNumeroHembras loteId={id} machoId={m.id} etiqueta={m.etiqueta} especie={lote.especie} nacimiento={m.nacimiento} actual={m.limite} asignadas={m.asignadas} /> : null}
                   {abierto && puedeGestionar(rol) ? <QuitarDeEmp loteId={id} animalId={m.id} tipo="semental" nombre={m.etiqueta} /> : null}
                 </li>
               ))}

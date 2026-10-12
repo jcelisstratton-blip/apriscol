@@ -14,11 +14,14 @@ export function ListaPorTramos<T>({
   fila,
   clave,
   tramo = 20,
+  arriba = true,
 }: {
   items: T[];
   fila: (item: T) => React.ReactNode;
   clave: (item: T) => string;
   tramo?: number;
+  /** El botón «Arriba» desplaza la página: no va dentro de una hoja inferior, que se desplaza por dentro. */
+  arriba?: boolean;
 }) {
   const [visibles, setVisibles] = useState(tramo);
   const [hayScroll, setHayScroll] = useState(false);
@@ -61,7 +64,7 @@ export function ListaPorTramos<T>({
         ))}
       </ul>
       {!completo ? <div ref={centinela} className="h-14" aria-hidden="true" /> : null}
-      {hayScroll ? (
+      {arriba && hayScroll ? (
         <button
           type="button"
           onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}

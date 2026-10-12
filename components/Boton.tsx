@@ -22,6 +22,7 @@ export function Boton({
   pendiente = false,
   cargando = "Guardando…",
   className = "",
+  disabled,
   children,
   ...resto
 }: React.ButtonHTMLAttributes<HTMLButtonElement> & {
@@ -31,7 +32,7 @@ export function Boton({
   cargando?: string;
 }) {
   return (
-    <button className={`${clasesBoton(variante, ancho)} ${className}`} disabled={pendiente || resto.disabled} {...resto}>
+    <button className={`${clasesBoton(variante, ancho)} ${className}`} {...resto} disabled={pendiente || disabled}>
       {pendiente ? <Cargando pequeno texto={cargando} /> : children}
     </button>
   );

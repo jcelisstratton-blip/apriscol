@@ -39,7 +39,7 @@ export async function Monta({
 
   const [machosDB, hembrasDB] = ids.length
     ? await Promise.all([
-        supabase.from("empadronamiento_machos").select("empadronamiento_id, macho_id").in("empadronamiento_id", ids).eq("finca_id", fincaId).limit(1000),
+        supabase.from("empadronamiento_machos").select("empadronamiento_id, macho_id, num_hembras").in("empadronamiento_id", ids).eq("finca_id", fincaId).limit(1000),
         supabase.from("empadronamiento_hembras").select("empadronamiento_id, macho_id").in("empadronamiento_id", ids).eq("finca_id", fincaId).limit(5000),
       ])
     : [{ data: [] }, { data: [] }];
@@ -83,8 +83,8 @@ export async function Monta({
             {lotes.map((l) => {
               const a = avanceEmp(l, hoy);
               const susMachos = machos.filter((m) => m.empadronamiento_id === l.id).map((m) => {
-                const cap = capacidadSemental(l.especie, mesesDesde(edades.get(m.macho_id) ?? null, hoy), l.hembras_por_macho);
-                return { id: m.macho_id, etiqueta: nombres.get(m.macho_id) ?? "Semental", asignadas: cuenta.get(`${l.id}|${m.macho_id}`) ?? 0, capacidad: cap.max, origen: cap.origen, limite: cap.origen === "fijada" ? cap.max : null };
+                const cap = capacidadSemental(l.especie, mesesDesde(edades.get(m.macho_id) ?? null, hoy), m.num_hembras);
+                return { id: m.macho_id, etiqueta: nombres.get(m.macho_id) ?? "Semental", asignadas: cuenta.get(`${l.id}|${m.macho_id}`) ?? 0, capacidad: cap.max, origen: cap.origen, limite: m.num_hembras };
               });
               return (
                 <li key={l.id} className="min-w-0 space-y-3 rounded-2xl bg-papel p-3.5 ring-1 ring-arena">
@@ -106,7 +106,7 @@ export async function Monta({
                           <span className="min-w-0 font-semibold [overflow-wrap:anywhere]">{m.etiqueta}</span>
                           <span className="shrink-0 text-right text-sm text-humo">
                             {m.asignadas} de {m.capacidad}
-                            <span className="block text-xs">{m.limite != null ? "número fijado" : ETIQUETA_CAPACIDAD[m.origen]}</span>
+                            <span className="block text-xs">{m.limite != null ? (m.asignadas < m.limite ? `faltan ${m.limite - m.asignadas}` : "completo") : ETIQUETA_CAPACIDAD[m.origen]}</span>
                           </span>
                         </li>
                       ))}

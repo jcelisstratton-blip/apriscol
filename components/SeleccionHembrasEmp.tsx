@@ -7,6 +7,7 @@ import { Boton } from "@/components/Boton";
 import { CampoBusqueda } from "@/components/CampoBusqueda";
 import { Cargando } from "@/components/Cargando";
 import { Insignia } from "@/components/Insignia";
+import { ListaPorTramos } from "@/components/ListaPorTramos";
 import { NivelEndogamia } from "@/components/NivelEndogamia";
 import { Selector } from "@/components/Selector";
 import { Sheet } from "@/components/Sheet";
@@ -29,7 +30,7 @@ export type MachoSeleccion = { id: string; etiqueta: string; asignadas: number; 
 /** Lo que se eligió: las hembras, las que entran como excepción y cómo se llama cada una (para mostrarlas sin volver a buscarlas). */
 export type SeleccionEmp = { machoId: string; hembraIds: string[]; excepcionIds: string[]; etiquetas: Record<string, string> };
 
-const MOSTRAR = 60;
+const TRAMO = 30;
 const LOTE_RPC = 400;
 const LOTE_ELEGIR = 500;
 
@@ -163,7 +164,6 @@ export function SeleccionHembrasEmp({
   const coincide = (f: Fila) => !busqueda || f.c.numero_arete.toLowerCase().includes(busqueda) || (f.c.nombre ?? "").toLowerCase().includes(busqueda);
   const asignables = (filas ?? []).filter((f) => f.clase !== "no" && coincide(f));
   const noAptas = (filas ?? []).filter((f) => f.clase === "no" && coincide(f));
-  const visibles = asignables.slice(0, MOSTRAR);
   const bloqueada = (id: string) => Boolean(endo?.get(id)?.sobre) && !excepciones.has(id);
   const aptasLibres = asignables.filter((f) => f.clase === "apta" && endo?.has(f.c.animal_id) && !bloqueada(f.c.animal_id));
   const elMacho = machos.find((m) => m.id === macho);
@@ -199,9 +199,24 @@ export function SeleccionHembrasEmp({
         onCerrar={() => (guardando ? undefined : setAbierta(false))}
         titulo={titulo}
         pie={
-          <Boton onClick={confirmar} pendiente={guardando} cargando="Guardando…" disabled={elegidas.size === 0 || calculando}>
-            {elegidas.size === 0 ? "Elige las hembras" : textoConfirmar(elegidas.size)}
-          </Boton>
+          <div className="space-y-2.5">
+            {limite != null ? (
+              <div aria-live="polite">
+                <p className="flex items-baseline justify-between gap-3 text-sm">
+                  <span className="font-semibold">
+                    Llevas {(elMacho?.asignadas ?? 0) + elegidas.size} de {limite} {limite === 1 ? "hembra" : "hembras"}
+                  </span>
+                  <span className="text-humo">{lleno ? "Completo" : `Faltan ${cupo - elegidas.size}`}</span>
+                </p>
+                <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-arena" role="progressbar" aria-valuemin={0} aria-valuemax={limite} aria-valuenow={(elMacho?.asignadas ?? 0) + elegidas.size}>
+                  <div className="h-full rounded-full bg-musgo transition-[width]" style={{ width: `${Math.min(100, (((elMacho?.asignadas ?? 0) + elegidas.size) / limite) * 100)}%` }} />
+                </div>
+              </div>
+            ) : null}
+            <Boton onClick={confirmar} pendiente={guardando} cargando="Guardando…" disabled={elegidas.size === 0 || calculando}>
+              {elegidas.size === 0 ? "Elige las hembras" : textoConfirmar(elegidas.size)}
+            </Boton>
+          </div>
         }
       >
         <div className="space-y-4">
@@ -247,20 +262,26 @@ export function SeleccionHembrasEmp({
               ) : (
                 <>
                   <div className="flex items-center justify-between gap-3 text-sm text-humo">
-                    <span>Mostrando {visibles.length} de {asignables.length}</span>
-                    {aptasLibres.length > 0 ? (
+                    <span>{asignables.length} {asignables.length === 1 ? "hembra libre" : "hembras libres"}</span>
+                    {aptasLibres.length > 0 && !lleno ? (
                       <button type="button" onClick={() => setElegidas((p) => new Set([...p, ...aptasLibres.filter((f) => !p.has(f.c.animal_id)).slice(0, Math.min(LOTE_ELEGIR, Math.max(0, cupo - p.size))).map((f) => f.c.animal_id)]))} disabled={lleno} className="min-h-11 font-semibold text-musgo disabled:opacity-40">
                         {limite != null ? `Elegir ${Math.min(aptasLibres.length, Math.max(0, cupo - elegidas.size))} aptas` : `Elegir las ${aptasLibres.length} aptas`}
                       </button>
                     ) : null}
                   </div>
-                  <ul className="-mx-2 space-y-1">
-                    {visibles.map((f) => {
+                  <div className="-mx-2">
+                    <ListaPorTramos
+                      key={busqueda}
+                      items={asignables}
+                      clave={(f) => f.c.animal_id}
+                      tramo={TRAMO}
+                      arriba={false}
+                      fila={(f) => {
                       const e = endo?.get(f.c.animal_id);
                       const sinPermiso = bloqueada(f.c.animal_id);
                       const conExc = excepciones.has(f.c.animal_id);
                       return (
-                        <li key={f.c.animal_id} className={`rounded-xl px-3 py-2 ${sinPermiso ? "bg-rojo/6" : "hover:bg-arena/50"}`}>
+                        <div className={`rounded-xl px-3 py-2 ${sinPermiso ? "bg-rojo/6" : "hover:bg-arena/50"}`}>
                           <label className={`flex min-h-12 items-start gap-3 ${sinPermiso ? "cursor-not-allowed opacity-80" : "cursor-pointer"}`}>
                             <input
                               type="checkbox"
@@ -314,11 +335,11 @@ export function SeleccionHembrasEmp({
                               </div>
                             </div>
                           ) : null}
-                        </li>
+                        </div>
                       );
-                    })}
-                  </ul>
-                  {asignables.length > MOSTRAR ? <p className="text-sm text-humo">Hay más: afina la búsqueda para verlas.</p> : null}
+                    }}
+                    />
+                  </div>
                 </>
               )}
 
@@ -329,14 +350,21 @@ export function SeleccionHembrasEmp({
                     <ChevronDown className={`size-4 transition ${verNoAptas ? "rotate-180" : ""}`} strokeWidth={2} aria-hidden="true" />
                   </button>
                   {verNoAptas ? (
-                    <ul className="mt-1 divide-y divide-arena">
-                      {noAptas.slice(0, MOSTRAR).map((f) => (
-                        <li key={f.c.animal_id} className="py-2 text-[0.9375rem]">
-                          <span className="font-semibold [overflow-wrap:anywhere]">{etiquetaAnimal(f.c)}</span>
-                          <span className="block text-sm text-humo">{f.motivos.join(" · ")}</span>
-                        </li>
-                      ))}
-                    </ul>
+                    <div className="mt-1">
+                      <ListaPorTramos
+                        key={busqueda}
+                        items={noAptas}
+                        clave={(f) => f.c.animal_id}
+                        tramo={TRAMO}
+                        arriba={false}
+                        fila={(f) => (
+                          <div className="border-b border-arena py-2 text-[0.9375rem]">
+                            <span className="font-semibold [overflow-wrap:anywhere]">{etiquetaAnimal(f.c)}</span>
+                            <span className="block text-sm text-humo">{f.motivos.join(" · ")}</span>
+                          </div>
+                        )}
+                      />
+                    </div>
                   ) : null}
                 </div>
               ) : null}
