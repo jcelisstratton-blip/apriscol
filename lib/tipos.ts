@@ -244,6 +244,125 @@ export type PalmaresAnimal = {
   mejor_puesto: number | null;
 };
 
+// ───────────────────────── Sanidad ─────────────────────────
+export type TipoProducto = "vacuna" | "desparasitante" | "antibiotico" | "antiinflamatorio" | "vitamina" | "otro";
+export type TipoEvento = "vacunacion" | "desparasitacion" | "tratamiento" | "cirugia" | "otro";
+export type ViaAplicacion = "oral" | "subcutanea" | "intramuscular" | "intravenosa" | "topica" | "intramamaria" | "otra";
+export type TipoPrueba = "cae" | "brucelosis" | "cmt" | "mastitis_cultivo" | "paratuberculosis" | "otra";
+export type ResultadoPrueba = "negativo" | "positivo" | "sospechoso" | "pendiente";
+
+export type ProductoVeterinario = {
+  id: string;
+  finca_id: string;
+  nombre: string;
+  tipo: TipoProducto;
+  registro_ica: string | null;
+  retiro_leche_dias: number;
+  retiro_carne_dias: number;
+  unidad_dosis: string | null;
+  activo: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+export type EventoSanitario = {
+  id: string;
+  finca_id: string;
+  fecha: string;
+  tipo: TipoEvento;
+  producto_id: string | null;
+  producto_nombre: string | null;
+  lote_producto: string | null;
+  fecha_vencimiento: string | null;
+  dosis: number | null;
+  unidad_dosis: string | null;
+  via: ViaAplicacion | null;
+  responsable: string | null;
+  costo: number | null;
+  retiro_leche_dias: number;
+  retiro_carne_dias: number;
+  fin_retiro_leche: string;
+  fin_retiro_carne: string;
+  diagnostico: string | null;
+  observaciones: string | null;
+  proxima_fecha: string | null;
+  client_request_id: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type EventoSanitarioAnimal = { evento_id: string; animal_id: string; finca_id: string };
+
+export type PruebaSanitaria = {
+  id: string;
+  finca_id: string;
+  animal_id: string;
+  prueba: TipoPrueba;
+  fecha: string;
+  resultado: ResultadoPrueba;
+  laboratorio: string | null;
+  soporte_path: string | null;
+  observaciones: string | null;
+  client_request_id: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+/** Un evento con cuántos animales lo recibieron (vista `v_eventos_sanitarios`). */
+export type EventoResumen = {
+  id: string | null;
+  finca_id: string | null;
+  fecha: string | null;
+  tipo: TipoEvento | null;
+  producto_id: string | null;
+  producto_nombre: string | null;
+  dosis: number | null;
+  unidad_dosis: string | null;
+  retiro_leche_dias: number | null;
+  retiro_carne_dias: number | null;
+  fin_retiro_leche: string | null;
+  fin_retiro_carne: string | null;
+  proxima_fecha: string | null;
+  responsable: string | null;
+  diagnostico: string | null;
+  created_at: string | null;
+  animales: number | null;
+  primer_animal_id: string | null;
+  primer_animal: string | null;
+};
+
+/** Un evento visto desde un animal (vista `v_eventos_animal`). */
+export type EventoDeAnimal = {
+  animal_id: string | null;
+  id: string | null;
+  finca_id: string | null;
+  fecha: string | null;
+  tipo: TipoEvento | null;
+  producto_nombre: string | null;
+  dosis: number | null;
+  unidad_dosis: string | null;
+  retiro_leche_dias: number | null;
+  retiro_carne_dias: number | null;
+  fin_retiro_leche: string | null;
+  fin_retiro_carne: string | null;
+  proxima_fecha: string | null;
+  diagnostico: string | null;
+  created_at: string | null;
+};
+
+/** Próxima dosis de un animal que aún no se ha aplicado (vista `v_sanidad_pendiente`). */
+export type SanidadPendiente = {
+  finca_id: string | null;
+  animal_id: string | null;
+  evento_id: string | null;
+  tipo: TipoEvento | null;
+  producto_id: string | null;
+  producto_nombre: string | null;
+  proxima_fecha: string | null;
+};
+
 export type PalmaresFinca = {
   finca_id: string | null;
   participaciones: number | null;
@@ -347,6 +466,10 @@ export type Database = {
       libro_genealogico: Tabla<LibroAnimal, "numero_registro" | "chip" | "nombre" | "especie" | "sexo">;
       solicitudes_reclamo: Tabla<SolicitudReclamo, "finca_id" | "titular_id">;
       plataforma_admins: Tabla<{ user_id: string; created_at: string }, "user_id">;
+      productos_veterinarios: Tabla<ProductoVeterinario, "finca_id" | "nombre">;
+      eventos_sanitarios: Tabla<EventoSanitario, "finca_id" | "tipo">;
+      evento_sanitario_animales: Tabla<EventoSanitarioAnimal, "evento_id" | "animal_id" | "finca_id">;
+      pruebas_sanitarias: Tabla<PruebaSanitaria, "finca_id" | "animal_id" | "prueba">;
     };
     Views: {
       v_produccion_diaria: { Row: ProduccionDiaria; Relationships: [] };
@@ -354,6 +477,9 @@ export type Database = {
       v_servicios: { Row: ServicioConParto; Relationships: [] };
       v_palmares_animal: { Row: PalmaresAnimal; Relationships: [] };
       v_palmares_finca: { Row: PalmaresFinca; Relationships: [] };
+      v_eventos_sanitarios: { Row: EventoResumen; Relationships: [] };
+      v_eventos_animal: { Row: EventoDeAnimal; Relationships: [] };
+      v_sanidad_pendiente: { Row: SanidadPendiente; Relationships: [] };
     };
     Functions: {
       aceptar_invitacion: { Args: { p_token: string }; Returns: string };
@@ -376,6 +502,10 @@ export type Database = {
       animales_en_retiro: {
         Args: { p_finca: string };
         Returns: { animal_id: string; retiro_leche_hasta: string | null; retiro_carne_hasta: string | null }[];
+      };
+      guardar_evento_sanitario: {
+        Args: { p_finca: string; p_evento: string | null; p_datos: Record<string, unknown>; p_animales: string[] };
+        Returns: string;
       };
       coef_endogamia: { Args: { p_animal: string }; Returns: number };
       completitud_pedigri: { Args: { p_animal: string; p_generaciones?: number }; Returns: number };

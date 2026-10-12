@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ChevronRight, GitFork, KeyRound, LogOut, MapPin, Pencil, Plus, Shuffle, ShieldCheck, Trophy, Users } from "lucide-react";
+import { ChevronRight, GitFork, KeyRound, LogOut, MapPin, Pencil, Plus, Shuffle, ShieldCheck, Syringe, Trophy, Users } from "lucide-react";
 import { Encabezado } from "@/components/Encabezado";
 import { AvisoGuardado } from "@/components/AvisoGuardado";
 import { FincaSelector } from "@/components/FincaSelector";
@@ -66,6 +66,13 @@ export default async function PaginaMas({ searchParams }: { searchParams: Promis
             <Link href="/admin" className={FILA}>
               <ShieldCheck className="size-5 text-ocre" strokeWidth={1.75} />
               <span className="flex-1 font-semibold">Panel superadmin</span>
+              <ChevronRight className="size-5 text-humo" strokeWidth={1.75} />
+            </Link>
+          ) : null}
+          {puedeVer(rol, "sanidad") ? (
+            <Link href="/sanidad" className={FILA}>
+              <Syringe className="size-5 text-musgo" strokeWidth={1.75} />
+              <span className="flex-1 font-semibold">Sanidad</span>
               <ChevronRight className="size-5 text-humo" strokeWidth={1.75} />
             </Link>
           ) : null}

@@ -1,0 +1,174 @@
+"use client";
+
+import { useCallback, useState } from "react";
+import { Check, Users, X } from "lucide-react";
+import { Aviso } from "@/components/Aviso";
+import { Boton } from "@/components/Boton";
+import { CampoBusqueda } from "@/components/CampoBusqueda";
+import { Cargando } from "@/components/Cargando";
+import { CLASE_INPUT } from "@/components/Campo";
+import { Chip, FilaDesplazable } from "@/components/FilaDesplazable";
+import { Sheet } from "@/components/Sheet";
+import { crearClienteNavegador } from "@/lib/supabase/client";
+import { etiquetaAnimal } from "@/lib/animal";
+import type { Especie } from "@/lib/tipos";
+
+export type AnimalElegido = { id: string; numero_arete: string; nombre: string | null };
+
+const MAXIMO = 1000;
+
+/**
+ * Elegir uno o varios animales (para vacunar o tratar un lote): búsqueda para sumar de a uno, y atajos para sumar un grupo entero
+ * (todo el hato, hembras, machos, una especie). Envía un campo `animal_id` por cada animal elegido.
+ */
+export function SelectorAnimales({
+  fincaId,
+  especies,
+  valor,
+  onCambio,
+}: {
+  fincaId: string;
+  especies: Especie[];
+  valor: AnimalElegido[];
+  onCambio: (a: AnimalElegido[]) => void;
+}) {
+  const [abierta, setAbierta] = useState(false);
+  const [resultados, setResultados] = useState<AnimalElegido[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [cargandoGrupo, setCargandoGrupo] = useState<string | null>(null);
+  const elegidos = new Set(valor.map((a) => a.id));
+
+  const buscar = useCallback(
+    async (texto: string) => {
+      setError(null);
+      setResultados(null);
+      const limpio = texto.replace(/[%,()*\\]/g, " ").trim();
+      let q = crearClienteNavegador().from("animales").select("id, numero_arete, nombre").eq("finca_id", fincaId).eq("estado", "activo").is("deleted_at", null);
+      if (limpio) q = q.or(`numero_arete.ilike.%${limpio}%,nombre.ilike.%${limpio}%`);
+      const { data, error: e } = await q.order("numero_arete").limit(20);
+      if (e) setError(e.message);
+      else setResultados(data ?? []);
+    },
+    [fincaId],
+  );
+
+  const alternar = (a: AnimalElegido) => {
+    if (elegidos.has(a.id)) onCambio(valor.filter((x) => x.id !== a.id));
+    else if (valor.length < MAXIMO) onCambio([...valor, a]);
+  };
+
+  const sumarGrupo = async (clave: string, filtro: { sexo?: "hembra" | "macho"; especie?: Especie }) => {
+    setError(null);
+    setCargandoGrupo(clave);
+    let q = crearClienteNavegador().from("animales").select("id, numero_arete, nombre").eq("finca_id", fincaId).eq("estado", "activo").is("deleted_at", null);
+    if (filtro.sexo) q = q.eq("sexo", filtro.sexo);
+    if (filtro.especie) q = q.eq("especie", filtro.especie);
+    const { data, error: e } = await q.order("numero_arete").limit(MAXIMO);
+    setCargandoGrupo(null);
+    if (e) return setError(e.message);
+    const nuevos = (data ?? []).filter((a) => !elegidos.has(a.id));
+    onCambio([...valor, ...nuevos].slice(0, MAXIMO));
+  };
+
+  const grupos: { clave: string; texto: string; filtro: { sexo?: "hembra" | "macho"; especie?: Especie } }[] = [
+    { clave: "todos", texto: "Todo el hato", filtro: {} },
+    { clave: "hembras", texto: "Hembras", filtro: { sexo: "hembra" } },
+    { clave: "machos", texto: "Machos", filtro: { sexo: "macho" } },
+    ...(especies.length > 1
+      ? especies.map((e) => ({ clave: e, texto: e === "caprino" ? "Caprinos" : "Ovinos", filtro: { especie: e } }))
+      : []),
+  ];
+
+  const resumen =
+    valor.length === 0
+      ? "Elegir animales"
+      : valor.length <= 3
+        ? valor.map(etiquetaAnimal).join(", ")
+        : `${valor.slice(0, 2).map(etiquetaAnimal).join(", ")} y ${valor.length - 2} más`;
+
+  return (
+    <>
+      {valor.map((a) => (
+        <input key={a.id} type="hidden" name="animal_id" value={a.id} />
+      ))}
+      <button type="button" onClick={() => setAbierta(true)} aria-haspopup="dialog" className={`${CLASE_INPUT} flex items-center justify-between gap-3 text-left`}>
+        <span className={`min-w-0 flex-1 [overflow-wrap:anywhere] ${valor.length ? "" : "text-humo/70"}`}>{resumen}</span>
+        <span className="flex shrink-0 items-center gap-1.5 text-sm font-semibold text-musgo">
+          <Users className="size-4" strokeWidth={1.75} aria-hidden="true" /> {valor.length > 0 ? `${valor.length}` : ""}
+        </span>
+      </button>
+
+      <Sheet abierta={abierta} onCerrar={() => setAbierta(false)} titulo="¿A qué animales?">
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <p className="text-sm font-semibold">Sumar un grupo completo</p>
+            <FilaDesplazable>
+              {grupos.map((g) => (
+                <Chip key={g.clave} activo={false} onClick={() => void sumarGrupo(g.clave, g.filtro)}>
+                  {cargandoGrupo === g.clave ? "Sumando…" : `+ ${g.texto}`}
+                </Chip>
+              ))}
+            </FilaDesplazable>
+          </div>
+
+          <div className="space-y-2">
+            <p className="text-sm font-semibold">O buscar de a uno</p>
+            <CampoBusqueda onBuscar={buscar} placeholder="Buscar por arete o nombre" retardo={250} />
+            {error ? <Aviso tipo="error">{error}</Aviso> : null}
+            {resultados === null && !error ? <Cargando texto="Buscando…" /> : null}
+            {resultados?.length === 0 ? <p className="py-4 text-center text-sm text-humo">No hay animales activos que coincidan.</p> : null}
+            <ul className="-mx-2 space-y-0.5">
+              {resultados?.map((r) => {
+                const activo = elegidos.has(r.id);
+                return (
+                  <li key={r.id}>
+                    <button
+                      type="button"
+                      onClick={() => alternar(r)}
+                      aria-pressed={activo}
+                      className="flex min-h-12 w-full items-center justify-between gap-3 rounded-xl px-3 text-left font-medium hover:bg-arena/60"
+                    >
+                      <span className="min-w-0 [overflow-wrap:anywhere]">{etiquetaAnimal(r)}</span>
+                      <span className={`grid size-6 shrink-0 place-items-center rounded-full ${activo ? "bg-musgo text-sobre-musgo" : "ring-1 ring-arena"}`}>
+                        {activo ? <Check className="size-4" strokeWidth={2.5} /> : null}
+                      </span>
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+
+          {valor.length > 0 ? (
+            <div className="space-y-2 border-t border-arena pt-3">
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-sm font-semibold">Elegidos: {valor.length}</p>
+                <button type="button" onClick={() => onCambio([])} className="min-h-11 text-sm font-semibold text-rojo">
+                  Quitar todos
+                </button>
+              </div>
+              <ul className="flex max-h-40 flex-wrap gap-1.5 overflow-y-auto">
+                {valor.map((a) => (
+                  <li key={a.id}>
+                    <button
+                      type="button"
+                      onClick={() => alternar(a)}
+                      aria-label={`Quitar ${etiquetaAnimal(a)}`}
+                      className="inline-flex min-h-9 items-center gap-1 rounded-full bg-arena px-3 text-sm font-medium"
+                    >
+                      <span className="[overflow-wrap:anywhere]">{etiquetaAnimal(a)}</span> <X className="size-3.5" strokeWidth={2} />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+
+          <Boton type="button" onClick={() => setAbierta(false)}>
+            {valor.length === 0 ? "Cerrar" : `Listo, ${valor.length} ${valor.length === 1 ? "animal" : "animales"}`}
+          </Boton>
+        </div>
+      </Sheet>
+    </>
+  );
+}

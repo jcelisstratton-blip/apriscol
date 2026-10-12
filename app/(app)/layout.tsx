@@ -9,7 +9,7 @@ import { puedeEscribir, puedeGestionar, puedeVer } from "@/lib/permisos";
  */
 export default async function LayoutApp({ children }: { children: React.ReactNode }) {
   const { user, perfil, finca, fincas, rol } = await obtenerContexto();
-  const permisos = { puedeOrdenar: puedeEscribir(rol, "leche"), puedeCrearAnimal: puedeEscribir(rol, "hato") };
+  const permisos = { puedeOrdenar: puedeEscribir(rol, "leche"), puedeCrearAnimal: puedeEscribir(rol, "hato"), puedeSanidad: puedeEscribir(rol, "sanidad") };
   const esSuperadmin = await esAdminPlataforma();
 
   return (
@@ -22,6 +22,7 @@ export default async function LayoutApp({ children }: { children: React.ReactNod
         permisos={permisos}
         verLeche={puedeVer(rol, "leche")}
         verPremios={puedeVer(rol, "ferias")}
+        verSanidad={puedeVer(rol, "sanidad")}
         verEquipo={puedeGestionar(rol)}
         esSuperadmin={esSuperadmin}
       />

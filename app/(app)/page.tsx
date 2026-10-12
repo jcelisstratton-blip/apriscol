@@ -15,7 +15,9 @@ import { crearClienteServidor } from "@/lib/supabase/server";
 import { puedeEscribir, puedeVer } from "@/lib/permisos";
 import { diasHasta, formatoFecha, hoyBogota, litros, sumarDias } from "@/lib/fechas";
 import { etiquetaAnimal, saludo } from "@/lib/animal";
-import type { ServicioConParto } from "@/lib/tipos";
+import { IconoEvento } from "@/components/IconoEvento";
+import { ETIQUETA_EVENTO, estadoDosis, nombreEvento } from "@/lib/sanidad";
+import type { SanidadPendiente, ServicioConParto, TipoEvento } from "@/lib/tipos";
 
 export const metadata: Metadata = { title: "Hoy" };
 
@@ -26,11 +28,12 @@ export default async function PaginaHoy({ searchParams }: { searchParams: Promis
   const hoy = hoyBogota();
   const verLeche = puedeVer(rol, "leche");
   const verRepro = puedeVer(rol, "reproduccion");
+  const verSanidad = puedeVer(rol, "sanidad");
 
   const activos = () =>
     supabase.from("animales").select("*", { count: "exact", head: true }).eq("finca_id", finca.id).is("deleted_at", null).eq("estado", "activo");
 
-  const [prod, totalActivos, totalHembras, retiro, servicios, tendencia] = await Promise.all([
+  const [prod, totalActivos, totalHembras, retiro, servicios, tendencia, pendientes] = await Promise.all([
     verLeche
       ? supabase.from("v_produccion_diaria").select("animal_id, litros_tanque, litros_descartados").eq("finca_id", finca.id).eq("fecha", hoy)
       : Promise.resolve({ data: [] as { animal_id: string | null; litros_tanque: number | null; litros_descartados: number | null }[] }),
@@ -47,7 +50,21 @@ export default async function PaginaHoy({ searchParams }: { searchParams: Promis
           .order("fecha_prevista_parto")
       : Promise.resolve({ data: [] as ServicioConParto[] }),
     verLeche ? supabase.rpc("produccion_tendencia", { p_finca: finca.id }) : Promise.resolve({ data: [] }),
+    // Dosis vencidas o que se vencen en la próxima semana.
+    verSanidad
+      ? supabase.from("v_sanidad_pendiente").select("*").eq("finca_id", finca.id).lte("proxima_fecha", sumarDias(hoy, 7)).order("proxima_fecha").limit(1000)
+      : Promise.resolve({ data: [] as SanidadPendiente[] }),
   ]);
+
+  // Las dosis por aplicar se agrupan por el evento que las programó.
+  const dosisGrupos = new Map<string, { evento_id: string; tipo: TipoEvento | null; producto_nombre: string | null; proxima_fecha: string; animales: string[] }>();
+  for (const p of (pendientes.data ?? []) as SanidadPendiente[]) {
+    if (!p.evento_id || !p.animal_id || !p.proxima_fecha) continue;
+    const g = dosisGrupos.get(p.evento_id) ?? { evento_id: p.evento_id, tipo: p.tipo, producto_nombre: p.producto_nombre, proxima_fecha: p.proxima_fecha, animales: [] };
+    g.animales.push(p.animal_id);
+    dosisGrupos.set(p.evento_id, g);
+  }
+  const dosisPorAplicar = [...dosisGrupos.values()];
 
   // Un servicio ya no cuenta como «parto próximo» si la hembra parió después de él.
   const serviciosData = (servicios.data ?? []) as ServicioConParto[];
@@ -66,6 +83,7 @@ export default async function PaginaHoy({ searchParams }: { searchParams: Promis
       ...enRetiro.map((r) => r.animal_id),
       ...proximos.map((p) => p.hembra_id).filter((x): x is string => !!x),
       ...tendenciasBaja.map((t) => t.animal_id),
+      ...dosisPorAplicar.slice(0, 4).filter((g) => g.animales.length === 1).map((g) => g.animales[0]),
     ]),
   ];
   const nombres = new Map<string, string>();
@@ -152,12 +170,40 @@ export default async function PaginaHoy({ searchParams }: { searchParams: Promis
             </dl>
           </Tarjeta>
 
+          {dosisPorAplicar.length > 0 ? (
+            <Tarjeta titulo="Dosis por aplicar" acciones={<Link href="/sanidad" className="text-sm font-semibold text-musgo">Ver Sanidad</Link>}>
+              <ul className="divide-y divide-arena">
+                {dosisPorAplicar.slice(0, 4).map((g) => {
+                  const e = estadoDosis(g.proxima_fecha, hoy);
+                  return (
+                    <li key={g.evento_id} className="flex items-center gap-3 py-2.5">
+                      <IconoEvento tipo={g.tipo} />
+                      <span className="min-w-0 flex-1">
+                        <span className="block font-semibold [overflow-wrap:anywhere]">{nombreEvento(g)}</span>
+                        <span className="block text-sm text-humo [overflow-wrap:anywhere]">
+                          {g.tipo ? ETIQUETA_EVENTO[g.tipo] : ""} · {g.animales.length === 1 ? (nombres.get(g.animales[0]) ?? "1 animal") : `${g.animales.length} animales`}
+                        </span>
+                        <span className="mt-1 block"><Insignia tono={e.tono}>{e.texto}</Insignia></span>
+                      </span>
+                      {puedeEscribir(rol, "sanidad") ? (
+                        <Link href={`/sanidad/nuevo?refuerzo=${g.evento_id}`} className="inline-flex min-h-11 shrink-0 items-center rounded-full bg-musgo px-4 text-sm font-semibold text-sobre-musgo">
+                          Aplicar
+                        </Link>
+                      ) : null}
+                    </li>
+                  );
+                })}
+              </ul>
+              {dosisPorAplicar.length > 4 ? <p className="mt-2 border-t border-arena pt-2 text-sm text-humo">Y {dosisPorAplicar.length - 4} más en Sanidad.</p> : null}
+            </Tarjeta>
+          ) : null}
+
           {enRetiro.length > 0 ? (
             <Tarjeta titulo="En periodo de retiro">
               <ul className="divide-y divide-arena">
                 {enRetiro.map((r) => (
                   <li key={r.animal_id}>
-                    <Link href={`/hato/${r.animal_id}`} className="flex min-h-14 items-center justify-between gap-3 py-2">
+                    <Link href={`/hato/${r.animal_id}#sanidad`} className="flex min-h-14 items-center justify-between gap-3 py-2">
                       <span className="min-w-0 font-semibold">{nombres.get(r.animal_id) ?? "Animal"}</span>
                       <span className="flex shrink-0 flex-col items-end gap-1">
                         {r.retiro_leche_hasta ? <Insignia tono="aviso">Leche hasta {formatoFecha(r.retiro_leche_hasta, { day: "numeric", month: "short" })}</Insignia> : null}
