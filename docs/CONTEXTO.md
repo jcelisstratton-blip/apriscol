@@ -144,6 +144,19 @@
 
 ---
 
+## 8b. Sanidad (vacunas, tratamientos, retiros, pruebas)
+
+- **Dónde vive (regla de ubicación):** lo global es la entrada **«Sanidad»** del menú lateral (en el celular, de «Más»), directo a `/sanidad`, con pestañas **Resumen** (animales en retiro, dosis por aplicar —vencidas primero— y pruebas por revisar), **Historial** (todo lo aplicado, con buscador y filtro por tipo), **Productos** (catálogo con retiro habitual) y **Pruebas** (compendio). Lo de **un solo animal** vive en su ficha: tarjeta **«Sanidad»** (`#sanidad`) con próximas dosis, línea de tiempo (vacunas, tratamientos y pruebas) y los botones «Vacuna o tratamiento» y «Prueba diagnóstica» con el animal ya fijo; al guardar se vuelve a ella. «Registrar» (menú lateral y «+») ofrece «Vacuna o tratamiento» para uno o varios animales; Hoy muestra «Dosis por aplicar» (vencidas o de la próxima semana) con «Aplicar» directo.
+- **Datos:** `productos_veterinarios`, `eventos_sanitarios` (con `evento_sanitario_animales`: un evento se aplica a uno o varios animales; incluye **`proxima_fecha`**), `pruebas_sanitarias`. Lo pendiente no se guarda: la vista `v_sanidad_pendiente` toma la próxima dosis de cada evento mientras el animal no haya recibido después el mismo tipo con el mismo producto (solo activos). Vistas de lectura `v_eventos_sanitarios` (una fila por evento, con cuántos animales) y `v_eventos_animal` (una fila por animal y evento); todas en modo invoker.
+- **Guardado atómico:** `guardar_evento_sanitario(p_finca, p_evento, p_datos, p_animales)` crea o corrige un evento con su lista de animales en un solo paso (`SECURITY DEFINER` justificado: reemplazar la lista exige borrar filas hijas, algo que por RLS solo puede el propietario/administrador, y un veterinario sí edita sanidad; valida dentro `puede_escribir(finca, 'sanidad')`). Se aplicó desde el editor SQL de Supabase (la herramienta de migraciones pide confirmación ante la sentencia de borrado) y se registró en `schema_migrations` con la versión `20261012050000`.
+- **Retiros con el día de Colombia:** `animales_en_retiro` ahora usa `now() at time zone 'America/Bogota'` (antes el día del servidor: de noche la leche podía salir del retiro un día antes). El retiro es «último día incluido» (`fecha + días`), por producto al registrar (se propone el del catálogo y se puede cambiar). La base sigue rechazando sacar para consumo a un animal en retiro de carne, y la leche de un animal en retiro se descarta sola.
+- **Editar y eliminar (todo es editable):** evento (`/sanidad/evento/[id]` → Editar, con la lista de animales; Eliminar solo propietario/administrador), producto (`/sanidad/productos/[id]/editar`; se puede archivar, y al eliminarlo los registros conservan su nombre), prueba (`/sanidad/pruebas/[id]/editar`, desde la ficha). Quién puede: ver sanidad = propietario, administrador y veterinario; el ordeñador no la ve (el sistema sí le avisa del retiro al ordeñar).
+- **Migraciones:** `20261012043240_sanidad_proximas_y_retiro_bogota`, `20261012044224_sanidad_vistas_eventos`, `20261012050000_guardar_evento_sanitario`. Probado en la base con propietario, persona ajena y anon (guardar un lote con animal repetido, corregir reemplaza la lista, el retiro y los pendientes se actualizan, un tratamiento posterior cierra el pendiente anterior, rechazos de sin animales, animal ajeno, tipo inválido, próxima dosis anterior a la fecha). Interfaz probada en navegador a 1440/360/320 px con respuestas simuladas.
+- **Archivos:** `app/(app)/sanidad/*`, `components/{FormEvento,FormProducto,FormPrueba,SelectorAnimales,ListaEventos,ListaProductos,ListaPruebas,ListaAnimalesEvento,HistorialSanidadAnimal,IconoEvento,EliminarRegistro}.tsx`, `lib/{sanidad,animal-etiquetas}.ts`.
+- **Sin verificar con sesión real:** guardar un evento o una prueba desde la app, y las páginas de servidor (resumen, detalle). Pendiente: adjuntar el soporte (PDF/foto) de una prueba (la columna existe; falta política de Storage del bucket `soportes`).
+
+---
+
 ## 9. Panel del superadmin
 
 - **Espacio propio** `app/(admin)` (layout con navegación Resumen · Fincas · Importaciones, "Mi finca" si además tiene una; cerrar sesión). Guardia: quien no es superadmin vuelve a `/`.
@@ -184,7 +197,7 @@
 - Eliminar `ancestros_comunes` (SQL) si ya no se usa.
 
 **Módulos sin interfaz todavía**
-- **Sanidad** (tratamientos, vacunas, periodos de retiro: el esquema y la regla "un animal en retiro no entra al tanque ni sale para consumo" ya existen en la base).
+- **Sanidad:** hecha (ver sección 8b). Faltan el soporte adjunto de las pruebas y un plan sanitario por edad/etapa (propuesta de vacunación automática).
 - **Reproducción / partos** (servicios, gestación, parto con cría y apertura automática de lactancia).
 - **Pesos / GDP**, nutrición, ambiente (ITH) y contabilidad (módulos previstos en `modulo_app`).
 - **Modo sin conexión** para el ordeño en el campo.

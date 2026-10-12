@@ -22,6 +22,8 @@ import { AvisoGuardado } from "@/components/AvisoGuardado";
 import { ETIQUETA_USO_MACHO, ETIQUETA_VOCACION, nombreTipo } from "@/lib/animal";
 import { NivelEndogamia } from "@/components/NivelEndogamia";
 import { RutasEndogamia } from "@/components/RutasEndogamia";
+import { HistorialSanidadAnimal } from "@/components/HistorialSanidadAnimal";
+import { estadoDosis, nombreEvento } from "@/lib/sanidad";
 import { describirParentesco, nivelEndogamia, pedigriTexto, porcentaje, primeraMayuscula, type AncestroEndogamia } from "@/lib/endogamia";
 
 export const metadata: Metadata = { title: "Animal" };
@@ -52,6 +54,7 @@ export default async function FichaAnimal({ params, searchParams }: { params: Pr
   const verLeche = puedeVer(rol, "leche") && animal.sexo === "hembra";
   const verGenealogia = puedeVer(rol, "genealogia") || puedeVer(rol, "hato");
   const verFerias = puedeVer(rol, "ferias");
+  const verSanidad = puedeVer(rol, "sanidad");
   const idsPadres = [animal.padre_id, animal.madre_id].filter((x): x is string => !!x);
 
   const [raza, padres, endo, completitud, lactancia, retiro, palmares, participaciones, baja] = await Promise.all([
@@ -95,6 +98,26 @@ export default async function FichaAnimal({ params, searchParams }: { params: Pr
 
   const listaPremios = participaciones.data ?? [];
   const idsFerias = [...new Set(listaPremios.map((p) => p.feria_id))];
+  // Sanidad del animal: sus aplicaciones, pruebas y próximas dosis (solo quien puede ver sanidad).
+  const [eventosSan, pruebasSan, pendientesSan] = verSanidad
+    ? await Promise.all([
+        supabase.from("v_eventos_animal").select("*").eq("animal_id", id).order("fecha", { ascending: false }).limit(100),
+        supabase.from("pruebas_sanitarias").select("id, fecha, prueba, resultado, laboratorio").eq("animal_id", id).eq("finca_id", finca.id).order("fecha", { ascending: false }).limit(50),
+        supabase.from("v_sanidad_pendiente").select("evento_id, tipo, producto_nombre, proxima_fecha").eq("animal_id", id).order("proxima_fecha"),
+      ])
+    : [{ data: [] }, { data: [] }, { data: [] }];
+  const historialEventos = (eventosSan.data ?? []).map((e) => ({
+    clave: `e-${e.id}`,
+    fecha: e.fecha ?? "",
+    tipo: e.tipo,
+    producto_nombre: e.producto_nombre,
+    evento_id: e.id ?? "",
+    retiro_leche_hasta: e.fin_retiro_leche && (e.retiro_leche_dias ?? 0) > 0 && e.fin_retiro_leche >= hoyBogota() ? e.fin_retiro_leche : null,
+    retiro_carne_hasta: e.fin_retiro_carne && (e.retiro_carne_dias ?? 0) > 0 && e.fin_retiro_carne >= hoyBogota() ? e.fin_retiro_carne : null,
+  }));
+  const historialPruebas = (pruebasSan.data ?? []).map((p) => ({ clave: `p-${p.id}`, id: p.id, fecha: p.fecha, prueba: p.prueba, resultado: p.resultado, laboratorio: p.laboratorio }));
+  const dosisPendientes = pendientesSan.data ?? [];
+
   const [feriasData, fotosPremios, fotosAnimal] = await Promise.all([
     idsFerias.length ? supabase.from("ferias").select("id, nombre, fecha_inicio").in("id", idsFerias) : Promise.resolve({ data: [] }),
     urlsFotosPremios(supabase, listaPremios.map((p) => p.foto_path)),
@@ -286,6 +309,42 @@ export default async function FichaAnimal({ params, searchParams }: { params: Pr
               Esta es la ruta desde cada uno de ellos hasta el ancestro.
             </p>
             <RutasEndogamia filas={origen} />
+          </Tarjeta>
+        ) : null}
+
+        {verSanidad && (animal.estado === "activo" || historialEventos.length > 0 || historialPruebas.length > 0) ? (
+          <Tarjeta titulo="Sanidad" id="sanidad">
+            {dosisPendientes.length > 0 ? (
+              <ul className="mb-3 space-y-2">
+                {dosisPendientes.map((d) => {
+                  const e = estadoDosis(d.proxima_fecha ?? hoyBogota(), hoyBogota());
+                  return (
+                    <li key={d.evento_id} className="flex flex-wrap items-center justify-between gap-2 rounded-2xl bg-lana px-3 py-2.5">
+                      <span className="min-w-0 text-[0.9375rem]">
+                        <span className="font-semibold [overflow-wrap:anywhere]">{nombreEvento({ tipo: d.tipo, producto_nombre: d.producto_nombre })}</span>
+                        <span className="block text-sm text-humo">Próxima dosis · {formatoFecha(d.proxima_fecha, { day: "numeric", month: "short" })}</span>
+                      </span>
+                      <Insignia tono={e.tono}>{e.texto}</Insignia>
+                    </li>
+                  );
+                })}
+              </ul>
+            ) : null}
+            {historialEventos.length === 0 && historialPruebas.length === 0 ? (
+              <p className="text-[0.9375rem] text-humo">Todavía no tiene vacunas, tratamientos ni pruebas registrados.</p>
+            ) : (
+              <HistorialSanidadAnimal eventos={historialEventos} pruebas={historialPruebas} puedeEditar={puedeEscribir(rol, "sanidad")} />
+            )}
+            {puedeEscribir(rol, "sanidad") && animal.estado === "activo" ? (
+              <div className="mt-3 grid grid-cols-1 gap-2 min-[420px]:grid-cols-2">
+                <Link href={`/sanidad/nuevo?animal=${id}`} className={clasesBoton("secundario")}>
+                  Vacuna o tratamiento
+                </Link>
+                <Link href={`/sanidad/pruebas/nueva?animal=${id}`} className={clasesBoton("secundario")}>
+                  Prueba diagnóstica
+                </Link>
+              </div>
+            ) : null}
           </Tarjeta>
         ) : null}
 
