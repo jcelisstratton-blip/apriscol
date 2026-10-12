@@ -248,30 +248,35 @@ export function FormAnimal({
         </div>
       </Seccion>
 
-      <Seccion titulo="Producción">
-        <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
-          <div className="min-w-0 space-y-2">
-            <span className="block text-sm font-semibold">Aptitud</span>
-            <Segmentado
-              etiqueta="Aptitud"
-              nombre="vocacion"
-              valor={vocacion}
-              onCambio={setVocacion}
-              opciones={[
-                { valor: "leche", etiqueta: "Leche" },
-                { valor: "carne", etiqueta: "Carne" },
-                { valor: "doble", etiqueta: "Ambas" },
-              ]}
-            />
-          </div>
+      {sexo === "hembra" ? (
+        <Seccion titulo="Producción">
+          <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+            <div className="min-w-0 space-y-2">
+              <span className="block text-sm font-semibold">Aptitud</span>
+              <Segmentado
+                etiqueta="Aptitud"
+                nombre="vocacion"
+                valor={vocacion}
+                onCambio={setVocacion}
+                opciones={[
+                  { valor: "leche", etiqueta: "Leche" },
+                  { valor: "carne", etiqueta: "Carne" },
+                  { valor: "doble", etiqueta: "Ambas" },
+                ]}
+              />
+            </div>
 
-          {!editando && sexo === "hembra" && vocacion !== "carne" ? (
-            <Campo etiqueta="Fecha del último parto" ayuda="Si ya está en leche, así abrimos su lactancia y aparece en el ordeño.">
-              {(id) => <input id={id} name="fecha_ultimo_parto" type="date" max={hoy} className={CLASE_INPUT} />}
-            </Campo>
-          ) : null}
-        </div>
-      </Seccion>
+            {!editando && vocacion !== "carne" ? (
+              <Campo etiqueta="Fecha del último parto" ayuda="Si ya está en leche, así abrimos su lactancia y aparece en el ordeño.">
+                {(id) => <input id={id} name="fecha_ultimo_parto" type="date" max={hoy} className={CLASE_INPUT} />}
+              </Campo>
+            ) : null}
+          </div>
+        </Seccion>
+      ) : (
+        // El macho no produce leche: no se pregunta aptitud ni último parto (se guarda como «carne», que no abre lactancias).
+        <input type="hidden" name="vocacion" value="carne" />
+      )}
 
       <Seccion titulo="Genealogía">
         <p className="-mt-2 text-[0.8125rem] text-humo">Con padre y madre registrados calculamos la endogamia de cada cría.</p>
