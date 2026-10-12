@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ChevronLeft } from "lucide-react";
+import { ChevronLeft, Pencil } from "lucide-react";
 import { Aviso } from "@/components/Aviso";
 import { Insignia } from "@/components/Insignia";
 import { Tarjeta } from "@/components/Tarjeta";
@@ -15,6 +15,7 @@ import { edadTexto, formatoFecha, litros } from "@/lib/fechas";
 import { pesos } from "@/lib/ferias";
 import { ETIQUETA_MOTIVO_BAJA, ETIQUETA_TIPO_BAJA } from "@/lib/bajas";
 import { DeshacerBaja } from "@/components/DeshacerBaja";
+import { AvisoGuardado } from "@/components/AvisoGuardado";
 import { ETIQUETA_VOCACION, nombreTipo } from "@/lib/animal";
 import { NivelEndogamia } from "@/components/NivelEndogamia";
 import { RutasEndogamia } from "@/components/RutasEndogamia";
@@ -33,8 +34,9 @@ function Dato({ etiqueta, children }: { etiqueta: string; children: React.ReactN
   );
 }
 
-export default async function FichaAnimal({ params }: { params: Promise<{ id: string }> }) {
+export default async function FichaAnimal({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ guardado?: string }> }) {
   const { id } = await params;
+  const { guardado } = await searchParams;
   if (!ID_UUID.test(id)) notFound();
 
   const { finca, rol } = await obtenerContexto();
@@ -94,9 +96,20 @@ export default async function FichaAnimal({ params }: { params: Promise<{ id: st
 
   return (
     <>
-      <Link href="/hato" className="-ml-2 mt-3 inline-flex min-h-11 items-center gap-1 rounded-full px-2 text-[0.9375rem] font-semibold text-musgo">
-        <ChevronLeft className="size-5" strokeWidth={2} /> Hato
-      </Link>
+      <AvisoGuardado activo={guardado === "1"} />
+      <div className="mt-3 flex items-center justify-between gap-3">
+        <Link href="/hato" className="-ml-2 inline-flex min-h-11 items-center gap-1 rounded-full px-2 text-[0.9375rem] font-semibold text-musgo">
+          <ChevronLeft className="size-5" strokeWidth={2} /> Hato
+        </Link>
+        {puedeEscribir(rol, "hato") ? (
+          <Link
+            href={`/hato/${id}/editar`}
+            className="inline-flex min-h-11 items-center gap-1.5 rounded-full bg-papel px-4 text-sm font-semibold text-musgo ring-1 ring-arena transition hover:bg-arena/40"
+          >
+            <Pencil className="size-4" strokeWidth={2} aria-hidden="true" /> Editar
+          </Link>
+        ) : null}
+      </div>
 
       <header className="pb-4 pt-1">
         <h1 className="font-display text-[2.25rem] font-semibold leading-none tracking-tight">{animal.numero_arete}</h1>

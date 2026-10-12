@@ -8,6 +8,7 @@ import { obtenerContexto } from "@/lib/contexto";
 import { puedeEscribir, puedeGestionar } from "@/lib/permisos";
 import { mensajeAmigable } from "@/lib/mensaje-amigable";
 import { hoyBogota } from "@/lib/fechas";
+import { motivoBloqueoIdentidad } from "@/lib/animal-historia";
 
 export type EstadoAnimal = { error?: string } | undefined;
 
@@ -89,6 +90,102 @@ export async function crearAnimal(_: EstadoAnimal, form: FormData): Promise<Esta
   revalidatePath("/hato");
   revalidatePath("/");
   redirect(`/hato/${id}`);
+}
+
+// ───────────────────────── Editar un animal ─────────────────────────
+const esquemaEdicion = esquema.omit({ client_request_id: true, fecha_ultimo_parto: true }).extend({ animal_id: z.uuid() });
+
+/** ¿El animal `candidato` desciende de `animalId`? Evita que, al editar, un animal quede como su propio ancestro. */
+async function desciendeDe(supabase: Awaited<ReturnType<typeof crearClienteServidor>>, fincaId: string, candidato: string, animalId: string): Promise<boolean> {
+  let frontera = [candidato];
+  const vistos = new Set<string>();
+  for (let generacion = 0; generacion < 15 && frontera.length > 0; generacion++) {
+    const { data } = await supabase.from("animales").select("id, padre_id, madre_id").eq("finca_id", fincaId).in("id", frontera);
+    const siguientes: string[] = [];
+    for (const a of data ?? []) {
+      for (const p of [a.padre_id, a.madre_id]) {
+        if (!p) continue;
+        if (p === animalId) return true;
+        if (!vistos.has(p)) {
+          vistos.add(p);
+          siguientes.push(p);
+        }
+      }
+    }
+    frontera = siguientes;
+  }
+  return false;
+}
+
+/**
+ * Corrige los datos de un animal. Lo que la persona deja vacío queda vacío (no se conserva el valor anterior).
+ * El sexo y la especie solo cambian si el animal no tiene historia que dependa de ellos.
+ */
+export async function editarAnimal(_: EstadoAnimal, form: FormData): Promise<EstadoAnimal> {
+  const { finca, rol } = await obtenerContexto();
+  if (!puedeEscribir(rol, "hato")) return { error: "No tienes permiso para editar animales en esta finca." };
+
+  const datos = esquemaEdicion.safeParse(Object.fromEntries(form));
+  if (!datos.success) return { error: datos.error.issues[0]?.message };
+  const d = datos.data;
+
+  const supabase = await crearClienteServidor();
+  const { data: actual } = await supabase
+    .from("animales")
+    .select("id, especie, sexo")
+    .eq("id", d.animal_id)
+    .eq("finca_id", finca.id)
+    .is("deleted_at", null)
+    .maybeSingle();
+  if (!actual) return { error: "No encontramos ese animal en tu finca." };
+
+  if (!finca.especies.includes(d.especie)) return { error: "Esa especie no está activa en tu finca." };
+  if (d.padre_id === d.animal_id || d.madre_id === d.animal_id) return { error: "Un animal no puede ser su propio padre o madre." };
+  if (d.padre_id && d.madre_id && d.padre_id === d.madre_id) return { error: "El padre y la madre no pueden ser el mismo animal." };
+
+  if (d.especie !== actual.especie || d.sexo !== actual.sexo) {
+    const bloqueo = await motivoBloqueoIdentidad(supabase, d.animal_id, finca.id);
+    if (bloqueo) return { error: `No se puede cambiar el sexo ni la especie. ${bloqueo}` };
+  }
+
+  for (const padre of [d.padre_id, d.madre_id]) {
+    if (padre && (await desciendeDe(supabase, finca.id, padre, d.animal_id))) {
+      return { error: "Ese animal desciende de este, así que no puede ser su padre ni su madre." };
+    }
+  }
+
+  const { error } = await supabase
+    .from("animales")
+    .update({
+      especie: d.especie,
+      sexo: d.sexo,
+      numero_arete: d.numero_arete,
+      nombre: d.nombre ?? null,
+      chip: d.chip ?? null,
+      raza_id: d.raza_id ?? null,
+      color: d.color ?? null,
+      marcas: d.marcas ?? null,
+      rasgos: d.rasgos ?? null,
+      fecha_nacimiento: d.fecha_nacimiento ?? null,
+      fecha_nacimiento_aprox: d.fecha_nacimiento ? d.fecha_nacimiento_aprox : false,
+      origen: d.origen,
+      peso_nacer_kg: d.origen === "nacido_en_finca" ? (d.peso_nacer_kg ?? null) : null,
+      vocacion: d.vocacion,
+      padre_id: d.padre_id ?? null,
+      madre_id: d.madre_id ?? null,
+      padre_externo: d.padre_externo ?? null,
+      madre_externa: d.madre_externa ?? null,
+      notas: d.notas ?? null,
+    })
+    .eq("id", d.animal_id)
+    .eq("finca_id", finca.id);
+  if (error) return { error: mensajeAmigable(error.message) };
+
+  revalidatePath("/hato");
+  revalidatePath(`/hato/${d.animal_id}`);
+  revalidatePath("/leche");
+  revalidatePath("/");
+  redirect(`/hato/${d.animal_id}?guardado=1`);
 }
 
 // ───────────────────────── Bajas ─────────────────────────
