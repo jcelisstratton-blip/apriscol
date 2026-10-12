@@ -9,12 +9,14 @@ import { obtenerContexto } from "@/lib/contexto";
 import { puedeEscribir } from "@/lib/permisos";
 import { mensajeAmigable } from "@/lib/mensaje-amigable";
 import { RESULTADOS, TIPOS_FOTO } from "@/lib/ferias";
+import { leerNumero } from "@/lib/numeros";
 
 export type EstadoForm = { error?: string } | undefined;
 
 const vacio = (v: unknown) => (typeof v === "string" && v.trim() === "" ? undefined : v);
 const opcional = <T extends z.ZodType>(s: T) => z.preprocess(vacio, s.optional());
-const numero = (s: z.ZodType<number>) => z.preprocess((v) => (typeof v === "string" ? v.replace(",", ".") : v), opcional(s));
+/** Un número escrito a la colombiana: «25.000» son veinticinco mil, no veinticinco. */
+const numero = (s: z.ZodType<number>) => z.preprocess((v) => (typeof v === "string" ? (leerNumero(v) ?? v) : v), opcional(s));
 
 // ───────────────────────── Feria ─────────────────────────
 const esquemaFeria = z.object({

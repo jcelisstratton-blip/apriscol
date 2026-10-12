@@ -8,7 +8,7 @@ import { obtenerContexto } from "@/lib/contexto";
 import { puedeEscribir, puedeGestionar, puedeVer } from "@/lib/permisos";
 import { DIRECCION_ORDENO, direccionHato, esFiltroHato, filtrosHato } from "@/lib/hato";
 import { Registrar } from "./Registrar";
-import { Animales, ProgramaLeche } from "./ProgramaLeche";
+import { Animales, CalidadLeche, ProgramaLeche } from "./ProgramaLeche";
 
 export const metadata: Metadata = { title: "Hato" };
 
@@ -23,8 +23,8 @@ export default async function PaginaHato({ searchParams }: { searchParams: Promi
   const verLeche = puedeVer(rol, "leche");
   const puedeRegistrar = puedeEscribir(rol, "leche");
   const enOrdeno = sp.vista === "ordeno" && verLeche;
-  // Quien no puede escribir leche (veterinario, contador) solo ve el programa, sin poder cambiarlo.
-  const modo = sp.modo === "programar" || !puedeRegistrar ? "programar" : "registrar";
+  // Quien no puede escribir leche (veterinario, contador) no registra ordeños: ve el programa y la calidad, sin poder cambiarlos.
+  const modo = sp.modo === "calidad" ? "calidad" : sp.modo === "programar" || !puedeRegistrar ? "programar" : "registrar";
   const filtros = filtrosHato(finca.especies);
 
   return (
@@ -57,19 +57,24 @@ export default async function PaginaHato({ searchParams }: { searchParams: Promi
             </ChipEnlace>
           </FilaDesplazable>
 
-          {puedeRegistrar ? (
-            <FilaDesplazable>
+          <FilaDesplazable>
+            {puedeRegistrar ? (
               <ChipEnlace href={DIRECCION_ORDENO} activo={modo === "registrar"}>
                 Registrar ordeño
               </ChipEnlace>
-              <ChipEnlace href={`${DIRECCION_ORDENO}&modo=programar`} activo={modo === "programar"}>
-                Programar turnos
-              </ChipEnlace>
-            </FilaDesplazable>
-          ) : null}
+            ) : null}
+            <ChipEnlace href={`${DIRECCION_ORDENO}&modo=programar`} activo={modo === "programar"}>
+              Programar turnos
+            </ChipEnlace>
+            <ChipEnlace href={`${DIRECCION_ORDENO}&modo=calidad`} activo={modo === "calidad"}>
+              Calidad
+            </ChipEnlace>
+          </FilaDesplazable>
 
           {modo === "registrar" ? (
             <Registrar fincaId={finca.id} puedeEditar={puedeRegistrar} agregar={sp.agregar} />
+          ) : modo === "calidad" ? (
+            <CalidadLeche fincaId={finca.id} puedeEditar={puedeRegistrar} />
           ) : (
             <ProgramaLeche fincaId={finca.id} puedeEditar={puedeCrear} />
           )}
