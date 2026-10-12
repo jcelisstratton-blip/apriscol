@@ -1,23 +1,20 @@
 "use client";
 
 import Link from "next/link";
-import { Droplets, Rabbit, Trophy } from "lucide-react";
+import { Droplets, Rabbit } from "lucide-react";
 import { Sheet } from "@/components/Sheet";
 
 export type Accion = { href: string; titulo: string; detalle: string; icono: React.ReactNode };
-export type PermisosRegistro = { puedeOrdenar: boolean; puedeCrearAnimal: boolean; puedeFerias: boolean };
+export type PermisosRegistro = { puedeOrdenar: boolean; puedeCrearAnimal: boolean };
 
 /** Lo que la persona puede registrar desde el botón «+» (celular) o «Registrar» (menú lateral), según su rol. */
-export function accionesRegistro({ puedeOrdenar, puedeCrearAnimal, puedeFerias }: PermisosRegistro): Accion[] {
+export function accionesRegistro({ puedeOrdenar, puedeCrearAnimal }: PermisosRegistro): Accion[] {
   return [
     ...(puedeOrdenar
       ? [{ href: "/leche", titulo: "Registrar ordeño", detalle: "Litros por animal, jornada de hoy", icono: <Droplets className="size-6" strokeWidth={1.75} /> }]
       : []),
     ...(puedeCrearAnimal
       ? [{ href: "/hato/nuevo", titulo: "Animal nuevo", detalle: "Cabra, cabro, oveja o carnero", icono: <Rabbit className="size-6" strokeWidth={1.75} /> }]
-      : []),
-    ...(puedeFerias
-      ? [{ href: "/ferias/participacion/nueva", titulo: "Premio de feria", detalle: "Resultado y foto del premio", icono: <Trophy className="size-6" strokeWidth={1.75} /> }]
       : []),
   ];
 }

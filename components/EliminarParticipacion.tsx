@@ -22,7 +22,7 @@ export function EliminarParticipacion({ participacionId, resumen, conFoto }: { p
       const r = await eliminarParticipacion(participacionId);
       if (!r.ok) return setError(r.error);
       toast.exito("Premio eliminado");
-      router.push(`/ferias/${r.feriaId}`);
+      router.push(`/hato/${r.animalId}`);
       router.refresh();
     });
 

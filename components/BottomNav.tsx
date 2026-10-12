@@ -17,11 +17,11 @@ const TABS = [
  * Barra inferior de 4 pestañas con un botón central de acción rápida (patrón Mobbin: Attio, ClickUp, Jobber).
  * Respeta el área segura del teléfono. Desde pantallas anchas (lg) se oculta: ahí manda el menú lateral (`NavLateral`).
  */
-export function BottomNav({ puedeOrdenar, puedeCrearAnimal, puedeFerias }: { puedeOrdenar: boolean; puedeCrearAnimal: boolean; puedeFerias: boolean }) {
+export function BottomNav({ puedeOrdenar, puedeCrearAnimal }: { puedeOrdenar: boolean; puedeCrearAnimal: boolean }) {
   const ruta = usePathname();
   const [abierta, setAbierta] = useState(false);
 
-  const acciones = accionesRegistro({ puedeOrdenar, puedeCrearAnimal, puedeFerias });
+  const acciones = accionesRegistro({ puedeOrdenar, puedeCrearAnimal });
 
   const activo = (href: string) => (href === "/" ? ruta === "/" : ruta.startsWith(href));
   const izquierda = TABS.slice(0, 2);

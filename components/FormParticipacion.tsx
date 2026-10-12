@@ -8,7 +8,6 @@ import { Campo, CLASE_INPUT } from "@/components/Campo";
 import { CamposFeria } from "@/components/CamposFeria";
 import { FotoPremio } from "@/components/FotoPremio";
 import { Selector } from "@/components/Selector";
-import { SelectorAnimal } from "@/components/SelectorAnimal";
 import { crearParticipacion, editarParticipacion } from "@/app/(app)/ferias/actions";
 import { ETIQUETA_RESULTADO, RESULTADOS } from "@/lib/ferias";
 import { formatoFecha } from "@/lib/fechas";
@@ -21,7 +20,6 @@ type FeriaOpcion = { id: string; nombre: string; fecha_inicio: string };
 export type ParticipacionEditable = {
   id: string;
   feria_id: string;
-  animal: Ref;
   categoria: string;
   resultado: ResultadoFeria;
   puesto: number | null;
@@ -35,18 +33,15 @@ export type ParticipacionEditable = {
 const NUEVA = "nueva";
 const coma = (n: number | null) => (n === null ? "" : String(n).replace(".", ","));
 
+/** El premio siempre es de un animal: se llega desde su ficha y el animal viene fijo (no se elige aquí). */
 export function FormParticipacion({
-  fincaId,
   ferias,
-  feriaInicial,
-  animalInicial,
+  animal,
   solicitud,
   participacion,
 }: {
-  fincaId: string;
   ferias: FeriaOpcion[];
-  feriaInicial?: string;
-  animalInicial: Ref | null;
+  animal: Ref;
   /** Solo al crear: identifica la apertura del formulario para ignorar un doble toque. */
   solicitud?: string;
   /** Si viene, el formulario corrige este premio en lugar de crear uno nuevo. */
@@ -56,8 +51,7 @@ export function FormParticipacion({
   const [estado, enviar, pendiente] = useActionState(editando ? editarParticipacion : crearParticipacion, undefined);
   const [, iniciar] = useTransition();
   // Sin ferias registradas (o si la persona lo pide) la feria se crea aquí mismo, junto con el premio.
-  const [feria, setFeria] = useState<string>(participacion?.feria_id ?? feriaInicial ?? (ferias.length === 0 ? NUEVA : ""));
-  const [animal, setAnimal] = useState<Ref | null>(participacion?.animal ?? animalInicial);
+  const [feria, setFeria] = useState<string>(participacion?.feria_id ?? (ferias.length === 0 ? NUEVA : ""));
   const [resultado, setResultado] = useState<ResultadoFeria>(participacion?.resultado ?? "participacion");
   const [subiendo, setSubiendo] = useState(false);
 
@@ -70,16 +64,13 @@ export function FormParticipacion({
 
   return (
     <form onSubmit={alEnviar} className="space-y-5">
+      <input type="hidden" name="animal_id" value={animal.id} />
       {participacion ? <input type="hidden" name="participacion_id" value={participacion.id} /> : <input type="hidden" name="client_request_id" value={solicitud ?? ""} />}
 
       <div className="space-y-2">
         <span className="block text-sm font-semibold">Foto del premio</span>
         <FotoPremio nombre="foto_path" onEstado={setSubiendo} inicial={participacion?.foto ?? null} />
       </div>
-
-      <Campo etiqueta="Animal">
-        {(id) => <SelectorAnimal id={id} nombre="animal_id" fincaId={fincaId} titulo="¿Qué animal concursó?" valor={animal} onCambio={setAnimal} />}
-      </Campo>
 
       <Campo etiqueta="Resultado">
         {(id) => (
@@ -143,11 +134,11 @@ export function FormParticipacion({
 
       {estado?.error ? <Aviso tipo="error">{estado.error}</Aviso> : null}
       <div className="space-y-2">
-        <Boton type="submit" pendiente={pendiente} cargando="Guardando…" disabled={subiendo || !feria || !animal}>
+        <Boton type="submit" pendiente={pendiente} cargando="Guardando…" disabled={subiendo || !feria}>
           {subiendo ? "Esperando la foto…" : editando ? "Guardar cambios" : "Guardar participación"}
         </Boton>
         {participacion ? (
-          <Link href={`/ferias/${participacion.feria_id}`} className={clasesBoton("fantasma")}>
+          <Link href={`/hato/${animal.id}`} className={clasesBoton("fantasma")}>
             Cancelar
           </Link>
         ) : null}

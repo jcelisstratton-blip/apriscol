@@ -1,13 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ChevronRight, KeyRound, LogOut, MapPin, Pencil, Plus, ShieldCheck, Trophy, Users } from "lucide-react";
+import { ChevronRight, KeyRound, LogOut, MapPin, Pencil, Plus, ShieldCheck, Users } from "lucide-react";
 import { Encabezado } from "@/components/Encabezado";
 import { AvisoGuardado } from "@/components/AvisoGuardado";
 import { FincaSelector } from "@/components/FincaSelector";
 import { Insignia } from "@/components/Insignia";
 import { Tarjeta } from "@/components/Tarjeta";
 import { esAdminPlataforma, obtenerContexto } from "@/lib/contexto";
-import { ETIQUETA_ROL, puedeGestionar, puedeVer } from "@/lib/permisos";
+import { ETIQUETA_ROL, puedeGestionar } from "@/lib/permisos";
 import { cerrarSesion } from "@/app/login/actions";
 
 export const metadata: Metadata = { title: "Más" };
@@ -66,13 +66,6 @@ export default async function PaginaMas({ searchParams }: { searchParams: Promis
             <Link href="/admin" className={FILA}>
               <ShieldCheck className="size-5 text-ocre" strokeWidth={1.75} />
               <span className="flex-1 font-semibold">Panel superadmin</span>
-              <ChevronRight className="size-5 text-humo" strokeWidth={1.75} />
-            </Link>
-          ) : null}
-          {puedeVer(rol, "ferias") ? (
-            <Link href="/ferias" className={FILA}>
-              <Trophy className="size-5 text-musgo" strokeWidth={1.75} />
-              <span className="flex-1 font-semibold">Ferias y premios</span>
               <ChevronRight className="size-5 text-humo" strokeWidth={1.75} />
             </Link>
           ) : null}

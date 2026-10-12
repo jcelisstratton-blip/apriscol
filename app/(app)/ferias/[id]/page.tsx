@@ -1,12 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { ChevronLeft, MapPin, Pencil, Plus, Trophy } from "lucide-react";
+import { ChevronLeft, MapPin, Pencil, Trophy } from "lucide-react";
 import { AvisoGuardado } from "@/components/AvisoGuardado";
 import { EstadoVacio } from "@/components/EstadoVacio";
 import { FilaParticipacion, rangoFechas } from "@/components/FilaParticipacion";
 import { Insignia } from "@/components/Insignia";
-import { clasesBoton } from "@/components/Boton";
 import { obtenerContexto } from "@/lib/contexto";
 import { crearClienteServidor } from "@/lib/supabase/server";
 import { puedeEscribir, puedeVer } from "@/lib/permisos";
@@ -49,8 +48,8 @@ export default async function DetalleFeria({ params, searchParams }: { params: P
     <>
       <AvisoGuardado activo={guardado === "1"} />
       <div className="mt-3 flex items-center justify-between gap-3">
-        <Link href="/ferias" className="-ml-2 inline-flex min-h-11 items-center gap-1 rounded-full px-2 text-[0.9375rem] font-semibold text-musgo">
-          <ChevronLeft className="size-5" strokeWidth={2} /> Ferias
+        <Link href="/hato" className="-ml-2 inline-flex min-h-11 items-center gap-1 rounded-full px-2 text-[0.9375rem] font-semibold text-musgo">
+          <ChevronLeft className="size-5" strokeWidth={2} /> Hato
         </Link>
         {puedeEscribir(rol, "ferias") ? (
           <Link
@@ -76,17 +75,11 @@ export default async function DetalleFeria({ params, searchParams }: { params: P
         </div>
       </header>
 
-      {puedeEscribir(rol, "ferias") ? (
-        <Link href={`/ferias/participacion/nueva?feria=${id}`} className={`${clasesBoton("primario")} mb-4`}>
-          <Plus className="size-5" strokeWidth={2.2} /> Agregar participación
-        </Link>
-      ) : null}
-
       {lista.length === 0 ? (
         <EstadoVacio
           icono={<Trophy strokeWidth={1.5} />}
           titulo="Todavía sin participaciones"
-          descripcion="Agrega los animales que llevaste a esta feria y, si ganaron, el premio con su foto."
+          descripcion="Los premios se registran desde la ficha de cada animal."
         />
       ) : (
         <ul className="grid grid-cols-1 gap-2.5 lg:grid-cols-2">

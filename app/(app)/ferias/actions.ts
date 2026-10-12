@@ -25,25 +25,6 @@ const esquemaFeria = z.object({
   fecha_inicio: z.iso.date("Indica la fecha de la feria."),
 });
 
-export async function crearFeria(_: EstadoForm, form: FormData): Promise<EstadoForm> {
-  const { finca, rol } = await obtenerContexto();
-  if (!puedeEscribir(rol, "ferias")) return { error: "No tienes permiso para registrar ferias en esta finca." };
-  const datos = esquemaFeria.safeParse(Object.fromEntries(form));
-  if (!datos.success) return { error: datos.error.issues[0]?.message };
-
-  const supabase = await crearClienteServidor();
-  const { data, error } = await supabase.from("ferias").insert({ ...datos.data, finca_id: finca.id }).select("id").single();
-  if (error || !data) {
-    const duplicada = error?.code === "23505";
-    return { error: duplicada ? "Ya registraste esa feria con esa fecha." : mensajeAmigable(error?.message ?? "") };
-  }
-  revalidatePath("/ferias");
-  const volver = form.get("animal");
-  redirect(typeof volver === "string" && /^[0-9a-f-]{36}$/i.test(volver)
-    ? `/ferias/participacion/nueva?feria=${data.id}&animal=${volver}`
-    : `/ferias/${data.id}`);
-}
-
 const esquemaEdicionFeria = esquemaFeria.extend({ feria_id: z.uuid() });
 
 /** Corrige los datos de una feria. Lo que se deja vacío queda vacío. */
@@ -188,7 +169,7 @@ export async function crearParticipacion(_: EstadoForm, form: FormData): Promise
   revalidatePath("/ferias");
   revalidatePath(`/ferias/${feriaId}`);
   revalidatePath(`/hato/${d.animal_id}`);
-  redirect(`/ferias/${feriaId}`);
+  redirect(`/hato/${d.animal_id}?guardado=1`);
 }
 
 // Al corregir un premio la feria debe ser una ya registrada (la feria nueva solo se crea al registrar el premio).
@@ -247,11 +228,11 @@ export async function editarParticipacion(_: EstadoForm, form: FormData): Promis
   revalidatePath(`/ferias/${d.feria_id}`);
   revalidatePath(`/hato/${actual.animal_id}`);
   revalidatePath(`/hato/${d.animal_id}`);
-  redirect(`/ferias/${d.feria_id}?guardado=1`);
+  redirect(`/hato/${d.animal_id}?guardado=1`);
 }
 
-/** Elimina un premio y su foto. No se puede deshacer. Devuelve la feria a la que pertenecía. */
-export async function eliminarParticipacion(participacionId: string): Promise<{ ok: true; feriaId: string } | { ok: false; error: string }> {
+/** Elimina un premio y su foto. No se puede deshacer. Devuelve el animal al que pertenecía. */
+export async function eliminarParticipacion(participacionId: string): Promise<{ ok: true; animalId: string } | { ok: false; error: string }> {
   const { finca, rol } = await obtenerContexto();
   if (!puedeEscribir(rol, "ferias")) return { ok: false, error: "No tienes permiso para eliminar premios en esta finca." };
   if (!z.uuid().safeParse(participacionId).success) return { ok: false, error: "Premio no válido." };
@@ -272,5 +253,5 @@ export async function eliminarParticipacion(participacionId: string): Promise<{ 
   revalidatePath("/ferias");
   revalidatePath(`/ferias/${actual.feria_id}`);
   revalidatePath(`/hato/${actual.animal_id}`);
-  return { ok: true, feriaId: actual.feria_id };
+  return { ok: true, animalId: actual.animal_id };
 }
