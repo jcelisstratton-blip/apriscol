@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { Droplets } from "lucide-react";
 import { AgregarAlOrdeno } from "@/components/AgregarAlOrdeno";
+import { AlertasProduccion } from "@/components/AlertasProduccion";
 import { CapturaLeche } from "@/components/CapturaLeche";
 import { Encabezado } from "@/components/Encabezado";
 import { EstadoVacio } from "@/components/EstadoVacio";
@@ -10,6 +11,8 @@ import { obtenerContexto } from "@/lib/contexto";
 import { crearClienteServidor } from "@/lib/supabase/server";
 import { puedeEscribir, puedeVer } from "@/lib/permisos";
 import { hoyBogota } from "@/lib/fechas";
+import { etiquetaAnimal } from "@/lib/animal";
+import { esBaja } from "@/lib/produccion";
 
 export const metadata: Metadata = { title: "Leche" };
 
@@ -21,11 +24,13 @@ export default async function PaginaLeche({ searchParams }: { searchParams: Prom
 
   const { data: lactancias } = await supabase.from("lactancias").select("animal_id").eq("finca_id", finca.id).is("fecha_secado", null);
   const ids = (lactancias ?? []).map((l) => l.animal_id);
-  const [animales, retiro] = await Promise.all([
+  const [animales, retiro, tendencia, habitualFilas] = await Promise.all([
     ids.length
       ? supabase.from("animales").select("id, numero_arete, nombre").in("id", ids).eq("estado", "activo").is("deleted_at", null).order("numero_arete")
       : Promise.resolve({ data: [] as { id: string; numero_arete: string; nombre: string | null }[] }),
     supabase.rpc("animales_en_retiro", { p_finca: finca.id }),
+    supabase.rpc("produccion_tendencia", { p_finca: finca.id }),
+    supabase.rpc("produccion_habitual", { p_finca: finca.id }),
   ]);
 
   const lista = animales.data ?? [];
@@ -33,6 +38,13 @@ export default async function PaginaLeche({ searchParams }: { searchParams: Prom
   const hoy = hoyBogota();
   const inicial = agregar && /^[0-9a-f-]{36}$/i.test(agregar) ? agregar : undefined;
   const retiros = Object.fromEntries((retiro.data ?? []).filter((r) => r.retiro_leche_hasta).map((r) => [r.animal_id, r.retiro_leche_hasta!]));
+  // Hembras cuya producción viene bajando, y lo que cada una da habitualmente por jornada (para avisar al registrar).
+  const tendenciasBaja = (tendencia.data ?? []).filter(esBaja);
+  const etiquetas = new Map(lista.map((a) => [a.id, etiquetaAnimal(a)]));
+  const alertas = tendenciasBaja.map((t) => ({ ...t, etiqueta: etiquetas.get(t.animal_id) ?? "Animal" }));
+  const tendencias = Object.fromEntries(tendenciasBaja.map((t) => [t.animal_id, { nivel: t.nivel, variacion: t.variacion, base: t.litros_base ?? 0, recientes: t.litros_recientes ?? 0 }]));
+  const habitual: Record<string, Record<string, number>> = {};
+  for (const h of habitualFilas.data ?? []) (habitual[h.animal_id] ??= {})[h.jornada] = Number(h.litros_habitual);
   const hora = Number(new Intl.DateTimeFormat("es-CO", { timeZone: "America/Bogota", hour: "2-digit", hour12: false }).format(new Date()));
   const jornadaInicial = hora < 12 ? "manana" : hora < 19 ? "tarde" : "noche";
 
@@ -53,15 +65,24 @@ export default async function PaginaLeche({ searchParams }: { searchParams: Prom
           ) : null}
         </EstadoVacio>
       ) : (
+        <>
+        {alertas.length > 0 ? (
+          <div className="mb-4">
+            <AlertasProduccion alertas={alertas} />
+          </div>
+        ) : null}
         <CapturaLeche
           fincaId={finca.id}
           hoy={hoy}
           animales={lista}
           retiros={retiros}
           jornadaInicial={jornadaInicial}
+          tendencias={tendencias}
+          habitual={habitual}
           puedeEditar={puedeEditar}
           pie={puedeEditar ? <AgregarAlOrdeno fincaId={finca.id} hoy={hoy} enLeche={ids} inicial={inicial} /> : null}
         />
+        </>
       )}
     </>
   );

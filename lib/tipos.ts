@@ -344,6 +344,22 @@ export type Database = {
     };
     Functions: {
       aceptar_invitacion: { Args: { p_token: string }; Returns: string };
+      produccion_tendencia: {
+        Args: { p_finca: string; p_hoy?: string | null };
+        Returns: {
+          animal_id: string;
+          litros_base: number | null;
+          litros_recientes: number | null;
+          dias_base: number;
+          dias_recientes: number;
+          variacion: number | null;
+          nivel: "normal" | "alerta" | "critico" | "sin_datos";
+        }[];
+      };
+      produccion_habitual: {
+        Args: { p_finca: string; p_hoy?: string | null };
+        Returns: { animal_id: string; jornada: string; litros_habitual: number; dias: number }[];
+      };
       animales_en_retiro: {
         Args: { p_finca: string };
         Returns: { animal_id: string; retiro_leche_hasta: string | null; retiro_carne_hasta: string | null }[];

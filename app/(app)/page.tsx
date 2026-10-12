@@ -7,6 +7,8 @@ import { FincaSelector } from "@/components/FincaSelector";
 import { Insignia } from "@/components/Insignia";
 import { Aviso } from "@/components/Aviso";
 import { Tarjeta } from "@/components/Tarjeta";
+import { AlertasProduccion } from "@/components/AlertasProduccion";
+import { esBaja } from "@/lib/produccion";
 import { EnlaceBoton } from "@/components/Boton";
 import { obtenerContexto } from "@/lib/contexto";
 import { crearClienteServidor } from "@/lib/supabase/server";
@@ -28,7 +30,7 @@ export default async function PaginaHoy({ searchParams }: { searchParams: Promis
   const activos = () =>
     supabase.from("animales").select("*", { count: "exact", head: true }).eq("finca_id", finca.id).is("deleted_at", null).eq("estado", "activo");
 
-  const [prod, totalActivos, totalHembras, retiro, servicios] = await Promise.all([
+  const [prod, totalActivos, totalHembras, retiro, servicios, tendencia] = await Promise.all([
     verLeche
       ? supabase.from("v_produccion_diaria").select("animal_id, litros_tanque, litros_descartados").eq("finca_id", finca.id).eq("fecha", hoy)
       : Promise.resolve({ data: [] as { animal_id: string | null; litros_tanque: number | null; litros_descartados: number | null }[] }),
@@ -44,6 +46,7 @@ export default async function PaginaHoy({ searchParams }: { searchParams: Promis
           .lte("fecha_prevista_parto", sumarDias(hoy, 30))
           .order("fecha_prevista_parto")
       : Promise.resolve({ data: [] as ServicioConParto[] }),
+    verLeche ? supabase.rpc("produccion_tendencia", { p_finca: finca.id }) : Promise.resolve({ data: [] }),
   ]);
 
   // Un servicio ya no cuenta como «parto próximo» si la hembra parió después de él.
@@ -57,13 +60,21 @@ export default async function PaginaHoy({ searchParams }: { searchParams: Promis
   );
 
   const enRetiro = retiro.data ?? [];
-  const idsNombres = [...new Set([...enRetiro.map((r) => r.animal_id), ...proximos.map((p) => p.hembra_id).filter((x): x is string => !!x)])];
+  const tendenciasBaja = (tendencia.data ?? []).filter(esBaja);
+  const idsNombres = [
+    ...new Set([
+      ...enRetiro.map((r) => r.animal_id),
+      ...proximos.map((p) => p.hembra_id).filter((x): x is string => !!x),
+      ...tendenciasBaja.map((t) => t.animal_id),
+    ]),
+  ];
   const nombres = new Map<string, string>();
   if (idsNombres.length) {
     const { data } = await supabase.from("animales").select("id, numero_arete, nombre").in("id", idsNombres);
     (data ?? []).forEach((a) => nombres.set(a.id, etiquetaAnimal(a)));
   }
 
+  const alertasProduccion = tendenciasBaja.map((t) => ({ ...t, etiqueta: nombres.get(t.animal_id) ?? "Animal" }));
   const filasProd = prod.data ?? [];
   const litrosTanque = filasProd.reduce((s, f) => s + Number(f.litros_tanque ?? 0), 0);
   const litrosDescartados = filasProd.reduce((s, f) => s + Number(f.litros_descartados ?? 0), 0);
@@ -123,6 +134,8 @@ export default async function PaginaHoy({ searchParams }: { searchParams: Promis
               ) : null}
             </section>
           ) : null}
+
+          {verLeche ? <AlertasProduccion alertas={alertasProduccion} limite={5} /> : null}
 
           <Tarjeta>
             <dl className="grid grid-cols-3 divide-x divide-arena text-center">

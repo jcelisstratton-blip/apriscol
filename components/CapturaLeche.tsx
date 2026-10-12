@@ -16,12 +16,15 @@ import { useToast } from "@/components/Toast";
 import { guardarOrdeno, sacarDelOrdeno } from "@/app/(app)/leche/actions";
 import { crearClienteNavegador } from "@/lib/supabase/client";
 import { litros as fmt, sumarDias } from "@/lib/fechas";
+import { ETIQUETA_NIVEL_BAJA, FRACCION_MUY_BAJA, porcentajeBaja, type TendenciaBaja } from "@/lib/produccion";
 import { etiquetaAnimal } from "@/lib/animal";
 import type { Jornada } from "@/lib/tipos";
 
 type AnimalLeche = { id: string; numero_arete: string; nombre: string | null };
 type Registro = { litros: number; descartada: boolean };
 type JornadaSimple = Exclude<Jornada, "unico">;
+/** Hembras cuya producción viene bajando (solo las que tienen alerta). */
+export type TendenciasLeche = Record<string, Pick<TendenciaBaja, "nivel" | "variacion"> & { base: number; recientes: number }>;
 
 const MAX_LITROS = 15;
 /** Desde cuántas hembras en leche aparece el buscador. */
@@ -39,6 +42,8 @@ export function CapturaLeche({
   jornadaInicial,
   puedeEditar = false,
   pie,
+  tendencias = {},
+  habitual = {},
 }: {
   fincaId: string;
   hoy: string;
@@ -48,6 +53,9 @@ export function CapturaLeche({
   puedeEditar?: boolean;
   /** Va al final en el celular y bajo el resumen en pantallas anchas (por ejemplo, «Agregar hembras al ordeño»). */
   pie?: React.ReactNode;
+  tendencias?: TendenciasLeche;
+  /** Lo que cada animal da habitualmente por jornada: animal → jornada → litros. */
+  habitual?: Record<string, Record<string, number>>;
 }) {
   const router = useRouter();
   const toast = useToast();
@@ -126,6 +134,10 @@ export function CapturaLeche({
 
   const valor = texto === "" || texto === "." ? null : Number(texto);
   const enRetiro = activo ? Boolean(retiros[activo.id]) : false;
+  const tendenciaActiva = activo ? tendencias[activo.id] : undefined;
+  const habitualActivo = activo ? habitual[activo.id]?.[jornada] : undefined;
+  // Mucho menos de lo habitual en esta jornada: se avisa por si fue un error al escribir o hay algo que revisar.
+  const muyPorDebajo = habitualActivo !== undefined && valor !== null && valor <= habitualActivo * FRACCION_MUY_BAJA;
 
   const guardar = () => {
     if (!activo || valor === null) return;
@@ -266,6 +278,11 @@ export function CapturaLeche({
                   <span className="block truncate font-bold">{a.numero_arete}</span>
                   <span className="block truncate text-sm text-humo">{a.nombre ?? "Sin nombre"}</span>
                   {retiros[a.id] ? <span className="mt-1 block"><Insignia tono="aviso">En retiro · se descarta</Insignia></span> : null}
+                {tendencias[a.id] ? (
+                  <span className="mt-1 block">
+                    <Insignia tono={tendencias[a.id].nivel === "critico" ? "alerta" : "aviso"}>{ETIQUETA_NIVEL_BAJA[tendencias[a.id].nivel]}</Insignia>
+                  </span>
+                ) : null}
                 </span>
                 {r ? (
                   <span className="shrink-0 text-right">
@@ -303,6 +320,18 @@ export function CapturaLeche({
             <p className="mt-2 text-sm text-humo">Litros de la {etiquetaJornada}</p>
           </div>
           <Teclado onTecla={tecla} />
+          {muyPorDebajo && habitualActivo !== undefined ? (
+            <Aviso tipo="atencion">
+              Es bastante menos de lo habitual en esta jornada ({fmt(habitualActivo)} L). Si no fue un error al escribir, revisa cómo está el animal.
+            </Aviso>
+          ) : habitualActivo !== undefined ? (
+            <p className="text-center text-sm text-humo">Lo habitual en esta jornada: {fmt(habitualActivo)} L</p>
+          ) : null}
+          {tendenciaActiva && activo ? (
+            <Aviso tipo="atencion">
+              Su producción viene bajando: bajó {porcentajeBaja(tendenciaActiva.variacion)} % en los últimos 3 días ({fmt(tendenciaActiva.base)} → {fmt(tendenciaActiva.recientes)} L al día). Revisa cómo está.
+            </Aviso>
+          ) : null}
           {enRetiro ? (
             <Aviso tipo="atencion">Este animal está en periodo de retiro: su leche se registra como descartada y no entra al tanque.</Aviso>
           ) : (

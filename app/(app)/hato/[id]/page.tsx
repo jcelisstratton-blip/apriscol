@@ -11,7 +11,9 @@ import { puedeEscribir, puedeGestionar, puedeVer } from "@/lib/permisos";
 import { urlsFotosPremios } from "@/lib/fotos";
 import { FilaParticipacion } from "@/components/FilaParticipacion";
 import { clasesBoton } from "@/components/Boton";
-import { edadTexto, formatoFecha, litros } from "@/lib/fechas";
+import { edadTexto, formatoFecha, hoyBogota, litros, sumarDias } from "@/lib/fechas";
+import { GraficoProduccion } from "@/components/GraficoProduccion";
+import { CONSEJO_BAJA, esBaja, mensajeBaja } from "@/lib/produccion";
 import { pesos } from "@/lib/ferias";
 import { ETIQUETA_MOTIVO_BAJA, ETIQUETA_TIPO_BAJA } from "@/lib/bajas";
 import { DeshacerBaja } from "@/components/DeshacerBaja";
@@ -71,6 +73,24 @@ export default async function FichaAnimal({ params, searchParams }: { params: Pr
       : Promise.resolve({ data: [] }),
     animal.estado !== "activo" ? supabase.from("bajas").select("*").eq("animal_id", id).maybeSingle() : Promise.resolve({ data: null }),
   ]);
+
+  // Producción de los últimos 14 días completos y tendencia (solo hembras con lactancia abierta).
+  const hoy = hoyBogota();
+  const lacActual = lactancia.data;
+  const vigilarProduccion = verLeche && Boolean(lacActual) && !lacActual?.fecha_secado;
+  const [tendenciasHato, ordenosRecientes] = vigilarProduccion
+    ? await Promise.all([
+        supabase.rpc("produccion_tendencia", { p_finca: finca.id }),
+        supabase.from("ordenos").select("fecha, litros").eq("animal_id", id).eq("finca_id", finca.id).gte("fecha", sumarDias(hoy, -14)).lte("fecha", sumarDias(hoy, -1)),
+      ])
+    : [{ data: null }, { data: null }];
+  const tendenciaAnimal = tendenciasHato.data?.find((t) => t.animal_id === id);
+  const litrosPorDia = new Map<string, number>();
+  for (const o of ordenosRecientes.data ?? []) litrosPorDia.set(o.fecha, (litrosPorDia.get(o.fecha) ?? 0) + Number(o.litros));
+  const diasGrafico = Array.from({ length: 14 }, (_, i) => {
+    const fecha = sumarDias(hoy, i - 14);
+    return { fecha, litros: litrosPorDia.get(fecha) ?? null };
+  });
 
   const listaPremios = participaciones.data ?? [];
   const idsFerias = [...new Set(listaPremios.map((p) => p.feria_id))];
@@ -151,6 +171,7 @@ export default async function FichaAnimal({ params, searchParams }: { params: Pr
         {verLeche && (lac || animal.estado === "activo") ? (
           <Tarjeta titulo="Lactancia">
             {lac ? (
+              <>
               <dl className="divide-y divide-arena">
                 <Dato etiqueta="Lactancia">N.º {lac.numero}{lac.fecha_secado ? " · seca" : " · abierta"}</Dato>
                 <Dato etiqueta="Desde el parto">{formatoFecha(lac.fecha_parto)}</Dato>
@@ -159,6 +180,25 @@ export default async function FichaAnimal({ params, searchParams }: { params: Pr
                 <Dato etiqueta="Promedio por día">{lac.promedio_diario == null ? "—" : `${litros(lac.promedio_diario)} L`}</Dato>
                 <Dato etiqueta="Pico en un día">{lac.pico_diario == null ? "—" : `${litros(lac.pico_diario)} L`}</Dato>
               </dl>
+              {vigilarProduccion ? (
+                <div className="mt-4 space-y-3">
+                  {tendenciaAnimal && esBaja(tendenciaAnimal) ? (
+                    <Aviso tipo="atencion">
+                      <strong>Su producción viene bajando.</strong> {mensajeBaja(tendenciaAnimal)} {CONSEJO_BAJA}
+                    </Aviso>
+                  ) : tendenciaAnimal?.nivel === "normal" ? (
+                    <Aviso tipo="info">
+                      Su producción se mantiene: {litros(tendenciaAnimal.litros_base)} L al día antes y {litros(tendenciaAnimal.litros_recientes)} L en los últimos 3 días.
+                    </Aviso>
+                  ) : (
+                    <Aviso tipo="info">Con unos 6 días de ordeño registrados, aquí te avisamos si su producción empieza a bajar.</Aviso>
+                  )}
+                  {diasGrafico.some((d) => d.litros !== null) ? (
+                    <GraficoProduccion dias={diasGrafico} promedioBase={tendenciaAnimal?.litros_base ?? null} />
+                  ) : null}
+                </div>
+              ) : null}
+              </>
             ) : (
               <div className="space-y-3">
                 <p className="text-[0.9375rem] text-humo">Todavía no está en ordeño. Si ya da leche, ponla en el ordeño para registrar sus litros.</p>
