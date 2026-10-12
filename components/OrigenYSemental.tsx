@@ -10,7 +10,7 @@ export type OrigenSemental = "propio" | "externo";
 type Ref = { id: string; numero_arete: string; nombre: string | null; fecha_nacimiento?: string | null };
 
 /**
- * ¿De dónde viene el semental? De tu hato (se elige de la lista) o de otro hato, prestado (se piden sus datos: chip, nombre, hato de origen,
+ * ¿De dónde viene el semental? «Semental de mi hato» (se elige de la lista) o «Semental externo», prestado por otro hato (se piden sus datos: chip, nombre, hato de origen,
  * propietario, préstamo, sanidad…). Lo usan la creación de la temporada y «Agregar semental».
  */
 export function OrigenYSemental({
@@ -42,17 +42,20 @@ export function OrigenYSemental({
   return (
     <div className="space-y-3">
       <div className="space-y-1.5">
-        <p className="text-sm font-semibold">Semental</p>
+        <p className="text-sm font-semibold">¿De dónde viene el semental?</p>
         <Segmentado<OrigenSemental>
           nombre={nombreOrigen}
           etiqueta="Origen del semental"
           valor={origen}
           onCambio={onOrigen}
           opciones={[
-            { valor: "propio", etiqueta: "De mi hato" },
-            { valor: "externo", etiqueta: "De otro hato" },
+            { valor: "propio", etiqueta: "Semental de mi hato" },
+            { valor: "externo", etiqueta: "Semental externo" },
           ]}
         />
+        <p className="text-[0.8125rem] text-humo">
+          {origen === "propio" ? "Eliges un macho que ya está en tu hato." : "Externo: lo presta otro hato. Te pedimos sus datos y los del préstamo."}
+        </p>
       </div>
       {origen === "propio" ? (
         <SelectorAnimal key={especie} nombre={nombreMacho ?? "semental"} fincaId={fincaId} sexo="macho" especie={especie} titulo="Elegir semental" valor={macho} onCambio={onMacho} vacio="Elegir un macho de tu hato" />
