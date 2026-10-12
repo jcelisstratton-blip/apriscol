@@ -14,6 +14,7 @@ const esquema = z.object({
   nombre: z.string().trim().min(2, "Ponle un nombre a tu finca.").max(120),
   departamento: z.string().trim().max(60).optional(),
   municipio: z.string().trim().max(80).optional(),
+  vereda: z.string().trim().max(80).optional(),
   proposito: z.enum(["leche", "carne", "doble"]),
   especies: z.array(z.enum(["caprino", "ovino"])).min(1, "Elige al menos una especie."),
 });
@@ -24,6 +25,7 @@ export async function crearFinca(_: EstadoFinca, form: FormData): Promise<Estado
     nombre: form.get("nombre"),
     departamento: form.get("departamento") || undefined,
     municipio: form.get("municipio") || undefined,
+    vereda: form.get("vereda") || undefined,
     proposito: form.get("proposito"),
     especies: form.getAll("especies"),
   });
@@ -53,6 +55,7 @@ export async function editarFinca(_: EstadoFinca, form: FormData): Promise<Estad
     nombre: form.get("nombre"),
     departamento: form.get("departamento") || undefined,
     municipio: form.get("municipio") || undefined,
+    vereda: form.get("vereda") || undefined,
     proposito: form.get("proposito"),
     especies: form.getAll("especies"),
   });
@@ -76,7 +79,7 @@ export async function editarFinca(_: EstadoFinca, form: FormData): Promise<Estad
 
   const { error } = await supabase
     .from("fincas")
-    .update({ nombre: d.nombre, departamento: d.departamento ?? null, municipio: d.municipio ?? null, proposito: d.proposito, especies: d.especies })
+    .update({ nombre: d.nombre, departamento: d.departamento ?? null, municipio: d.municipio ?? null, vereda: d.vereda ?? null, proposito: d.proposito, especies: d.especies })
     .eq("id", finca.id);
   if (error) return { error: mensajeAmigable(error.message) };
 

@@ -5,9 +5,8 @@ import Link from "next/link";
 import { Aviso } from "@/components/Aviso";
 import { Boton, clasesBoton } from "@/components/Boton";
 import { Campo, CLASE_INPUT } from "@/components/Campo";
-import { Selector } from "@/components/Selector";
+import { CamposUbicacion } from "@/components/CamposUbicacion";
 import { Segmentado } from "@/components/Segmentado";
-import { DEPARTAMENTOS } from "@/lib/colombia";
 import type { Especie, Vocacion } from "@/lib/tipos";
 import { crearFinca, editarFinca } from "@/app/onboarding/actions";
 
@@ -15,6 +14,7 @@ export type FincaEditable = {
   nombre: string;
   departamento: string | null;
   municipio: string | null;
+  vereda: string | null;
   proposito: Vocacion;
   especies: Especie[];
 };
@@ -24,7 +24,6 @@ export function FormFinca({ finca, especiesEnUso = [] }: { finca?: FincaEditable
   const editando = Boolean(finca);
   const [estado, enviar, pendiente] = useActionState(editando ? editarFinca : crearFinca, undefined);
   const [, iniciar] = useTransition();
-  const [depto, setDepto] = useState<string>(finca ? (finca.departamento ?? "") : "Antioquia");
   const [proposito, setProposito] = useState<Vocacion>(finca?.proposito ?? "leche");
   const [especies, setEspecies] = useState<Especie[]>(finca?.especies ?? ["caprino"]);
 
@@ -44,23 +43,10 @@ export function FormFinca({ finca, especiesEnUso = [] }: { finca?: FincaEditable
         {(id) => <input id={id} name="nombre" defaultValue={finca?.nombre} required minLength={2} maxLength={120} autoComplete="off" className={CLASE_INPUT} placeholder="Ej. El Mirador" />}
       </Campo>
 
-      <Campo etiqueta="Departamento">
-        {(id) => (
-          <Selector
-            id={id}
-            nombre="departamento"
-            valor={depto}
-            opciones={DEPARTAMENTOS.map((d) => ({ valor: d, etiqueta: d }))}
-            onCambio={(v) => setDepto(String(v))}
-            titulo="Departamento"
-            placeholder="Sin especificar"
-            permitirVacio={editando}
-          />
-        )}
-      </Campo>
+      <CamposUbicacion departamentoInicial={finca ? (finca.departamento ?? "") : "Antioquia"} municipioInicial={finca?.municipio ?? ""} />
 
-      <Campo etiqueta="Municipio o vereda" ayuda="Opcional.">
-        {(id) => <input id={id} name="municipio" defaultValue={finca?.municipio ?? ""} maxLength={80} autoComplete="off" className={CLASE_INPUT} />}
+      <Campo etiqueta="Vereda" ayuda="Opcional.">
+        {(id) => <input id={id} name="vereda" defaultValue={finca?.vereda ?? ""} maxLength={80} autoComplete="off" className={CLASE_INPUT} />}
       </Campo>
 
       <fieldset className="space-y-2">
