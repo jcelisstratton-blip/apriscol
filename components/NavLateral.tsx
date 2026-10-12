@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { Droplets, Home, KeyRound, LogOut, PawPrint, Plus, Settings, ShieldCheck, Trophy, Users } from "lucide-react";
+import { Droplets, Home, KeyRound, LogOut, PawPrint, Plus, Settings, ShieldCheck, Users } from "lucide-react";
 import { FincaSelector } from "@/components/FincaSelector";
 import { accionesRegistro, HojaRegistrar, type PermisosRegistro } from "@/components/HojaRegistrar";
 import { Marca } from "@/components/Marca";
@@ -23,7 +23,6 @@ export function NavLateral({
   fincaActiva,
   permisos,
   verLeche,
-  verFerias,
   verEquipo,
   esSuperadmin,
 }: {
@@ -33,7 +32,6 @@ export function NavLateral({
   fincaActiva: string;
   permisos: PermisosRegistro;
   verLeche: boolean;
-  verFerias: boolean;
   verEquipo: boolean;
   esSuperadmin: boolean;
 }) {
@@ -45,7 +43,6 @@ export function NavLateral({
     { href: "/", etiqueta: "Hoy", Icono: Home },
     { href: "/hato", etiqueta: "Hato", Icono: PawPrint },
     ...(verLeche ? [{ href: "/leche", etiqueta: "Leche", Icono: Droplets }] : []),
-    ...(verFerias ? [{ href: "/ferias", etiqueta: "Ferias y premios", Icono: Trophy }] : []),
     ...(verEquipo ? [{ href: "/mas/miembros", etiqueta: "Equipo", Icono: Users }] : []),
   ];
 

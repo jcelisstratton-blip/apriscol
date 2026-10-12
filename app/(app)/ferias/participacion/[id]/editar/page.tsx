@@ -18,11 +18,10 @@ export default async function PaginaEditarParticipacion({ params }: { params: Pr
   const { id } = await params;
   if (!ID_UUID.test(id)) notFound();
   const { finca, rol } = await obtenerContexto();
-  if (!puedeEscribir(rol, "ferias")) redirect("/ferias");
-
   const supabase = await crearClienteServidor();
   const { data: p } = await supabase.from("participaciones_feria").select("*").eq("id", id).eq("finca_id", finca.id).maybeSingle();
   if (!p) notFound();
+  if (!puedeEscribir(rol, "ferias")) redirect(`/hato/${p.animal_id}`);
 
   const [{ data: ferias }, { data: animal }, fotos] = await Promise.all([
     supabase.from("ferias").select("id, nombre, fecha_inicio").eq("finca_id", finca.id).order("fecha_inicio", { ascending: false }).limit(100),
@@ -30,24 +29,21 @@ export default async function PaginaEditarParticipacion({ params }: { params: Pr
     urlsFotosPremios(supabase, [p.foto_path]),
   ]);
   if (!animal) notFound();
-  const feriaActual = (ferias ?? []).find((f) => f.id === p.feria_id);
   const urlFoto = p.foto_path ? fotos.get(p.foto_path) : undefined;
 
   return (
     <>
-      <Link href={`/ferias/${p.feria_id}`} className="-ml-2 mt-3 inline-flex min-h-11 items-center gap-1 rounded-full px-2 text-[0.9375rem] font-semibold text-musgo">
-        <ChevronLeft className="size-5" strokeWidth={2} /> {feriaActual?.nombre ?? "Feria"}
+      <Link href={`/hato/${animal.id}`} className="-ml-2 mt-3 inline-flex min-h-11 items-center gap-1 rounded-full px-2 text-[0.9375rem] font-semibold text-musgo">
+        <ChevronLeft className="size-5" strokeWidth={2} /> {animal.nombre ?? animal.numero_arete}
       </Link>
       <Encabezado titulo="Editar premio" subtitulo={`${etiquetaAnimal(animal)} · ${p.categoria}`} />
       <div className="space-y-8 lg:max-w-xl">
         <FormParticipacion
-          fincaId={finca.id}
           ferias={ferias ?? []}
-          animalInicial={null}
+          animal={animal}
           participacion={{
             id: p.id,
             feria_id: p.feria_id,
-            animal,
             categoria: p.categoria,
             resultado: p.resultado,
             puesto: p.puesto,

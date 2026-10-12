@@ -22,7 +22,7 @@ export function EliminarFeria({ feriaId, nombre, participaciones }: { feriaId: s
       const r = await eliminarFeria(feriaId);
       if (!r.ok) return setError(r.error);
       toast.exito("Feria eliminada");
-      router.push("/ferias");
+      router.push("/hato");
       router.refresh();
     });
 

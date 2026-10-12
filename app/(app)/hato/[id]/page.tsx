@@ -328,7 +328,7 @@ export default async function FichaAnimal({ params, searchParams }: { params: Pr
             )}
             {puedeEscribir(rol, "ferias") && animal.estado === "activo" ? (
               <Link href={`/ferias/participacion/nueva?animal=${id}`} className={`${clasesBoton("secundario")} mt-3`}>
-                Registrar participación
+                Registrar premio
               </Link>
             ) : null}
           </Tarjeta>

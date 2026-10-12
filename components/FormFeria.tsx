@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Aviso } from "@/components/Aviso";
 import { Boton, clasesBoton } from "@/components/Boton";
 import { CamposFeria } from "@/components/CamposFeria";
-import { crearFeria, editarFeria } from "@/app/(app)/ferias/actions";
+import { editarFeria } from "@/app/(app)/ferias/actions";
 import type { NivelFeria } from "@/lib/tipos";
 
 export type FeriaEditable = {
@@ -17,10 +17,9 @@ export type FeriaEditable = {
   fecha_inicio: string;
 };
 
-/** Registrar una feria o corregir los datos de una ya registrada. */
-export function FormFeria({ animalId, feria }: { animalId?: string; feria?: FeriaEditable }) {
-  const editando = Boolean(feria);
-  const [estado, enviar, pendiente] = useActionState(editando ? editarFeria : crearFeria, undefined);
+/** Corregir los datos de una feria. Las ferias nacen al registrar un premio desde la ficha de un animal. */
+export function FormFeria({ feria }: { feria: FeriaEditable }) {
+  const [estado, enviar, pendiente] = useActionState(editarFeria, undefined);
   const [, iniciar] = useTransition();
 
   // Se envía con onSubmit (no con `action`): si hay un error, lo que la persona escribió no se borra.
@@ -32,20 +31,17 @@ export function FormFeria({ animalId, feria }: { animalId?: string; feria?: Feri
 
   return (
     <form onSubmit={alEnviar} className="space-y-5">
-      {feria ? <input type="hidden" name="feria_id" value={feria.id} /> : null}
-      {animalId ? <input type="hidden" name="animal" value={animalId} /> : null}
+      <input type="hidden" name="feria_id" value={feria.id} />
       <CamposFeria feria={feria} />
 
       {estado?.error ? <Aviso tipo="error">{estado.error}</Aviso> : null}
       <div className="space-y-2">
-        <Boton type="submit" pendiente={pendiente} cargando={editando ? "Guardando cambios…" : "Guardando feria…"}>
-          {editando ? "Guardar cambios" : "Guardar feria"}
+        <Boton type="submit" pendiente={pendiente} cargando="Guardando cambios…">
+          Guardar cambios
         </Boton>
-        {feria ? (
-          <Link href={`/ferias/${feria.id}`} className={clasesBoton("fantasma")}>
-            Cancelar
-          </Link>
-        ) : null}
+        <Link href={`/ferias/${feria.id}`} className={clasesBoton("fantasma")}>
+          Cancelar
+        </Link>
       </div>
     </form>
   );
