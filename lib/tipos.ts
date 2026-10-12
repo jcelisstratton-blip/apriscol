@@ -39,6 +39,8 @@ export type Animal = {
   vocacion: Vocacion;
   /** Solo machos: para qué es. `null` = por definir. */
   uso_macho: UsoMacho | null;
+  /** Turnos en que se ordeña. `null` = sin programar (todos); lista vacía = no se ordeña por ahora. */
+  turnos_ordeno: string[] | null;
   estado: string;
   fecha_baja: string | null;
   foto_path: string | null;

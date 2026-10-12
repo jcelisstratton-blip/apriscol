@@ -23,6 +23,7 @@ import { ETIQUETA_USO_MACHO, ETIQUETA_VOCACION, nombreTipo } from "@/lib/animal"
 import { NivelEndogamia } from "@/components/NivelEndogamia";
 import { RutasEndogamia } from "@/components/RutasEndogamia";
 import { HistorialSanidadAnimal } from "@/components/HistorialSanidadAnimal";
+import { TurnosAnimal } from "@/components/TurnosAnimal";
 import { estadoDosis, nombreEvento } from "@/lib/sanidad";
 import { describirParentesco, nivelEndogamia, pedigriTexto, porcentaje, primeraMayuscula, type AncestroEndogamia } from "@/lib/endogamia";
 
@@ -213,6 +214,12 @@ export default async function FichaAnimal({ params, searchParams }: { params: Pr
                 <Dato etiqueta="Promedio por día">{lac.promedio_diario == null ? "—" : `${litros(lac.promedio_diario)} L`}</Dato>
                 <Dato etiqueta="Pico en un día">{lac.pico_diario == null ? "—" : `${litros(lac.pico_diario)} L`}</Dato>
               </dl>
+              {lacAbierta && animal.estado === "activo" ? (
+                <div className="mt-4 space-y-1.5">
+                  <p className="text-sm font-semibold">Turnos de ordeño</p>
+                  <TurnosAnimal animalId={id} programados={animal.turnos_ordeno} puedeEditar={puedeEscribir(rol, "hato")} />
+                </div>
+              ) : null}
               <Link href={`/leche?animal=${id}`} className="mt-3 inline-flex min-h-11 items-center text-[0.9375rem] font-semibold text-musgo underline-offset-4 hover:underline">
                 Ver toda su producción
               </Link>

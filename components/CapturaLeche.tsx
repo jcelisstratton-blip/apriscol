@@ -18,9 +18,10 @@ import { crearClienteNavegador } from "@/lib/supabase/client";
 import { litros as fmt, sumarDias } from "@/lib/fechas";
 import { ETIQUETA_NIVEL_BAJA, FRACCION_MUY_BAJA, porcentajeBaja, type TendenciaBaja } from "@/lib/produccion";
 import { etiquetaAnimal } from "@/lib/animal";
+import { turnosDe } from "@/lib/ordeno";
 import type { Jornada } from "@/lib/tipos";
 
-type AnimalLeche = { id: string; numero_arete: string; nombre: string | null };
+type AnimalLeche = { id: string; numero_arete: string; nombre: string | null; /** Turnos programados; `null` = sin programar (todos). */ turnos?: string[] | null };
 type Registro = { litros: number; descartada: boolean };
 type JornadaSimple = Exclude<Jornada, "unico">;
 /** Hembras cuya producción viene bajando (solo las que tienen alerta). */
@@ -100,8 +101,10 @@ export function CapturaLeche({
     };
   }, [fincaId, fecha, jornada, clave]);
 
-  const hechas = animales.filter((a) => registros[a.id]);
-  const pendientes = animales.filter((a) => !registros[a.id]);
+  // La lista de la jornada son las hembras programadas para ella (más las que ya tienen registro, aunque se hayan reprogramado).
+  const delTurno = animales.filter((a) => registros[a.id] || turnosDe(a.turnos).includes(jornada));
+  const hechas = delTurno.filter((a) => registros[a.id]);
+  const pendientes = delTurno.filter((a) => !registros[a.id]);
   const totalTanque = hechas.reduce((s, a) => s + (registros[a.id].descartada ? 0 : registros[a.id].litros), 0);
   const totalDescartado = hechas.reduce((s, a) => s + (registros[a.id].descartada ? registros[a.id].litros : 0), 0);
   const buscando = busqueda !== "";
@@ -185,7 +188,7 @@ export function CapturaLeche({
     });
   };
 
-  const progreso = animales.length ? Math.round((hechas.length / animales.length) * 100) : 0;
+  const progreso = delTurno.length ? Math.round((hechas.length / delTurno.length) * 100) : 0;
   const etiquetaJornada = useMemo(() => (jornada === "manana" ? "mañana" : jornada === "tarde" ? "tarde" : "noche"), [jornada]);
 
   return (
@@ -232,7 +235,7 @@ export function CapturaLeche({
               </p>
             </div>
             <p className="shrink-0 pb-1 text-right text-sm font-semibold">
-              {hechas.length} de {animales.length}
+              {hechas.length} de {delTurno.length}
               {totalDescartado > 0 ? <span className="block text-xs font-medium opacity-85">{fmt(totalDescartado)} L descartados</span> : null}
             </p>
           </div>
@@ -268,6 +271,8 @@ export function CapturaLeche({
           <p className="py-8 text-center text-[0.9375rem] text-humo">
             {buscando
               ? "Ningún animal coincide con tu búsqueda."
+              : vista === "pendientes" && delTurno.length === 0
+                ? `Ninguna hembra está programada para la ${etiquetaJornada}. Prográmalas en Hato → Leche.`
               : vista === "pendientes"
                 ? "No queda ningún animal por ordeñar en esta jornada."
                 : "Todavía no has registrado ningún animal en esta jornada."}
