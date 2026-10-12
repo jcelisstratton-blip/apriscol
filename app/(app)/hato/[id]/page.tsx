@@ -290,7 +290,7 @@ export default async function FichaAnimal({ params, searchParams }: { params: Pr
         ) : null}
 
         {verFerias && (animal.estado === "activo" || listaPremios.length > 0) ? (
-          <Tarjeta titulo="Ferias y premios">
+          <Tarjeta titulo="Ferias y premios" id="premios">
             {listaPremios.length === 0 ? (
               <p className="text-[0.9375rem] text-humo">Todavía no tiene participaciones en ferias.</p>
             ) : (

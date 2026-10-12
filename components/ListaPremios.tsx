@@ -114,7 +114,7 @@ export function ListaPremios({ fincaId, puedeEditar }: { fincaId: string; puedeE
             p={p}
             titulo={p.animales ? etiquetaAnimal(p.animales) : "Animal"}
             detalle={p.ferias ? `${p.ferias.nombre} · ${formatoFecha(p.ferias.fecha_inicio, { day: "numeric", month: "short", year: "numeric" })}` : undefined}
-            enlace={`/hato/${p.animal_id}`}
+            enlace={`/hato/${p.animal_id}#premios`}
             fotoUrl={p.fotoUrl}
             editar={puedeEditar ? `/ferias/participacion/${p.id}/editar` : undefined}
           />

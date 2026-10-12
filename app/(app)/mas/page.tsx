@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ChevronRight, KeyRound, LogOut, MapPin, Pencil, Plus, ShieldCheck, Trophy, Users } from "lucide-react";
+import { ChevronRight, GitFork, KeyRound, LogOut, MapPin, Pencil, Plus, Shuffle, ShieldCheck, Trophy, Users } from "lucide-react";
 import { Encabezado } from "@/components/Encabezado";
 import { AvisoGuardado } from "@/components/AvisoGuardado";
 import { FincaSelector } from "@/components/FincaSelector";
@@ -69,6 +69,16 @@ export default async function PaginaMas({ searchParams }: { searchParams: Promis
               <ChevronRight className="size-5 text-humo" strokeWidth={1.75} />
             </Link>
           ) : null}
+          <Link href="/hato/endogamia" className={FILA}>
+            <GitFork className="size-5 text-musgo" strokeWidth={1.75} />
+            <span className="flex-1 font-semibold">Endogamia del hato</span>
+            <ChevronRight className="size-5 text-humo" strokeWidth={1.75} />
+          </Link>
+          <Link href="/hato/cruza" className={FILA}>
+            <Shuffle className="size-5 text-musgo" strokeWidth={1.75} />
+            <span className="flex-1 font-semibold">Simular cruza</span>
+            <ChevronRight className="size-5 text-humo" strokeWidth={1.75} />
+          </Link>
           {puedeVer(rol, "ferias") ? (
             <Link href="/ferias" className={FILA}>
               <Trophy className="size-5 text-musgo" strokeWidth={1.75} />

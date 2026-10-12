@@ -3,11 +3,12 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { Droplets, Home, KeyRound, LogOut, PawPrint, Plus, Settings, ShieldCheck, Trophy, Users } from "lucide-react";
+import { Droplets, GitFork, Home, KeyRound, LogOut, MapPin, PawPrint, Plus, Settings, Shuffle, ShieldCheck, Trophy, Users } from "lucide-react";
 import { FincaSelector } from "@/components/FincaSelector";
 import { accionesRegistro, HojaRegistrar, type PermisosRegistro } from "@/components/HojaRegistrar";
 import { Marca } from "@/components/Marca";
 import { cerrarSesion } from "@/app/login/actions";
+import { entradaMarcada } from "@/lib/nav";
 import type { RolFinca } from "@/lib/tipos";
 
 type Enlace = { href: string; etiqueta: string; Icono: typeof Home };
@@ -45,12 +46,15 @@ export function NavLateral({
     { href: "/", etiqueta: "Hoy", Icono: Home },
     { href: "/hato", etiqueta: "Hato", Icono: PawPrint },
     ...(verLeche ? [{ href: "/leche", etiqueta: "Leche", Icono: Droplets }] : []),
+    // Lo que mira o hace sobre todo el hato va aquí; lo que es de un solo animal vive en su ficha.
+    { href: "/hato/endogamia", etiqueta: "Endogamia", Icono: GitFork },
+    { href: "/hato/cruza", etiqueta: "Simular cruza", Icono: Shuffle },
     ...(verPremios ? [{ href: "/ferias", etiqueta: "Premios", Icono: Trophy }] : []),
     ...(verEquipo ? [{ href: "/mas/miembros", etiqueta: "Equipo", Icono: Users }] : []),
   ];
 
-  // «Cuenta» (/mas) se marca solo en su propia página: «Equipo» también empieza por /mas.
-  const activo = (href: string) => (href === "/" || href === "/mas" ? ruta === href : ruta.startsWith(href));
+  const marcada = entradaMarcada(ruta, [...enlaces.map((e) => e.href), ...(verEquipo ? ["/mas/finca"] : []), "/mas"]);
+  const activo = (href: string) => href === marcada;
   const clase = (esActivo: boolean) =>
     `flex min-h-11 items-center gap-3 rounded-xl px-3 text-[0.9375rem] font-semibold transition ${
       esActivo ? "bg-musgo/12 text-musgo" : "text-humo hover:bg-arena/60 hover:text-tinta"
@@ -58,7 +62,7 @@ export function NavLateral({
 
   return (
     <>
-      <aside aria-label="Menú principal" className="fixed inset-y-0 left-0 z-40 hidden w-64 flex-col border-r border-arena bg-papel px-4 pb-5 pt-6 lg:flex">
+      <aside aria-label="Menú principal" className="fixed inset-y-0 left-0 z-40 hidden w-64 flex-col overflow-y-auto border-r border-arena bg-papel px-4 pb-4 pt-5 lg:flex">
         <Link href="/" aria-label="Apriscol, ir a Hoy" className="px-1">
           <Marca />
         </Link>
@@ -67,12 +71,12 @@ export function NavLateral({
           type="button"
           onClick={() => setAbierta(true)}
           disabled={acciones.length === 0}
-          className="mt-6 inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-ocre px-4 text-[0.9375rem] font-semibold text-papel shadow-sm transition hover:brightness-95 active:scale-[0.98] disabled:opacity-40"
+          className="mt-5 inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-ocre px-4 text-[0.9375rem] font-semibold text-papel shadow-sm transition hover:brightness-95 active:scale-[0.98] disabled:opacity-40"
         >
           <Plus className="size-5" strokeWidth={2.4} /> Registrar
         </button>
 
-        <nav aria-label="Principal" className="mt-5 space-y-1">
+        <nav aria-label="Principal" className="mt-4 space-y-1">
           {enlaces.map(({ href, etiqueta, Icono }) => (
             <Link key={href} href={href} aria-current={activo(href) ? "page" : undefined} className={clase(activo(href))}>
               <Icono className="size-5 shrink-0" strokeWidth={activo(href) ? 2.1 : 1.7} /> {etiqueta}
@@ -80,7 +84,7 @@ export function NavLateral({
           ))}
         </nav>
 
-        <div className="mt-auto space-y-3 border-t border-arena pt-4">
+        <div className="mt-auto space-y-2 border-t border-arena pt-3">
           <FincaSelector fincas={fincas} activa={fincaActiva} />
           <div className="flex items-center gap-3 px-1">
             <span className="grid size-10 shrink-0 place-items-center rounded-full bg-musgo font-display text-lg font-semibold text-sobre-musgo" aria-hidden="true">
@@ -95,6 +99,11 @@ export function NavLateral({
             {esSuperadmin ? (
               <Link href="/admin" className={clase(false)}>
                 <ShieldCheck className="size-5 shrink-0 text-ocre" strokeWidth={1.7} /> Panel superadmin
+              </Link>
+            ) : null}
+            {verEquipo ? (
+              <Link href="/mas/finca" aria-current={activo("/mas/finca") ? "page" : undefined} className={clase(activo("/mas/finca"))}>
+                <MapPin className="size-5 shrink-0" strokeWidth={1.7} /> Datos de la finca
               </Link>
             ) : null}
             <Link href="/mas" aria-current={activo("/mas") ? "page" : undefined} className={clase(activo("/mas"))}>

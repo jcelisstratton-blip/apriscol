@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ChevronLeft, GitFork } from "lucide-react";
+import { GitFork } from "lucide-react";
 import { clasesBoton } from "@/components/Boton";
 import { Encabezado } from "@/components/Encabezado";
 import { EstadoVacio } from "@/components/EstadoVacio";
@@ -33,9 +33,6 @@ export default async function PaginaEndogamia() {
 
   return (
     <>
-      <Link href="/hato" className="-ml-2 mt-3 inline-flex min-h-11 items-center gap-1 rounded-full px-2 text-[0.9375rem] font-semibold text-musgo">
-        <ChevronLeft className="size-5" strokeWidth={2} /> Hato
-      </Link>
       <Encabezado titulo="Endogamia" subtitulo={finca.nombre} />
 
       <div className="space-y-3.5 lg:max-w-3xl">
