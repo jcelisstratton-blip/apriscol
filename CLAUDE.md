@@ -62,6 +62,10 @@ correspondiente en `node_modules/next/dist/docs/` (esta versión cambia APIs: `m
   persona vacía (nunca conserva el valor anterior en silencio), se envía con `onSubmit` (no `action`) para no borrar lo escrito si hay un error,
   y al guardar vuelve a la ficha con el aviso «Cambios guardados» (`?guardado=1` + `AvisoGuardado`). Lo que no puede cambiar sin dañar datos
   (por ejemplo el sexo de un animal con crías o leche) se muestra bloqueado con la razón, y el servidor lo vuelve a comprobar.
+- **Dónde vive cada cosa (decisión del dueño del producto):** lo que mira o hace sobre **todo el hato** (Leche, Endogamia, Simular cruza, Premios, Equipo, Datos de la finca…) es una
+  entrada del **menú lateral** (en el celular, de «Más»), y cada entrada **lleva directo** a lo que dice, sin pasos intermedios ni atajos escondidos dentro de otra pantalla.
+  Lo que es de **un solo animal** (registrar o corregir su premio, su foto, darlo de baja, su historia) vive **dentro de su ficha**, y al terminar se vuelve a ella. Una lista global
+  que enlaza a un animal lo hace al punto exacto (`/hato/<id>#premios`). El menú marca la entrada más específica (`lib/nav.ts`) y se desplaza si la pantalla es baja.
 - **Cada pantalla muestra solo lo que aplica al registro que se mira.** Un macho no tiene aptitud, lactancia, ordeño ni último parto: tiene un **uso** (`animales.uso_macho`: reproductor, carne o por definir; `vocacion` de un macho se
   guarda como «carne» solo por ser columna obligatoria y **no se usa**: para un reporte de machos, leer `uso_macho`); un animal que ya salió del hato (vendido, muerto…) no ofrece acciones ni tarjetas de uno activo, como «Ferias y premios» (solo su historial,
   si lo tiene). Antes de dar una pantalla por terminada se revisa con un animal de cada tipo: hembra, macho y dado de baja.

@@ -32,12 +32,16 @@ export default async function PaginaCruza({ searchParams }: { searchParams: Prom
     return data;
   };
   const [m, h] = await Promise.all([cargar(macho, "macho"), cargar(hembra, "hembra")]);
+  // Si se llegó desde la ficha de un animal, «volver» lo lleva de vuelta a ella; desde el menú no hay a dónde volver.
+  const origen = m ?? h;
 
   return (
     <>
-      <Link href="/hato" className="-ml-2 mt-3 inline-flex min-h-11 items-center gap-1 rounded-full px-2 text-[0.9375rem] font-semibold text-musgo">
-        <ChevronLeft className="size-5" strokeWidth={2} /> Hato
-      </Link>
+      {origen ? (
+        <Link href={`/hato/${origen.id}`} className="-ml-2 mt-3 inline-flex min-h-11 items-center gap-1 rounded-full px-2 text-[0.9375rem] font-semibold text-musgo">
+          <ChevronLeft className="size-5" strokeWidth={2} /> {origen.nombre ?? origen.numero_arete}
+        </Link>
+      ) : null}
       <Encabezado titulo="Simular cruza" subtitulo={finca.nombre} />
       <div className="lg:max-w-3xl">
         <FormCruza fincaId={finca.id} umbral={finca.umbral_endogamia} machoInicial={m} hembraInicial={h} />

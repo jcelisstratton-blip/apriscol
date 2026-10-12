@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { GitFork, Plus, Shuffle } from "lucide-react";
+import { Plus } from "lucide-react";
 import { Encabezado } from "@/components/Encabezado";
 import { ListaHato } from "@/components/ListaHato";
 import { obtenerContexto } from "@/lib/contexto";
@@ -34,20 +34,6 @@ export default async function PaginaHato() {
           ) : null
         }
       />
-      <div className="-mt-1 mb-3 flex flex-wrap gap-2">
-        {[
-          { href: "/hato/endogamia", texto: "Endogamia", Icono: GitFork },
-          { href: "/hato/cruza", texto: "Simular cruza", Icono: Shuffle },
-        ].map(({ href, texto, Icono }) => (
-          <Link
-            key={href}
-            href={href}
-            className="inline-flex min-h-11 items-center gap-1.5 rounded-full bg-papel px-4 text-sm font-semibold text-musgo ring-1 ring-arena"
-          >
-            <Icono className="size-4" strokeWidth={2} aria-hidden="true" /> {texto}
-          </Link>
-        ))}
-      </div>
       <ListaHato fincaId={finca.id} especies={finca.especies} retiros={retiros} puedeCrear={puedeCrear} puedeTraer={puedeGestionar(rol) && !perfil?.libro_resuelto_en} />
     </>
   );
