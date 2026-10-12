@@ -84,7 +84,7 @@ export async function Monta({
               const a = avanceEmp(l, hoy);
               const susMachos = machos.filter((m) => m.empadronamiento_id === l.id).map((m) => {
                 const cap = capacidadSemental(l.especie, mesesDesde(edades.get(m.macho_id) ?? null, hoy), l.hembras_por_macho);
-                return { id: m.macho_id, etiqueta: nombres.get(m.macho_id) ?? "Semental", asignadas: cuenta.get(`${l.id}|${m.macho_id}`) ?? 0, capacidad: cap.max, origen: cap.origen };
+                return { id: m.macho_id, etiqueta: nombres.get(m.macho_id) ?? "Semental", asignadas: cuenta.get(`${l.id}|${m.macho_id}`) ?? 0, capacidad: cap.max, origen: cap.origen, limite: cap.origen === "fijada" ? cap.max : null };
               });
               return (
                 <li key={l.id} className="min-w-0 space-y-3 rounded-2xl bg-papel p-3.5 ring-1 ring-arena">
@@ -106,7 +106,7 @@ export async function Monta({
                           <span className="min-w-0 font-semibold [overflow-wrap:anywhere]">{m.etiqueta}</span>
                           <span className="shrink-0 text-right text-sm text-humo">
                             {m.asignadas} de {m.capacidad}
-                            <span className="block text-xs">{ETIQUETA_CAPACIDAD[m.origen]}</span>
+                            <span className="block text-xs">{m.limite != null ? "número fijado" : ETIQUETA_CAPACIDAD[m.origen]}</span>
                           </span>
                         </li>
                       ))}

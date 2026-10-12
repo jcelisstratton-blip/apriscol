@@ -24,7 +24,8 @@ export type FuenteHembras = {
   candidatas: () => Respuesta<CandidataEmp[]>;
   endogamia: (machoId: string, ids: string[]) => Respuesta<{ hembra_id: string; f: number; sobre_umbral: boolean }[]>;
 };
-export type MachoSeleccion = { id: string; etiqueta: string; asignadas: number; capacidad: number };
+/** `limite`: el número exacto de hembras que la temporada fijó para cada semental (nulo si solo hay una recomendación, que avisa pero no bloquea). */
+export type MachoSeleccion = { id: string; etiqueta: string; asignadas: number; capacidad: number; limite?: number | null };
 /** Lo que se eligió: las hembras, las que entran como excepción y cómo se llama cada una (para mostrarlas sin volver a buscarlas). */
 export type SeleccionEmp = { machoId: string; hembraIds: string[]; excepcionIds: string[]; etiquetas: Record<string, string> };
 
@@ -128,15 +129,21 @@ export function SeleccionHembrasEmp({
     if (filas) void calcular(id, filas);
   };
 
+  const cupoDe = (m: string) => {
+    const x = machos.find((k) => k.id === m);
+    return x?.limite != null ? Math.max(0, x.limite - x.asignadas) : Infinity;
+  };
+
   const alternar = (id: string) =>
     setElegidas((p) => {
       const n = new Set(p);
       if (n.has(id)) n.delete(id);
-      else n.add(id);
+      else if (n.size < cupoDe(macho)) n.add(id);
       return n;
     });
 
   const permitirExcepcion = (id: string) => {
+    if (elegidas.size >= cupoDe(macho) && !elegidas.has(id)) return;
     setExcepciones((p) => new Set(p).add(id));
     setElegidas((p) => new Set(p).add(id));
   };
@@ -164,6 +171,9 @@ export function SeleccionHembrasEmp({
   const quedaria = (elMacho?.asignadas ?? 0) + elegidas.size;
   const sobreCapacidad = elMacho ? quedaria > elMacho.capacidad : false;
   const conExcepcion = [...elegidas].filter((id) => excepciones.has(id)).length;
+  const limite = elMacho?.limite ?? null;
+  const cupo = limite != null ? Math.max(0, limite - (elMacho?.asignadas ?? 0)) : Infinity;
+  const lleno = elegidas.size >= cupo;
 
   const confirmar = () =>
     iniciar(async () => {
@@ -206,11 +216,18 @@ export function SeleccionHembrasEmp({
             </p>
           )}
           {elMacho ? (
-            <p className="text-sm text-humo">
-              {elMacho.asignadas > 0
-                ? `${nombreMacho} tiene ${elMacho.asignadas} ${elMacho.asignadas === 1 ? "hembra asignada" : "hembras asignadas"}; lo recomendado es hasta ${elMacho.capacidad}.`
-                : `Lo recomendado para ${nombreMacho} es hasta ${elMacho.capacidad} hembras.`}
-            </p>
+            limite != null ? (
+              <p className="rounded-xl bg-lana px-3 py-2 text-[0.9375rem]" aria-live="polite">
+                Esta temporada fijó <strong>{limite}</strong> {limite === 1 ? "hembra" : "hembras"} por semental. <strong>{nombreMacho}</strong> tiene {elMacho.asignadas}
+                {elegidas.size > 0 ? ` y vas a sumar ${elegidas.size}` : ""}: {lleno ? "ya no caben más." : `caben ${cupo - elegidas.size} más.`}
+              </p>
+            ) : (
+              <p className="text-sm text-humo">
+                {elMacho.asignadas > 0
+                  ? `${nombreMacho} tiene ${elMacho.asignadas} ${elMacho.asignadas === 1 ? "hembra asignada" : "hembras asignadas"}; lo recomendado es hasta ${elMacho.capacidad}.`
+                  : `Lo recomendado para ${nombreMacho} es hasta ${elMacho.capacidad} hembras.`}
+              </p>
+            )
           ) : null}
           <p className="text-sm text-humo">
             Solo aparecen hembras <strong>libres</strong>: sin gestación, sin servicio esperando diagnóstico y fuera de otra temporada abierta, y que cumplan los
@@ -232,8 +249,8 @@ export function SeleccionHembrasEmp({
                   <div className="flex items-center justify-between gap-3 text-sm text-humo">
                     <span>Mostrando {visibles.length} de {asignables.length}</span>
                     {aptasLibres.length > 0 ? (
-                      <button type="button" onClick={() => setElegidas((p) => new Set([...p, ...aptasLibres.slice(0, LOTE_ELEGIR).map((f) => f.c.animal_id)]))} className="min-h-11 font-semibold text-musgo">
-                        Elegir las {aptasLibres.length} aptas
+                      <button type="button" onClick={() => setElegidas((p) => new Set([...p, ...aptasLibres.filter((f) => !p.has(f.c.animal_id)).slice(0, Math.min(LOTE_ELEGIR, Math.max(0, cupo - p.size))).map((f) => f.c.animal_id)]))} disabled={lleno} className="min-h-11 font-semibold text-musgo disabled:opacity-40">
+                        {limite != null ? `Elegir ${Math.min(aptasLibres.length, Math.max(0, cupo - elegidas.size))} aptas` : `Elegir las ${aptasLibres.length} aptas`}
                       </button>
                     ) : null}
                   </div>
@@ -248,7 +265,7 @@ export function SeleccionHembrasEmp({
                             <input
                               type="checkbox"
                               checked={elegidas.has(f.c.animal_id)}
-                              disabled={sinPermiso || !e}
+                              disabled={sinPermiso || !e || (lleno && !elegidas.has(f.c.animal_id))}
                               onChange={() => alternar(f.c.animal_id)}
                               className="mt-3 size-5 shrink-0 accent-[var(--musgo)]"
                             />
@@ -326,7 +343,7 @@ export function SeleccionHembrasEmp({
             </div>
           ) : null}
 
-          {sobreCapacidad && elMacho ? (
+          {sobreCapacidad && limite == null && elMacho ? (
             <Aviso tipo="atencion">
               {nombreMacho} quedaría con {quedaria} hembras y lo recomendado es hasta {elMacho.capacidad}. Puedes seguir, pero con tantas hembras baja la fertilidad del grupo.
             </Aviso>

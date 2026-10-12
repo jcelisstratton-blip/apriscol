@@ -124,7 +124,7 @@ export async function crearEmpadronamiento(_: EstadoForm, form: FormData): Promi
     return { error: mensajeAmigable(eMacho.message) };
   }
   if (d.hembra_ids.length > 0) {
-    const r = await insertarHembras(supabase, p.finca.id, lote.id, d.macho_id, d.hembra_ids, d.excepcion_ids);
+    const r = await insertarHembras(supabase, p.finca.id, lote.id, d.macho_id, d.hembra_ids, d.excepcion_ids, d.hembras_por_macho ?? null);
     if (!r.ok) {
       // Si no se pueden guardar las hembras, la temporada no se crea a medias: se borra y se explica qué pasó.
       await supabase.from("empadronamientos").delete().eq("id", lote.id).eq("finca_id", p.finca.id);
@@ -162,6 +162,13 @@ export async function editarEmpadronamiento(_: EstadoForm, form: FormData): Prom
   if (!c.lote.cerrado_en) {
     const malaFecha = fechasValidas(d.fecha_inicio, d.duracion_dias, hoyBogota());
     if (malaFecha) return { error: malaFecha };
+    if (d.hembras_por_macho != null) {
+      const { data: asignadas } = await supabase.from("empadronamiento_hembras").select("macho_id").eq("empadronamiento_id", c.lote.id).limit(5000);
+      const porMacho = new Map<string, number>();
+      for (const h of asignadas ?? []) porMacho.set(h.macho_id, (porMacho.get(h.macho_id) ?? 0) + 1);
+      const mas = Math.max(0, ...porMacho.values());
+      if (mas > d.hembras_por_macho) return { error: `Un semental ya tiene ${mas} hembras en esta temporada: el número por semental no puede ser menor. Quita hembras primero o deja el número en ${mas} o más.` };
+    }
   }
   const { data, error } = await supabase.from("empadronamientos").update(cambios).eq("id", c.lote.id).eq("finca_id", p.finca.id).select("id");
   if (error?.code === "23505") return { error: REPETIDO_NOMBRE };
@@ -232,8 +239,17 @@ type ResultadoHembras = { ok: true; agregadas: number } | { ok: false; error: st
  * que la pantalla ya filtró: que estén libres y cumplan los criterios, y que la endogamia de cada pareja no llegue al umbral de la finca
  * (salvo excepción marcada). La base lo exige otra vez.
  */
-async function insertarHembras(supabase: Cliente, fincaId: string, loteId: string, machoId: string, hembraIds: string[], excepcionIds: string[]): Promise<ResultadoHembras> {
+async function insertarHembras(supabase: Cliente, fincaId: string, loteId: string, machoId: string, hembraIds: string[], excepcionIds: string[], limite: number | null): Promise<ResultadoHembras> {
   const ids = [...new Set(hembraIds)];
+  // Si la temporada fijó cuántas hembras atiende cada semental, ese número es exacto: no se asigna ni una más.
+  if (limite != null) {
+    const { count } = await supabase.from("empadronamiento_hembras").select("id", { count: "exact", head: true }).eq("empadronamiento_id", loteId).eq("macho_id", machoId);
+    const ya = count ?? 0;
+    if (ya + ids.length > limite) {
+      const caben = Math.max(0, limite - ya);
+      return { ok: false, error: `Este semental ya tiene ${ya} de ${limite} hembras: ${caben === 0 ? "no caben más" : `solo caben ${caben} más`}. Quita hembras de la lista o sube el número de hembras por semental de la temporada.` };
+    }
+  }
   const [cand, endo] = await Promise.all([
     supabase.rpc("empadronamiento_candidatas", { p_lote: loteId }),
     supabase.rpc("empadronamiento_endogamia", { p_lote: loteId, p_macho: machoId, p_hembras: ids }),
@@ -274,7 +290,7 @@ export async function asignarHembras(entrada: z.input<typeof esquemaAsignar>): P
   const { data: semental } = await supabase.from("empadronamiento_machos").select("macho_id").eq("empadronamiento_id", d.loteId).eq("macho_id", d.machoId).maybeSingle();
   if (!semental) return { ok: false, error: "Ese semental no está en esta temporada." };
 
-  const r = await insertarHembras(supabase, p.finca.id, d.loteId, d.machoId, d.hembraIds, d.excepcionIds);
+  const r = await insertarHembras(supabase, p.finca.id, d.loteId, d.machoId, d.hembraIds, d.excepcionIds, c.lote.hembras_por_macho);
   if (!r.ok) return r;
   revalidatePath(destinoLote(d.loteId));
   revalidatePath("/reproduccion");

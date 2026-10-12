@@ -73,7 +73,7 @@ export async function Detalle({
   for (const h of hembras) porMacho.set(h.macho_id, (porMacho.get(h.macho_id) ?? 0) + 1);
   const machos = machoIds.map((m) => {
     const cap = capacidadSemental(lote.especie, mesesDesde(edades.find((e) => e.id === m)?.fecha_nacimiento ?? null, hoy), lote.hembras_por_macho);
-    return { id: m, etiqueta: etiqueta(m), asignadas: porMacho.get(m) ?? 0, capacidad: cap.max, origen: cap.origen };
+    return { id: m, etiqueta: etiqueta(m), asignadas: porMacho.get(m) ?? 0, capacidad: cap.max, origen: cap.origen, limite: cap.origen === "fijada" ? cap.max : null };
   });
   const filas: FilaHembraEmp[] = hembras.map((h) => ({
     hembraId: h.hembra_id,
@@ -118,7 +118,7 @@ export async function Detalle({
             <Dato etiqueta="Criterios de las hembras">
               {lote.edad_min_meses}+ meses · {String(lote.peso_min_kg).replace(".", ",")}+ kg · CC {textoCC(lote.cc_min)}+
             </Dato>
-            {lote.hembras_por_macho != null ? <Dato etiqueta="Hembras por semental">Hasta {lote.hembras_por_macho}</Dato> : null}
+            {lote.hembras_por_macho != null ? <Dato etiqueta="Hembras por semental">{lote.hembras_por_macho} (tope exacto)</Dato> : null}
           </dl>
           {lote.observaciones ? <p className="mt-3 whitespace-pre-wrap text-[0.9375rem] [overflow-wrap:anywhere]">{lote.observaciones}</p> : null}
           {puedeEditar ? (
@@ -138,7 +138,7 @@ export async function Detalle({
                   <Link href={`/hato/${m.id}`} className="min-w-0 flex-1 py-2">
                     <span className="block font-semibold [overflow-wrap:anywhere]">{m.etiqueta}</span>
                     <span className="block text-sm text-humo">
-                      {m.asignadas} de {m.capacidad} hembras recomendadas ({ETIQUETA_CAPACIDAD[m.origen]})
+                      {m.limite != null ? `${m.asignadas} de ${m.limite} hembras (número fijado en la temporada)` : `${m.asignadas} de ${m.capacidad} hembras recomendadas (${ETIQUETA_CAPACIDAD[m.origen]})`}
                     </span>
                     {m.asignadas > m.capacidad ? <span className="mt-1 inline-block"><Insignia tono="aviso">Pasa de lo recomendado</Insignia></span> : null}
                   </Link>

@@ -65,7 +65,28 @@ export function FormEmpadronamiento({
   const criteriosOk = Number.isInteger(edadN) && edadN >= 1 && pesoN != null && pesoN > 0;
   const claveCriterios = `${especie}|${edadN}|${pesoN}|${cc}`;
   const porMachoN = leerNumero(porMacho);
-  const capacidad = macho ? capacidadSemental(especie, mesesDesde(macho.fecha_nacimiento ?? null), porMachoN != null && Number.isInteger(porMachoN) && porMachoN >= 1 ? porMachoN : null).max : rec.joven;
+  const fijado = porMachoN != null && Number.isInteger(porMachoN) && porMachoN >= 1 ? porMachoN : null;
+  const capacidad = macho ? capacidadSemental(especie, mesesDesde(macho.fecha_nacimiento ?? null), fijado).max : (fijado ?? rec.joven);
+  const recomendadoMacho = macho ? capacidadSemental(especie, mesesDesde(macho.fecha_nacimiento ?? null), null).max : null;
+  const campoPorMacho = (
+    <Campo
+      etiqueta="Número de hembras por semental"
+      ayuda={`Cuántas hembras atenderá cada semental en esta temporada. Si escribes un número, es exacto: la app no deja asignar ni una más. Si lo dejas vacío, solo avisa cuando pases de lo recomendado (${especie === "caprino" ? "cabros" : "carneros"} jóvenes ${rec.joven}, adultos ${rec.adulto}).`}
+    >
+      {(id) => (
+        <input
+          id={id}
+          name="hembras_por_macho"
+          value={porMacho}
+          onChange={(e) => setPorMacho(e.target.value)}
+          inputMode="numeric"
+          autoComplete="off"
+          placeholder={recomendadoMacho != null ? `Recomendado para este semental: ${recomendadoMacho}` : `Recomendado: ${rec.joven} a ${rec.adulto}`}
+          className={CLASE_INPUT}
+        />
+      )}
+    </Campo>
+  );
   const machoId = macho?.id;
   const fuente = useMemo<FuenteHembras>(
     () => ({
@@ -177,12 +198,7 @@ export function FormEmpadronamiento({
         </div>
       </fieldset>
 
-      <Campo
-        etiqueta="Hembras por semental (máximo)"
-        ayuda={`Opcional. Si lo dejas vacío usamos lo recomendado según la edad de cada semental: ${especie === "caprino" ? "cabros" : "carneros"} jóvenes ${rec.joven} y adultos ${rec.adulto}. Es una guía: si te pasas, la app avisa, no bloquea.`}
-      >
-        {(id) => <input id={id} name="hembras_por_macho" value={porMacho} onChange={(e) => setPorMacho(e.target.value)} inputMode="numeric" autoComplete="off" placeholder={`Recomendado: ${rec.joven} a ${rec.adulto}`} className={CLASE_INPUT} />}
-      </Campo>
+      {editando ? campoPorMacho : null}
 
       {!editando ? (
         <div className="space-y-1.5">
@@ -205,6 +221,8 @@ export function FormEmpadronamiento({
         </div>
       ) : null}
 
+      {!editando ? campoPorMacho : null}
+
       {!editando ? (
         <fieldset className="space-y-3 rounded-2xl bg-lana p-3.5">
           <legend className="px-1 text-sm font-semibold">Hembras con este semental</legend>
@@ -217,7 +235,8 @@ export function FormEmpadronamiento({
               {hembras && hembras.ids.length > 0 ? (
                 <div className="space-y-2">
                   <p className="text-[0.9375rem]">
-                    <strong>{hembras.ids.length}</strong> {hembras.ids.length === 1 ? "hembra" : "hembras"} con <span className="font-semibold [overflow-wrap:anywhere]">{etiquetaAnimal(macho)}</span>
+                    <strong>{hembras.ids.length}</strong>
+                    {fijado != null ? ` de ${fijado}` : ""} {hembras.ids.length === 1 ? "hembra" : "hembras"} con <span className="font-semibold [overflow-wrap:anywhere]">{etiquetaAnimal(macho)}</span>
                     {hembras.excepciones.length > 0 ? (
                       <>
                         {" "}
@@ -234,18 +253,22 @@ export function FormEmpadronamiento({
                   {hembras.clave !== claveCriterios ? (
                     <Aviso tipo="atencion">Cambiaste los requisitos o la especie después de elegir las hembras. Ábrelas de nuevo para confirmar que siguen cumpliéndolos.</Aviso>
                   ) : null}
-                  {hembras.ids.length > capacidad ? (
+                  {fijado != null && hembras.ids.length > fijado ? (
+                    <Aviso tipo="error">Elegiste {hembras.ids.length} hembras y el número por semental es {fijado}. Cambia el número o abre la lista y quita hembras.</Aviso>
+                  ) : fijado == null && hembras.ids.length > capacidad ? (
                     <Aviso tipo="atencion">
                       {etiquetaAnimal(macho)} tendría {hembras.ids.length} hembras y lo recomendado es hasta {capacidad}. Puedes seguir: es una guía.
                     </Aviso>
                   ) : null}
                 </div>
               ) : (
-                <p className="text-[0.9375rem] text-humo">Aún no eliges hembras. Puedes hacerlo ahora o después, desde la temporada. Solo aparecen hembras libres: sin gestación ni servicio esperando diagnóstico.</p>
+                <p className="text-[0.9375rem] text-humo">
+                  Aún no eliges hembras{fijado != null ? ` (este semental atenderá ${fijado})` : ""}. Puedes hacerlo ahora o después, desde la temporada. Solo aparecen hembras libres: sin gestación ni servicio esperando diagnóstico.
+                </p>
               )}
               <SeleccionHembrasEmp
                 key={`${machoId}`}
-                machos={[{ id: macho.id, etiqueta: etiquetaAnimal(macho), asignadas: 0, capacidad }]}
+                machos={[{ id: macho.id, etiqueta: etiquetaAnimal(macho), asignadas: 0, capacidad, limite: fijado }]}
                 umbral={umbral}
                 fuente={fuente}
                 inicial={hembras && hembras.ids.length > 0 ? { machoId: macho.id, hembraIds: hembras.ids, excepcionIds: hembras.excepciones } : undefined}
