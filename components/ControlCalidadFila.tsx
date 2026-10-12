@@ -9,10 +9,12 @@ import { Boton } from "@/components/Boton";
 import { Campo, CLASE_INPUT } from "@/components/Campo";
 import { Insignia } from "@/components/Insignia";
 import { Selector } from "@/components/Selector";
+import { SelectorTarjetas } from "@/components/SelectorTarjetas";
 import { SubirSoporte } from "@/components/SubirSoporte";
 import { useToast } from "@/components/Toast";
 import { guardarControl } from "@/app/(app)/controles";
 import { INFO_CONTROL, VALORES_CONDICION } from "@/lib/controles";
+import { ESCENA_INSPECCION } from "@/lib/escenas-forms-a-leche";
 import { formatoFecha } from "@/lib/fechas";
 import { direccionSoporte } from "@/lib/soportes";
 import type { ControlCalidad, ResultadoControl, TipoControl } from "@/lib/tipos";
@@ -212,15 +214,14 @@ export function ControlCalidadFila({
                 <>
                   <Campo etiqueta="Resultado de la inspección">
                     {(idC) => (
-                      <Selector
+                      <SelectorTarjetas
                         id={idC}
                         valor={resultado}
                         onCambio={setResultado}
                         titulo="Resultado de la inspección"
-                        placeholder="Elegir…"
                         opciones={[
-                          { valor: "conforme", etiqueta: "Sin hallazgos" },
-                          { valor: "no_conforme", etiqueta: "Con hallazgos o decomisos" },
+                          { valor: "conforme", etiqueta: "Sin hallazgos", escena: ESCENA_INSPECCION.conforme },
+                          { valor: "no_conforme", etiqueta: "Con hallazgos o decomisos", escena: ESCENA_INSPECCION.no_conforme },
                         ]}
                       />
                     )}

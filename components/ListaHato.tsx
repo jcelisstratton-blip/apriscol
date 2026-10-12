@@ -5,13 +5,12 @@ import Link from "next/link";
 import { Rabbit, SearchX } from "lucide-react";
 import { CampoBusqueda } from "@/components/CampoBusqueda";
 import { EstadoVacio } from "@/components/EstadoVacio";
-import { ChipEnlace } from "@/components/ChipEnlace";
-import { Chip, FilaDesplazable } from "@/components/FilaDesplazable";
+import { TarjetasHato } from "@/components/TarjetasHato";
 import { FilaAnimal, type AnimalFila, type RetiroFila } from "@/components/FilaAnimal";
 import { ListaEscalable } from "@/components/ListaEscalable";
 import { clasesBoton } from "@/components/Boton";
 import { crearClienteNavegador } from "@/lib/supabase/client";
-import { filtrosHato, type FiltroHato, type VistaHato } from "@/lib/hato";
+import type { FiltroHato, VistaHato } from "@/lib/hato";
 import type { Especie } from "@/lib/tipos";
 
 type Filtro = FiltroHato;
@@ -24,6 +23,7 @@ export function ListaHato({
   puedeTraer = false,
   filtroInicial = "todos",
   vistas = [],
+  conteos,
 }: {
   fincaId: string;
   especies: Especie[];
@@ -35,6 +35,8 @@ export function ListaHato({
   filtroInicial?: FiltroHato;
   /** Las vistas de trabajo que se ofrecen junto a los filtros (Ordeño, Ceba, Empadronamiento, Sanidad, Corrales…), según lo que la persona puede ver. */
   vistas?: VistaHato[];
+  /** Cuántos animales hay en cada filtro (el dato de cada tarjeta). */
+  conteos?: Record<FiltroHato, number>;
 }) {
   const [busqueda, setBusqueda] = useState("");
   const [filtro, setFiltro] = useState<Filtro>(filtroInicial);
@@ -69,18 +71,7 @@ export function ListaHato({
       <div className="lg:max-w-md">
         <CampoBusqueda onBuscar={alBuscar} placeholder="Buscar por arete o nombre" />
       </div>
-      <FilaDesplazable>
-        {filtrosHato(especies).map((f) => (
-          <Chip key={f.id} activo={filtro === f.id} onClick={() => setFiltro(f.id)}>
-            {f.texto}
-          </Chip>
-        ))}
-        {vistas.map((v) => (
-          <ChipEnlace key={v.id} href={v.href} activo={false}>
-            {v.texto}
-          </ChipEnlace>
-        ))}
-      </FilaDesplazable>
+      <TarjetasHato especies={especies} vistas={vistas} conteos={conteos} filtroActivo={filtro} onFiltro={setFiltro} />
       <ListaEscalable<AnimalFila>
         key={`${filtro}|${busqueda}`}
         cargar={cargar}

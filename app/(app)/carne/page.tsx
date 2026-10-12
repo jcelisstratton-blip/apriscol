@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { AvisoGuardado } from "@/components/AvisoGuardado";
 import { EnlaceBoton } from "@/components/Boton";
 import { Encabezado } from "@/components/Encabezado";
-import { FilaDesplazable } from "@/components/FilaDesplazable";
+import { PestanasTarjetas } from "@/components/TarjetaOpcion";
+import { armarPestanas } from "@/lib/escenas";
 import { ListaPesajes } from "@/components/ListaPesajes";
 import { PorQueAnalizar } from "@/components/PorQueAnalizar";
 import { ListaSalidas } from "@/components/ListaSalidas";
@@ -19,13 +19,13 @@ import { Resumen } from "./Resumen";
 export const metadata: Metadata = { title: "Carne" };
 
 const PESTANAS = [
-  { valor: "resumen", etiqueta: "Resumen" },
-  { valor: "candidatos", etiqueta: "Candidatos" },
-  { valor: "lotes", etiqueta: "Lotes" },
-  { valor: "pesajes", etiqueta: "Pesos" },
-  { valor: "canales", etiqueta: "Canales" },
-  { valor: "salidas", etiqueta: "Salidas" },
-  { valor: "reglas", etiqueta: "Reglas" },
+  { valor: "resumen", etiqueta: "Resumen", detalle: "Cómo va la ceba" },
+  { valor: "candidatos", etiqueta: "Candidatos", detalle: "A quién pasar a ceba" },
+  { valor: "lotes", etiqueta: "Lotes", detalle: "Grupos en engorde" },
+  { valor: "pesajes", etiqueta: "Pesos", detalle: "Peso y ganancia diaria" },
+  { valor: "canales", etiqueta: "Canales", detalle: "Rendimiento al sacrificio" },
+  { valor: "salidas", etiqueta: "Salidas", detalle: "Ventas y sacrificio" },
+  { valor: "reglas", etiqueta: "Reglas", detalle: "Cuándo pasar a ceba" },
 ] as const;
 type Vista = (typeof PESTANAS)[number]["valor"];
 
@@ -49,20 +49,7 @@ export default async function PaginaCarne({ searchParams }: { searchParams: Prom
         subtitulo={finca.nombre}
         acciones={puedeEditar && vista === "lotes" ? <EnlaceBoton href="/carne/lotes/nuevo" ancho={false}>Nuevo lote</EnlaceBoton> : null}
       />
-      <FilaDesplazable className="mb-3">
-        {PESTANAS.map((t) => (
-          <Link
-            key={t.valor}
-            href={t.valor === "resumen" ? "/carne" : `/carne?vista=${t.valor}`}
-            aria-current={vista === t.valor ? "page" : undefined}
-            className={`inline-flex min-h-10 shrink-0 items-center rounded-full px-4 text-sm font-semibold transition ${
-              vista === t.valor ? "bg-musgo text-sobre-musgo" : "bg-papel text-humo ring-1 ring-arena hover:text-tinta"
-            }`}
-          >
-            {t.etiqueta}
-          </Link>
-        ))}
-      </FilaDesplazable>
+      <PestanasTarjetas pestanas={armarPestanas("/carne", "resumen", PESTANAS)} actual={vista} />
 
       {vista === "resumen" ? <Resumen fincaId={finca.id} puedeEditar={puedeEditar} /> : null}
       {vista === "candidatos" ? <Candidatos fincaId={finca.id} /> : null}

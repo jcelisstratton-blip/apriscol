@@ -6,9 +6,11 @@ import { Aviso } from "@/components/Aviso";
 import { Boton, clasesBoton } from "@/components/Boton";
 import { Campo, CLASE_INPUT } from "@/components/Campo";
 import { Selector } from "@/components/Selector";
+import { SelectorTarjetas } from "@/components/SelectorTarjetas";
 import { crearPesaje, editarPesaje } from "@/app/(app)/carne/actions";
 import { ETIQUETA_PESAJE, TIPOS_PESAJE } from "@/lib/carne";
 import { textoCC, VALORES_CC } from "@/lib/empadronamiento";
+import { ESCENA_TIPO_PESAJE } from "@/lib/escenas-forms-b-carne";
 import type { Pesaje, TipoPesaje } from "@/lib/tipos";
 
 const coma = (n: number | null | undefined) => (n == null ? "" : String(n).replace(".", ","));
@@ -42,7 +44,7 @@ export function FormPeso({ animalId, hoy, pesaje, solicitud }: { animalId: strin
 
       <Campo etiqueta="Tipo de pesaje">
         {(id) => (
-          <Selector id={id} nombre="tipo" valor={tipo} onCambio={(v) => v && setTipo(v)} titulo="¿Qué pesaje es?" opciones={TIPOS_PESAJE.map((t) => ({ valor: t, etiqueta: ETIQUETA_PESAJE[t] }))} />
+          <SelectorTarjetas id={id} nombre="tipo" valor={tipo} onCambio={(v) => v && setTipo(v)} titulo="¿Qué pesaje es?" opciones={TIPOS_PESAJE.map((t) => ({ valor: t, etiqueta: ETIQUETA_PESAJE[t], escena: ESCENA_TIPO_PESAJE[t] }))} />
         )}
       </Campo>
 

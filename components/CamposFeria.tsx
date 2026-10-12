@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { Campo, CLASE_INPUT } from "@/components/Campo";
 import { CamposUbicacion } from "@/components/CamposUbicacion";
-import { Selector } from "@/components/Selector";
+import { SelectorTarjetas } from "@/components/SelectorTarjetas";
+import { ESCENA_NIVEL_FERIA } from "@/lib/escenas-forms-b-ferias";
 import { ETIQUETA_NIVEL } from "@/lib/ferias";
 import type { NivelFeria } from "@/lib/tipos";
 
@@ -33,13 +34,13 @@ export function CamposFeria({ feria }: { feria?: DatosFeria }) {
 
       <Campo etiqueta="Alcance">
         {(id) => (
-          <Selector
+          <SelectorTarjetas
             id={id}
             nombre="nivel"
             valor={nivel}
             onCambio={(v) => v && setNivel(v)}
             titulo="Alcance de la feria"
-            opciones={(Object.keys(ETIQUETA_NIVEL) as NivelFeria[]).map((n) => ({ valor: n, etiqueta: ETIQUETA_NIVEL[n], detalle: DETALLE_NIVEL[n] }))}
+            opciones={(Object.keys(ETIQUETA_NIVEL) as NivelFeria[]).map((n) => ({ valor: n, etiqueta: ETIQUETA_NIVEL[n], detalle: DETALLE_NIVEL[n], escena: ESCENA_NIVEL_FERIA[n] }))}
           />
         )}
       </Campo>

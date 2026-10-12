@@ -6,9 +6,11 @@ import { Plus, Trash2 } from "lucide-react";
 import { Aviso } from "@/components/Aviso";
 import { Boton, clasesBoton } from "@/components/Boton";
 import { Campo, CLASE_INPUT } from "@/components/Campo";
-import { Selector } from "@/components/Selector";
+import { SelectorTarjetas } from "@/components/SelectorTarjetas";
 import { crearParto, editarParto } from "@/app/(app)/reproduccion/actions";
 import { formatoFecha } from "@/lib/fechas";
+import { ESCENA_TIPO_PARTO } from "@/lib/escenas-forms-b-reproduccion";
+import { ESCENA_SEXO } from "@/lib/escenas-forms-b-hato";
 import { ETIQUETA_PARTO, MAX_CRIAS, TIPOS_PARTO } from "@/lib/reproduccion";
 import type { Cria, Parto, TipoParto } from "@/lib/tipos";
 
@@ -72,7 +74,7 @@ export function FormParto({
       </Campo>
 
       <Campo etiqueta="¿Qué pasó?">
-        {(id) => <Selector id={id} nombre="tipo" valor={tipo} onCambio={(v) => v && setTipo(v)} titulo="¿Qué pasó?" opciones={TIPOS_PARTO.map((t) => ({ valor: t, etiqueta: ETIQUETA_PARTO[t] }))} />}
+        {(id) => <SelectorTarjetas id={id} nombre="tipo" valor={tipo} onCambio={(v) => v && setTipo(v)} titulo="¿Qué pasó?" opciones={TIPOS_PARTO.map((t) => ({ valor: t, etiqueta: ETIQUETA_PARTO[t], escena: ESCENA_TIPO_PARTO[t] }))} />}
       </Campo>
 
       {!editando && !esAborto ? (
@@ -90,7 +92,7 @@ export function FormParto({
               </div>
               <Campo etiqueta="Sexo">
                 {(id) => (
-                  <Selector id={id} valor={x.sexo} onCambio={(v) => cambiar(i, { sexo: v as Fila["sexo"] })} titulo="Sexo de la cría" placeholder="Elegir…" opciones={[{ valor: "hembra", etiqueta: "Hembra" }, { valor: "macho", etiqueta: "Macho" }]} />
+                  <SelectorTarjetas id={id} valor={x.sexo} onCambio={(v) => cambiar(i, { sexo: v as Fila["sexo"] })} titulo="Sexo de la cría" opciones={[{ valor: "hembra", etiqueta: "Hembra", escena: ESCENA_SEXO.hembra }, { valor: "macho", etiqueta: "Macho", escena: ESCENA_SEXO.macho }]} />
                 )}
               </Campo>
               <label className="flex min-h-11 items-center gap-3 text-[0.9375rem]">

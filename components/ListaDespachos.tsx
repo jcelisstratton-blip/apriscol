@@ -5,7 +5,8 @@ import Link from "next/link";
 import { Pencil, Truck } from "lucide-react";
 import { CampoBusqueda } from "@/components/CampoBusqueda";
 import { EstadoVacio } from "@/components/EstadoVacio";
-import { Chip, FilaDesplazable } from "@/components/FilaDesplazable";
+import { FilaTarjetas, TarjetaOpcion } from "@/components/TarjetaOpcion";
+import { ESCENA_DESTINO_LECHE, ESCENA_TODOS_DESTINOS } from "@/lib/escenas-listas-leche";
 import { Insignia } from "@/components/Insignia";
 import { ListaEscalable } from "@/components/ListaEscalable";
 import { controlesDe, agruparControles } from "@/lib/controles-datos";
@@ -47,12 +48,12 @@ export function ListaDespachos({ fincaId, puedeEditar }: { fincaId: string; pued
   return (
     <div className="space-y-3">
       <CampoBusqueda onBuscar={alBuscar} placeholder="Buscar comprador, guía o tanque" />
-      <FilaDesplazable>
-        <Chip activo={destino === "todos"} onClick={() => setDestino("todos")}>Todos</Chip>
+      <FilaTarjetas etiqueta="Destino de la leche">
+        <TarjetaOpcion escena={ESCENA_TODOS_DESTINOS} titulo="Todos" activo={destino === "todos"} onClick={() => setDestino("todos")} />
         {DESTINOS_LECHE.map((d) => (
-          <Chip key={d} activo={destino === d} onClick={() => setDestino(d)}>{ETIQUETA_DESTINO[d]}</Chip>
+          <TarjetaOpcion key={d} escena={ESCENA_DESTINO_LECHE[d]} titulo={ETIQUETA_DESTINO[d]} activo={destino === d} onClick={() => setDestino(d)} />
         ))}
-      </FilaDesplazable>
+      </FilaTarjetas>
       <ListaEscalable<FilaDespacho>
         rejilla="grid-cols-1 lg:grid-cols-2"
         key={`${busqueda}|${destino}`}

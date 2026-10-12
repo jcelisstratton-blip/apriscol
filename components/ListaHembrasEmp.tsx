@@ -3,7 +3,8 @@
 import { useCallback, useState } from "react";
 import Link from "next/link";
 import { CampoBusqueda } from "@/components/CampoBusqueda";
-import { Chip, FilaDesplazable } from "@/components/FilaDesplazable";
+import { FilaTarjetas, TarjetaOpcion } from "@/components/TarjetaOpcion";
+import { ESCENA_TODOS_SEMENTALES, escenaSemental } from "@/lib/escenas-listas-genealogia";
 import { Insignia } from "@/components/Insignia";
 import { ListaPorTramos } from "@/components/ListaPorTramos";
 import { NivelEndogamia } from "@/components/NivelEndogamia";
@@ -12,6 +13,8 @@ import { porcentaje } from "@/lib/endogamia";
 import { ETIQUETA_ESTADO, TONO_ESTADO, plazoParto } from "@/lib/reproduccion";
 import { formatoFecha } from "@/lib/fechas";
 import type { EstadoRepro } from "@/lib/tipos";
+
+const textoHembras = (n: number) => `${n} ${n === 1 ? "hembra" : "hembras"}`;
 
 export type FilaHembraEmp = {
   hembraId: string;
@@ -54,12 +57,12 @@ export function ListaHembrasEmp({
     <div className="space-y-3">
       {filas.length > 8 ? <CampoBusqueda onBuscar={alBuscar} placeholder="Buscar por arete o nombre" /> : null}
       {machos.length > 1 ? (
-        <FilaDesplazable>
-          <Chip activo={macho === "todos"} onClick={() => setMacho("todos")}>Todos</Chip>
-          {machos.map((m) => (
-            <Chip key={m.id} activo={macho === m.id} onClick={() => setMacho(m.id)}>{m.etiqueta}</Chip>
+        <FilaTarjetas etiqueta="Semental">
+          <TarjetaOpcion escena={ESCENA_TODOS_SEMENTALES} titulo="Todos" dato={textoHembras(filas.length)} activo={macho === "todos"} onClick={() => setMacho("todos")} />
+          {machos.map((m, i) => (
+            <TarjetaOpcion key={m.id} escena={escenaSemental(i)} titulo={m.etiqueta} dato={textoHembras(filas.filter((f) => f.machoId === m.id).length)} activo={macho === m.id} onClick={() => setMacho(m.id)} />
           ))}
-        </FilaDesplazable>
+        </FilaTarjetas>
       ) : null}
       {visibles.length === 0 ? (
         <p className="py-4 text-center text-[0.9375rem] text-humo">{filas.length === 0 ? "Todavía no hay hembras en esta temporada." : "Ninguna coincide."}</p>

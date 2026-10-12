@@ -1,8 +1,9 @@
 "use client";
 
 import { CamposSementalExterno } from "@/components/CamposSementalExterno";
-import { Segmentado } from "@/components/Segmentado";
 import { SelectorAnimal } from "@/components/SelectorAnimal";
+import { SelectorTarjetas } from "@/components/SelectorTarjetas";
+import { ESCENA_ORIGEN_SEMENTAL } from "@/lib/escenas-forms-b-reproduccion";
 import type { DatosExterno } from "@/lib/semental-externo";
 import type { Especie, Raza } from "@/lib/tipos";
 
@@ -45,19 +46,16 @@ export function OrigenYSemental({
     <div className="space-y-3">
       <div className="space-y-1.5">
         <p className="text-sm font-semibold">¿De dónde viene el semental?</p>
-        <Segmentado<OrigenSemental>
+        <SelectorTarjetas<OrigenSemental>
           nombre={nombreOrigen}
-          etiqueta="Origen del semental"
+          titulo="Origen del semental"
           valor={origen}
-          onCambio={onOrigen}
+          onCambio={(v) => v && onOrigen(v)}
           opciones={[
-            { valor: "propio", etiqueta: "Semental de mi hato" },
-            { valor: "externo", etiqueta: "Semental externo" },
+            { valor: "propio", etiqueta: "Semental de mi hato", detalle: "Eliges un macho que ya está en tu hato.", escena: ESCENA_ORIGEN_SEMENTAL.propio },
+            { valor: "externo", etiqueta: "Semental externo", detalle: "Lo presta otro hato. Te pedimos sus datos y los del préstamo.", escena: ESCENA_ORIGEN_SEMENTAL.externo },
           ]}
         />
-        <p className="text-[0.8125rem] text-humo">
-          {origen === "propio" ? "Eliges un macho que ya está en tu hato." : "Externo: lo presta otro hato. Te pedimos sus datos y los del préstamo."}
-        </p>
       </div>
       {origen === "propio" ? (
         <SelectorAnimal key={especie} nombre={nombreMacho ?? "semental"} fincaId={fincaId} sexo="macho" especie={especie} titulo="Elegir semental" valor={macho} onCambio={onMacho} vacio="Elegir un macho de tu hato" />

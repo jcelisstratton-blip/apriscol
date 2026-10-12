@@ -6,8 +6,10 @@ import { Aviso } from "@/components/Aviso";
 import { Boton, clasesBoton } from "@/components/Boton";
 import { Campo, CLASE_INPUT } from "@/components/Campo";
 import { Selector } from "@/components/Selector";
+import { SelectorTarjetas } from "@/components/SelectorTarjetas";
 import { editarMovimiento } from "@/app/(app)/hato/corrales/actions";
 import { ETIQUETA_MOTIVO, ETIQUETA_TIPO_UBICACION, ETIQUETA_USO, MOTIVOS, textoOcupacion } from "@/lib/corrales";
+import { ESCENA_MOTIVO } from "@/lib/escenas-corrales";
 import { formatoFecha } from "@/lib/fechas";
 import type { MotivoMovimiento } from "@/lib/tipos";
 import type { UbicacionOpcion } from "@/components/FormMover";
@@ -62,14 +64,12 @@ export function FormMovimiento({ movimiento, ubicaciones, hoy, volver, volverA }
         </Aviso>
       ) : null}
 
-      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-        <Campo etiqueta="Entró el" ayuda={movimiento.hasta ? `Salió el ${formatoFecha(movimiento.hasta)}.` : "Sigue ahí."}>
-          {(id) => <input id={id} name="desde" type="date" defaultValue={movimiento.desde} max={movimiento.hasta ?? hoy} required className={CLASE_INPUT} />}
-        </Campo>
-        <Campo etiqueta="Motivo">
-          {(id) => <Selector id={id} nombre="motivo" valor={motivo} onCambio={(v) => v && setMotivo(v)} titulo="Motivo" opciones={MOTIVOS.map((m) => ({ valor: m, etiqueta: ETIQUETA_MOTIVO[m] }))} />}
-        </Campo>
-      </div>
+      <Campo etiqueta="Entró el" ayuda={movimiento.hasta ? `Salió el ${formatoFecha(movimiento.hasta)}.` : "Sigue ahí."}>
+        {(id) => <input id={id} name="desde" type="date" defaultValue={movimiento.desde} max={movimiento.hasta ?? hoy} required className={`${CLASE_INPUT} sm:max-w-xs`} />}
+      </Campo>
+      <Campo etiqueta="Motivo">
+        {(id) => <SelectorTarjetas id={id} nombre="motivo" valor={motivo} onCambio={(v) => v && setMotivo(v)} titulo="Motivo" opciones={MOTIVOS.map((m) => ({ valor: m, etiqueta: ETIQUETA_MOTIVO[m], escena: ESCENA_MOTIVO[m] }))} />}
+      </Campo>
 
       <Campo etiqueta="Observaciones" ayuda="Opcional.">
         {(id) => <textarea id={id} name="observaciones" defaultValue={movimiento.observaciones ?? ""} rows={2} maxLength={300} className={`${CLASE_INPUT} py-3`} />}

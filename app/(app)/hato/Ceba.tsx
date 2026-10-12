@@ -1,4 +1,6 @@
+import { AyudaModulo } from "@/components/AyudaModulo";
 import { CebaPesar, type AnimalCeba } from "@/components/CebaPesar";
+import { AYUDA_CEBA } from "@/lib/ayuda";
 import { crearClienteServidor } from "@/lib/supabase/server";
 import { animalesPorIds } from "@/lib/animal-etiquetas";
 import { etiquetaAnimal } from "@/lib/animal";
@@ -58,5 +60,10 @@ export async function Ceba({
     };
   });
 
-  return <CebaPesar animales={animales} lotes={lotes} hoy={hoy} puedeEditar={puedeEditar} />;
+  return (
+    <div className="space-y-3">
+      <AyudaModulo ayuda={AYUDA_CEBA} />
+      <CebaPesar animales={animales} lotes={lotes} hoy={hoy} puedeEditar={puedeEditar} />
+    </div>
+  );
 }

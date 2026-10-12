@@ -2,12 +2,12 @@ import Link from "next/link";
 import { CalendarClock, ChevronRight, SearchX, Syringe } from "lucide-react";
 import { AvisoFamacha } from "@/components/AvisoFamacha";
 import { EstadoVacio } from "@/components/EstadoVacio";
-import { FilaDesplazable } from "@/components/FilaDesplazable";
-import { ChipEnlace } from "@/components/ChipEnlace";
+import { FilaTarjetas, TarjetaOpcion } from "@/components/TarjetaOpcion";
 import { IconoEvento } from "@/components/IconoEvento";
 import { Insignia } from "@/components/Insignia";
 import { Tarjeta } from "@/components/Tarjeta";
 import { crearClienteServidor } from "@/lib/supabase/server";
+import { ESCENA_EVENTO, ESCENA_TODOS_TIPOS } from "@/lib/escenas-sanidad";
 import { estadoFamacha } from "@/lib/famacha";
 import { animalesPorIds } from "@/lib/animal-etiquetas";
 import { etiquetaAnimal } from "@/lib/animal";
@@ -128,16 +128,12 @@ export async function Resumen({
 
   return (
     <div className="space-y-4">
-      <FilaDesplazable>
-        <ChipEnlace href={direccion(filtros, { tipo: "todos" })} activo={filtros.tipo === "todos"}>
-          Todos los tipos
-        </ChipEnlace>
+      <FilaTarjetas etiqueta="Tipo de tratamiento">
+        <TarjetaOpcion escena={ESCENA_TODOS_TIPOS} titulo="Todos los tipos" href={direccion(filtros, { tipo: "todos" })} activo={filtros.tipo === "todos"} />
         {TIPOS_EVENTO.map((t) => (
-          <ChipEnlace key={t} href={direccion(filtros, { tipo: t })} activo={filtros.tipo === t}>
-            {ETIQUETA_EVENTO[t]}
-          </ChipEnlace>
+          <TarjetaOpcion key={t} escena={ESCENA_EVENTO[t]} titulo={ETIQUETA_EVENTO[t]} href={direccion(filtros, { tipo: t })} activo={filtros.tipo === t} />
         ))}
-      </FilaDesplazable>
+      </FilaTarjetas>
 
       {sinNada ? (
         hayRango || hayTipo ? (

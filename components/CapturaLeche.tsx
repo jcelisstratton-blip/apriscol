@@ -7,6 +7,9 @@ import { Aviso } from "@/components/Aviso";
 import { Boton } from "@/components/Boton";
 import { CampoBusqueda } from "@/components/CampoBusqueda";
 import { Chip, FilaDesplazable } from "@/components/FilaDesplazable";
+import { FilaTarjetas, TarjetaOpcion } from "@/components/TarjetaOpcion";
+import { ESCENA_VISTA_CAPTURA } from "@/lib/escenas-listas-leche";
+import { textoAnimales } from "@/lib/hato";
 import { Insignia } from "@/components/Insignia";
 import { ListaPorTramos } from "@/components/ListaPorTramos";
 import { Segmentado } from "@/components/Segmentado";
@@ -255,10 +258,10 @@ export function CapturaLeche({
             </p>
           ) : null
         ) : (
-          <FilaDesplazable>
-            <Chip activo={vista === "pendientes"} onClick={() => setVista("pendientes")}>Pendientes · {pendientes.length}</Chip>
-            <Chip activo={vista === "hechas"} onClick={() => setVista("hechas")}>Registradas · {hechas.length}</Chip>
-          </FilaDesplazable>
+          <FilaTarjetas etiqueta="Pendientes o registradas">
+            <TarjetaOpcion escena={ESCENA_VISTA_CAPTURA.pendientes} titulo="Pendientes" dato={textoAnimales(pendientes.length)} activo={vista === "pendientes"} onClick={() => setVista("pendientes")} />
+            <TarjetaOpcion escena={ESCENA_VISTA_CAPTURA.hechas} titulo="Registradas" dato={textoAnimales(hechas.length)} activo={vista === "hechas"} onClick={() => setVista("hechas")} />
+          </FilaTarjetas>
         )}
 
         {errorCarga ? <Aviso tipo="error">{errorCarga}</Aviso> : null}

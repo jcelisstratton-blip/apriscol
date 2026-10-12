@@ -1,8 +1,7 @@
 import Link from "next/link";
 import { AlertTriangle, ArrowRightLeft, Fence, SearchX } from "lucide-react";
-import { ChipEnlace } from "@/components/ChipEnlace";
 import { EstadoVacio } from "@/components/EstadoVacio";
-import { FilaDesplazable } from "@/components/FilaDesplazable";
+import { FilaTarjetas, TarjetaOpcion } from "@/components/TarjetaOpcion";
 import { Insignia } from "@/components/Insignia";
 import { Tarjeta } from "@/components/Tarjeta";
 import { TarjetaUbicacion } from "@/components/TarjetaUbicacion";
@@ -10,6 +9,7 @@ import { crearClienteServidor } from "@/lib/supabase/server";
 import { animalesPorIds } from "@/lib/animal-etiquetas";
 import { etiquetaAnimal } from "@/lib/animal";
 import { ETIQUETA_MOTIVO, MOTIVOS, estadoCuarentena } from "@/lib/corrales";
+import { ESCENA_MOTIVO, ESCENA_TODOS_MOTIVOS } from "@/lib/escenas-corrales";
 import { hoyBogota } from "@/lib/fechas";
 import { rangoPeriodo, type Periodo } from "@/lib/periodos";
 import type { CuarentenaAlerta, MotivoMovimiento, UbicacionVista } from "@/lib/tipos";
@@ -89,16 +89,12 @@ export async function Resumen({
 
   return (
     <div className="space-y-4">
-      <FilaDesplazable>
-        <ChipEnlace href={direccion(filtros, { motivo: "todos" })} activo={filtros.motivo === "todos"}>
-          Todos los motivos
-        </ChipEnlace>
+      <FilaTarjetas etiqueta="Motivo del movimiento">
+        <TarjetaOpcion escena={ESCENA_TODOS_MOTIVOS} titulo="Todos los motivos" href={direccion(filtros, { motivo: "todos" })} activo={filtros.motivo === "todos"} />
         {MOTIVOS.map((m) => (
-          <ChipEnlace key={m} href={direccion(filtros, { motivo: m })} activo={filtros.motivo === m}>
-            {ETIQUETA_MOTIVO[m]}
-          </ChipEnlace>
+          <TarjetaOpcion key={m} escena={ESCENA_MOTIVO[m]} titulo={ETIQUETA_MOTIVO[m]} href={direccion(filtros, { motivo: m })} activo={filtros.motivo === m} />
         ))}
-      </FilaDesplazable>
+      </FilaTarjetas>
 
       {sinNada ? (
         hayRango || hayMotivo ? (

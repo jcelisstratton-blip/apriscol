@@ -6,8 +6,8 @@ import { Aviso } from "@/components/Aviso";
 import { Boton, clasesBoton } from "@/components/Boton";
 import { Campo, CLASE_INPUT } from "@/components/Campo";
 import { CampoNumeroHembras } from "@/components/CampoNumeroHembras";
-import { Segmentado } from "@/components/Segmentado";
 import { Selector } from "@/components/Selector";
+import { SelectorTarjetas } from "@/components/SelectorTarjetas";
 import { OrigenYSemental, type OrigenSemental } from "@/components/OrigenYSemental";
 import { X } from "lucide-react";
 import { Insignia } from "@/components/Insignia";
@@ -15,6 +15,7 @@ import { SeleccionHembrasEmp, type FuenteHembras, type SeleccionEmp } from "@/co
 import { crearEmpadronamiento, editarEmpadronamiento } from "@/app/(app)/reproduccion/empadronamiento/actions";
 import { crearClienteNavegador } from "@/lib/supabase/client";
 import { etiquetaAnimal } from "@/lib/animal";
+import { ESCENA_ESPECIE } from "@/lib/escenas-forms-b-hato";
 import { datosExternoVacios, etiquetaExterno, faltantesExterno, type DatosExterno } from "@/lib/semental-externo";
 import { capacidadSemental, CRITERIOS_POR_DEFECTO, DURACION_DEFECTO_DIAS, DURACION_MAX_DIAS, leerNumeroHembras, mesesDesde, textoCC, VALORES_CC } from "@/lib/empadronamiento";
 import { diasHasta, formatoFecha, sumarDias } from "@/lib/fechas";
@@ -181,7 +182,7 @@ export function FormEmpadronamiento({
               <p className="text-[0.8125rem] text-humo">La especie no cambia: los sementales y las hembras ya son de ella.</p>
             </>
           ) : (
-            <Segmentado<Especie> nombre="especie" etiqueta="Especie" valor={especie} onCambio={cambiarEspecie} opciones={especies.map((e) => ({ valor: e, etiqueta: e === "caprino" ? "Cabras" : "Ovejas" }))} />
+            <SelectorTarjetas<Especie> nombre="especie" titulo="Especie" valor={especie} onCambio={(v) => v && cambiarEspecie(v)} opciones={especies.map((e) => ({ valor: e, etiqueta: e === "caprino" ? "Cabras" : "Ovejas", escena: ESCENA_ESPECIE[e] }))} />
           )}
         </div>
       ) : (

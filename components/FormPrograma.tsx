@@ -6,9 +6,12 @@ import { Aviso } from "@/components/Aviso";
 import { Boton, clasesBoton } from "@/components/Boton";
 import { Campo, CLASE_INPUT } from "@/components/Campo";
 import { Selector } from "@/components/Selector";
+import { SelectorTarjetas } from "@/components/SelectorTarjetas";
 import { SelectorAnimales, type AnimalElegido } from "@/components/SelectorAnimales";
 import { editarPrograma, programarSanidad } from "@/app/(app)/sanidad/actions";
 import { sumarDias } from "@/lib/fechas";
+import { ESCENA_EVENTO } from "@/lib/escenas-sanidad";
+import { ESCENA_VIA } from "@/lib/escenas-forms-a-sanidad";
 import { ETIQUETA_EVENTO, ETIQUETA_PRODUCTO, ETIQUETA_VIA, EVENTO_CON_PRODUCTO, EVENTO_DE_PRODUCTO, TIPOS_PROGRAMABLES, UNIDADES_DOSIS, VIAS, textoRetiro } from "@/lib/sanidad";
 import type { Especie, ProductoVeterinario, TipoEvento, ViaAplicacion } from "@/lib/tipos";
 
@@ -102,13 +105,13 @@ export function FormPrograma({
 
       <Campo etiqueta="¿Qué se va a aplicar?">
         {(id) => (
-          <Selector
+          <SelectorTarjetas
             id={id}
             nombre="tipo"
             valor={tipo}
             onCambio={(v) => v && setTipo(v)}
             titulo="¿Qué se va a aplicar?"
-            opciones={TIPOS_PROGRAMABLES.map((t) => ({ valor: t, etiqueta: ETIQUETA_EVENTO[t] }))}
+            opciones={TIPOS_PROGRAMABLES.map((t) => ({ valor: t, etiqueta: ETIQUETA_EVENTO[t], escena: ESCENA_EVENTO[t] }))}
           />
         )}
       </Campo>
@@ -184,7 +187,7 @@ export function FormPrograma({
           </div>
           <Campo etiqueta="Vía">
             {(id) => (
-              <Selector id={id} nombre="via" valor={via} onCambio={(v) => setVia(v as ViaAplicacion | "")} titulo="¿Por dónde se aplica?" placeholder="Sin especificar" permitirVacio opciones={VIAS.map((v) => ({ valor: v, etiqueta: ETIQUETA_VIA[v] }))} />
+              <SelectorTarjetas id={id} nombre="via" valor={via} onCambio={(v) => setVia(v as ViaAplicacion | "")} titulo="¿Por dónde se aplica?" permitirVacio opciones={VIAS.map((v) => ({ valor: v, etiqueta: ETIQUETA_VIA[v], escena: ESCENA_VIA[v] }))} />
             )}
           </Campo>
         </div>

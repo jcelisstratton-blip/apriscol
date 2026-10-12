@@ -6,7 +6,8 @@ import { ChevronRight, Pill } from "lucide-react";
 import { CampoBusqueda } from "@/components/CampoBusqueda";
 import { EnlaceBoton } from "@/components/Boton";
 import { EstadoVacio } from "@/components/EstadoVacio";
-import { Chip, FilaDesplazable } from "@/components/FilaDesplazable";
+import { FilaTarjetas, TarjetaOpcion } from "@/components/TarjetaOpcion";
+import { ESCENA_PRODUCTO, ESCENA_TODOS_PRODUCTOS } from "@/lib/escenas-listas-sanidad";
 import { Insignia } from "@/components/Insignia";
 import { ListaEscalable } from "@/components/ListaEscalable";
 import { crearClienteNavegador } from "@/lib/supabase/client";
@@ -37,14 +38,12 @@ export function ListaProductos({ fincaId, puedeEditar }: { fincaId: string; pued
   return (
     <div className="space-y-3">
       <CampoBusqueda onBuscar={alBuscar} placeholder="Buscar producto" />
-      <FilaDesplazable>
-        <Chip activo={tipo === "todos"} onClick={() => setTipo("todos")}>Todos</Chip>
+      <FilaTarjetas etiqueta="Tipo de producto">
+        <TarjetaOpcion escena={ESCENA_TODOS_PRODUCTOS} titulo="Todos" activo={tipo === "todos"} onClick={() => setTipo("todos")} />
         {TIPOS_PRODUCTO.map((t) => (
-          <Chip key={t} activo={tipo === t} onClick={() => setTipo(t)}>
-            {ETIQUETA_PRODUCTO[t]}
-          </Chip>
+          <TarjetaOpcion key={t} escena={ESCENA_PRODUCTO[t]} titulo={ETIQUETA_PRODUCTO[t]} activo={tipo === t} onClick={() => setTipo(t)} />
         ))}
-      </FilaDesplazable>
+      </FilaTarjetas>
       <ListaEscalable<ProductoVeterinario>
         rejilla="grid-cols-1 lg:grid-cols-2"
         key={`${busqueda}|${tipo}`}

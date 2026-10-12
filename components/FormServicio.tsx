@@ -5,10 +5,11 @@ import Link from "next/link";
 import { Aviso } from "@/components/Aviso";
 import { Boton, clasesBoton } from "@/components/Boton";
 import { Campo, CLASE_INPUT } from "@/components/Campo";
-import { Selector } from "@/components/Selector";
 import { SelectorAnimal } from "@/components/SelectorAnimal";
+import { SelectorTarjetas } from "@/components/SelectorTarjetas";
 import { crearServicio, editarServicio } from "@/app/(app)/reproduccion/actions";
 import { formatoFecha, sumarDias } from "@/lib/fechas";
+import { ESCENA_TIPO_SERVICIO } from "@/lib/escenas-forms-b-reproduccion";
 import { ETIQUETA_SERVICIO, TIPOS_SERVICIO } from "@/lib/reproduccion";
 import type { Especie, Servicio, TipoServicio } from "@/lib/tipos";
 
@@ -59,7 +60,7 @@ export function FormServicio({
       </Campo>
 
       <Campo etiqueta="Tipo de servicio">
-        {(id) => <Selector id={id} nombre="tipo" valor={tipo} onCambio={(v) => v && setTipo(v)} titulo="¿Cómo fue el servicio?" opciones={TIPOS_SERVICIO.map((t) => ({ valor: t, etiqueta: ETIQUETA_SERVICIO[t] }))} />}
+        {(id) => <SelectorTarjetas id={id} nombre="tipo" valor={tipo} onCambio={(v) => v && setTipo(v)} titulo="¿Cómo fue el servicio?" opciones={TIPOS_SERVICIO.map((t) => ({ valor: t, etiqueta: ETIQUETA_SERVICIO[t], escena: ESCENA_TIPO_SERVICIO[t] }))} />}
       </Campo>
 
       <div className="space-y-3">

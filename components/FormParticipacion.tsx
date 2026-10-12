@@ -8,7 +8,9 @@ import { Campo, CLASE_INPUT } from "@/components/Campo";
 import { CamposFeria } from "@/components/CamposFeria";
 import { FotoPremio } from "@/components/FotoPremio";
 import { Selector } from "@/components/Selector";
+import { SelectorTarjetas } from "@/components/SelectorTarjetas";
 import { crearParticipacion, editarParticipacion } from "@/app/(app)/ferias/actions";
+import { ESCENA_RESULTADO_FERIA } from "@/lib/escenas-forms-b-ferias";
 import { ETIQUETA_RESULTADO, RESULTADOS } from "@/lib/ferias";
 import { formatoFecha } from "@/lib/fechas";
 import type { ResultadoFeria } from "@/lib/tipos";
@@ -74,13 +76,13 @@ export function FormParticipacion({
 
       <Campo etiqueta="Resultado">
         {(id) => (
-          <Selector
+          <SelectorTarjetas
             id={id}
             nombre="resultado"
             valor={resultado}
             onCambio={(v) => v && setResultado(v)}
             titulo="Resultado del jurado"
-            opciones={RESULTADOS.map((r) => ({ valor: r, etiqueta: ETIQUETA_RESULTADO[r] }))}
+            opciones={RESULTADOS.map((r) => ({ valor: r, etiqueta: ETIQUETA_RESULTADO[r], escena: ESCENA_RESULTADO_FERIA[r] }))}
           />
         )}
       </Campo>

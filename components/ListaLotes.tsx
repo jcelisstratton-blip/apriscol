@@ -5,7 +5,8 @@ import Link from "next/link";
 import { ChevronRight, Layers } from "lucide-react";
 import { EnlaceBoton } from "@/components/Boton";
 import { EstadoVacio } from "@/components/EstadoVacio";
-import { Chip, FilaDesplazable } from "@/components/FilaDesplazable";
+import { FilaTarjetas, TarjetaOpcion } from "@/components/TarjetaOpcion";
+import { ESCENA_ESTADO_LOTE } from "@/lib/escenas-listas-carne";
 import { Insignia } from "@/components/Insignia";
 import { ListaPorTramos } from "@/components/ListaPorTramos";
 import { avanceMeta, conversion, gdp, kg, textoConversion } from "@/lib/carne";
@@ -44,10 +45,10 @@ export function ListaLotes({ lotes, puedeEditar }: { lotes: FilaLote[]; puedeEdi
 
   return (
     <div className="space-y-3">
-      <FilaDesplazable>
-        <Chip activo={filtro === "abiertos"} onClick={() => setFiltro("abiertos")}>{`Abiertos (${abiertos.length})`}</Chip>
-        <Chip activo={filtro === "cerrados"} onClick={() => setFiltro("cerrados")}>{`Cerrados (${cerrados.length})`}</Chip>
-      </FilaDesplazable>
+      <FilaTarjetas etiqueta="Estado del lote">
+        <TarjetaOpcion escena={ESCENA_ESTADO_LOTE.abiertos} titulo="Abiertos" dato={`${abiertos.length} ${abiertos.length === 1 ? "lote" : "lotes"}`} activo={filtro === "abiertos"} onClick={() => setFiltro("abiertos")} />
+        <TarjetaOpcion escena={ESCENA_ESTADO_LOTE.cerrados} titulo="Cerrados" dato={`${cerrados.length} ${cerrados.length === 1 ? "lote" : "lotes"}`} activo={filtro === "cerrados"} onClick={() => setFiltro("cerrados")} />
+      </FilaTarjetas>
       {visibles.length === 0 ? (
         <p className="py-6 text-center text-[0.9375rem] text-humo">{filtro === "abiertos" ? "No tienes lotes abiertos." : "Todavía no has cerrado ningún lote."}</p>
       ) : (

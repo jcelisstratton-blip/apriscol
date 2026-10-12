@@ -5,7 +5,8 @@ import { Trophy } from "lucide-react";
 import { CampoBusqueda } from "@/components/CampoBusqueda";
 import { EnlaceBoton } from "@/components/Boton";
 import { EstadoVacio } from "@/components/EstadoVacio";
-import { Chip, FilaDesplazable } from "@/components/FilaDesplazable";
+import { FilaTarjetas, TarjetaOpcion } from "@/components/TarjetaOpcion";
+import { ESCENA_FILTRO_PREMIOS } from "@/lib/escenas-listas-premios";
 import { FilaParticipacion, type DatosParticipacion } from "@/components/FilaParticipacion";
 import { ListaEscalable } from "@/components/ListaEscalable";
 import { crearClienteNavegador } from "@/lib/supabase/client";
@@ -97,13 +98,11 @@ export function ListaPremios({ fincaId, puedeEditar }: { fincaId: string; puedeE
   return (
     <div className="space-y-3">
       <CampoBusqueda onBuscar={alBuscar} placeholder="Buscar animal, feria o premio" />
-      <FilaDesplazable>
+      <FilaTarjetas etiqueta="Tipo de participación">
         {FILTROS.map((f) => (
-          <Chip key={f.valor} activo={filtro === f.valor} onClick={() => setFiltro(f.valor)}>
-            {f.etiqueta}
-          </Chip>
+          <TarjetaOpcion key={f.valor} escena={ESCENA_FILTRO_PREMIOS[f.valor]} titulo={f.etiqueta} activo={filtro === f.valor} onClick={() => setFiltro(f.valor)} />
         ))}
-      </FilaDesplazable>
+      </FilaTarjetas>
       <ListaEscalable<FilaPremio>
         rejilla="grid-cols-1 lg:grid-cols-2"
         key={`${busqueda}|${filtro}`}

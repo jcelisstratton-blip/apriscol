@@ -4,10 +4,12 @@ import { ChipEnlace } from "@/components/ChipEnlace";
 import { EstadoVacio } from "@/components/EstadoVacio";
 import { FilaDesplazable } from "@/components/FilaDesplazable";
 import { Insignia } from "@/components/Insignia";
+import { FilaTarjetas, TarjetaOpcion } from "@/components/TarjetaOpcion";
 import { NivelEndogamia } from "@/components/NivelEndogamia";
 import { crearClienteServidor } from "@/lib/supabase/server";
 import { animalesPorIds } from "@/lib/animal-etiquetas";
 import { etiquetaAnimal } from "@/lib/animal";
+import { ESCENA_ESTADO_EMP } from "@/lib/escenas-repro";
 import { etiquetaExterno } from "@/lib/semental-externo";
 import { avanceEmp, PERIODOS_EMP, rangoPeriodo, type PeriodoEmp } from "@/lib/empadronamiento";
 import { formatoFecha, hoyBogota } from "@/lib/fechas";
@@ -17,10 +19,10 @@ import type { EmpadronamientoHembra } from "@/lib/tipos";
 export type EstadoFiltroEmp = "todas" | "abiertas" | "cerradas";
 export type FiltrosEmp = { estado: EstadoFiltroEmp; periodo: PeriodoEmp; desde?: string; hasta?: string };
 
-const ESTADOS: { valor: EstadoFiltroEmp; etiqueta: string }[] = [
-  { valor: "todas", etiqueta: "Todas" },
-  { valor: "abiertas", etiqueta: "Abiertas" },
-  { valor: "cerradas", etiqueta: "Cerradas" },
+const ESTADOS: { valor: EstadoFiltroEmp; etiqueta: string; detalle: string }[] = [
+  { valor: "todas", etiqueta: "Todas", detalle: "Todas las temporadas" },
+  { valor: "abiertas", etiqueta: "Abiertas", detalle: "En monta ahora" },
+  { valor: "cerradas", etiqueta: "Cerradas", detalle: "Ya terminaron" },
 ];
 const MAX_HEMBRAS_VISIBLES = 60;
 const MAX_TEMPORADAS = 100;
@@ -103,13 +105,11 @@ export async function ResumenEmpadronamientos({
   return (
     <div className="space-y-4">
       <div className="space-y-2">
-        <FilaDesplazable>
+        <FilaTarjetas etiqueta="Estado de la temporada">
           {ESTADOS.map((e) => (
-            <ChipEnlace key={e.valor} href={direccion(filtros, { estado: e.valor })} activo={filtros.estado === e.valor}>
-              {e.etiqueta}
-            </ChipEnlace>
+            <TarjetaOpcion key={e.valor} escena={ESCENA_ESTADO_EMP[e.valor]} titulo={e.etiqueta} detalle={e.detalle} href={direccion(filtros, { estado: e.valor })} activo={filtros.estado === e.valor} />
           ))}
-        </FilaDesplazable>
+        </FilaTarjetas>
         <FilaDesplazable>
           {PERIODOS_EMP.map((p) => (
             <ChipEnlace key={p.valor} href={direccion(filtros, { periodo: p.valor })} activo={filtros.periodo === p.valor}>

@@ -40,3 +40,37 @@ export const AYUDA_SANIDAD: Ayuda = {
   ],
   enlace: { href: "/sanidad", texto: "Ver el resumen de toda la finca" },
 };
+
+export const AYUDA_EMPADRONAMIENTO: Ayuda = {
+  titulo: "Temporada de monta",
+  puntos: [
+    { titulo: "Temporada", texto: "Reúne a los sementales y a las hembras que se montan en un periodo, con su fecha de inicio y de cierre prevista." },
+    { titulo: "Sementales", texto: "Cada semental tiene su número de hembras. Pueden ser tuyos o prestados de otro hato." },
+    { titulo: "Hembras libres", texto: "Solo entran hembras sin gestación, sin servicio esperando diagnóstico y fuera de otra temporada abierta." },
+    { titulo: "Endogamia", texto: "La app calcula la endogamia de cada pareja antes de confirmarla. Si llega al umbral, solo entra como excepción registrada." },
+    { titulo: "Cierre", texto: "Al cerrar la temporada cada hembra queda servida, y de ahí se sigue su gestación y su parto." },
+  ],
+  enlace: { href: "/reproduccion?vista=empadronamiento", texto: "Ver todas las temporadas" },
+};
+
+export const AYUDA_CEBA: Ayuda = {
+  titulo: "Ceba",
+  puntos: [
+    { titulo: "Candidatos", texto: "La app te sugiere a quién pasar a ceba según las reglas de tu finca; tú decides." },
+    { titulo: "Lotes", texto: "Agrupa los animales en engorde en lotes, cada uno con su meta de peso." },
+    { titulo: "Pesos", texto: "Pésalos seguido: la app calcula la ganancia por día y cuánto falta para la meta." },
+    { titulo: "Salida", texto: "Al sacrificar o vender un animal, registra su salida y su canal: así queda el rendimiento." },
+  ],
+  enlace: { href: "/carne", texto: "Ver el resumen de carne" },
+};
+
+export const AYUDA_ORDENO: Ayuda = {
+  titulo: "Ordeño",
+  puntos: [
+    { titulo: "Registrar", texto: "Anota los litros de cada animal en cada jornada; el total del día se suma solo." },
+    { titulo: "Turnos", texto: "Programa qué hembras se ordeñan y en qué turno, para que el registro salga rápido." },
+    { titulo: "Retiro", texto: "Si un animal está en retiro por un tratamiento, su leche se marca como descartada y no entra al tanque." },
+    { titulo: "Calidad", texto: "Guarda los análisis de la leche (grasa, proteína, células) de un animal o del tanque." },
+  ],
+  enlace: { href: "/leche", texto: "Ver la producción de la finca" },
+};

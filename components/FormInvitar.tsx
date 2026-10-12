@@ -5,9 +5,10 @@ import { Check, Copy, Share2, X } from "lucide-react";
 import { Aviso } from "@/components/Aviso";
 import { Boton } from "@/components/Boton";
 import { Campo, CLASE_INPUT } from "@/components/Campo";
-import { Selector } from "@/components/Selector";
+import { SelectorTarjetas } from "@/components/SelectorTarjetas";
 import { useToast } from "@/components/Toast";
 import { invitar, revocarInvitacion } from "@/app/(app)/mas/miembros/actions";
+import { ESCENA_ROL } from "@/lib/escenas-forms-a-hato";
 import { ETIQUETA_ROL } from "@/lib/permisos";
 import type { RolFinca } from "@/lib/tipos";
 
@@ -52,13 +53,13 @@ export function FormInvitar() {
       </Campo>
       <Campo etiqueta="Rol">
         {(id) => (
-          <Selector
+          <SelectorTarjetas
             id={id}
             nombre="rol"
             valor={rol}
             onCambio={setRol}
             titulo="¿Qué puede hacer?"
-            opciones={ROLES_INVITABLES.map((r) => ({ valor: r, etiqueta: ETIQUETA_ROL[r], detalle: DETALLE[r] }))}
+            opciones={ROLES_INVITABLES.map((r) => ({ valor: r, etiqueta: ETIQUETA_ROL[r], detalle: DETALLE[r], escena: ESCENA_ROL[r] }))}
           />
         )}
       </Campo>

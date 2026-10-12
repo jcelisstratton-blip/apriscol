@@ -1,13 +1,16 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Plus } from "lucide-react";
-import { ChipsHato } from "@/components/ChipsHato";
+import { AyudaModulo } from "@/components/AyudaModulo";
+import { TarjetasHato } from "@/components/TarjetasHato";
+import { AYUDA_ORDENO } from "@/lib/ayuda";
 import { Encabezado } from "@/components/Encabezado";
-import { ChipEnlace } from "@/components/ChipEnlace";
-import { FilaDesplazable } from "@/components/FilaDesplazable";
+import { FilaTarjetas, TarjetaOpcion } from "@/components/TarjetaOpcion";
+import { ESCENA_ORDENO } from "@/lib/escenas";
 import { obtenerContexto } from "@/lib/contexto";
 import { puedeEscribir, puedeGestionar, puedeVer } from "@/lib/permisos";
-import { DIRECCION_ORDENO, esFiltroHato, vistasHato } from "@/lib/hato";
+import { conteosHato, DIRECCION_ORDENO, esFiltroHato, vistasHato } from "@/lib/hato";
+import { crearClienteServidor } from "@/lib/supabase/server";
 import { Registrar } from "./Registrar";
 import { Ceba } from "./Ceba";
 import { Monta } from "./Monta";
@@ -36,6 +39,7 @@ export default async function PaginaHato({ searchParams }: { searchParams: Promi
   const enSanidad = sp.vista === "sanidad" && verSanidad;
   const verCorrales = puedeVer(rol, "corrales");
   const enCorrales = sp.vista === "corrales" && verCorrales;
+  const conteos = await conteosHato(await crearClienteServidor(), finca.id, finca.especies);
   const vistas = vistasHato({ leche: verLeche, carne: verCarne, repro: verRepro, sanidad: verSanidad, corrales: verCorrales });
   // Quien no puede escribir leche (veterinario, contador) no registra ordeños: ve el programa y la calidad, sin poder cambiarlos.
   const modo = sp.modo === "calidad" ? "calidad" : sp.modo === "programar" || !puedeRegistrar ? "programar" : "registrar";
@@ -59,41 +63,34 @@ export default async function PaginaHato({ searchParams }: { searchParams: Promi
 
       {enCeba ? (
         <div className="space-y-4">
-          <ChipsHato especies={finca.especies} vistas={vistas} activa="ceba" />
+          <TarjetasHato especies={finca.especies} vistas={vistas} conteos={conteos} vistaActiva="ceba" />
           <Ceba fincaId={finca.id} puedeEditar={puedeEscribir(rol, "carne")} />
         </div>
       ) : enMonta ? (
         <div className="space-y-4">
-          <ChipsHato especies={finca.especies} vistas={vistas} activa="empadronamiento" />
+          <TarjetasHato especies={finca.especies} vistas={vistas} conteos={conteos} vistaActiva="empadronamiento" />
           <Monta fincaId={finca.id} umbral={finca.umbral_endogamia} puedeEditar={puedeEscribir(rol, "reproduccion")} />
         </div>
       ) : enSanidad ? (
         <div className="space-y-4">
-          <ChipsHato especies={finca.especies} vistas={vistas} activa="sanidad" />
+          <TarjetasHato especies={finca.especies} vistas={vistas} conteos={conteos} vistaActiva="sanidad" />
           <Sanidad fincaId={finca.id} puedeEditar={puedeEscribir(rol, "sanidad")} guardado={sp.guardado === "1"} />
         </div>
       ) : enCorrales ? (
         <div className="space-y-4">
-          <ChipsHato especies={finca.especies} vistas={vistas} activa="corrales" />
+          <TarjetasHato especies={finca.especies} vistas={vistas} conteos={conteos} vistaActiva="corrales" />
           <Corrales fincaId={finca.id} puedeEditar={puedeEscribir(rol, "corrales")} guardado={sp.guardado === "1"} />
         </div>
       ) : enOrdeno ? (
         <div className="space-y-4">
-          <ChipsHato especies={finca.especies} vistas={vistas} activa="ordeno" />
+          <TarjetasHato especies={finca.especies} vistas={vistas} conteos={conteos} vistaActiva="ordeno" />
+          <AyudaModulo ayuda={AYUDA_ORDENO} />
 
-          <FilaDesplazable>
-            {puedeRegistrar ? (
-              <ChipEnlace href={DIRECCION_ORDENO} activo={modo === "registrar"}>
-                Registrar ordeño
-              </ChipEnlace>
-            ) : null}
-            <ChipEnlace href={`${DIRECCION_ORDENO}&modo=programar`} activo={modo === "programar"}>
-              Programar turnos
-            </ChipEnlace>
-            <ChipEnlace href={`${DIRECCION_ORDENO}&modo=calidad`} activo={modo === "calidad"}>
-              Calidad
-            </ChipEnlace>
-          </FilaDesplazable>
+          <FilaTarjetas etiqueta="Qué hacer con el ordeño">
+            {puedeRegistrar ? <TarjetaOpcion escena={ESCENA_ORDENO.registrar} titulo="Registrar ordeño" detalle="Litros de cada jornada" href={DIRECCION_ORDENO} activo={modo === "registrar"} /> : null}
+            <TarjetaOpcion escena={ESCENA_ORDENO.programar} titulo="Programar turnos" detalle="Quién se ordeña y cuándo" href={`${DIRECCION_ORDENO}&modo=programar`} activo={modo === "programar"} />
+            <TarjetaOpcion escena={ESCENA_ORDENO.calidad} titulo="Calidad" detalle="Análisis de la leche" href={`${DIRECCION_ORDENO}&modo=calidad`} activo={modo === "calidad"} />
+          </FilaTarjetas>
 
           {modo === "registrar" ? (
             <Registrar fincaId={finca.id} puedeEditar={puedeRegistrar} agregar={sp.agregar} />
@@ -111,6 +108,7 @@ export default async function PaginaHato({ searchParams }: { searchParams: Promi
           puedeTraer={puedeGestionar(rol) && !perfil?.libro_resuelto_en}
           filtroInicial={esFiltroHato(sp.filtro) ? sp.filtro : "todos"}
           vistas={vistas}
+          conteos={conteos}
         />
       )}
     </>

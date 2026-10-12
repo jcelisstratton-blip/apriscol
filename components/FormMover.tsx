@@ -6,8 +6,10 @@ import { Aviso } from "@/components/Aviso";
 import { Boton, clasesBoton } from "@/components/Boton";
 import { Campo, CLASE_INPUT } from "@/components/Campo";
 import { Selector } from "@/components/Selector";
+import { SelectorTarjetas } from "@/components/SelectorTarjetas";
 import { SelectorAnimales, type AnimalElegido } from "@/components/SelectorAnimales";
 import { moverAnimales } from "@/app/(app)/hato/corrales/actions";
+import { ESCENA_MOTIVO } from "@/lib/escenas-corrales";
 import { crearClienteNavegador } from "@/lib/supabase/client";
 import { ETIQUETA_MOTIVO, ETIQUETA_TIPO_UBICACION, ETIQUETA_USO, MOTIVOS, textoOcupacion } from "@/lib/corrales";
 import type { Especie, EstadoUbicacion, MotivoMovimiento, TipoUbicacion, UsoUbicacion } from "@/lib/tipos";
@@ -169,14 +171,12 @@ export function FormMover({
       ) : null}
       {elDestino?.uso === "cuarentena" ? <Aviso tipo="info">En cuarentena los animales se quedan al menos 21 días (lo ideal, 30) antes de pasar al lote general.</Aviso> : null}
 
-      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-        <Campo etiqueta="Fecha del movimiento">
-          {(id) => <input id={id} name="fecha" type="date" value={fecha} max={hoy} onChange={(e) => setFecha(e.target.value)} required className={CLASE_INPUT} />}
-        </Campo>
-        <Campo etiqueta="Motivo">
-          {(id) => <Selector id={id} nombre="motivo" valor={motivo} onCambio={(v) => v && setMotivo(v)} titulo="Motivo" opciones={MOTIVOS.map((m) => ({ valor: m, etiqueta: ETIQUETA_MOTIVO[m] }))} />}
-        </Campo>
-      </div>
+      <Campo etiqueta="Fecha del movimiento">
+        {(id) => <input id={id} name="fecha" type="date" value={fecha} max={hoy} onChange={(e) => setFecha(e.target.value)} required className={`${CLASE_INPUT} sm:max-w-xs`} />}
+      </Campo>
+      <Campo etiqueta="Motivo">
+        {(id) => <SelectorTarjetas id={id} nombre="motivo" valor={motivo} onCambio={(v) => v && setMotivo(v)} titulo="Motivo" opciones={MOTIVOS.map((m) => ({ valor: m, etiqueta: ETIQUETA_MOTIVO[m], escena: ESCENA_MOTIVO[m] }))} />}
+      </Campo>
 
       <Campo etiqueta="Observaciones" ayuda="Opcional.">
         {(id) => <textarea id={id} name="observaciones" rows={2} maxLength={300} className={`${CLASE_INPUT} py-3`} />}

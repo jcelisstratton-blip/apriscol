@@ -5,8 +5,9 @@ import Link from "next/link";
 import { Aviso } from "@/components/Aviso";
 import { Boton, clasesBoton } from "@/components/Boton";
 import { Campo, CLASE_INPUT } from "@/components/Campo";
-import { Selector } from "@/components/Selector";
+import { SelectorTarjetas } from "@/components/SelectorTarjetas";
 import { crearDespacho, editarDespacho } from "@/app/(app)/leche/gestion";
+import { ESCENA_DESTINO_LECHE } from "@/lib/escenas-forms-a-leche";
 import { leerNumero } from "@/lib/numeros";
 import { DESTINOS_LECHE, ETIQUETA_DESTINO, pesos } from "@/lib/leche-calidad";
 import type { DespachoLeche, DestinoLeche } from "@/lib/tipos";
@@ -45,7 +46,7 @@ export function FormDespacho({ hoy, despacho, solicitud }: { hoy: string; despac
 
       <Campo etiqueta="Destino">
         {(id) => (
-          <Selector id={id} nombre="destino_tipo" valor={destino} onCambio={(v) => v && setDestino(v)} titulo="¿A dónde fue la leche?" opciones={DESTINOS_LECHE.map((d) => ({ valor: d, etiqueta: ETIQUETA_DESTINO[d] }))} />
+          <SelectorTarjetas id={id} nombre="destino_tipo" valor={destino} onCambio={(v) => v && setDestino(v)} titulo="¿A dónde fue la leche?" opciones={DESTINOS_LECHE.map((d) => ({ valor: d, etiqueta: ETIQUETA_DESTINO[d], escena: ESCENA_DESTINO_LECHE[d] }))} />
         )}
       </Campo>
 

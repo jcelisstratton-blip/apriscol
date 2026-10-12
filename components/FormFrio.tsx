@@ -6,8 +6,9 @@ import { Aviso } from "@/components/Aviso";
 import { Boton, clasesBoton } from "@/components/Boton";
 import { Campo, CLASE_INPUT } from "@/components/Campo";
 import { Insignia } from "@/components/Insignia";
-import { Selector } from "@/components/Selector";
+import { SelectorTarjetas } from "@/components/SelectorTarjetas";
 import { crearFrio, editarFrio } from "@/app/(app)/leche/gestion";
+import { ESCENA_MOMENTO_FRIO } from "@/lib/escenas-forms-a-leche";
 import { leerNumero } from "@/lib/numeros";
 import { estadoTemperatura, ETIQUETA_MOMENTO_FRIO, FRIO_MAX, FRIO_MIN, MOMENTOS_FRIO } from "@/lib/leche-calidad";
 import type { ControlFrio, MomentoFrio } from "@/lib/tipos";
@@ -45,7 +46,7 @@ export function FormFrio({ hoy, control, solicitud }: { hoy: string; control?: C
 
       <Campo etiqueta="¿Cuándo se midió?">
         {(id) => (
-          <Selector id={id} nombre="momento" valor={momento} onCambio={(v) => v && setMomento(v)} titulo="¿Cuándo se midió?" opciones={MOMENTOS_FRIO.map((m) => ({ valor: m, etiqueta: ETIQUETA_MOMENTO_FRIO[m] }))} />
+          <SelectorTarjetas id={id} nombre="momento" valor={momento} onCambio={(v) => v && setMomento(v)} titulo="¿Cuándo se midió?" opciones={MOMENTOS_FRIO.map((m) => ({ valor: m, etiqueta: ETIQUETA_MOMENTO_FRIO[m], escena: ESCENA_MOMENTO_FRIO[m] }))} />
         )}
       </Campo>
 

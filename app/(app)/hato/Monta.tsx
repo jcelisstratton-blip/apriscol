@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { AyudaModulo } from "@/components/AyudaModulo";
+import { AYUDA_EMPADRONAMIENTO } from "@/lib/ayuda";
 import { CalendarRange, Plus } from "lucide-react";
 import { AsignarHembrasEmp } from "@/components/AsignarHembrasEmp";
 import { clasesBoton } from "@/components/Boton";
@@ -70,11 +72,7 @@ export async function Monta({
 
   return (
     <div className="space-y-4">
-      <p className="text-[0.9375rem] text-humo">
-        Aquí armas la temporada de monta: eliges los sementales, agregas las hembras (la app revisa la endogamia de cada pareja antes de confirmarla) y al
-        terminar la cierras para pasarlas a gestación. El resumen de todas las temporadas y con qué hembras se hizo cada una está en{" "}
-        <Link href="/reproduccion?vista=empadronamiento" className="font-semibold text-musgo underline underline-offset-2">Reproducción → Empadronamiento</Link>.
-      </p>
+      <AyudaModulo ayuda={AYUDA_EMPADRONAMIENTO} />
 
       {lotes.length === 0 ? (
         <EstadoVacio

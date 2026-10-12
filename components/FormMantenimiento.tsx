@@ -5,8 +5,9 @@ import Link from "next/link";
 import { Aviso } from "@/components/Aviso";
 import { Boton, clasesBoton } from "@/components/Boton";
 import { Campo, CLASE_INPUT } from "@/components/Campo";
-import { Selector } from "@/components/Selector";
+import { SelectorTarjetas } from "@/components/SelectorTarjetas";
 import { crearMantenimiento, editarMantenimiento } from "@/app/(app)/leche/gestion";
+import { ESCENA_MANTENIMIENTO } from "@/lib/escenas-forms-a-leche";
 import { ETIQUETA_MANTENIMIENTO, TIPOS_MANTENIMIENTO } from "@/lib/leche-calidad";
 import type { MantenimientoOrdeno, TipoMantenimiento } from "@/lib/tipos";
 
@@ -31,7 +32,7 @@ export function FormMantenimiento({ hoy, registro, solicitud }: { hoy: string; r
 
       <Campo etiqueta="¿Qué se hizo?">
         {(id) => (
-          <Selector id={id} nombre="tipo" valor={tipo} onCambio={(v) => v && setTipo(v)} titulo="¿Qué se hizo?" opciones={TIPOS_MANTENIMIENTO.map((t) => ({ valor: t, etiqueta: ETIQUETA_MANTENIMIENTO[t] }))} />
+          <SelectorTarjetas id={id} nombre="tipo" valor={tipo} onCambio={(v) => v && setTipo(v)} titulo="¿Qué se hizo?" opciones={TIPOS_MANTENIMIENTO.map((t) => ({ valor: t, etiqueta: ETIQUETA_MANTENIMIENTO[t], escena: ESCENA_MANTENIMIENTO[t] }))} />
         )}
       </Campo>
 

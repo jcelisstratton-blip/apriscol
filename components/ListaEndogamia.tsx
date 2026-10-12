@@ -5,7 +5,9 @@ import Link from "next/link";
 import { CheckCircle2, ChevronDown, SearchX } from "lucide-react";
 import { CampoBusqueda } from "@/components/CampoBusqueda";
 import { EstadoVacio } from "@/components/EstadoVacio";
-import { Chip, FilaDesplazable } from "@/components/FilaDesplazable";
+import { FilaTarjetas, TarjetaOpcion } from "@/components/TarjetaOpcion";
+import { ESCENA_FILTRO_ENDOGAMIA } from "@/lib/escenas-listas-genealogia";
+import { textoAnimales } from "@/lib/hato";
 import { Insignia } from "@/components/Insignia";
 import { ListaEscalable } from "@/components/ListaEscalable";
 import { NivelEndogamia } from "@/components/NivelEndogamia";
@@ -95,12 +97,12 @@ export function ListaEndogamia({ filas, umbral }: { filas: FilaEndogamia[]; umbr
   return (
     <div className="space-y-3">
       {filas.length > 8 ? <CampoBusqueda onBuscar={alBuscar} placeholder="Buscar por arete o nombre" /> : null}
-      <FilaDesplazable>
-        <Chip activo={filtro === "umbral"} onClick={() => setFiltro("umbral")}>Sobre el umbral · {r.sobre}</Chip>
-        <Chip activo={filtro === "vigilar"} onClick={() => setFiltro("vigilar")}>A vigilar · {r.vigilar}</Chip>
-        <Chip activo={filtro === "aceptables"} onClick={() => setFiltro("aceptables")}>Aceptables · {r.aceptables}</Chip>
-        <Chip activo={filtro === "todos"} onClick={() => setFiltro("todos")}>Todos · {filas.length}</Chip>
-      </FilaDesplazable>
+      <FilaTarjetas etiqueta="Nivel de endogamia">
+        <TarjetaOpcion escena={ESCENA_FILTRO_ENDOGAMIA.umbral} titulo="Sobre el umbral" dato={textoAnimales(r.sobre)} activo={filtro === "umbral"} onClick={() => setFiltro("umbral")} />
+        <TarjetaOpcion escena={ESCENA_FILTRO_ENDOGAMIA.vigilar} titulo="A vigilar" dato={textoAnimales(r.vigilar)} activo={filtro === "vigilar"} onClick={() => setFiltro("vigilar")} />
+        <TarjetaOpcion escena={ESCENA_FILTRO_ENDOGAMIA.aceptables} titulo="Aceptables" dato={textoAnimales(r.aceptables)} activo={filtro === "aceptables"} onClick={() => setFiltro("aceptables")} />
+        <TarjetaOpcion escena={ESCENA_FILTRO_ENDOGAMIA.todos} titulo="Todos" dato={textoAnimales(filas.length)} activo={filtro === "todos"} onClick={() => setFiltro("todos")} />
+      </FilaTarjetas>
       <p className="px-1 text-sm text-humo" aria-live="polite">{DEFINICION[filtro]}</p>
       <ListaEscalable<FilaEndogamia>
         key={`${filtro}|${busqueda}`}

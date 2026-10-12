@@ -7,10 +7,11 @@ import { Boton, clasesBoton } from "@/components/Boton";
 import { Campo, CLASE_INPUT } from "@/components/Campo";
 import { Insignia } from "@/components/Insignia";
 import { PorQueAnalizar } from "@/components/PorQueAnalizar";
-import { Selector } from "@/components/Selector";
+import { SelectorTarjetas } from "@/components/SelectorTarjetas";
 import { SubirSoporte } from "@/components/SubirSoporte";
 import { crearAnalisis, editarAnalisis } from "@/app/(app)/leche/gestion";
 import { CRIOSCOPIA_MAX, CRIOSCOPIA_MIN, estadoCrioscopia, ETIQUETA_RESIDUOS, RCS_BUENO, RESIDUOS } from "@/lib/leche-calidad";
+import { ESCENA_RESIDUOS } from "@/lib/escenas-forms-a-leche";
 import { leerNumero } from "@/lib/numeros";
 import type { AnalisisLeche, ResiduosAntibioticos } from "@/lib/tipos";
 
@@ -115,15 +116,14 @@ export function FormCalidad({
           ) : null}
           <Campo etiqueta="Residuos de antibióticos" ayuda="Con tiras reactivas o inhibición microbiana, antes de despachar. Si da positivo, esa leche no se despacha.">
             {(id) => (
-              <Selector
+              <SelectorTarjetas
                 id={id}
                 nombre="residuos_antibioticos"
                 valor={residuos}
                 onCambio={setResiduos}
                 titulo="Residuos de antibióticos"
-                placeholder="No se midió"
-                permitirVacio
-                opciones={RESIDUOS.map((r) => ({ valor: r, etiqueta: ETIQUETA_RESIDUOS[r] }))}
+                permitirVacio etiquetaVacio="No se midió"
+                opciones={RESIDUOS.map((r) => ({ valor: r, etiqueta: ETIQUETA_RESIDUOS[r], escena: ESCENA_RESIDUOS[r] }))}
               />
             )}
           </Campo>

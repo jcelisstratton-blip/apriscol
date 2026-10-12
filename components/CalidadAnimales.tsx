@@ -5,7 +5,9 @@ import Link from "next/link";
 import { FlaskConical } from "lucide-react";
 import { CampoBusqueda } from "@/components/CampoBusqueda";
 import { EstadoVacio } from "@/components/EstadoVacio";
-import { Chip, FilaDesplazable } from "@/components/FilaDesplazable";
+import { FilaTarjetas, TarjetaOpcion } from "@/components/TarjetaOpcion";
+import { ESCENA_FILTRO_CALIDAD_ANIMALES } from "@/lib/escenas-listas-leche";
+import { textoAnimales } from "@/lib/hato";
 import { Insignia } from "@/components/Insignia";
 import { ListaPorTramos } from "@/components/ListaPorTramos";
 import { formatoFecha } from "@/lib/fechas";
@@ -49,11 +51,11 @@ export function CalidadAnimales({ hembras, puedeEditar }: { hembras: HembraCalid
     <div className="space-y-3">
       <p className="px-1 text-[0.9375rem] text-humo">El último análisis de grasa, proteína y células somáticas de cada hembra en leche. Toca una para ver todo su historial.</p>
       {hembras.length > MIN_PARA_BUSCAR ? <CampoBusqueda onBuscar={alBuscar} placeholder="Buscar por arete o nombre" /> : null}
-      <FilaDesplazable>
-        <Chip activo={filtro === "todas"} onClick={() => setFiltro("todas")}>{`Todas (${hembras.length})`}</Chip>
-        <Chip activo={filtro === "sin"} onClick={() => setFiltro("sin")}>{`Sin análisis (${sin})`}</Chip>
-        <Chip activo={filtro === "altas"} onClick={() => setFiltro("altas")}>{`Células altas (${altas})`}</Chip>
-      </FilaDesplazable>
+      <FilaTarjetas etiqueta="Filtro de hembras en leche">
+        <TarjetaOpcion escena={ESCENA_FILTRO_CALIDAD_ANIMALES.todas} titulo="Todas" dato={textoAnimales(hembras.length)} activo={filtro === "todas"} onClick={() => setFiltro("todas")} />
+        <TarjetaOpcion escena={ESCENA_FILTRO_CALIDAD_ANIMALES.sin} titulo="Sin análisis" dato={textoAnimales(sin)} activo={filtro === "sin"} onClick={() => setFiltro("sin")} />
+        <TarjetaOpcion escena={ESCENA_FILTRO_CALIDAD_ANIMALES.altas} titulo="Células altas" dato={textoAnimales(altas)} activo={filtro === "altas"} onClick={() => setFiltro("altas")} />
+      </FilaTarjetas>
       {filtradas.length === 0 ? (
         <p className="py-6 text-center text-[0.9375rem] text-humo">Ninguna hembra coincide.</p>
       ) : (

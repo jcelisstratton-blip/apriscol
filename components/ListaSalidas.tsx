@@ -5,7 +5,8 @@ import Link from "next/link";
 import { Pencil, Truck } from "lucide-react";
 import { CampoBusqueda } from "@/components/CampoBusqueda";
 import { EstadoVacio } from "@/components/EstadoVacio";
-import { Chip, FilaDesplazable } from "@/components/FilaDesplazable";
+import { FilaTarjetas, TarjetaOpcion } from "@/components/TarjetaOpcion";
+import { ESCENA_SALIDA } from "@/lib/escenas-listas-carne";
 import { Insignia } from "@/components/Insignia";
 import { ListaEscalable } from "@/components/ListaEscalable";
 import { controlesDe, agruparControles } from "@/lib/controles-datos";
@@ -65,12 +66,12 @@ export function ListaSalidas({ fincaId, puedeEditar }: { fincaId: string; puedeE
   return (
     <div className="space-y-3">
       <CampoBusqueda onBuscar={alBuscar} placeholder="Buscar animal, comprador, guía o destino" />
-      <FilaDesplazable>
-        <Chip activo={filtro === "todas"} onClick={() => setFiltro("todas")}>Todas</Chip>
-        <Chip activo={filtro === "sacrificio"} onClick={() => setFiltro("sacrificio")}>Sacrificio</Chip>
-        <Chip activo={filtro === "consumo"} onClick={() => setFiltro("consumo")}>Venta para consumo</Chip>
-        <Chip activo={filtro === "pie"} onClick={() => setFiltro("pie")}>Venta en pie</Chip>
-      </FilaDesplazable>
+      <FilaTarjetas etiqueta="Tipo de salida">
+        <TarjetaOpcion escena={ESCENA_SALIDA.todas} titulo="Todas" activo={filtro === "todas"} onClick={() => setFiltro("todas")} />
+        <TarjetaOpcion escena={ESCENA_SALIDA.sacrificio} titulo="Sacrificio" activo={filtro === "sacrificio"} onClick={() => setFiltro("sacrificio")} />
+        <TarjetaOpcion escena={ESCENA_SALIDA.consumo} titulo="Venta para consumo" activo={filtro === "consumo"} onClick={() => setFiltro("consumo")} />
+        <TarjetaOpcion escena={ESCENA_SALIDA.pie} titulo="Venta en pie" activo={filtro === "pie"} onClick={() => setFiltro("pie")} />
+      </FilaTarjetas>
       <ListaEscalable<FilaSalida>
         rejilla="grid-cols-1 lg:grid-cols-2"
         key={`${busqueda}|${filtro}`}

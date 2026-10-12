@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { EnlaceBoton } from "@/components/Boton";
 import { Encabezado } from "@/components/Encabezado";
-import { FilaDesplazable } from "@/components/FilaDesplazable";
+import { PestanasTarjetas } from "@/components/TarjetaOpcion";
+import { armarPestanas } from "@/lib/escenas";
 import { FiltroPeriodo } from "@/components/FiltroPeriodo";
 import { ListaMovimientos } from "@/components/ListaMovimientos";
 import { obtenerContexto } from "@/lib/contexto";
@@ -18,8 +18,8 @@ import { Resumen } from "./Resumen";
 export const metadata: Metadata = { title: "Corrales" };
 
 const PESTANAS = [
-  { valor: "resumen", etiqueta: "Resumen" },
-  { valor: "movimientos", etiqueta: "Movimientos" },
+  { valor: "resumen", etiqueta: "Resumen", detalle: "Ocupación y alertas" },
+  { valor: "movimientos", etiqueta: "Movimientos", detalle: "Por dónde han pasado" },
 ] as const;
 type Vista = (typeof PESTANAS)[number]["valor"];
 
@@ -56,20 +56,7 @@ export default async function PaginaCorrales({
         subtitulo={finca.nombre}
         acciones={puedeEditar ? <EnlaceBoton href="/hato?vista=corrales" ancho={false}>Ir a Hato</EnlaceBoton> : null}
       />
-      <FilaDesplazable className="mb-3">
-        {PESTANAS.map((t) => (
-          <Link
-            key={t.valor}
-            href={t.valor === "resumen" ? "/corrales" : `/corrales?vista=${t.valor}`}
-            aria-current={vista === t.valor ? "page" : undefined}
-            className={`inline-flex min-h-10 shrink-0 items-center rounded-full px-4 text-sm font-semibold transition ${
-              vista === t.valor ? "bg-musgo text-sobre-musgo" : "bg-papel text-humo ring-1 ring-arena hover:text-tinta"
-            }`}
-          >
-            {t.etiqueta}
-          </Link>
-        ))}
-      </FilaDesplazable>
+      <PestanasTarjetas pestanas={armarPestanas("/corrales", "resumen", PESTANAS)} actual={vista} />
 
       <div className="mb-3">
         <FiltroPeriodo ruta="/corrales" fijos={{ ...(vista !== "resumen" ? { vista } : {}), ...(motivo !== "todos" ? { motivo } : {}) }} filtro={filtroFechas} />

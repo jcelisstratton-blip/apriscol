@@ -7,12 +7,13 @@ import { Boton, clasesBoton } from "@/components/Boton";
 import { Campo, CLASE_INPUT } from "@/components/Campo";
 import { Chip, FilaDesplazable } from "@/components/FilaDesplazable";
 import { FotoAnimal } from "@/components/FotoAnimal";
-import { Segmentado } from "@/components/Segmentado";
 import { Selector } from "@/components/Selector";
 import { SelectorAnimal } from "@/components/SelectorAnimal";
+import { SelectorTarjetas } from "@/components/SelectorTarjetas";
 import { crearAnimal, editarAnimal } from "@/app/(app)/hato/actions";
 import { nombreTipo } from "@/lib/animal";
 import { hoyBogota } from "@/lib/fechas";
+import { ESCENA_ESPECIE, ESCENA_ORIGEN_ANIMAL, ESCENA_SEXO, ESCENA_USO_MACHO, ESCENA_VOCACION } from "@/lib/escenas-forms-b-hato";
 import type { Especie, Raza, SexoAnimal, UsoMacho, Vocacion } from "@/lib/tipos";
 
 type Ref = { id: string; numero_arete: string; nombre: string | null };
@@ -137,14 +138,14 @@ export function FormAnimal({
           {identidadBloqueada ? null : especies.length > 1 ? (
             <div className="min-w-0 space-y-2">
               <span className="block text-sm font-semibold">Especie</span>
-              <Segmentado
-                etiqueta="Especie"
+              <SelectorTarjetas<Especie>
                 nombre="especie"
                 valor={especie}
-                onCambio={cambiarEspecie}
+                onCambio={(v) => v && cambiarEspecie(v)}
+                titulo="Especie"
                 opciones={[
-                  { valor: "caprino", etiqueta: "Caprino" },
-                  { valor: "ovino", etiqueta: "Ovino" },
+                  { valor: "caprino", etiqueta: "Caprino", detalle: "Cabras y cabros", escena: ESCENA_ESPECIE.caprino },
+                  { valor: "ovino", etiqueta: "Ovino", detalle: "Ovejas y carneros", escena: ESCENA_ESPECIE.ovino },
                 ]}
               />
             </div>
@@ -155,14 +156,14 @@ export function FormAnimal({
           {identidadBloqueada ? null : (
             <div className="min-w-0 space-y-2">
               <span className="block text-sm font-semibold">Sexo</span>
-              <Segmentado
-                etiqueta="Sexo"
+              <SelectorTarjetas<SexoAnimal>
                 nombre="sexo"
                 valor={sexo}
-                onCambio={setSexo}
+                onCambio={(v) => v && setSexo(v)}
+                titulo="Sexo"
                 opciones={[
-                  { valor: "hembra", etiqueta: etiquetasSexo[0] },
-                  { valor: "macho", etiqueta: etiquetasSexo[1] },
+                  { valor: "hembra", etiqueta: etiquetasSexo[0], escena: ESCENA_SEXO.hembra },
+                  { valor: "macho", etiqueta: etiquetasSexo[1], escena: ESCENA_SEXO.macho },
                 ]}
               />
             </div>
@@ -240,14 +241,14 @@ export function FormAnimal({
 
           <div className="min-w-0 space-y-2">
             <span className="block text-sm font-semibold">Origen</span>
-            <Segmentado
-              etiqueta="Origen"
+            <SelectorTarjetas<"nacido_en_finca" | "comprado">
               nombre="origen"
               valor={origen}
-              onCambio={setOrigen}
+              onCambio={(v) => v && setOrigen(v)}
+              titulo="Origen"
               opciones={[
-                { valor: "nacido_en_finca", etiqueta: "Nació aquí" },
-                { valor: "comprado", etiqueta: "Comprado" },
+                { valor: "nacido_en_finca", etiqueta: "Nació aquí", escena: ESCENA_ORIGEN_ANIMAL.nacido_en_finca },
+                { valor: "comprado", etiqueta: "Comprado", escena: ESCENA_ORIGEN_ANIMAL.comprado },
               ]}
             />
           </div>
@@ -265,15 +266,15 @@ export function FormAnimal({
           <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
             <div className="min-w-0 space-y-2">
               <span className="block text-sm font-semibold">Aptitud</span>
-              <Segmentado
-                etiqueta="Aptitud"
+              <SelectorTarjetas<Vocacion>
                 nombre="vocacion"
                 valor={vocacion}
-                onCambio={setVocacion}
+                onCambio={(v) => v && setVocacion(v)}
+                titulo="Aptitud"
                 opciones={[
-                  { valor: "leche", etiqueta: "Leche" },
-                  { valor: "carne", etiqueta: "Carne" },
-                  { valor: "doble", etiqueta: "Ambas" },
+                  { valor: "leche", etiqueta: "Leche", escena: ESCENA_VOCACION.leche },
+                  { valor: "carne", etiqueta: "Carne", escena: ESCENA_VOCACION.carne },
+                  { valor: "doble", etiqueta: "Ambas", escena: ESCENA_VOCACION.doble },
                 ]}
               />
             </div>
@@ -292,15 +293,15 @@ export function FormAnimal({
           <input type="hidden" name="vocacion" value="carne" />
           <div className="min-w-0 space-y-2 lg:max-w-md">
             <span className="block text-sm font-semibold">¿Para qué es este macho?</span>
-            <Segmentado
-              etiqueta="Uso del macho"
+            <SelectorTarjetas<UsoMacho | "por_definir">
               nombre="uso_macho"
               valor={usoMacho}
-              onCambio={setUsoMacho}
+              onCambio={(v) => v && setUsoMacho(v)}
+              titulo="Uso del macho"
               opciones={[
-                { valor: "reproductor", etiqueta: "Reproductor" },
-                { valor: "carne", etiqueta: "Carne" },
-                { valor: "por_definir", etiqueta: "Por definir" },
+                { valor: "reproductor", etiqueta: "Reproductor", escena: ESCENA_USO_MACHO.reproductor },
+                { valor: "carne", etiqueta: "Carne", escena: ESCENA_USO_MACHO.carne },
+                { valor: "por_definir", etiqueta: "Por definir", escena: ESCENA_USO_MACHO.por_definir },
               ]}
             />
             <p className="text-[0.8125rem] text-humo">Reproductor es un semental para cubrir hembras. Carne es un animal de engorde. Puedes cambiarlo después.</p>

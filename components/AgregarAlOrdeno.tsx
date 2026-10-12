@@ -8,7 +8,8 @@ import { Boton } from "@/components/Boton";
 import { Campo, CLASE_INPUT } from "@/components/Campo";
 import { CampoBusqueda } from "@/components/CampoBusqueda";
 import { Cargando } from "@/components/Cargando";
-import { Chip, FilaDesplazable } from "@/components/FilaDesplazable";
+import { FilaTarjetas, TarjetaOpcion } from "@/components/TarjetaOpcion";
+import { ESCENA_HATO } from "@/lib/escenas";
 import { Sheet } from "@/components/Sheet";
 import { useToast } from "@/components/Toast";
 import { ponerEnOrdeno } from "@/app/(app)/leche/actions";
@@ -169,11 +170,11 @@ export function AgregarAlOrdeno({
               <div className="space-y-3">
                 {candidatas.length > 8 ? <CampoBusqueda onBuscar={alBuscar} placeholder="Buscar por arete o nombre" /> : null}
                 {hayDosEspecies ? (
-                  <FilaDesplazable>
-                    <Chip activo={especie === "todas"} onClick={() => setEspecie("todas")}>Todas</Chip>
-                    <Chip activo={especie === "caprino"} onClick={() => setEspecie("caprino")}>Cabras</Chip>
-                    <Chip activo={especie === "ovino"} onClick={() => setEspecie("ovino")}>Ovejas</Chip>
-                  </FilaDesplazable>
+                  <FilaTarjetas etiqueta="Cabras u ovejas">
+                    <TarjetaOpcion escena={ESCENA_HATO.todos} titulo="Todas" activo={especie === "todas"} onClick={() => setEspecie("todas")} />
+                    <TarjetaOpcion escena={ESCENA_HATO.caprino} titulo="Cabras" activo={especie === "caprino"} onClick={() => setEspecie("caprino")} />
+                    <TarjetaOpcion escena={ESCENA_HATO.ovino} titulo="Ovejas" activo={especie === "ovino"} onClick={() => setEspecie("ovino")} />
+                  </FilaTarjetas>
                 ) : null}
                 <div className="flex items-center justify-between gap-3 text-sm text-humo">
                   <span>

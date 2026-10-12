@@ -2,15 +2,15 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Check } from "lucide-react";
 import { Aviso } from "@/components/Aviso";
 import { Boton } from "@/components/Boton";
 import { Campo, CLASE_INPUT } from "@/components/Campo";
-import { Selector } from "@/components/Selector";
+import { SelectorTarjetas } from "@/components/SelectorTarjetas";
 import { useToast } from "@/components/Toast";
 import { darDeBaja } from "@/app/(app)/hato/actions";
 import { CamposTrazabilidad } from "@/components/CamposTrazabilidad";
 import { MOTIVOS_BAJA, TIPOS_BAJA } from "@/lib/bajas";
+import { ESCENA_MOTIVO_BAJA, ESCENA_TIPO_BAJA } from "@/lib/escenas-forms-a-hato";
 import { leerNumero } from "@/lib/numeros";
 import type { MotivoBaja, TipoBaja } from "@/lib/tipos";
 
@@ -79,29 +79,7 @@ export function FormBaja({
     <div className="space-y-5">
       <div className="space-y-1.5">
         <p id="que-paso" className="text-sm font-semibold">¿Qué pasó con el animal?</p>
-        <div role="radiogroup" aria-labelledby="que-paso" className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-          {TIPOS_BAJA.map((t) => {
-            const activo = tipo === t.valor;
-            return (
-              <button
-                key={t.valor}
-                type="button"
-                role="radio"
-                aria-checked={activo}
-                onClick={() => setTipo(t.valor)}
-                className={`flex min-h-16 min-w-0 items-center justify-between gap-3 rounded-2xl px-4 py-2.5 text-left ring-1 transition active:scale-[0.99] ${
-                  activo ? "bg-musgo/10 ring-2 ring-musgo" : "bg-papel ring-arena hover:bg-arena/40"
-                }`}
-              >
-                <span className="min-w-0">
-                  <span className="block font-semibold">{t.etiqueta}</span>
-                  <span className="block text-sm text-humo">{t.detalle}</span>
-                </span>
-                {activo ? <Check className="size-5 shrink-0 text-musgo" strokeWidth={2.2} aria-hidden="true" /> : null}
-              </button>
-            );
-          })}
-        </div>
+        <SelectorTarjetas id="que-paso-opciones" valor={tipo} onCambio={setTipo} titulo="¿Qué pasó con el animal?" opciones={TIPOS_BAJA.map((t) => ({ ...t, escena: ESCENA_TIPO_BAJA[t.valor] }))} />
       </div>
 
       <Campo etiqueta="¿Cuándo pasó?">
@@ -132,13 +110,12 @@ export function FormBaja({
 
       <Campo etiqueta="¿Por qué sale del hato?" ayuda="Opcional. Sirve para saber con el tiempo por qué se descartan animales.">
         {(id) => (
-          <Selector
+          <SelectorTarjetas
             id={id}
             valor={motivo}
             onCambio={setMotivo}
             titulo="¿Por qué sale del hato?"
-            opciones={MOTIVOS_BAJA}
-            placeholder="Sin especificar"
+            opciones={MOTIVOS_BAJA.map((m) => ({ ...m, escena: ESCENA_MOTIVO_BAJA[m.valor] }))}
             permitirVacio
           />
         )}

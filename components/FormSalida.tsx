@@ -7,10 +7,11 @@ import { Aviso } from "@/components/Aviso";
 import { Boton, clasesBoton } from "@/components/Boton";
 import { CamposTrazabilidad } from "@/components/CamposTrazabilidad";
 import { Campo, CLASE_INPUT } from "@/components/Campo";
-import { Selector } from "@/components/Selector";
+import { SelectorTarjetas } from "@/components/SelectorTarjetas";
 import { useToast } from "@/components/Toast";
 import { corregirSalida } from "@/app/(app)/hato/actions";
 import { MOTIVOS_BAJA } from "@/lib/bajas";
+import { ESCENA_MOTIVO_BAJA } from "@/lib/escenas-forms-a-hato";
 import { leerNumero } from "@/lib/numeros";
 import type { Baja, MotivoBaja } from "@/lib/tipos";
 
@@ -73,7 +74,7 @@ export function FormSalida({ baja }: { baja: Baja }) {
       {comercial ? <CamposTrazabilidad tipo={baja.tipo} peso={peso} onPeso={setPeso} pesoInvalido={pesoInvalido} guia={guia} onGuia={setGuia} destino={destino} onDestino={setDestino} /> : null}
 
       <Campo etiqueta="¿Por qué salió del hato?" ayuda="Opcional.">
-        {(id) => <Selector id={id} valor={motivo} onCambio={setMotivo} titulo="¿Por qué salió del hato?" opciones={MOTIVOS_BAJA} placeholder="Sin especificar" permitirVacio />}
+        {(id) => <SelectorTarjetas id={id} valor={motivo} onCambio={setMotivo} titulo="¿Por qué salió del hato?" opciones={MOTIVOS_BAJA.map((m) => ({ ...m, escena: ESCENA_MOTIVO_BAJA[m.valor] }))} permitirVacio />}
       </Campo>
 
       <Campo etiqueta="Notas">

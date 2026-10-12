@@ -6,7 +6,8 @@ import { Pencil, TestTube } from "lucide-react";
 import { CampoBusqueda } from "@/components/CampoBusqueda";
 import { EnlaceBoton } from "@/components/Boton";
 import { EstadoVacio } from "@/components/EstadoVacio";
-import { Chip, FilaDesplazable } from "@/components/FilaDesplazable";
+import { FilaTarjetas, TarjetaOpcion } from "@/components/TarjetaOpcion";
+import { ESCENA_RESULTADO_PRUEBA, ESCENA_TODAS_PRUEBAS } from "@/lib/escenas-listas-sanidad";
 import { Insignia } from "@/components/Insignia";
 import { ListaEscalable } from "@/components/ListaEscalable";
 import { crearClienteNavegador } from "@/lib/supabase/client";
@@ -55,14 +56,12 @@ export function ListaPruebas({ fincaId, puedeEditar, rango = { desde: null, hast
   return (
     <div className="space-y-3">
       <CampoBusqueda onBuscar={alBuscar} placeholder="Buscar animal o laboratorio" />
-      <FilaDesplazable>
-        <Chip activo={resultado === "todos"} onClick={() => setResultado("todos")}>Todas</Chip>
+      <FilaTarjetas etiqueta="Resultado de la prueba">
+        <TarjetaOpcion escena={ESCENA_TODAS_PRUEBAS} titulo="Todas" activo={resultado === "todos"} onClick={() => setResultado("todos")} />
         {RESULTADOS_PRUEBA.map((r) => (
-          <Chip key={r} activo={resultado === r} onClick={() => setResultado(r)}>
-            {ETIQUETA_RESULTADO_PRUEBA[r]}
-          </Chip>
+          <TarjetaOpcion key={r} escena={ESCENA_RESULTADO_PRUEBA[r]} titulo={ETIQUETA_RESULTADO_PRUEBA[r]} activo={resultado === r} onClick={() => setResultado(r)} />
         ))}
-      </FilaDesplazable>
+      </FilaTarjetas>
       <ListaEscalable<FilaPrueba>
         rejilla="grid-cols-1 lg:grid-cols-2"
         key={`${busqueda}|${resultado}|${rango.desde}|${rango.hasta}`}

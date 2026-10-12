@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { AvisoGuardado } from "@/components/AvisoGuardado";
 import { EnlaceBoton } from "@/components/Boton";
 import { Encabezado } from "@/components/Encabezado";
-import { FilaDesplazable } from "@/components/FilaDesplazable";
+import { PestanasTarjetas } from "@/components/TarjetaOpcion";
+import { armarPestanas } from "@/lib/escenas";
 import { obtenerContexto } from "@/lib/contexto";
 import { puedeEscribir, puedeVer } from "@/lib/permisos";
 import { Calidad } from "./Calidad";
@@ -15,10 +15,10 @@ import { Historial } from "./Historial";
 export const metadata: Metadata = { title: "Leche" };
 
 const PESTANAS = [
-  { valor: "produccion", etiqueta: "Producción" },
-  { valor: "calidad", etiqueta: "Calidad" },
-  { valor: "despachos", etiqueta: "Despachos" },
-  { valor: "frio", etiqueta: "Frío y equipo" },
+  { valor: "produccion", etiqueta: "Producción", detalle: "Litros por día y animal" },
+  { valor: "calidad", etiqueta: "Calidad", detalle: "Grasa, proteína y células" },
+  { valor: "despachos", etiqueta: "Despachos", detalle: "A dónde fue la leche" },
+  { valor: "frio", etiqueta: "Frío y equipo", detalle: "Tanque y equipos" },
 ] as const;
 type Vista = (typeof PESTANAS)[number]["valor"];
 
@@ -52,20 +52,7 @@ export default async function PaginaLeche({
     <>
       <AvisoGuardado activo={sp.guardado === "1"} />
       <Encabezado titulo="Leche" subtitulo={finca.nombre} acciones={accion} />
-      <FilaDesplazable className="mb-3">
-        {PESTANAS.map((t) => (
-          <Link
-            key={t.valor}
-            href={t.valor === "produccion" ? "/leche" : `/leche?vista=${t.valor}`}
-            aria-current={vista === t.valor ? "page" : undefined}
-            className={`inline-flex min-h-10 shrink-0 items-center rounded-full px-4 text-sm font-semibold transition ${
-              vista === t.valor ? "bg-musgo text-sobre-musgo" : "bg-papel text-humo ring-1 ring-arena hover:text-tinta"
-            }`}
-          >
-            {t.etiqueta}
-          </Link>
-        ))}
-      </FilaDesplazable>
+      <PestanasTarjetas pestanas={armarPestanas("/leche", "produccion", PESTANAS)} actual={vista} />
 
       {vista === "produccion" ? (
         <Historial fincaId={finca.id} puedeEditar={puedeEditar} pedido={{ periodo: sp.periodo, desde: sp.desde, hasta: sp.hasta, animal: sp.animal }} />

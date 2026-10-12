@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Encabezado } from "@/components/Encabezado";
+import { PestanasTarjetas } from "@/components/TarjetaOpcion";
+import { armarPestanas } from "@/lib/escenas";
 import { ListaFerias } from "@/components/ListaFerias";
 import { ListaPremios } from "@/components/ListaPremios";
 import { obtenerContexto } from "@/lib/contexto";
@@ -12,8 +13,8 @@ import { pesos } from "@/lib/ferias";
 export const metadata: Metadata = { title: "Premios" };
 
 const PESTANAS = [
-  { valor: "premios", etiqueta: "Premios" },
-  { valor: "ferias", etiqueta: "Ferias" },
+  { valor: "premios", etiqueta: "Premios", detalle: "Lo ganado por tus animales" },
+  { valor: "ferias", etiqueta: "Ferias", detalle: "Dónde participaste" },
 ] as const;
 
 /**
@@ -58,20 +59,7 @@ export default async function PaginaPremios({ searchParams }: { searchParams: Pr
         </section>
       ) : null}
 
-      <nav aria-label="Vista" className="mb-3 flex gap-2">
-        {PESTANAS.map((t) => (
-          <Link
-            key={t.valor}
-            href={t.valor === "premios" ? "/ferias" : `/ferias?vista=${t.valor}`}
-            aria-current={actual === t.valor ? "page" : undefined}
-            className={`inline-flex min-h-10 items-center rounded-full px-4 text-sm font-semibold transition ${
-              actual === t.valor ? "bg-musgo text-sobre-musgo" : "bg-papel text-humo ring-1 ring-arena hover:text-tinta"
-            }`}
-          >
-            {t.etiqueta}
-          </Link>
-        ))}
-      </nav>
+      <PestanasTarjetas pestanas={armarPestanas("/ferias", "premios", PESTANAS)} actual={actual} />
 
       {actual === "premios" ? <ListaPremios fincaId={finca.id} puedeEditar={puedeEscribir(rol, "ferias")} /> : <ListaFerias fincaId={finca.id} />}
     </>

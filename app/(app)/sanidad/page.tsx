@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { AvisoGuardado } from "@/components/AvisoGuardado";
 import { EnlaceBoton } from "@/components/Boton";
 import { Encabezado } from "@/components/Encabezado";
-import { FilaDesplazable } from "@/components/FilaDesplazable";
+import { PestanasTarjetas } from "@/components/TarjetaOpcion";
+import { armarPestanas } from "@/lib/escenas";
 import { FiltroPeriodo } from "@/components/FiltroPeriodo";
 import { ListaEventos } from "@/components/ListaEventos";
 import { ListaProductos } from "@/components/ListaProductos";
@@ -20,10 +20,10 @@ import { Resumen } from "./Resumen";
 export const metadata: Metadata = { title: "Sanidad" };
 
 const PESTANAS = [
-  { valor: "resumen", etiqueta: "Resumen" },
-  { valor: "historial", etiqueta: "Historial" },
-  { valor: "productos", etiqueta: "Productos" },
-  { valor: "pruebas", etiqueta: "Pruebas" },
+  { valor: "resumen", etiqueta: "Resumen", detalle: "Lo aplicado y por atender" },
+  { valor: "historial", etiqueta: "Historial", detalle: "Todo lo aplicado" },
+  { valor: "productos", etiqueta: "Productos", detalle: "Tu catálogo veterinario" },
+  { valor: "pruebas", etiqueta: "Pruebas", detalle: "Diagnósticos del hato" },
 ] as const;
 type Vista = (typeof PESTANAS)[number]["valor"];
 
@@ -53,20 +53,7 @@ export default async function PaginaSanidad({
     <>
       <AvisoGuardado activo={sp.guardado === "1"} />
       <Encabezado titulo="Sanidad" subtitulo={finca.nombre} acciones={accion} />
-      <FilaDesplazable className="mb-3">
-        {PESTANAS.map((t) => (
-          <Link
-            key={t.valor}
-            href={t.valor === "resumen" ? "/sanidad" : `/sanidad?vista=${t.valor}`}
-            aria-current={vista === t.valor ? "page" : undefined}
-            className={`inline-flex min-h-10 shrink-0 items-center rounded-full px-4 text-sm font-semibold transition ${
-              vista === t.valor ? "bg-musgo text-sobre-musgo" : "bg-papel text-humo ring-1 ring-arena hover:text-tinta"
-            }`}
-          >
-            {t.etiqueta}
-          </Link>
-        ))}
-      </FilaDesplazable>
+      <PestanasTarjetas pestanas={armarPestanas("/sanidad", "resumen", PESTANAS)} actual={vista} />
 
       {conFechas ? (
         <div className="mb-3">

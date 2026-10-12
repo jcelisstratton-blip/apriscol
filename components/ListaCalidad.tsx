@@ -5,7 +5,8 @@ import Link from "next/link";
 import { FileText, FlaskConical, Pencil } from "lucide-react";
 import { CampoBusqueda } from "@/components/CampoBusqueda";
 import { EstadoVacio } from "@/components/EstadoVacio";
-import { Chip, FilaDesplazable } from "@/components/FilaDesplazable";
+import { FilaTarjetas, TarjetaOpcion } from "@/components/TarjetaOpcion";
+import { ESCENA_ORIGEN_CALIDAD } from "@/lib/escenas-listas-leche";
 import { Insignia } from "@/components/Insignia";
 import { ListaEscalable } from "@/components/ListaEscalable";
 import { crearClienteNavegador } from "@/lib/supabase/client";
@@ -59,11 +60,11 @@ export function ListaCalidad({ fincaId, puedeEditar }: { fincaId: string; puedeE
   return (
     <div className="space-y-3">
       <CampoBusqueda onBuscar={alBuscar} placeholder="Buscar animal, muestra o laboratorio" />
-      <FilaDesplazable>
-        <Chip activo={origen === "todos"} onClick={() => setOrigen("todos")}>Todos</Chip>
-        <Chip activo={origen === "tanque"} onClick={() => setOrigen("tanque")}>Tanque o lote</Chip>
-        <Chip activo={origen === "animales"} onClick={() => setOrigen("animales")}>Animales</Chip>
-      </FilaDesplazable>
+      <FilaTarjetas etiqueta="Origen de la muestra">
+        <TarjetaOpcion escena={ESCENA_ORIGEN_CALIDAD.todos} titulo="Todos" activo={origen === "todos"} onClick={() => setOrigen("todos")} />
+        <TarjetaOpcion escena={ESCENA_ORIGEN_CALIDAD.tanque} titulo="Tanque o lote" activo={origen === "tanque"} onClick={() => setOrigen("tanque")} />
+        <TarjetaOpcion escena={ESCENA_ORIGEN_CALIDAD.animales} titulo="Animales" activo={origen === "animales"} onClick={() => setOrigen("animales")} />
+      </FilaTarjetas>
       <ListaEscalable<FilaAnalisis>
         rejilla="grid-cols-1 lg:grid-cols-2"
         key={`${busqueda}|${origen}`}

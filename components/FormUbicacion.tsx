@@ -6,9 +6,11 @@ import { Aviso } from "@/components/Aviso";
 import { Boton, clasesBoton } from "@/components/Boton";
 import { Campo, CLASE_INPUT } from "@/components/Campo";
 import { Segmentado } from "@/components/Segmentado";
-import { Selector } from "@/components/Selector";
+import { SelectorTarjetas } from "@/components/SelectorTarjetas";
 import { crearUbicacion, editarUbicacion } from "@/app/(app)/hato/corrales/actions";
 import { AYUDA_USO, ETIQUETA_PISO, ETIQUETA_TIPO_UBICACION, ETIQUETA_USO, PISOS, PISOS_SECOS, TIPOS_UBICACION, USOS } from "@/lib/corrales";
+import { ESCENA_TIPO_UBICACION } from "@/lib/escenas-corrales";
+import { ESCENA_PISO, ESCENA_USO_UBICACION } from "@/lib/escenas-forms-a-corrales";
 import type { PisoUbicacion, TipoUbicacion, Ubicacion, UsoUbicacion } from "@/lib/tipos";
 
 const coma = (n: number | null | undefined) => (n == null ? "" : String(n).replace(".", ","));
@@ -47,15 +49,16 @@ export function FormUbicacion({ ubicacion, volver, ocupantes = 0 }: { ubicacion?
             <p className="text-[0.8125rem] text-humo">El tipo no cambia: su historial de animales es de un {tipo === "corral" ? "corral" : "potrero"}.</p>
           </>
         ) : (
-          <Segmentado<TipoUbicacion>
+          <SelectorTarjetas<TipoUbicacion>
             nombre="tipo"
-            etiqueta="Tipo de instalación"
+            titulo="Tipo de instalación"
             valor={tipo}
             onCambio={(t) => {
+              if (!t) return;
               setTipo(t);
               if (t === "potrero" && uso === "cuarentena") setUso("general");
             }}
-            opciones={TIPOS_UBICACION.map((t) => ({ valor: t, etiqueta: t === "corral" ? "Corral (bajo techo)" : "Potrero (pastoreo)" }))}
+            opciones={TIPOS_UBICACION.map((t) => ({ valor: t, etiqueta: ETIQUETA_TIPO_UBICACION[t], detalle: t === "corral" ? "Bajo techo" : "Pastoreo", escena: ESCENA_TIPO_UBICACION[t] }))}
           />
         )}
       </div>
@@ -65,7 +68,7 @@ export function FormUbicacion({ ubicacion, volver, ocupantes = 0 }: { ubicacion?
       </Campo>
 
       <Campo etiqueta="¿Para qué se usa?" ayuda={AYUDA_USO[uso]}>
-        {(id) => <Selector id={id} nombre="uso" valor={uso} onCambio={(v) => v && setUso(v)} titulo="¿Para qué se usa?" opciones={usosDisponibles.map((u) => ({ valor: u, etiqueta: ETIQUETA_USO[u], detalle: AYUDA_USO[u] }))} />}
+        {(id) => <SelectorTarjetas id={id} nombre="uso" valor={uso} onCambio={(v) => v && setUso(v)} titulo="¿Para qué se usa?" opciones={usosDisponibles.map((u) => ({ valor: u, etiqueta: ETIQUETA_USO[u], escena: ESCENA_USO_UBICACION[u] }))} />}
       </Campo>
 
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
@@ -81,7 +84,7 @@ export function FormUbicacion({ ubicacion, volver, ocupantes = 0 }: { ubicacion?
         <>
           <Campo etiqueta="Piso" ayuda="Las cabras detestan la humedad: el piso elevado o emparrillado las mantiene secas y previene problemas de pezuñas y parásitos.">
             {(id) => (
-              <Selector id={id} nombre="piso" valor={piso} onCambio={(v) => setPiso(v as PisoUbicacion | "")} titulo="Piso del corral" placeholder="Sin especificar" permitirVacio opciones={PISOS.filter((p) => p !== "pasto").map((p) => ({ valor: p, etiqueta: ETIQUETA_PISO[p] }))} />
+              <SelectorTarjetas id={id} nombre="piso" valor={piso} onCambio={(v) => setPiso(v as PisoUbicacion | "")} titulo="Piso del corral" permitirVacio opciones={PISOS.filter((p) => p !== "pasto").map((p) => ({ valor: p, etiqueta: ETIQUETA_PISO[p], escena: ESCENA_PISO[p] }))} />
             )}
           </Campo>
           {piso && !PISOS_SECOS.includes(piso) ? <Aviso tipo="info">Con este piso se mantiene más la humedad. Si puedes, un piso elevado o emparrillado cuida mejor las pezuñas.</Aviso> : null}

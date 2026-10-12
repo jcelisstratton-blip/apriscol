@@ -5,9 +5,10 @@ import Link from "next/link";
 import { Aviso } from "@/components/Aviso";
 import { Boton, clasesBoton } from "@/components/Boton";
 import { Campo, CLASE_INPUT } from "@/components/Campo";
-import { Selector } from "@/components/Selector";
+import { SelectorTarjetas } from "@/components/SelectorTarjetas";
 import { crearDiagnostico, editarDiagnostico } from "@/app/(app)/reproduccion/actions";
 import { formatoFecha } from "@/lib/fechas";
+import { ESCENA_METODO_DIAGNOSTICO, ESCENA_RESULTADO_DIAGNOSTICO } from "@/lib/escenas-forms-b-reproduccion";
 import { ETIQUETA_METODO, ETIQUETA_RESULTADO, METODOS_DIAGNOSTICO, RESULTADOS_DIAGNOSTICO } from "@/lib/reproduccion";
 import type { DiagnosticoGestacion, MetodoDiagnostico, ResultadoDiagnostico } from "@/lib/tipos";
 
@@ -53,11 +54,11 @@ export function FormDiagnostico({
       </Campo>
 
       <Campo etiqueta="¿Cómo se hizo?">
-        {(id) => <Selector id={id} nombre="metodo" valor={metodo} onCambio={(v) => v && setMetodo(v)} titulo="¿Cómo se hizo?" opciones={METODOS_DIAGNOSTICO.map((m) => ({ valor: m, etiqueta: ETIQUETA_METODO[m] }))} />}
+        {(id) => <SelectorTarjetas id={id} nombre="metodo" valor={metodo} onCambio={(v) => v && setMetodo(v)} titulo="¿Cómo se hizo?" opciones={METODOS_DIAGNOSTICO.map((m) => ({ valor: m, etiqueta: ETIQUETA_METODO[m], escena: ESCENA_METODO_DIAGNOSTICO[m] }))} />}
       </Campo>
 
       <Campo etiqueta="Resultado" ayuda="Si no se pudo saber, déjalo en «Dudoso» y repítelo después.">
-        {(id) => <Selector id={id} nombre="resultado" valor={resultado} onCambio={(v) => v && setResultado(v)} titulo="Resultado" opciones={RESULTADOS_DIAGNOSTICO.map((r) => ({ valor: r, etiqueta: ETIQUETA_RESULTADO[r] }))} />}
+        {(id) => <SelectorTarjetas id={id} nombre="resultado" valor={resultado} onCambio={(v) => v && setResultado(v)} titulo="Resultado" opciones={RESULTADOS_DIAGNOSTICO.map((r) => ({ valor: r, etiqueta: ETIQUETA_RESULTADO[r], escena: ESCENA_RESULTADO_DIAGNOSTICO[r] }))} />}
       </Campo>
 
       <Campo etiqueta="Observaciones" ayuda="Opcional.">

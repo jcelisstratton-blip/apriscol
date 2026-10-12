@@ -5,7 +5,9 @@ import Link from "next/link";
 import { ChevronRight, Scale, TriangleAlert } from "lucide-react";
 import { CampoBusqueda } from "@/components/CampoBusqueda";
 import { EstadoVacio } from "@/components/EstadoVacio";
-import { Chip, FilaDesplazable } from "@/components/FilaDesplazable";
+import { FilaTarjetas, TarjetaOpcion } from "@/components/TarjetaOpcion";
+import { ESCENA_GRUPO_CANDIDATOS } from "@/lib/escenas-listas-carne";
+import { textoAnimales } from "@/lib/hato";
 import { Insignia } from "@/components/Insignia";
 import { ListaPorTramos } from "@/components/ListaPorTramos";
 import { ETIQUETA_NIVEL, type GrupoCandidatos, type TextoAdvertencia } from "@/lib/ceba-candidatos";
@@ -42,11 +44,11 @@ export function ListaCandidatos({ filas }: { filas: FilaCandidato[] }) {
   return (
     <div className="space-y-3">
       {nHembras > 0 && nMachos > 0 ? (
-        <FilaDesplazable>
-          <Chip activo={grupo === "todos"} onClick={() => setGrupo("todos")}>Todos ({filas.length})</Chip>
-          <Chip activo={grupo === "hembras"} onClick={() => setGrupo("hembras")}>Hembras ({nHembras})</Chip>
-          <Chip activo={grupo === "machos"} onClick={() => setGrupo("machos")}>Machos ({nMachos})</Chip>
-        </FilaDesplazable>
+        <FilaTarjetas etiqueta="Hembras o machos">
+          <TarjetaOpcion escena={ESCENA_GRUPO_CANDIDATOS.todos} titulo="Todos" dato={textoAnimales(filas.length)} activo={grupo === "todos"} onClick={() => setGrupo("todos")} />
+          <TarjetaOpcion escena={ESCENA_GRUPO_CANDIDATOS.hembras} titulo="Hembras" dato={textoAnimales(nHembras)} activo={grupo === "hembras"} onClick={() => setGrupo("hembras")} />
+          <TarjetaOpcion escena={ESCENA_GRUPO_CANDIDATOS.machos} titulo="Machos" dato={textoAnimales(nMachos)} activo={grupo === "machos"} onClick={() => setGrupo("machos")} />
+        </FilaTarjetas>
       ) : null}
       {filas.length > 8 ? <CampoBusqueda onBuscar={alBuscar} placeholder="Buscar por arete o nombre" /> : null}
       {visibles.length === 0 ? (

@@ -7,7 +7,9 @@ import { Boton } from "@/components/Boton";
 import { CampoBusqueda } from "@/components/CampoBusqueda";
 import { CLASE_INPUT } from "@/components/Campo";
 import { EstadoVacio } from "@/components/EstadoVacio";
-import { Chip, FilaDesplazable } from "@/components/FilaDesplazable";
+import { FilaTarjetas, TarjetaOpcion } from "@/components/TarjetaOpcion";
+import { ESCENA_SIN_LOTE, ESCENA_TODOS_LOS_LOTES, escenaLote } from "@/lib/escenas-listas-carne";
+import { textoAnimales } from "@/lib/hato";
 import { ListaPorTramos } from "@/components/ListaPorTramos";
 import { useToast } from "@/components/Toast";
 import { guardarPeso } from "@/app/(app)/carne/actions";
@@ -104,13 +106,13 @@ export function CebaPesar({ animales, lotes, hoy, puedeEditar }: { animales: Ani
 
       {animales.length > MIN_PARA_BUSCAR ? <CampoBusqueda onBuscar={alBuscar} placeholder="Buscar por arete o nombre" /> : null}
       {lotes.length > 0 || hayLoteSuelto ? (
-        <FilaDesplazable>
-          <Chip activo={lote === "todos"} onClick={() => setLote("todos")}>{`Todos (${animales.length})`}</Chip>
-          {lotes.map((l) => (
-            <Chip key={l.id} activo={lote === l.id} onClick={() => setLote(l.id)}>{l.nombre}</Chip>
+        <FilaTarjetas etiqueta="Lote">
+          <TarjetaOpcion escena={ESCENA_TODOS_LOS_LOTES} titulo="Todos" dato={textoAnimales(animales.length)} activo={lote === "todos"} onClick={() => setLote("todos")} />
+          {lotes.map((l, i) => (
+            <TarjetaOpcion key={l.id} escena={escenaLote(i)} titulo={l.nombre} dato={textoAnimales(animales.filter((a) => a.loteId === l.id).length)} activo={lote === l.id} onClick={() => setLote(l.id)} />
           ))}
-          {hayLoteSuelto ? <Chip activo={lote === SIN_LOTE} onClick={() => setLote(SIN_LOTE)}>Sin lote</Chip> : null}
-        </FilaDesplazable>
+          {hayLoteSuelto ? <TarjetaOpcion escena={ESCENA_SIN_LOTE} titulo="Sin lote" dato={textoAnimales(animales.filter((a) => a.loteId === null).length)} activo={lote === SIN_LOTE} onClick={() => setLote(SIN_LOTE)} /> : null}
+        </FilaTarjetas>
       ) : null}
 
       {visibles.length === 0 ? (

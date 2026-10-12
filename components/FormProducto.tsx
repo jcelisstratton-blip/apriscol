@@ -7,7 +7,9 @@ import { Boton, clasesBoton } from "@/components/Boton";
 import { Campo, CLASE_INPUT } from "@/components/Campo";
 import { Segmentado } from "@/components/Segmentado";
 import { Selector } from "@/components/Selector";
+import { SelectorTarjetas } from "@/components/SelectorTarjetas";
 import { crearProducto, editarProducto } from "@/app/(app)/sanidad/actions";
+import { ESCENA_TIPO_PRODUCTO } from "@/lib/escenas-forms-a-sanidad";
 import { ETIQUETA_PRODUCTO, TIPOS_PRODUCTO, UNIDADES_DOSIS } from "@/lib/sanidad";
 import type { ProductoVeterinario, TipoProducto } from "@/lib/tipos";
 
@@ -37,13 +39,13 @@ export function FormProducto({ producto }: { producto?: ProductoVeterinario }) {
 
       <Campo etiqueta="Tipo">
         {(id) => (
-          <Selector
+          <SelectorTarjetas
             id={id}
             nombre="tipo"
             valor={tipo}
             onCambio={(v) => v && setTipo(v)}
             titulo="¿Qué tipo de producto es?"
-            opciones={TIPOS_PRODUCTO.map((t) => ({ valor: t, etiqueta: ETIQUETA_PRODUCTO[t] }))}
+            opciones={TIPOS_PRODUCTO.map((t) => ({ valor: t, etiqueta: ETIQUETA_PRODUCTO[t], escena: ESCENA_TIPO_PRODUCTO[t] }))}
           />
         )}
       </Campo>

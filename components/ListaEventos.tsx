@@ -6,7 +6,8 @@ import { ChevronRight, Syringe } from "lucide-react";
 import { CampoBusqueda } from "@/components/CampoBusqueda";
 import { EnlaceBoton } from "@/components/Boton";
 import { EstadoVacio } from "@/components/EstadoVacio";
-import { Chip, FilaDesplazable } from "@/components/FilaDesplazable";
+import { FilaTarjetas, TarjetaOpcion } from "@/components/TarjetaOpcion";
+import { ESCENA_EVENTO, ESCENA_TODOS_TIPOS } from "@/lib/escenas-sanidad";
 import { IconoEvento } from "@/components/IconoEvento";
 import { Insignia } from "@/components/Insignia";
 import { ListaEscalable } from "@/components/ListaEscalable";
@@ -45,14 +46,12 @@ export function ListaEventos({ fincaId, puedeRegistrar, rango = { desde: null, h
   return (
     <div className="space-y-3">
       <CampoBusqueda onBuscar={alBuscar} placeholder="Buscar producto, responsable o diagnóstico" />
-      <FilaDesplazable>
-        <Chip activo={tipo === "todos"} onClick={() => setTipo("todos")}>Todo</Chip>
+      <FilaTarjetas etiqueta="Tipo de tratamiento">
+        <TarjetaOpcion escena={ESCENA_TODOS_TIPOS} titulo="Todo" activo={tipo === "todos"} onClick={() => setTipo("todos")} />
         {TIPOS_EVENTO.map((t) => (
-          <Chip key={t} activo={tipo === t} onClick={() => setTipo(t)}>
-            {ETIQUETA_EVENTO[t]}
-          </Chip>
+          <TarjetaOpcion key={t} escena={ESCENA_EVENTO[t]} titulo={ETIQUETA_EVENTO[t]} activo={tipo === t} onClick={() => setTipo(t)} />
         ))}
-      </FilaDesplazable>
+      </FilaTarjetas>
       <ListaEscalable<EventoResumen>
         rejilla="grid-cols-1 lg:grid-cols-2"
         key={`${busqueda}|${tipo}|${rango.desde}|${rango.hasta}`}

@@ -5,9 +5,10 @@ import Link from "next/link";
 import { Aviso } from "@/components/Aviso";
 import { Boton, clasesBoton } from "@/components/Boton";
 import { Campo, CLASE_INPUT } from "@/components/Campo";
-import { Selector } from "@/components/Selector";
+import { SelectorTarjetas } from "@/components/SelectorTarjetas";
 import { SubirSoporte } from "@/components/SubirSoporte";
 import { crearPrueba, editarPrueba } from "@/app/(app)/sanidad/actions";
+import { ESCENA_RESULTADO_PRUEBA, ESCENA_TIPO_PRUEBA } from "@/lib/escenas-forms-a-sanidad";
 import { ETIQUETA_PRUEBA, ETIQUETA_RESULTADO_PRUEBA, RESULTADOS_PRUEBA, TIPOS_PRUEBA } from "@/lib/sanidad";
 import type { PruebaSanitaria, ResultadoPrueba, TipoPrueba } from "@/lib/tipos";
 
@@ -34,13 +35,13 @@ export function FormPrueba({ animalId, hoy, prueba, solicitud }: { animalId: str
 
       <Campo etiqueta="Prueba">
         {(id) => (
-          <Selector
+          <SelectorTarjetas
             id={id}
             nombre="prueba"
             valor={tipo}
             onCambio={(v) => v && setTipo(v)}
             titulo="¿Qué prueba?"
-            opciones={TIPOS_PRUEBA.map((t) => ({ valor: t, etiqueta: ETIQUETA_PRUEBA[t] }))}
+            opciones={TIPOS_PRUEBA.map((t) => ({ valor: t, etiqueta: ETIQUETA_PRUEBA[t], escena: ESCENA_TIPO_PRUEBA[t] }))}
           />
         )}
       </Campo>
@@ -51,13 +52,13 @@ export function FormPrueba({ animalId, hoy, prueba, solicitud }: { animalId: str
 
       <Campo etiqueta="Resultado" ayuda="Si todavía no llega, déjalo en «Pendiente» y lo corriges después.">
         {(id) => (
-          <Selector
+          <SelectorTarjetas
             id={id}
             nombre="resultado"
             valor={resultado}
             onCambio={(v) => v && setResultado(v)}
             titulo="Resultado"
-            opciones={RESULTADOS_PRUEBA.map((r) => ({ valor: r, etiqueta: ETIQUETA_RESULTADO_PRUEBA[r] }))}
+            opciones={RESULTADOS_PRUEBA.map((r) => ({ valor: r, etiqueta: ETIQUETA_RESULTADO_PRUEBA[r], escena: ESCENA_RESULTADO_PRUEBA[r] }))}
           />
         )}
       </Campo>
