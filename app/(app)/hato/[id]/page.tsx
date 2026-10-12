@@ -8,7 +8,8 @@ import { Tarjeta } from "@/components/Tarjeta";
 import { obtenerContexto } from "@/lib/contexto";
 import { crearClienteServidor } from "@/lib/supabase/server";
 import { puedeEscribir, puedeGestionar, puedeVer } from "@/lib/permisos";
-import { urlsFotosPremios } from "@/lib/fotos";
+import { urlsFotos, urlsFotosPremios } from "@/lib/fotos";
+import { VisorFoto } from "@/components/VisorFoto";
 import { FilaParticipacion } from "@/components/FilaParticipacion";
 import { clasesBoton } from "@/components/Boton";
 import { edadTexto, formatoFecha, hoyBogota, litros, sumarDias } from "@/lib/fechas";
@@ -94,10 +95,12 @@ export default async function FichaAnimal({ params, searchParams }: { params: Pr
 
   const listaPremios = participaciones.data ?? [];
   const idsFerias = [...new Set(listaPremios.map((p) => p.feria_id))];
-  const [feriasData, fotosPremios] = await Promise.all([
+  const [feriasData, fotosPremios, fotosAnimal] = await Promise.all([
     idsFerias.length ? supabase.from("ferias").select("id, nombre, fecha_inicio").in("id", idsFerias) : Promise.resolve({ data: [] }),
     urlsFotosPremios(supabase, listaPremios.map((p) => p.foto_path)),
+    urlsFotos(supabase, "fotos-animales", [animal.foto_path]),
   ]);
+  const fotoAnimal = animal.foto_path ? fotosAnimal.get(animal.foto_path) : undefined;
   const ferias = new Map((feriasData.data ?? []).map((f) => [f.id, f]));
 
   const padre = padres.data?.find((p) => p.id === animal.padre_id);
@@ -131,9 +134,11 @@ export default async function FichaAnimal({ params, searchParams }: { params: Pr
         ) : null}
       </div>
 
-      <header className="pb-4 pt-1">
-        <h1 className="font-display text-[2.25rem] font-semibold leading-none tracking-tight">{animal.numero_arete}</h1>
-        {animal.nombre ? <p className="mt-1 text-lg text-humo">{animal.nombre}</p> : null}
+      <header className="flex items-start gap-4 pb-4 pt-1">
+        {fotoAnimal ? <VisorFoto url={fotoAnimal} titulo={`Foto de ${animal.nombre ?? animal.numero_arete}`} tamano="size-24" /> : null}
+        <div className="min-w-0 flex-1">
+        <h1 className="font-display text-[2.25rem] font-semibold leading-none tracking-tight [overflow-wrap:anywhere]">{animal.numero_arete}</h1>
+        {animal.nombre ? <p className="mt-1 text-lg text-humo [overflow-wrap:anywhere]">{animal.nombre}</p> : null}
         <div className="mt-3 flex flex-wrap gap-1.5">
           <Insignia tono="musgo">{nombreTipo(animal.especie, animal.sexo)}</Insignia>
           {animal.sexo === "hembra" ? (
@@ -143,6 +148,7 @@ export default async function FichaAnimal({ params, searchParams }: { params: Pr
           )}
           {animal.estado !== "activo" ? <Insignia tono="alerta">{animal.estado[0].toUpperCase() + animal.estado.slice(1)}</Insignia> : null}
           {lacAbierta ? <Insignia tono="ok">En lactancia</Insignia> : null}
+        </div>
         </div>
       </header>
 

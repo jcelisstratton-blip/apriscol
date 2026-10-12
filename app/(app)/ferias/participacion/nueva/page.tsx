@@ -2,10 +2,8 @@ import type { Metadata } from "next";
 import { randomUUID } from "node:crypto";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ChevronLeft, Trophy } from "lucide-react";
-import { EnlaceBoton } from "@/components/Boton";
+import { ChevronLeft } from "lucide-react";
 import { Encabezado } from "@/components/Encabezado";
-import { EstadoVacio } from "@/components/EstadoVacio";
 import { FormParticipacion } from "@/components/FormParticipacion";
 import { obtenerContexto } from "@/lib/contexto";
 import { crearClienteServidor } from "@/lib/supabase/server";
@@ -36,19 +34,13 @@ export default async function PaginaParticipacionNueva({ searchParams }: { searc
       </Link>
       <Encabezado titulo="Premio de feria" subtitulo={finca.nombre} />
       <div className="lg:max-w-xl">
-        {(ferias ?? []).length === 0 ? (
-          <EstadoVacio icono={<Trophy strokeWidth={1.5} />} titulo="Primero registra la feria" descripcion="Cada participación pertenece a una feria. Créala y vuelves directo aquí.">
-            <EnlaceBoton href={`/ferias/nueva${animal && ID_UUID.test(animal) ? `?animal=${animal}` : ""}`}>Registrar feria</EnlaceBoton>
-          </EstadoVacio>
-        ) : (
-          <FormParticipacion
-            fincaId={finca.id}
-            ferias={ferias ?? []}
-            feriaInicial={feria && ID_UUID.test(feria) ? feria : undefined}
-            animalInicial={animalInicial.data ?? null}
-            solicitud={randomUUID()}
-          />
-        )}
+        <FormParticipacion
+          fincaId={finca.id}
+          ferias={ferias ?? []}
+          feriaInicial={feria && ID_UUID.test(feria) ? feria : undefined}
+          animalInicial={animalInicial.data ?? null}
+          solicitud={randomUUID()}
+        />
       </div>
     </>
   );

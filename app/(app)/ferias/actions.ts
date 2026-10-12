@@ -22,9 +22,7 @@ const esquemaFeria = z.object({
   nivel: z.enum(["local", "regional", "nacional", "internacional"]),
   departamento: opcional(z.string().trim().max(60)),
   municipio: opcional(z.string().trim().max(80)),
-  fecha_inicio: z.iso.date("Indica desde qué día es la feria."),
-  fecha_fin: opcional(z.iso.date("La fecha final no es válida.")),
-  organizador: opcional(z.string().trim().max(160)),
+  fecha_inicio: z.iso.date("Indica la fecha de la feria."),
 });
 
 export async function crearFeria(_: EstadoForm, form: FormData): Promise<EstadoForm> {
@@ -32,15 +30,12 @@ export async function crearFeria(_: EstadoForm, form: FormData): Promise<EstadoF
   if (!puedeEscribir(rol, "ferias")) return { error: "No tienes permiso para registrar ferias en esta finca." };
   const datos = esquemaFeria.safeParse(Object.fromEntries(form));
   if (!datos.success) return { error: datos.error.issues[0]?.message };
-  if (datos.data.fecha_fin && datos.data.fecha_fin < datos.data.fecha_inicio) {
-    return { error: "La feria no puede terminar antes de empezar." };
-  }
 
   const supabase = await crearClienteServidor();
   const { data, error } = await supabase.from("ferias").insert({ ...datos.data, finca_id: finca.id }).select("id").single();
   if (error || !data) {
     const duplicada = error?.code === "23505";
-    return { error: duplicada ? "Ya registraste esa feria con la misma fecha de inicio." : mensajeAmigable(error?.message ?? "") };
+    return { error: duplicada ? "Ya registraste esa feria con esa fecha." : mensajeAmigable(error?.message ?? "") };
   }
   revalidatePath("/ferias");
   const volver = form.get("animal");
@@ -58,7 +53,6 @@ export async function editarFeria(_: EstadoForm, form: FormData): Promise<Estado
   const datos = esquemaEdicionFeria.safeParse(Object.fromEntries(form));
   if (!datos.success) return { error: datos.error.issues[0]?.message };
   const d = datos.data;
-  if (d.fecha_fin && d.fecha_fin < d.fecha_inicio) return { error: "La feria no puede terminar antes de empezar." };
 
   const supabase = await crearClienteServidor();
   const { data, error } = await supabase
@@ -69,13 +63,11 @@ export async function editarFeria(_: EstadoForm, form: FormData): Promise<Estado
       departamento: d.departamento ?? null,
       municipio: d.municipio ?? null,
       fecha_inicio: d.fecha_inicio,
-      fecha_fin: d.fecha_fin ?? null,
-      organizador: d.organizador ?? null,
     })
     .eq("id", d.feria_id)
     .eq("finca_id", finca.id)
     .select("id");
-  if (error) return { error: error.code === "23505" ? "Ya registraste una feria con ese nombre y esa fecha de inicio." : mensajeAmigable(error.message) };
+  if (error) return { error: error.code === "23505" ? "Ya registraste una feria con ese nombre y esa fecha." : mensajeAmigable(error.message) };
   if (!data || data.length === 0) return { error: "No encontramos esa feria." };
 
   revalidatePath("/ferias");
@@ -124,7 +116,7 @@ export async function prepararSubidaFoto(tipoMime: string): Promise<{ path: stri
 
 // ───────────────────────── Participación y premio ─────────────────────────
 const esquemaParticipacion = z.object({
-  feria_id: z.uuid("Elige la feria."),
+  feria_id: z.union([z.uuid("Elige la feria."), z.literal("nueva")], "Elige la feria."),
   animal_id: z.uuid("Elige el animal."),
   categoria: z.string().trim().min(1, "Escribe la categoría en la que concursó.").max(160),
   resultado: z.enum(RESULTADOS as [string, ...string[]]),
@@ -150,9 +142,28 @@ export async function crearParticipacion(_: EstadoForm, form: FormData): Promise
   }
 
   const supabase = await crearClienteServidor();
+
+  // Se puede registrar la feria desde el mismo premio: si ya existe (mismo nombre y fecha) se reutiliza.
+  let feriaId = d.feria_id;
+  if (feriaId === "nueva") {
+    const nueva = esquemaFeria.safeParse(Object.fromEntries(form));
+    if (!nueva.success) return { error: nueva.error.issues[0]?.message };
+    const { data: creada, error: errFeria } = await supabase.from("ferias").insert({ ...nueva.data, finca_id: finca.id }).select("id").single();
+    if (creada) {
+      feriaId = creada.id;
+    } else if (errFeria?.code === "23505") {
+      const { data: delDia } = await supabase.from("ferias").select("id, nombre").eq("finca_id", finca.id).eq("fecha_inicio", nueva.data.fecha_inicio);
+      const igual = (delDia ?? []).find((f) => f.nombre.trim().toLowerCase() === nueva.data.nombre.toLowerCase());
+      if (!igual) return { error: "Ya registraste esa feria con esa fecha." };
+      feriaId = igual.id;
+    } else {
+      return { error: mensajeAmigable(errFeria?.message ?? "") };
+    }
+  }
+
   const { error } = await supabase.from("participaciones_feria").insert({
     finca_id: finca.id,
-    feria_id: d.feria_id,
+    feria_id: feriaId,
     animal_id: d.animal_id,
     categoria: d.categoria,
     resultado: d.resultado as (typeof RESULTADOS)[number],
@@ -175,12 +186,15 @@ export async function crearParticipacion(_: EstadoForm, form: FormData): Promise
   }
 
   revalidatePath("/ferias");
-  revalidatePath(`/ferias/${d.feria_id}`);
+  revalidatePath(`/ferias/${feriaId}`);
   revalidatePath(`/hato/${d.animal_id}`);
-  redirect(`/ferias/${d.feria_id}`);
+  redirect(`/ferias/${feriaId}`);
 }
 
-const esquemaEdicionParticipacion = esquemaParticipacion.omit({ client_request_id: true }).extend({ participacion_id: z.uuid() });
+// Al corregir un premio la feria debe ser una ya registrada (la feria nueva solo se crea al registrar el premio).
+const esquemaEdicionParticipacion = esquemaParticipacion
+  .omit({ client_request_id: true, feria_id: true })
+  .extend({ participacion_id: z.uuid(), feria_id: z.uuid("Elige la feria.") });
 
 /** Corrige un premio: feria, animal, categoría, resultado, premio y foto. Si cambia o se quita la foto, el archivo viejo se borra. */
 export async function editarParticipacion(_: EstadoForm, form: FormData): Promise<EstadoForm> {
@@ -203,9 +217,7 @@ export async function editarParticipacion(_: EstadoForm, form: FormData): Promis
     .maybeSingle();
   if (!actual) return { error: "No encontramos ese premio." };
 
-  // Si solo participó (sin premio), no hay premio en dinero, descripción ni foto.
-  const hayPremio = d.resultado !== "participacion";
-  const fotoNueva = hayPremio ? (d.foto_path ?? null) : null;
+  const fotoNueva = d.foto_path ?? null;
 
   const { error } = await supabase
     .from("participaciones_feria")
@@ -216,8 +228,8 @@ export async function editarParticipacion(_: EstadoForm, form: FormData): Promis
       resultado: d.resultado as (typeof RESULTADOS)[number],
       puesto: d.puesto ?? null,
       puntaje: d.puntaje ?? null,
-      premio_descripcion: hayPremio ? (d.premio_descripcion ?? null) : null,
-      premio_en_dinero: hayPremio ? (d.premio_en_dinero ?? null) : null,
+      premio_descripcion: d.premio_descripcion ?? null,
+      premio_en_dinero: d.premio_en_dinero ?? null,
       observaciones: d.observaciones ?? null,
       foto_path: fotoNueva,
     })

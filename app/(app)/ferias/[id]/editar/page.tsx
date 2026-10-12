@@ -38,8 +38,6 @@ export default async function PaginaEditarFeria({ params }: { params: Promise<{ 
             departamento: feria.departamento,
             municipio: feria.municipio,
             fecha_inicio: feria.fecha_inicio,
-            fecha_fin: feria.fecha_fin,
-            organizador: feria.organizador,
           }}
         />
         <div className="border-t border-arena pt-5">
