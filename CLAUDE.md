@@ -57,6 +57,11 @@ correspondiente en `node_modules/next/dist/docs/` (esta versión cambia APIs: `m
   conservarse; `grid lg:grid-cols-2 lg:items-start` si no), listas en rejilla (`rejilla` de `ListaEscalable`), formularios y páginas de
   ajustes con ancho cómodo (`lg:max-w-xl`), nunca estirados a todo lo ancho. Lo que el menú lateral ya muestra (finca activa) no se repite
   en la pantalla en `lg`. Una pantalla nueva se prueba a 1440, 1024, 768, 360 y 320 px.
+- **Todo lo que se crea desde la app se puede editar** (decisión del dueño del producto): una pantalla nueva de «crear X» no está terminada sin su
+  «Editar X». El formulario de edición reutiliza el de creación con los datos precargados (`FormAnimal` con `animal`), deja vacío lo que la
+  persona vacía (nunca conserva el valor anterior en silencio), se envía con `onSubmit` (no `action`) para no borrar lo escrito si hay un error,
+  y al guardar vuelve a la ficha con el aviso «Cambios guardados» (`?guardado=1` + `AvisoGuardado`). Lo que no puede cambiar sin dañar datos
+  (por ejemplo el sexo de un animal con crías o leche) se muestra bloqueado con la razón, y el servidor lo vuelve a comprobar.
 - Objetivos táctiles ≥ 44 px, campos de 16 px (evita el zoom de iOS), respetar `env(safe-area-inset-*)`.
 - Navegación: barra inferior de 4 pestañas + botón central de acción (`BottomNav`). Elegir/confirmar/capturar en
   **hojas inferiores** (`Sheet`). Números con el **teclado propio** (`Teclado`), un solo botón principal fijo abajo.

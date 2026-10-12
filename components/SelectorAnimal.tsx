@@ -11,7 +11,7 @@ import { crearClienteNavegador } from "@/lib/supabase/client";
 import { etiquetaAnimal } from "@/lib/animal";
 import type { Especie, SexoAnimal } from "@/lib/tipos";
 
-type Resultado = { id: string; numero_arete: string; nombre: string | null; especie?: Especie };
+type Resultado = { id: string; numero_arete: string; nombre: string | null; especie?: Especie; estado?: string };
 
 /** Elegir un animal del hato (por ejemplo, el padre o la madre) con búsqueda en la hoja inferior. */
 export function SelectorAnimal({
@@ -23,6 +23,8 @@ export function SelectorAnimal({
   titulo,
   valor,
   onCambio,
+  excluir,
+  incluirInactivos = false,
 }: {
   id?: string;
   nombre: string;
@@ -32,6 +34,10 @@ export function SelectorAnimal({
   titulo: string;
   valor: Resultado | null;
   onCambio: (a: Resultado | null) => void;
+  /** Un animal que no puede elegirse (por ejemplo, el mismo al que se le busca padre). */
+  excluir?: string;
+  /** Para padres y madres: el padre de una cría suele estar ya vendido o muerto. */
+  incluirInactivos?: boolean;
 }) {
   const [abierta, setAbierta] = useState(false);
   const [resultados, setResultados] = useState<Resultado[] | null>(null);
@@ -44,19 +50,20 @@ export function SelectorAnimal({
       const limpio = texto.replace(/[%,()*\\]/g, " ").trim();
       let q = crearClienteNavegador()
         .from("animales")
-        .select("id, numero_arete, nombre, especie")
+        .select("id, numero_arete, nombre, especie, estado")
         .eq("finca_id", fincaId)
         .is("deleted_at", null);
       if (sexo) q = q.eq("sexo", sexo);
       if (especie) q = q.eq("especie", especie);
       // Los animales que ya salieron del hato también pueden tener premios históricos.
-      if (sexo || especie) q = q.eq("estado", "activo");
+      if ((sexo || especie) && !incluirInactivos) q = q.eq("estado", "activo");
+      if (excluir) q = q.neq("id", excluir);
       if (limpio) q = q.or(`numero_arete.ilike.%${limpio}%,nombre.ilike.%${limpio}%`);
       const { data, error: e } = await q.order("numero_arete").limit(20);
       if (e) setError(e.message);
       else setResultados(data ?? []);
     },
-    [fincaId, sexo, especie],
+    [fincaId, sexo, especie, excluir, incluirInactivos],
   );
 
   return (
@@ -101,7 +108,10 @@ export function SelectorAnimal({
                   }}
                   className="flex min-h-12 w-full items-center rounded-xl px-3 text-left font-medium hover:bg-arena/60"
                 >
-                  {etiquetaAnimal(r)}
+                  <span className="min-w-0">
+                    {etiquetaAnimal(r)}
+                    {r.estado && r.estado !== "activo" ? <span className="ml-2 text-sm font-normal text-humo">{r.estado[0].toUpperCase() + r.estado.slice(1)}</span> : null}
+                  </span>
                 </button>
               </li>
             ))}

@@ -1,18 +1,44 @@
 "use client";
 
-import { useActionState, useMemo, useState } from "react";
+import { useActionState, useMemo, useState, useTransition } from "react";
+import Link from "next/link";
 import { Aviso } from "@/components/Aviso";
-import { Boton } from "@/components/Boton";
+import { Boton, clasesBoton } from "@/components/Boton";
 import { Campo, CLASE_INPUT } from "@/components/Campo";
 import { Chip, FilaDesplazable } from "@/components/FilaDesplazable";
 import { Segmentado } from "@/components/Segmentado";
 import { Selector } from "@/components/Selector";
 import { SelectorAnimal } from "@/components/SelectorAnimal";
-import { crearAnimal } from "@/app/(app)/hato/actions";
+import { crearAnimal, editarAnimal } from "@/app/(app)/hato/actions";
+import { nombreTipo } from "@/lib/animal";
 import { hoyBogota } from "@/lib/fechas";
 import type { Especie, Raza, SexoAnimal, Vocacion } from "@/lib/tipos";
 
 type Ref = { id: string; numero_arete: string; nombre: string | null };
+
+/** Los datos de un animal ya registrado, para corregirlos. */
+export type AnimalEditable = {
+  id: string;
+  especie: Especie;
+  sexo: SexoAnimal;
+  numero_arete: string;
+  chip: string | null;
+  nombre: string | null;
+  raza_id: number | null;
+  color: string | null;
+  marcas: string | null;
+  rasgos: string | null;
+  fecha_nacimiento: string | null;
+  fecha_nacimiento_aprox: boolean;
+  origen: "nacido_en_finca" | "comprado";
+  peso_nacer_kg: number | null;
+  vocacion: Vocacion;
+  padre: Ref | null;
+  madre: Ref | null;
+  padre_externo: string | null;
+  madre_externa: string | null;
+  notas: string | null;
+};
 
 /** Colores más usados en el libro genealógico: un toque los escribe; el campo sigue siendo libre. */
 const COLORES = ["Blanco", "Chamoisée", "Negro", "Crema", "Café", "Broken", "Pinto"];
@@ -32,25 +58,40 @@ export function FormAnimal({
   propositoFinca,
   razas,
   solicitud,
+  animal,
+  bloqueoIdentidad = null,
 }: {
   fincaId: string;
   especies: Especie[];
   propositoFinca: Vocacion;
   razas: Raza[];
-  solicitud: string;
+  /** Solo al crear: identifica la apertura del formulario para ignorar un doble toque. */
+  solicitud?: string;
+  /** Si viene, el formulario corrige este animal en lugar de crear uno nuevo. */
+  animal?: AnimalEditable;
+  /** En edición: por qué el sexo y la especie no se pueden cambiar (o `null` si se pueden). */
+  bloqueoIdentidad?: string | null;
 }) {
-  const [estado, enviar, pendiente] = useActionState(crearAnimal, undefined);
-  const [especie, setEspecie] = useState<Especie>(especies[0] ?? "caprino");
-  const [sexo, setSexo] = useState<SexoAnimal>("hembra");
-  const [razaId, setRazaId] = useState<number | "">("");
-  const [origen, setOrigen] = useState<"nacido_en_finca" | "comprado">("nacido_en_finca");
-  const [vocacion, setVocacion] = useState<Vocacion>(propositoFinca);
-  const [padre, setPadre] = useState<Ref | null>(null);
-  const [madre, setMadre] = useState<Ref | null>(null);
-  const [color, setColor] = useState("");
+  const editando = Boolean(animal);
+  const [estado, enviar, pendiente] = useActionState(editando ? editarAnimal : crearAnimal, undefined);
+  const [, iniciar] = useTransition();
+  const [especie, setEspecie] = useState<Especie>(animal?.especie ?? especies[0] ?? "caprino");
+  const [sexo, setSexo] = useState<SexoAnimal>(animal?.sexo ?? "hembra");
+  const [razaId, setRazaId] = useState<number | "">(animal?.raza_id ?? "");
+  const [origen, setOrigen] = useState<"nacido_en_finca" | "comprado">(animal?.origen ?? "nacido_en_finca");
+  const [vocacion, setVocacion] = useState<Vocacion>(animal?.vocacion ?? propositoFinca);
+  const [padre, setPadre] = useState<Ref | null>(animal?.padre ?? null);
+  const [madre, setMadre] = useState<Ref | null>(animal?.madre ?? null);
+  const [color, setColor] = useState(animal?.color ?? "");
   const hoy = hoyBogota();
+  const identidadBloqueada = editando && bloqueoIdentidad !== null;
 
-  // `solicitud` es un identificador por apertura del formulario: si se toca dos veces «Guardar», la base ignora el duplicado.
+  // Se envía con onSubmit (no con `action`): así, si hay un error, lo que la persona escribió no se borra.
+  const alEnviar = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const datos = new FormData(e.currentTarget);
+    iniciar(() => enviar(datos));
+  };
 
   const opcionesRaza = useMemo(
     () => razas.filter((r) => r.especie === especie).map((r) => ({ valor: r.id, etiqueta: r.nombre })),
@@ -67,12 +108,21 @@ export function FormAnimal({
   const etiquetasSexo = especie === "caprino" ? ["Cabra", "Cabro"] : ["Oveja", "Carnero"];
 
   return (
-    <form action={enviar} className="space-y-8">
-      <input type="hidden" name="client_request_id" value={solicitud} />
+    <form onSubmit={alEnviar} className="space-y-8">
+      {animal ? <input type="hidden" name="animal_id" value={animal.id} /> : <input type="hidden" name="client_request_id" value={solicitud ?? ""} />}
 
       <Seccion titulo="Identificación">
         <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
-          {especies.length > 1 ? (
+          {identidadBloqueada && animal ? (
+            <div className="min-w-0 space-y-1 lg:col-span-2">
+              <input type="hidden" name="especie" value={animal.especie} />
+              <input type="hidden" name="sexo" value={animal.sexo} />
+              <span className="block text-sm font-semibold">Especie y sexo</span>
+              <p className="font-semibold">{nombreTipo(animal.especie, animal.sexo)} · {animal.especie === "caprino" ? "Caprino" : "Ovino"}</p>
+              <p className="text-[0.8125rem] text-humo">{bloqueoIdentidad}</p>
+            </div>
+          ) : null}
+          {identidadBloqueada ? null : especies.length > 1 ? (
             <div className="min-w-0 space-y-2">
               <span className="block text-sm font-semibold">Especie</span>
               <Segmentado
@@ -90,32 +140,34 @@ export function FormAnimal({
             <input type="hidden" name="especie" value={especie} />
           )}
 
-          <div className="min-w-0 space-y-2">
-            <span className="block text-sm font-semibold">Sexo</span>
-            <Segmentado
-              etiqueta="Sexo"
-              nombre="sexo"
-              valor={sexo}
-              onCambio={setSexo}
-              opciones={[
-                { valor: "hembra", etiqueta: etiquetasSexo[0] },
-                { valor: "macho", etiqueta: etiquetasSexo[1] },
-              ]}
-            />
-          </div>
+          {identidadBloqueada ? null : (
+            <div className="min-w-0 space-y-2">
+              <span className="block text-sm font-semibold">Sexo</span>
+              <Segmentado
+                etiqueta="Sexo"
+                nombre="sexo"
+                valor={sexo}
+                onCambio={setSexo}
+                opciones={[
+                  { valor: "hembra", etiqueta: etiquetasSexo[0] },
+                  { valor: "macho", etiqueta: etiquetasSexo[1] },
+                ]}
+              />
+            </div>
+          )}
 
           <Campo etiqueta="Número de arete" ayuda="Debe ser único en tu finca.">
             {(id) => (
-              <input id={id} name="numero_arete" required maxLength={40} autoComplete="off" autoCapitalize="characters" enterKeyHint="next" className={CLASE_INPUT} placeholder="Ej. 0123" />
+              <input id={id} name="numero_arete" defaultValue={animal?.numero_arete} required maxLength={40} autoComplete="off" autoCapitalize="characters" enterKeyHint="next" className={CLASE_INPUT} placeholder="Ej. 0123" />
             )}
           </Campo>
 
           <Campo etiqueta="Microchip" ayuda="Opcional. El número del chip, si lo tiene.">
-            {(id) => <input id={id} name="chip" maxLength={40} autoComplete="off" inputMode="text" enterKeyHint="next" className={CLASE_INPUT} />}
+            {(id) => <input id={id} name="chip" defaultValue={animal?.chip ?? ""} maxLength={40} autoComplete="off" inputMode="text" enterKeyHint="next" className={CLASE_INPUT} />}
           </Campo>
 
           <Campo etiqueta="Nombre" ayuda="Opcional.">
-            {(id) => <input id={id} name="nombre" maxLength={60} autoComplete="off" enterKeyHint="next" className={CLASE_INPUT} />}
+            {(id) => <input id={id} name="nombre" defaultValue={animal?.nombre ?? ""} maxLength={60} autoComplete="off" enterKeyHint="next" className={CLASE_INPUT} />}
           </Campo>
         </div>
       </Seccion>
@@ -153,11 +205,11 @@ export function FormAnimal({
           </div>
 
           <Campo etiqueta="Marcas" ayuda="Opcional. Chapeta, muesca, collar o tatuaje con que lo identificas.">
-            {(id) => <input id={id} name="marcas" maxLength={120} autoComplete="off" enterKeyHint="next" className={CLASE_INPUT} placeholder="Ej. Chapeta 32, muesca oreja derecha" />}
+            {(id) => <input id={id} name="marcas" defaultValue={animal?.marcas ?? ""} maxLength={120} autoComplete="off" enterKeyHint="next" className={CLASE_INPUT} placeholder="Ej. Chapeta 32, muesca oreja derecha" />}
           </Campo>
 
           <Campo etiqueta="Rasgos" ayuda="Opcional. Señas particulares que lo distinguen.">
-            {(id) => <input id={id} name="rasgos" maxLength={200} autoComplete="off" enterKeyHint="next" className={CLASE_INPUT} placeholder="Ej. Mamelas, cara negra, estrella blanca" />}
+            {(id) => <input id={id} name="rasgos" defaultValue={animal?.rasgos ?? ""} maxLength={200} autoComplete="off" enterKeyHint="next" className={CLASE_INPUT} placeholder="Ej. Mamelas, cara negra, estrella blanca" />}
           </Campo>
         </div>
       </Seccion>
@@ -166,10 +218,10 @@ export function FormAnimal({
         <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
           <div className="min-w-0 space-y-1">
             <Campo etiqueta="Fecha de nacimiento">
-              {(id) => <input id={id} name="fecha_nacimiento" type="date" max={hoy} className={CLASE_INPUT} />}
+              {(id) => <input id={id} name="fecha_nacimiento" type="date" defaultValue={animal?.fecha_nacimiento ?? ""} max={hoy} className={CLASE_INPUT} />}
             </Campo>
             <label className="flex min-h-11 items-center gap-3 text-[0.9375rem]">
-              <input type="checkbox" name="fecha_nacimiento_aprox" className="size-5 accent-[var(--musgo)]" />
+              <input type="checkbox" name="fecha_nacimiento_aprox" defaultChecked={animal?.fecha_nacimiento_aprox} className="size-5 accent-[var(--musgo)]" />
               Es una fecha aproximada
             </label>
           </div>
@@ -190,7 +242,7 @@ export function FormAnimal({
 
           {origen === "nacido_en_finca" ? (
             <Campo etiqueta="Peso al nacer" ayuda="Opcional. En kilos, por ejemplo 3,2.">
-              {(id) => <input id={id} name="peso_nacer_kg" inputMode="decimal" autoComplete="off" enterKeyHint="next" className={CLASE_INPUT} placeholder="Ej. 3,2" />}
+              {(id) => <input id={id} name="peso_nacer_kg" defaultValue={animal?.peso_nacer_kg != null ? String(animal.peso_nacer_kg).replace(".", ",") : ""} inputMode="decimal" autoComplete="off" enterKeyHint="next" className={CLASE_INPUT} placeholder="Ej. 3,2" />}
             </Campo>
           ) : null}
         </div>
@@ -213,7 +265,7 @@ export function FormAnimal({
             />
           </div>
 
-          {sexo === "hembra" && vocacion !== "carne" ? (
+          {!editando && sexo === "hembra" && vocacion !== "carne" ? (
             <Campo etiqueta="Fecha del último parto" ayuda="Si ya está en leche, así abrimos su lactancia y aparece en el ordeño.">
               {(id) => <input id={id} name="fecha_ultimo_parto" type="date" max={hoy} className={CLASE_INPUT} />}
             </Campo>
@@ -226,25 +278,25 @@ export function FormAnimal({
         <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
           <Campo etiqueta="Padre">
             {(id) => (
-              <SelectorAnimal id={id} nombre="padre_id" fincaId={fincaId} sexo="macho" especie={especie} titulo="Elegir el padre" valor={padre} onCambio={setPadre} />
+              <SelectorAnimal id={id} nombre="padre_id" fincaId={fincaId} sexo="macho" especie={especie} titulo="Elegir el padre" valor={padre} onCambio={setPadre} excluir={animal?.id} incluirInactivos />
             )}
           </Campo>
           <Campo etiqueta="Madre">
             {(id) => (
-              <SelectorAnimal id={id} nombre="madre_id" fincaId={fincaId} sexo="hembra" especie={especie} titulo="Elegir la madre" valor={madre} onCambio={setMadre} />
+              <SelectorAnimal id={id} nombre="madre_id" fincaId={fincaId} sexo="hembra" especie={especie} titulo="Elegir la madre" valor={madre} onCambio={setMadre} excluir={animal?.id} incluirInactivos />
             )}
           </Campo>
         </div>
-        <details className="group">
+        <details className="group" open={Boolean(animal?.padre_externo || animal?.madre_externa)}>
           <summary className="min-h-11 cursor-pointer list-none py-2.5 text-[0.9375rem] font-semibold text-musgo">
             Padres que no están en mi hato
           </summary>
           <div className="grid grid-cols-1 gap-5 pt-2 lg:grid-cols-2">
             <Campo etiqueta="Padre externo" ayuda="Nombre o código, por ejemplo de una pajilla de semen.">
-              {(id) => <input id={id} name="padre_externo" maxLength={80} autoComplete="off" className={CLASE_INPUT} />}
+              {(id) => <input id={id} name="padre_externo" defaultValue={animal?.padre_externo ?? ""} maxLength={80} autoComplete="off" className={CLASE_INPUT} />}
             </Campo>
             <Campo etiqueta="Madre externa">
-              {(id) => <input id={id} name="madre_externa" maxLength={80} autoComplete="off" className={CLASE_INPUT} />}
+              {(id) => <input id={id} name="madre_externa" defaultValue={animal?.madre_externa ?? ""} maxLength={80} autoComplete="off" className={CLASE_INPUT} />}
             </Campo>
           </div>
         </details>
@@ -252,15 +304,22 @@ export function FormAnimal({
 
       <Seccion titulo="Notas">
         <Campo etiqueta="Notas" ayuda="Opcional. Cualquier cosa que quieras recordar de este animal.">
-          {(id) => <textarea id={id} name="notas" rows={3} maxLength={1000} className={`${CLASE_INPUT} py-3`} />}
+          {(id) => <textarea id={id} name="notas" defaultValue={animal?.notas ?? ""} rows={3} maxLength={1000} className={`${CLASE_INPUT} py-3`} />}
         </Campo>
       </Seccion>
 
       {estado?.error ? <Aviso tipo="error">{estado.error}</Aviso> : null}
 
-      <Boton type="submit" pendiente={pendiente} cargando="Guardando animal…">
-        Guardar animal
-      </Boton>
+      <div className="space-y-2">
+        <Boton type="submit" pendiente={pendiente} cargando={editando ? "Guardando cambios…" : "Guardando animal…"}>
+          {editando ? "Guardar cambios" : "Guardar animal"}
+        </Boton>
+        {animal ? (
+          <Link href={`/hato/${animal.id}`} className={clasesBoton("fantasma")}>
+            Cancelar
+          </Link>
+        ) : null}
+      </div>
     </form>
   );
 }
