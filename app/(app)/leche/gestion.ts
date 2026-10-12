@@ -8,17 +8,12 @@ import { obtenerContexto } from "@/lib/contexto";
 import { puedeEscribir, puedeGestionar } from "@/lib/permisos";
 import { mensajeAmigable } from "@/lib/mensaje-amigable";
 import { hoyBogota } from "@/lib/fechas";
-import { leerNumero } from "@/lib/numeros";
+import { decimal, opcional, texto } from "@/lib/validacion";
 import { DESTINOS_LECHE, MOMENTOS_FRIO, TIPOS_MANTENIMIENTO } from "@/lib/leche-calidad";
 
 export type EstadoForm = { error?: string } | undefined;
 type Resultado = { ok: true; destino?: string } | { ok: false; error: string };
 
-const vacio = (v: unknown) => (typeof v === "string" && v.trim() === "" ? undefined : v);
-const opcional = <T extends z.ZodType>(s: T) => z.preprocess(vacio, s.optional());
-/** Un número escrito a la colombiana («3,6», «2.500»); lo que no se entiende queda como texto y la validación lo rechaza. */
-const decimal = (s: z.ZodType<number>) => z.preprocess((v) => (typeof v === "string" ? (leerNumero(v) ?? v) : v), opcional(s));
-const texto = (max: number, mensaje: string) => opcional(z.string().trim().max(max, mensaje));
 const ID_UUID = z.uuid();
 
 const DESTINO_TABLA = {

@@ -169,6 +169,13 @@
 
 ---
 
+## 8c. Carne (ceba: peso, lotes, alimento)
+- **Dónde vive (regla del menú):** lo global es el menú **Carne** (`/carne`, en el celular dentro de «Más»): pestañas **Resumen** (animales en ceba, peso promedio, ganancia por día, **listos para beneficio** con su aviso de retiro de carne, y cuántos llevan más de 30 días sin pesarse), **Lotes** (abiertos/cerrados con peso promedio, ganancia, conversión y barra hacia la meta) y **Pesos** (todos los pesos, con buscador). Lo de **un solo animal** vive en su ficha: tarjeta **«Peso y ceba»** (`#crecimiento`: peso al nacer, último peso, ganancia por día, lote, meta, historial de pesos, **Registrar peso** y elegir el lote) y en **Hato → filtro «Ceba»** (`/hato?vista=ceba`): la lista de animales en engorde para **pesar** rápido (peso por animal, día del pesaje, filtro por lote; se guarda al instante, un peso por animal y día).
+- **Tablas** (migraciones `20261012074336_permisos_carne`, `20261012074402_carne_ceba`; RLS del módulo `carne`): `lotes_ceba` (nombre único por finca, inicio, **peso meta**, cierre), `pesajes` (control, destete, antes del beneficio; uno por animal y día), `consumo_lote` (kg de alimento, qué alimento, costo) y `animales.lote_ceba_id`. El peso al nacer sigue en `animales.peso_nacer_kg`. Permisos: propietario y administrador manejan carne; veterinario y contador la ven.
+- **Cálculos (funciones modo invoker, nada derivado se guarda):** `ceba_animales(p_finca)` da por animal primer y último peso y la **GDP** en g/día (total y entre los dos últimos pesos; el peso al nacer cuenta como primer punto si la fecha de nacimiento es exacta; solo con ≥ 7 días entre los dos pesos). `ceba_lotes(p_finca)` da por lote animales, peso promedio, GDP promedio, kg ganados desde el primer peso dentro del lote, kg y costo de alimento desde el inicio y cuántos animales llegaron a la meta. **Conversión alimenticia = kg de alimento ÷ kg ganados** (se calcula en la pantalla; solo hay conversión si hay ganancia). Ojo: la ganancia cuenta a los animales que hoy están en el lote, el alimento a todo el lote; si salen animales la conversión se infla un poco.
+- **«En ceba» en Hato:** animales en un lote abierto, machos con uso «carne» o pesados en los últimos 90 días. Un lote cerrado ya no acepta animales nuevos.
+- **Pendiente (siguiente entrega):** rendimiento en canal (peso en vivo vs. canal caliente/fría, tipificación) y trazabilidad de destino (guía de movilización) al dar de baja por sacrificio o venta.
+
 ## 9. Panel del superadmin
 
 - **Espacio propio** `app/(admin)` (layout con navegación Resumen · Fincas · Importaciones, "Mi finca" si además tiene una; cerrar sesión). Guardia: quien no es superadmin vuelve a `/`.

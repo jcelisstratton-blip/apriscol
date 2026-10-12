@@ -6,8 +6,9 @@ import { Encabezado } from "@/components/Encabezado";
 import { FilaDesplazable } from "@/components/FilaDesplazable";
 import { obtenerContexto } from "@/lib/contexto";
 import { puedeEscribir, puedeGestionar, puedeVer } from "@/lib/permisos";
-import { DIRECCION_ORDENO, direccionHato, esFiltroHato, filtrosHato } from "@/lib/hato";
+import { DIRECCION_CEBA, DIRECCION_ORDENO, direccionHato, esFiltroHato, filtrosHato } from "@/lib/hato";
 import { Registrar } from "./Registrar";
+import { Ceba } from "./Ceba";
 import { Animales, CalidadLeche, ProgramaLeche } from "./ProgramaLeche";
 
 export const metadata: Metadata = { title: "Hato" };
@@ -23,6 +24,8 @@ export default async function PaginaHato({ searchParams }: { searchParams: Promi
   const verLeche = puedeVer(rol, "leche");
   const puedeRegistrar = puedeEscribir(rol, "leche");
   const enOrdeno = sp.vista === "ordeno" && verLeche;
+  const verCarne = puedeVer(rol, "carne");
+  const enCeba = sp.vista === "ceba" && verCarne;
   // Quien no puede escribir leche (veterinario, contador) no registra ordeños: ve el programa y la calidad, sin poder cambiarlos.
   const modo = sp.modo === "calidad" ? "calidad" : sp.modo === "programar" || !puedeRegistrar ? "programar" : "registrar";
   const filtros = filtrosHato(finca.especies);
@@ -44,7 +47,22 @@ export default async function PaginaHato({ searchParams }: { searchParams: Promi
         }
       />
 
-      {enOrdeno ? (
+      {enCeba ? (
+        <div className="space-y-4">
+          <FilaDesplazable>
+            {filtros.map((f) => (
+              <ChipEnlace key={f.id} href={direccionHato(f.id)} activo={false}>
+                {f.texto}
+              </ChipEnlace>
+            ))}
+            {verLeche ? <ChipEnlace href={DIRECCION_ORDENO} activo={false}>Ordeño</ChipEnlace> : null}
+            <ChipEnlace href={DIRECCION_CEBA} activo>
+              Ceba
+            </ChipEnlace>
+          </FilaDesplazable>
+          <Ceba fincaId={finca.id} puedeEditar={puedeEscribir(rol, "carne")} />
+        </div>
+      ) : enOrdeno ? (
         <div className="space-y-4">
           <FilaDesplazable>
             {filtros.map((f) => (
@@ -55,6 +73,7 @@ export default async function PaginaHato({ searchParams }: { searchParams: Promi
             <ChipEnlace href={DIRECCION_ORDENO} activo>
               Ordeño
             </ChipEnlace>
+            {verCarne ? <ChipEnlace href={DIRECCION_CEBA} activo={false}>Ceba</ChipEnlace> : null}
           </FilaDesplazable>
 
           <FilaDesplazable>
@@ -87,6 +106,7 @@ export default async function PaginaHato({ searchParams }: { searchParams: Promi
           puedeTraer={puedeGestionar(rol) && !perfil?.libro_resuelto_en}
           filtroInicial={esFiltroHato(sp.filtro) ? sp.filtro : "todos"}
           conOrdeno={verLeche}
+          conCeba={verCarne}
         />
       )}
     </>

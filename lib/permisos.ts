@@ -23,9 +23,9 @@ export function puedeVer(rol: RolFinca, modulo: ModuloApp): boolean {
     case "ordenador":
       return modulo === "hato" || modulo === "leche";
     case "veterinario":
-      return ["hato", "genealogia", "sanidad", "reproduccion", "leche"].includes(modulo);
+      return ["hato", "genealogia", "sanidad", "reproduccion", "leche", "carne"].includes(modulo);
     case "contador":
-      return ["hato", "leche", "contabilidad"].includes(modulo);
+      return ["hato", "leche", "carne", "contabilidad"].includes(modulo);
   }
 }
 

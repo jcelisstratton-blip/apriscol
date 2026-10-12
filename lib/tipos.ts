@@ -36,6 +36,7 @@ export type Animal = {
   tipo_parto_origen: number | null;
   peso_nacer_kg: number | null;
   lote_id: string | null;
+  lote_ceba_id: string | null;
   vocacion: Vocacion;
   /** Solo machos: para qué es. `null` = por definir. */
   uso_macho: UsoMacho | null;
@@ -520,6 +521,78 @@ export type MantenimientoOrdeno = {
   updated_at: string;
 };
 
+// ───────────────────────── Carne: pesajes, lotes de ceba y consumo ─────────────────────────
+export type TipoPesaje = "destete" | "control" | "pre_beneficio";
+
+export type LoteCeba = {
+  id: string;
+  finca_id: string;
+  nombre: string;
+  fecha_inicio: string;
+  peso_meta_kg: number | null;
+  cerrado_en: string | null;
+  observaciones: string | null;
+  client_request_id: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type Pesaje = {
+  id: string;
+  finca_id: string;
+  animal_id: string;
+  fecha: string;
+  peso_kg: number;
+  tipo: TipoPesaje;
+  observaciones: string | null;
+  client_request_id: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type ConsumoLote = {
+  id: string;
+  finca_id: string;
+  lote_id: string;
+  fecha: string;
+  kg_alimento: number;
+  alimento: string | null;
+  costo: number | null;
+  observaciones: string | null;
+  client_request_id: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+/** Una fila de `ceba_animales`: pesos y ganancia diaria (g/día) de un animal. */
+export type CebaAnimal = {
+  animal_id: string;
+  lote_id: string | null;
+  n_pesajes: number;
+  peso_primero: number | null;
+  fecha_primero: string | null;
+  peso_ultimo: number | null;
+  fecha_ultimo: string | null;
+  gdp_total_g: number | null;
+  gdp_reciente_g: number | null;
+};
+
+/** Una fila de `ceba_lotes`: lo que lleva un lote de ceba. */
+export type CebaLote = {
+  lote_id: string;
+  animales: number;
+  pesados: number;
+  peso_promedio: number | null;
+  gdp_g: number | null;
+  kg_ganados: number;
+  kg_alimento: number;
+  costo_alimento: number;
+  listos: number;
+};
+
 export type { AncestroEndogamia } from "@/lib/endogamia";
 import type { AncestroEndogamia } from "@/lib/endogamia";
 
@@ -550,6 +623,9 @@ export type Database = {
       controles_frio: Tabla<ControlFrio, "finca_id" | "momento" | "temperatura_c">;
       despachos_leche: Tabla<Omit<DespachoLeche, "valor_total">, "finca_id" | "litros" | "destino_tipo">;
       mantenimiento_ordeno: Tabla<MantenimientoOrdeno, "finca_id" | "tipo">;
+      lotes_ceba: Tabla<LoteCeba, "finca_id" | "nombre">;
+      pesajes: Tabla<Pesaje, "finca_id" | "animal_id" | "peso_kg">;
+      consumo_lote: Tabla<ConsumoLote, "finca_id" | "lote_id" | "kg_alimento">;
     };
     Views: {
       v_produccion_diaria: { Row: ProduccionDiaria; Relationships: [] };
@@ -593,6 +669,8 @@ export type Database = {
         Args: { p_finca: string; p_desde: string; p_hasta: string };
         Returns: { animal_id: string; litros_tanque: number; litros_descartados: number; ordenos: number; dias: number }[];
       };
+      ceba_animales: { Args: { p_finca: string }; Returns: CebaAnimal[] };
+      ceba_lotes: { Args: { p_finca: string }; Returns: CebaLote[] };
       leche_balance: {
         Args: { p_finca: string; p_desde: string; p_hasta: string };
         Returns: { producida: number; descartada: number; despachada: number; valor_despachado: number }[];

@@ -18,3 +18,4 @@ export const esFiltroHato = (v: string | undefined): v is FiltroHato => ["todos"
 /** Dirección de la lista de animales con un filtro puesto. */
 export const direccionHato = (f: FiltroHato) => (f === "todos" ? "/hato" : `/hato?filtro=${f}`);
 export const DIRECCION_ORDENO = "/hato?vista=ordeno";
+export const DIRECCION_CEBA = "/hato?vista=ceba";
