@@ -6,6 +6,7 @@ export type Vocacion = "leche" | "carne" | "doble";
 export type RolFinca = "propietario" | "administrador" | "ordenador" | "veterinario" | "contador";
 export type ModuloApp =
   | "hato" | "genealogia" | "leche" | "carne" | "sanidad" | "reproduccion" | "nutricion" | "ambiente" | "contabilidad" | "ferias";
+export type UsoMacho = "reproductor" | "carne";
 export type Jornada = "manana" | "tarde" | "noche" | "unico";
 export type TipoBaja = "venta" | "sacrificio" | "muerte" | "perdida";
 export type MotivoBaja = "edad" | "partos" | "baja_produccion" | "sanidad" | "reproductivo" | "accidente" | "otro";
@@ -36,6 +37,8 @@ export type Animal = {
   peso_nacer_kg: number | null;
   lote_id: string | null;
   vocacion: Vocacion;
+  /** Solo machos: para qué es. `null` = por definir. */
+  uso_macho: UsoMacho | null;
   estado: string;
   fecha_baja: string | null;
   foto_path: string | null;

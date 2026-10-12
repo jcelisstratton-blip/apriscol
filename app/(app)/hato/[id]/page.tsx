@@ -18,7 +18,7 @@ import { pesos } from "@/lib/ferias";
 import { ETIQUETA_MOTIVO_BAJA, ETIQUETA_TIPO_BAJA } from "@/lib/bajas";
 import { DeshacerBaja } from "@/components/DeshacerBaja";
 import { AvisoGuardado } from "@/components/AvisoGuardado";
-import { ETIQUETA_VOCACION, nombreTipo } from "@/lib/animal";
+import { ETIQUETA_USO_MACHO, ETIQUETA_VOCACION, nombreTipo } from "@/lib/animal";
 import { NivelEndogamia } from "@/components/NivelEndogamia";
 import { RutasEndogamia } from "@/components/RutasEndogamia";
 import { describirParentesco, nivelEndogamia, pedigriTexto, porcentaje, primeraMayuscula, type AncestroEndogamia } from "@/lib/endogamia";
@@ -136,7 +136,11 @@ export default async function FichaAnimal({ params, searchParams }: { params: Pr
         {animal.nombre ? <p className="mt-1 text-lg text-humo">{animal.nombre}</p> : null}
         <div className="mt-3 flex flex-wrap gap-1.5">
           <Insignia tono="musgo">{nombreTipo(animal.especie, animal.sexo)}</Insignia>
-          {animal.sexo === "hembra" ? <Insignia>{ETIQUETA_VOCACION[animal.vocacion]}</Insignia> : null}
+          {animal.sexo === "hembra" ? (
+            <Insignia>{ETIQUETA_VOCACION[animal.vocacion]}</Insignia>
+          ) : (
+            <Insignia>{animal.uso_macho ? ETIQUETA_USO_MACHO[animal.uso_macho] : "Uso por definir"}</Insignia>
+          )}
           {animal.estado !== "activo" ? <Insignia tono="alerta">{animal.estado[0].toUpperCase() + animal.estado.slice(1)}</Insignia> : null}
           {lacAbierta ? <Insignia tono="ok">En lactancia</Insignia> : null}
         </div>
@@ -337,7 +341,11 @@ export default async function FichaAnimal({ params, searchParams }: { params: Pr
               {baja.data?.motivo ? <Dato etiqueta="Motivo">{ETIQUETA_MOTIVO_BAJA[baja.data.motivo]}</Dato> : null}
               {baja.data?.comprador ? <Dato etiqueta="Comprador">{baja.data.comprador}</Dato> : null}
               {baja.data?.valor ? <Dato etiqueta="Valor">{pesos(baja.data.valor)}</Dato> : null}
-              {baja.data?.destino_consumo ? <Dato etiqueta="Destino">Consumo</Dato> : null}
+              {baja.data?.tipo === "sacrificio" || (baja.data?.tipo === "venta" && baja.data.destino_consumo) ? (
+                <Dato etiqueta="Carne">Para consumo</Dato>
+              ) : baja.data?.tipo === "muerte" ? (
+                <Dato etiqueta="Carne">No apta para consumo</Dato>
+              ) : null}
             </dl>
             {baja.data?.detalle ? <p className="mt-3 whitespace-pre-wrap text-[0.9375rem] text-humo">{baja.data.detalle}</p> : null}
             {puedeGestionar(rol) ? (

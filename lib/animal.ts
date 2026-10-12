@@ -9,6 +9,8 @@ export function nombreTipo(especie: Especie, sexo: SexoAnimal): string {
   return sexo === "hembra" ? "Oveja" : "Carnero";
 }
 
+export const ETIQUETA_USO_MACHO = { reproductor: "Reproductor", carne: "Carne (engorde)" } as const;
+
 export const ETIQUETA_VOCACION = { leche: "Leche", carne: "Carne", doble: "Doble propósito" } as const;
 export const ETIQUETA_JORNADA = { manana: "Mañana", tarde: "Tarde", noche: "Noche", unico: "Único" } as const;
 
