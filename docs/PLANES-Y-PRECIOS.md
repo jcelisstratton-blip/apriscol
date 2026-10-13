@@ -37,14 +37,16 @@ es un aprisco pequeño y el plan de entrada tiene que ser muy accesible; como lo
 
 | Plan | Mensual | Anual (por mes) | Servicios |
 |---|---|---|---|
-| **Cría** | US$ 8 | US$ 6,40 | Hato y ficha con foto y genealogía, endogamia, leche (ordeño y calidad), sanidad con periodos de retiro, servicios y partos, traer animales del libro |
-| **Hato** (recomendado) | US$ 15 | US$ 12 | Todo Cría + equipo con roles (ordeñador, veterinario, contador), corrales y potreros, temporada de monta, programas sanitarios con FAMACHA y pediluvio, carne y ceba, premios y ferias, simulador de cruzas, gastos y costo por litro |
-| **Profesional** | US$ 30 | US$ 24 | Todo Hato + reportes de costos en Excel por fechas, costo por animal, lote y especie, controles de calidad con constancia, soportes de gastos |
-| **Hacienda** | US$ 60 | US$ 48 | Todo Profesional + varias fincas en una sola cuenta, soporte prioritario, acompañamiento para cargar la información inicial |
+| **Cría** | US$ 9,60 | US$ 7,68 | Hato y ficha con foto y genealogía, endogamia, leche (ordeño y calidad), sanidad con periodos de retiro, servicios y partos, traer animales del libro |
+| **Hato** (recomendado) | US$ 18 | US$ 14,40 | Todo Cría + equipo con roles (ordeñador, veterinario, contador), corrales y potreros, temporada de monta, programas sanitarios con FAMACHA y pediluvio, carne y ceba, premios y ferias, simulador de cruzas, gastos y costo por litro |
+| **Profesional** | US$ 36 | US$ 28,80 | Todo Hato + reportes de costos en Excel por fechas, costo por animal, lote y especie, controles de calidad con constancia, soportes de gastos |
+| **Hacienda** | US$ 72 | US$ 57,60 | Todo Profesional + varias fincas en una sola cuenta, soporte prioritario, acompañamiento para cargar la información inicial |
+
+Los precios en US$ son los de la referencia inicial (8 / 15 / 30 / 60) **subidos 20 %**. La fuente es `lib/planes.ts`.
 
 Todos: animales sin límite, cabras y ovejas, celular y computador.
 
-**Referencia de valor:** una finca de 20 cabras en ordeño mueve del orden de 3 millones de pesos al mes en leche; Cría cuesta alrededor del 1 %.
+**Referencia de valor:** una finca de 20 cabras en ordeño mueve del orden de 3 millones de pesos al mes en leche; Cría cuesta alrededor del 1 % (a COP ≈ 4.000 por dólar).
 Una finca con equipo, corrales, ceba y gastos se mueve en el rango de Hato. Los precios son una propuesta: validar con 5 a 10 criadores antes de fijarlos.
 
 ## 3. Cómo se aplican (implementado)

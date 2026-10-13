@@ -127,10 +127,10 @@ export default async function PaginaMas({ searchParams }: { searchParams: Promis
               <ChevronRight className="size-5 text-humo" strokeWidth={1.75} />
             </Link>
           ) : null}
-          {rol === "propietario" && finca.plan !== "hacienda" ? (
+          {rol === "propietario" ? (
             <Link href="/mas/plan" className={FILA}>
               <Rocket className="size-5 text-ocre" strokeWidth={1.75} />
-              <span className="flex-1 font-semibold">Mejorar mi plan</span>
+              <span className="flex-1 font-semibold">{finca.plan !== "hacienda" ? "Mejorar mi plan" : "Mi plan"}</span>
               <ChevronRight className="size-5 text-humo" strokeWidth={1.75} />
             </Link>
           ) : null}

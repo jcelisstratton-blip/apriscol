@@ -31,7 +31,8 @@ export function NavLateral({
   verCarne,
   verRepro,
   verEquipo,
-  puedeMejorar,
+  verPlan,
+  planMejorable,
   esSuperadmin,
 }: {
   nombre: string;
@@ -47,8 +48,10 @@ export function NavLateral({
   verCarne: boolean;
   verRepro: boolean;
   verEquipo: boolean;
-  /** Propietario con un plan que aún se puede mejorar. */
-  puedeMejorar: boolean;
+  /** El propietario ve su plan en el menú principal. */
+  verPlan: boolean;
+  /** Hay un plan superior al actual: la entrada dice «Mejorar mi plan»; si no, «Mi plan». */
+  planMejorable: boolean;
   esSuperadmin: boolean;
 }) {
   const ruta = usePathname();
@@ -68,9 +71,10 @@ export function NavLateral({
     { href: "/hato/endogamia", etiqueta: "Endogamia", Icono: GitFork },
     ...(verPremios ? [{ href: "/ferias", etiqueta: "Premios", Icono: Trophy }] : []),
     ...(verEquipo ? [{ href: "/mas/miembros", etiqueta: "Equipo", Icono: Users }] : []),
+    ...(verPlan ? [{ href: "/mas/plan", etiqueta: planMejorable ? "Mejorar mi plan" : "Mi plan", Icono: Rocket }] : []),
   ];
 
-  const marcada = entradaMarcada(ruta, [...enlaces.map((e) => e.href), ...(verEquipo ? ["/mas/finca"] : []), ...(puedeMejorar ? ["/mas/plan"] : []), "/mas"]);
+  const marcada = entradaMarcada(ruta, [...enlaces.map((e) => e.href), ...(verEquipo ? ["/mas/finca"] : []), "/mas"]);
   const activo = (href: string) => href === marcada;
   const clase = (esActivo: boolean) =>
     `flex min-h-11 items-center gap-3 rounded-xl px-3 text-[0.9375rem] font-semibold transition ${
@@ -116,11 +120,6 @@ export function NavLateral({
             {esSuperadmin ? (
               <Link href="/admin" className={clase(false)}>
                 <ShieldCheck className="size-5 shrink-0 text-ocre" strokeWidth={1.7} /> Panel superadmin
-              </Link>
-            ) : null}
-            {puedeMejorar ? (
-              <Link href="/mas/plan" aria-current={activo("/mas/plan") ? "page" : undefined} className={clase(activo("/mas/plan"))}>
-                <Rocket className="size-5 shrink-0 text-ocre" strokeWidth={1.7} /> Mejorar mi plan
               </Link>
             ) : null}
             {verEquipo ? (

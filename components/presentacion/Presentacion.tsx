@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowRight, Check, ChevronDown, Droplets, FlaskConical, Layers, Moon, PawPrint, Smartphone, Tags, Trophy, Users, Warehouse, Beef, Hand, Keyboard, Download, Sprout, Building2, UserPlus } from "lucide-react";
 import { Planes } from "@/components/presentacion/Planes";
+import { PLANES, usd } from "@/lib/planes";
 import { PieLegal } from "@/components/legal/PieLegal";
 import { Isotipo, Marca } from "@/components/Marca";
 import { Escena } from "@/components/TarjetaOpcion";
@@ -67,7 +68,7 @@ const PREGUNTAS: { p: string; r: string }[] = [
   { p: "¿Puedo traer mis animales de un libro genealógico?", r: "Sí. Si tus animales están en el libro genealógico, los traes una sola vez al crear tu cuenta, demostrando que son tuyos con el documento del titular y el microchip de uno de ellos." },
   { p: "¿Quién ve la información de mi finca?", r: "Solo quienes tú invites. Los datos están separados por finca, y cada persona ve únicamente lo que le toca según su rol." },
   { p: "¿Puedo invitar al ordeñador, al veterinario y al contador?", r: "Sí. El ordeñador registra leche, el veterinario maneja sanidad, reproducción y corrales, y el contador ve y registra costos." },
-  { p: "¿Cuánto cuesta?", r: "Hay cuatro planes, de US$ 8 a US$ 60 al mes, según los servicios que uses, sin importar cuántos animales tengas. Pagando por año tienes 20 % de descuento. Los ves completos en la sección Planes." },
+  { p: "¿Cuánto cuesta?", r: `Hay cuatro planes, de ${usd(PLANES[0].mensual)} a ${usd(PLANES[PLANES.length - 1].mensual)} al mes, según los servicios que uses, sin importar cuántos animales tengas. Pagando por año tienes 20 % de descuento. Los ves completos en la sección Planes.` },
   { p: "¿Puedo sacar reportes?", r: "Los reportes de costos se descargan en Excel con el periodo que elijas, y el archivo lleva el nombre de la finca, del reporte y las fechas." },
 ];
 

@@ -28,7 +28,8 @@ export default async function LayoutApp({ children }: { children: React.ReactNod
         verCarne={puedeVer(rol, "carne", finca.plan)}
         verRepro={puedeVer(rol, "reproduccion", finca.plan)}
         verEquipo={puedeGestionar(rol)}
-        puedeMejorar={rol === "propietario" && finca.plan !== "hacienda"}
+        verPlan={rol === "propietario"}
+        planMejorable={finca.plan !== "hacienda"}
         esSuperadmin={esSuperadmin}
       />
       <div className="lg:pl-64">
