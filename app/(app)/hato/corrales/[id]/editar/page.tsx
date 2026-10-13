@@ -15,7 +15,7 @@ export default async function PaginaUbicacionEditar({ params }: { params: Promis
   const { id } = await params;
   if (!ID_UUID.test(id)) notFound();
   const { finca, rol } = await obtenerContexto();
-  if (!puedeEscribir(rol, "corrales")) redirect(`/hato/corrales/${id}`);
+  if (!puedeEscribir(rol, "corrales", finca.plan)) redirect(`/hato/corrales/${id}`);
   const supabase = await crearClienteServidor();
   const { data: u } = await supabase.from("ubicaciones").select("*").eq("id", id).eq("finca_id", finca.id).maybeSingle();
   if (!u) notFound();

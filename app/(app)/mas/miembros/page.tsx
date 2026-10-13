@@ -5,8 +5,10 @@ import { ChevronLeft } from "lucide-react";
 import { Encabezado } from "@/components/Encabezado";
 import { FormInvitar, RevocarInvitacion } from "@/components/FormInvitar";
 import { Insignia } from "@/components/Insignia";
+import { RequierePlan } from "@/components/RequierePlan";
 import { Tarjeta } from "@/components/Tarjeta";
 import { obtenerContexto } from "@/lib/contexto";
+import { servicioEnPlan } from "@/lib/planes";
 import { crearClienteServidor } from "@/lib/supabase/server";
 import { ETIQUETA_ROL, puedeGestionar } from "@/lib/permisos";
 import { formatoFecha } from "@/lib/fechas";
@@ -66,7 +68,7 @@ export default async function PaginaMiembros() {
         ) : null}
 
         <Tarjeta titulo="Invitar a alguien">
-          <FormInvitar />
+          {servicioEnPlan(finca.plan, "equipo") ? <FormInvitar /> : <RequierePlan servicio="equipo" rol={rol} descripcion={rol === "propietario" ? "Con el plan Hato invitas al ordeñador, al veterinario y al contador, y cada uno ve solo lo suyo." : undefined} />}
         </Tarjeta>
       </div>
     </>

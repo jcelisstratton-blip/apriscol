@@ -35,6 +35,7 @@ export function FormGasto({
   destinoInicial,
   animalDe,
   solicitud,
+  conSoporte = true,
 }: {
   fincaId: string;
   especies: Especie[];
@@ -49,6 +50,8 @@ export function FormGasto({
   /** Si se llegó desde la ficha de un animal: al guardar se vuelve a ella. */
   animalDe?: string;
   solicitud?: string;
+  /** El plan incluye subir la factura (PDF o foto). */
+  conSoporte?: boolean;
 }) {
   const editando = Boolean(gasto);
   const [estado, enviar, pendiente] = useActionState(editando ? editarGasto : crearGasto, undefined);
@@ -211,11 +214,20 @@ export function FormGasto({
         </Campo>
       )}
 
-      <div className="space-y-1.5">
-        <p className="text-sm font-semibold">Factura o soporte</p>
-        <p className="text-[0.8125rem] text-humo">Opcional. La foto o el PDF de la factura: queda guardado como respaldo.</p>
-        <SubirSoporte nombre="soporte_path" carpeta="gastos" etiqueta="Factura o soporte" inicial={gasto?.soporte_path} onEstado={setSubiendo} />
-      </div>
+      {conSoporte ? (
+        <div className="space-y-1.5">
+          <p className="text-sm font-semibold">Factura o soporte</p>
+          <p className="text-[0.8125rem] text-humo">Opcional. La foto o el PDF de la factura: queda guardado como respaldo.</p>
+          <SubirSoporte nombre="soporte_path" carpeta="gastos" etiqueta="Factura o soporte" inicial={gasto?.soporte_path} onEstado={setSubiendo} />
+        </div>
+      ) : (
+        <p className="text-[0.8125rem] text-humo">
+          Guardar la factura en PDF o foto está en el plan Profesional.{" "}
+          <Link href="/mas/plan" className="font-semibold text-musgo underline underline-offset-4">
+            Mejorar mi plan
+          </Link>
+        </p>
+      )}
 
       <Campo etiqueta="Observaciones" ayuda="Opcional.">
         {(id) => <textarea id={id} name="observaciones" defaultValue={gasto?.observaciones ?? ""} rows={2} maxLength={1000} className={`${CLASE_INPUT} py-3`} />}

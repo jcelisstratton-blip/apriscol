@@ -16,7 +16,7 @@ import { avanceEmp, capacidadSemental, ETIQUETA_CAPACIDAD, mesesDesde, textoCC }
 import { porcentaje } from "@/lib/endogamia";
 import { formatoFecha, hoyBogota } from "@/lib/fechas";
 import { datosDesdeExterno, diasPrestamo, estadoPrestamo, etiquetaExterno } from "@/lib/semental-externo";
-import type { Raza, ReproHembra, RolFinca, SementalExterno } from "@/lib/tipos";
+import type { PlanId, Raza, ReproHembra, RolFinca, SementalExterno } from "@/lib/tipos";
 
 
 /** Los datos de un semental de otro hato: de dónde viene, a quién se le devuelve y cuánto dura el préstamo. */
@@ -63,7 +63,7 @@ export async function Detalle({
   cliente,
 }: {
   id: string;
-  finca: { id: string; nombre: string; umbral_endogamia: number };
+  finca: { id: string; nombre: string; umbral_endogamia: number; plan: PlanId };
   rol: RolFinca;
   /** Solo para pruebas: un cliente de base de datos en lugar del de la sesión. */
   cliente?: Awaited<ReturnType<typeof crearClienteServidor>>;
@@ -105,7 +105,7 @@ export async function Detalle({
   const hoy = hoyBogota();
   const abierto = !lote.cerrado_en;
   const a = avanceEmp(lote, hoy);
-  const puedeEditar = puedeEscribir(rol, "reproduccion");
+  const puedeEditar = puedeEscribir(rol, "reproduccion", finca.plan);
   const porMacho = new Map<string, number>();
   for (const h of hembras) porMacho.set(h.macho_id, (porMacho.get(h.macho_id) ?? 0) + 1);
   const machos = machoIds.map((m) => {

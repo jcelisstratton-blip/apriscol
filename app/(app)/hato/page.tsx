@@ -28,20 +28,20 @@ export const metadata: Metadata = { title: "Hato" };
 export default async function PaginaHato({ searchParams }: { searchParams: Promise<{ vista?: string; modo?: string; filtro?: string; agregar?: string; guardado?: string }> }) {
   const sp = await searchParams;
   const { finca, rol, perfil } = await obtenerContexto();
-  const puedeCrear = puedeEscribir(rol, "hato");
-  const verLeche = puedeVer(rol, "leche");
-  const puedeRegistrar = puedeEscribir(rol, "leche");
+  const puedeCrear = puedeEscribir(rol, "hato", finca.plan);
+  const verLeche = puedeVer(rol, "leche", finca.plan);
+  const puedeRegistrar = puedeEscribir(rol, "leche", finca.plan);
   const enOrdeno = sp.vista === "ordeno" && verLeche;
-  const verCarne = puedeVer(rol, "carne");
+  const verCarne = puedeVer(rol, "carne", finca.plan);
   const enCeba = sp.vista === "ceba" && verCarne;
-  const verRepro = puedeVer(rol, "reproduccion");
+  const verRepro = puedeVer(rol, "reproduccion", finca.plan);
   const enMonta = sp.vista === "empadronamiento" && verRepro;
-  const verSanidad = puedeVer(rol, "sanidad");
+  const verSanidad = puedeVer(rol, "sanidad", finca.plan);
   const enSanidad = sp.vista === "sanidad" && verSanidad;
-  const verCorrales = puedeVer(rol, "corrales");
+  const verCorrales = puedeVer(rol, "corrales", finca.plan);
   const enCorrales = sp.vista === "corrales" && verCorrales;
   const conteos = await conteosHato(await crearClienteServidor(), finca.id, finca.especies);
-  const verGastos = puedeVer(rol, "contabilidad");
+  const verGastos = puedeVer(rol, "contabilidad", finca.plan);
   const enGastos = sp.vista === "gastos" && verGastos;
   const vistas = vistasHato({ leche: verLeche, carne: verCarne, repro: verRepro, sanidad: verSanidad, corrales: verCorrales, gastos: verGastos });
   // Quien no puede escribir leche (veterinario, contador) no registra ordeños: ve el programa y la calidad, sin poder cambiarlos.
@@ -67,27 +67,27 @@ export default async function PaginaHato({ searchParams }: { searchParams: Promi
       {enCeba ? (
         <div className="space-y-4">
           <TarjetasHato especies={finca.especies} vistas={vistas} conteos={conteos} vistaActiva="ceba" />
-          <Ceba fincaId={finca.id} puedeEditar={puedeEscribir(rol, "carne")} />
+          <Ceba fincaId={finca.id} puedeEditar={puedeEscribir(rol, "carne", finca.plan)} />
         </div>
       ) : enMonta ? (
         <div className="space-y-4">
           <TarjetasHato especies={finca.especies} vistas={vistas} conteos={conteos} vistaActiva="empadronamiento" />
-          <Monta fincaId={finca.id} umbral={finca.umbral_endogamia} puedeEditar={puedeEscribir(rol, "reproduccion")} />
+          <Monta fincaId={finca.id} umbral={finca.umbral_endogamia} puedeEditar={puedeEscribir(rol, "reproduccion", finca.plan)} />
         </div>
       ) : enSanidad ? (
         <div className="space-y-4">
           <TarjetasHato especies={finca.especies} vistas={vistas} conteos={conteos} vistaActiva="sanidad" />
-          <Sanidad fincaId={finca.id} puedeEditar={puedeEscribir(rol, "sanidad")} guardado={sp.guardado === "1"} />
+          <Sanidad fincaId={finca.id} puedeEditar={puedeEscribir(rol, "sanidad", finca.plan)} guardado={sp.guardado === "1"} />
         </div>
       ) : enCorrales ? (
         <div className="space-y-4">
           <TarjetasHato especies={finca.especies} vistas={vistas} conteos={conteos} vistaActiva="corrales" />
-          <Corrales fincaId={finca.id} puedeEditar={puedeEscribir(rol, "corrales")} guardado={sp.guardado === "1"} />
+          <Corrales fincaId={finca.id} puedeEditar={puedeEscribir(rol, "corrales", finca.plan)} guardado={sp.guardado === "1"} />
         </div>
       ) : enGastos ? (
         <div className="space-y-4">
           <TarjetasHato especies={finca.especies} vistas={vistas} conteos={conteos} vistaActiva="gastos" />
-          <Gastos fincaId={finca.id} puedeEditar={puedeEscribir(rol, "contabilidad")} guardado={sp.guardado === "1"} />
+          <Gastos fincaId={finca.id} puedeEditar={puedeEscribir(rol, "contabilidad", finca.plan)} guardado={sp.guardado === "1"} />
         </div>
       ) : enOrdeno ? (
         <div className="space-y-4">

@@ -106,7 +106,7 @@ function revalidarSanidad(animales: string[]) {
 
 export async function crearEvento(_: EstadoForm, form: FormData): Promise<EstadoForm> {
   const { finca, rol } = await obtenerContexto();
-  if (!puedeEscribir(rol, "sanidad")) return { error: "No tienes permiso para registrar sanidad en esta finca." };
+  if (!puedeEscribir(rol, "sanidad", finca.plan)) return { error: "No tienes permiso para registrar sanidad en esta finca." };
   const supabase = await crearClienteServidor();
   const leido = await leerEvento(form, finca.id, supabase);
   if ("error" in leido) return { error: leido.error };
@@ -134,7 +134,7 @@ export async function crearEvento(_: EstadoForm, form: FormData): Promise<Estado
 /** Corrige un evento: sus datos y la lista de animales que lo recibieron. Lo que se deja vacío queda vacío. */
 export async function editarEvento(_: EstadoForm, form: FormData): Promise<EstadoForm> {
   const { finca, rol } = await obtenerContexto();
-  if (!puedeEscribir(rol, "sanidad")) return { error: "No tienes permiso para editar sanidad en esta finca." };
+  if (!puedeEscribir(rol, "sanidad", finca.plan)) return { error: "No tienes permiso para editar sanidad en esta finca." };
   const supabase = await crearClienteServidor();
   const leido = await leerEvento(form, finca.id, supabase);
   if ("error" in leido) return { error: leido.error };
@@ -179,7 +179,7 @@ const MENSAJE_PRODUCTO_REPETIDO = "Ya tienes un producto con ese nombre.";
 
 export async function crearProducto(_: EstadoForm, form: FormData): Promise<EstadoForm> {
   const { finca, rol } = await obtenerContexto();
-  if (!puedeEscribir(rol, "sanidad")) return { error: "No tienes permiso para registrar productos en esta finca." };
+  if (!puedeEscribir(rol, "sanidad", finca.plan)) return { error: "No tienes permiso para registrar productos en esta finca." };
   const datos = esquemaProducto.safeParse(Object.fromEntries(form));
   if (!datos.success) return { error: datos.error.issues[0]?.message };
   const d = datos.data;
@@ -203,7 +203,7 @@ const esquemaEdicionProducto = esquemaProducto.extend({ producto_id: z.uuid() })
 
 export async function editarProducto(_: EstadoForm, form: FormData): Promise<EstadoForm> {
   const { finca, rol } = await obtenerContexto();
-  if (!puedeEscribir(rol, "sanidad")) return { error: "No tienes permiso para editar productos en esta finca." };
+  if (!puedeEscribir(rol, "sanidad", finca.plan)) return { error: "No tienes permiso para editar productos en esta finca." };
   const datos = esquemaEdicionProducto.safeParse(Object.fromEntries(form));
   if (!datos.success) return { error: datos.error.issues[0]?.message };
   const d = datos.data;
@@ -255,7 +255,7 @@ const esquemaPrueba = z.object({
 
 export async function crearPrueba(_: EstadoForm, form: FormData): Promise<EstadoForm> {
   const { finca, rol } = await obtenerContexto();
-  if (!puedeEscribir(rol, "sanidad")) return { error: "No tienes permiso para registrar pruebas en esta finca." };
+  if (!puedeEscribir(rol, "sanidad", finca.plan)) return { error: "No tienes permiso para registrar pruebas en esta finca." };
   const datos = esquemaPrueba.safeParse(Object.fromEntries(form));
   if (!datos.success) return { error: datos.error.issues[0]?.message };
   const d = datos.data;
@@ -286,7 +286,7 @@ const esquemaEdicionPrueba = esquemaPrueba.omit({ client_request_id: true }).ext
 
 export async function editarPrueba(_: EstadoForm, form: FormData): Promise<EstadoForm> {
   const { finca, rol } = await obtenerContexto();
-  if (!puedeEscribir(rol, "sanidad")) return { error: "No tienes permiso para editar pruebas en esta finca." };
+  if (!puedeEscribir(rol, "sanidad", finca.plan)) return { error: "No tienes permiso para editar pruebas en esta finca." };
   const datos = esquemaEdicionPrueba.safeParse(Object.fromEntries(form));
   if (!datos.success) return { error: datos.error.issues[0]?.message };
   const d = datos.data;
@@ -336,7 +336,7 @@ const FAMACHA_REPETIDA = "Ya registraste una evaluación FAMACHA de este animal 
 
 export async function crearFamacha(_: EstadoForm, form: FormData): Promise<EstadoForm> {
   const { finca, rol } = await obtenerContexto();
-  if (!puedeEscribir(rol, "sanidad")) return { error: "No tienes permiso para registrar sanidad en esta finca." };
+  if (!puedeEscribir(rol, "sanidad", finca.plan)) return { error: "No tienes permiso para registrar sanidad en esta finca." };
   const datos = esquemaFamacha.safeParse(Object.fromEntries(form));
   if (!datos.success) return { error: datos.error.issues[0]?.message };
   const d = datos.data;
@@ -353,7 +353,7 @@ export async function crearFamacha(_: EstadoForm, form: FormData): Promise<Estad
 
 export async function editarFamacha(_: EstadoForm, form: FormData): Promise<EstadoForm> {
   const { finca, rol } = await obtenerContexto();
-  if (!puedeEscribir(rol, "sanidad")) return { error: "No tienes permiso para editar sanidad en esta finca." };
+  if (!puedeEscribir(rol, "sanidad", finca.plan)) return { error: "No tienes permiso para editar sanidad en esta finca." };
   const datos = esquemaEdicionFamacha.safeParse(Object.fromEntries(form));
   if (!datos.success) return { error: datos.error.issues[0]?.message };
   const d = datos.data;
@@ -377,7 +377,7 @@ export async function editarFamacha(_: EstadoForm, form: FormData): Promise<Esta
 
 export async function eliminarFamacha(evaluacionId: string): Promise<Resultado> {
   const { finca, rol } = await obtenerContexto();
-  if (!puedeEscribir(rol, "sanidad")) return { ok: false, error: "No tienes permiso para eliminar evaluaciones en esta finca." };
+  if (!puedeEscribir(rol, "sanidad", finca.plan)) return { ok: false, error: "No tienes permiso para eliminar evaluaciones en esta finca." };
   if (!ID_UUID.safeParse(evaluacionId).success) return { ok: false, error: "Evaluación no válida." };
   const supabase = await crearClienteServidor();
   const { data, error } = await supabase.from("evaluaciones_famacha").delete().eq("id", evaluacionId).eq("finca_id", finca.id).select("animal_id");
@@ -472,7 +472,7 @@ function revalidarPrograma(animales: string[]) {
 
 export async function programarSanidad(_: EstadoForm, form: FormData): Promise<EstadoForm> {
   const { finca, rol } = await obtenerContexto();
-  if (!puedeEscribir(rol, "sanidad")) return { error: "No tienes permiso para programar sanidad en esta finca." };
+  if (!puedeEscribir(rol, "sanidad", finca.plan)) return { error: "No tienes permiso para programar sanidad en esta finca." };
   const supabase = await crearClienteServidor();
   const leido = await leerPrograma(form, finca.id, supabase, true);
   if ("error" in leido) return { error: leido.error };
@@ -488,7 +488,7 @@ export async function programarSanidad(_: EstadoForm, form: FormData): Promise<E
 /** Corrige una programación: sus datos y los animales pendientes (los ya aplicados no se tocan). */
 export async function editarPrograma(_: EstadoForm, form: FormData): Promise<EstadoForm> {
   const { finca, rol } = await obtenerContexto();
-  if (!puedeEscribir(rol, "sanidad")) return { error: "No tienes permiso para editar sanidad en esta finca." };
+  if (!puedeEscribir(rol, "sanidad", finca.plan)) return { error: "No tienes permiso para editar sanidad en esta finca." };
   const supabase = await crearClienteServidor();
   const leido = await leerPrograma(form, finca.id, supabase, false);
   if ("error" in leido) return { error: leido.error };
@@ -510,7 +510,7 @@ export async function editarPrograma(_: EstadoForm, form: FormData): Promise<Est
 /** Cancela una programación (queda en el historial, pero ya no pide aplicarse). */
 export async function cancelarPrograma(programaId: string): Promise<Resultado> {
   const { finca, rol } = await obtenerContexto();
-  if (!puedeEscribir(rol, "sanidad")) return { ok: false, error: "No tienes permiso para cancelar programaciones en esta finca." };
+  if (!puedeEscribir(rol, "sanidad", finca.plan)) return { ok: false, error: "No tienes permiso para cancelar programaciones en esta finca." };
   if (!ID_UUID.safeParse(programaId).success) return { ok: false, error: "Programación no válida." };
   const supabase = await crearClienteServidor();
   const { data, error } = await supabase.from("programas_sanitarios").update({ cancelado_en: new Date().toISOString() }).eq("id", programaId).eq("finca_id", finca.id).is("cancelado_en", null).select("id");

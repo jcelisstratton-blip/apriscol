@@ -24,7 +24,7 @@ const esquema = z.object({
 /** Guarda (o corrige) el ordeño de un animal en una jornada. La base marca sola la leche en periodo de retiro. */
 export async function guardarOrdeno(entrada: z.input<typeof esquema>): Promise<ResultadoOrdeno> {
   const { finca, rol } = await obtenerContexto();
-  if (!puedeEscribir(rol, "leche")) return { ok: false, error: "No tienes permiso para registrar ordeños en esta finca." };
+  if (!puedeEscribir(rol, "leche", finca.plan)) return { ok: false, error: "No tienes permiso para registrar ordeños en esta finca." };
 
   const datos = esquema.safeParse(entrada);
   if (!datos.success) return { ok: false, error: datos.error.issues[0]?.message ?? "Dato inválido." };
@@ -79,7 +79,7 @@ const esquemaOrdeno = z
  */
 export async function ponerEnOrdeno(entrada: z.input<typeof esquemaOrdeno>): Promise<ResultadoLactancias> {
   const { finca, rol } = await obtenerContexto();
-  if (!puedeEscribir(rol, "leche")) return { ok: false, error: "No tienes permiso para esto en esta finca." };
+  if (!puedeEscribir(rol, "leche", finca.plan)) return { ok: false, error: "No tienes permiso para esto en esta finca." };
   const datos = esquemaOrdeno.safeParse(entrada);
   if (!datos.success) return { ok: false, error: datos.error.issues[0]?.message ?? "Dato inválido." };
   const { animales, fechaParto } = datos.data;
@@ -116,7 +116,7 @@ export async function ponerEnOrdeno(entrada: z.input<typeof esquemaOrdeno>): Pro
 /** Saca a una hembra del ordeño (la seca): cierra su lactancia abierta hoy. */
 export async function sacarDelOrdeno(animalId: string): Promise<{ ok: true } | { ok: false; error: string }> {
   const { finca, rol } = await obtenerContexto();
-  if (!puedeEscribir(rol, "leche")) return { ok: false, error: "No tienes permiso para esto en esta finca." };
+  if (!puedeEscribir(rol, "leche", finca.plan)) return { ok: false, error: "No tienes permiso para esto en esta finca." };
   if (!z.uuid().safeParse(animalId).success) return { ok: false, error: "Animal no válido." };
 
   const supabase = await crearClienteServidor();

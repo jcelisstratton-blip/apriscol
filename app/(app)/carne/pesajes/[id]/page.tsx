@@ -24,7 +24,7 @@ export default async function PaginaEditarPeso({ params }: { params: Promise<{ i
   const supabase = await crearClienteServidor();
   const { data: pesaje } = await supabase.from("pesajes").select("*").eq("id", id).eq("finca_id", finca.id).maybeSingle();
   if (!pesaje) notFound();
-  if (!puedeEscribir(rol, "carne")) redirect(`/hato/${pesaje.animal_id}`);
+  if (!puedeEscribir(rol, "carne", finca.plan)) redirect(`/hato/${pesaje.animal_id}`);
   const { data: animal } = await supabase.from("animales").select("id, numero_arete, nombre").eq("id", pesaje.animal_id).eq("finca_id", finca.id).maybeSingle();
   if (!animal) notFound();
 

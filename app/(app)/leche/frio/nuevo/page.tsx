@@ -12,8 +12,8 @@ import { hoyBogota } from "@/lib/fechas";
 export const metadata: Metadata = { title: "Medir temperatura" };
 
 export default async function PaginaFrioNuevo() {
-  const { rol } = await obtenerContexto();
-  if (!puedeEscribir(rol, "leche")) redirect("/leche?vista=frio");
+  const { finca, rol } = await obtenerContexto();
+  if (!puedeEscribir(rol, "leche", finca.plan)) redirect("/leche?vista=frio");
 
   return (
     <>

@@ -22,7 +22,7 @@ export default async function PaginaEditarServicio({ params }: { params: Promise
   const supabase = await crearClienteServidor();
   const { data: servicio } = await supabase.from("servicios").select("*").eq("id", id).eq("finca_id", finca.id).maybeSingle();
   if (!servicio) notFound();
-  if (!puedeEscribir(rol, "reproduccion")) redirect(`/hato/${servicio.hembra_id}`);
+  if (!puedeEscribir(rol, "reproduccion", finca.plan)) redirect(`/hato/${servicio.hembra_id}`);
   const { data: animal } = await supabase.from("animales").select("id, numero_arete, nombre, especie").eq("id", servicio.hembra_id).eq("finca_id", finca.id).maybeSingle();
   if (!animal) notFound();
   const [{ data: param }, macho] = await Promise.all([

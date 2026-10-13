@@ -5,6 +5,7 @@ import { z } from "zod";
 import { crearClienteServidor } from "@/lib/supabase/server";
 import { obtenerContexto } from "@/lib/contexto";
 import { puedeEscribir } from "@/lib/permisos";
+import { nombrePlan, servicioEnPlan, SERVICIOS_PLAN } from "@/lib/planes";
 import { mensajeAmigable } from "@/lib/mensaje-amigable";
 import { diasHasta, hoyBogota } from "@/lib/fechas";
 import { analisisTraeResultado, CONTROLES_DESPACHO, controlesDeSalida, INFO_CONTROL, resultadoDeAnalisis, VENTANA_DIAS } from "@/lib/controles";
@@ -42,7 +43,8 @@ export async function guardarControl(entrada: EntradaControl): Promise<Resultado
   if (!datos.success) return { ok: false, error: datos.error.issues[0]?.message ?? "Revisa los datos." };
   const d = datos.data;
   const esDespacho = d.ambito === "despacho";
-  if (!puedeEscribir(rol, esDespacho ? "leche" : "carne")) return { ok: false, error: "No tienes permiso para responder controles de calidad en esta finca." };
+  if (!puedeEscribir(rol, esDespacho ? "leche" : "carne", finca.plan)) return { ok: false, error: "No tienes permiso para responder controles de calidad en esta finca." };
+  if (!servicioEnPlan(finca.plan, "calidad")) return { ok: false, error: `Los controles de calidad con constancia están en el plan ${nombrePlan(SERVICIOS_PLAN.calidad.desde)}. Mejora tu plan desde «Más».` };
   if (esDespacho && !(CONTROLES_DESPACHO as string[]).includes(d.tipo)) return { ok: false, error: "Ese control no aplica a un despacho de leche." };
 
   const hoy = hoyBogota();

@@ -15,8 +15,8 @@ export const metadata: Metadata = { title: "Análisis de calidad" };
 const VUELTA_VALIDA = /^\/leche\/despachos\/[0-9a-f-]{36}\/controles$/i;
 
 export default async function PaginaCalidadNuevo({ searchParams }: { searchParams: Promise<{ volver?: string }> }) {
-  const { rol } = await obtenerContexto();
-  if (!puedeEscribir(rol, "leche")) redirect("/leche?vista=calidad");
+  const { finca, rol } = await obtenerContexto();
+  if (!puedeEscribir(rol, "leche", finca.plan)) redirect("/leche?vista=calidad");
   const { volver: pedido } = await searchParams;
   const volver = pedido && VUELTA_VALIDA.test(pedido) ? pedido : undefined;
 

@@ -18,7 +18,7 @@ export default async function PaginaParticipacionNueva({ searchParams }: { searc
   const { finca, rol } = await obtenerContexto();
   const { animal } = await searchParams;
   if (!animal || !ID_UUID.test(animal)) redirect("/hato");
-  if (!puedeEscribir(rol, "ferias")) redirect(`/hato/${animal}`);
+  if (!puedeEscribir(rol, "ferias", finca.plan)) redirect(`/hato/${animal}`);
   const supabase = await crearClienteServidor();
 
   const [{ data: ferias }, { data: datosAnimal }] = await Promise.all([

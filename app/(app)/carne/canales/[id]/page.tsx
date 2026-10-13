@@ -22,7 +22,7 @@ export default async function PaginaEditarCanal({ params }: { params: Promise<{ 
   const supabase = await crearClienteServidor();
   const { data: canal } = await supabase.from("canales").select("*").eq("id", id).eq("finca_id", finca.id).maybeSingle();
   if (!canal) notFound();
-  if (!puedeEscribir(rol, "carne")) redirect(`/hato/${canal.animal_id}`);
+  if (!puedeEscribir(rol, "carne", finca.plan)) redirect(`/hato/${canal.animal_id}`);
   const { data: animal } = await supabase.from("animales").select("id, numero_arete, nombre").eq("id", canal.animal_id).eq("finca_id", finca.id).maybeSingle();
   if (!animal) notFound();
 

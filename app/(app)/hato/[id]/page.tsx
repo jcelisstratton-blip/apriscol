@@ -69,12 +69,12 @@ export default async function FichaAnimal({ params, searchParams }: { params: Pr
 
   // Un animal del libro tiene su pedigrí aunque sus padres no estén en este hato.
   const puedeCalcular = Boolean((animal.padre_id && animal.madre_id) || animal.libro_id);
-  const verLeche = puedeVer(rol, "leche") && animal.sexo === "hembra";
-  const verGenealogia = puedeVer(rol, "genealogia") || puedeVer(rol, "hato");
-  const verFerias = puedeVer(rol, "ferias");
-  const verSanidad = puedeVer(rol, "sanidad");
-  const verCarne = puedeVer(rol, "carne");
-  const verRepro = puedeVer(rol, "reproduccion") && animal.sexo === "hembra";
+  const verLeche = puedeVer(rol, "leche", finca.plan) && animal.sexo === "hembra";
+  const verGenealogia = puedeVer(rol, "genealogia", finca.plan) || puedeVer(rol, "hato", finca.plan);
+  const verFerias = puedeVer(rol, "ferias", finca.plan);
+  const verSanidad = puedeVer(rol, "sanidad", finca.plan);
+  const verCarne = puedeVer(rol, "carne", finca.plan);
+  const verRepro = puedeVer(rol, "reproduccion", finca.plan) && animal.sexo === "hembra";
   const idsPadres = [animal.padre_id, animal.madre_id].filter((x): x is string => !!x);
 
   const [raza, padres, endo, completitud, lactancia, retiro, palmares, participaciones, baja] = await Promise.all([
@@ -141,7 +141,7 @@ export default async function FichaAnimal({ params, searchParams }: { params: Pr
     ? ((await supabase.from("v_programas_sanitarios").select("*").in("id", pendientesProg.map((p) => p.programa_id)).eq("finca_id", finca.id).neq("estado", "cancelado").order("fecha_programada")).data ?? [])
     : [];
   // Dónde está ahora (Hato → Corrales) y cuántos movimientos ha tenido.
-  const verCorrales = puedeVer(rol, "corrales");
+  const verCorrales = puedeVer(rol, "corrales", finca.plan);
   const [ubicacionesFinca, movimientoActual, totalMovimientos] = verCorrales
     ? await Promise.all([
         supabase.from("ubicaciones").select("id, nombre, tipo").eq("finca_id", finca.id).limit(500),
@@ -150,7 +150,7 @@ export default async function FichaAnimal({ params, searchParams }: { params: Pr
       ])
     : [{ data: [] }, { data: null }, { count: 0 }];
   // Costos: los gastos cargados a este animal (solo quien maneja contabilidad).
-  const verCostos = puedeVer(rol, "contabilidad");
+  const verCostos = puedeVer(rol, "contabilidad", finca.plan);
   const gastosAnimal = verCostos
     ? ((await supabase.from("gastos").select("id, fecha, rubro, descripcion, monto, pagado_en").eq("animal_id", id).eq("finca_id", finca.id).order("fecha", { ascending: false }).limit(200)).data ?? [])
     : [];
@@ -250,7 +250,7 @@ export default async function FichaAnimal({ params, searchParams }: { params: Pr
         <Link href="/hato" className="-ml-2 inline-flex min-h-11 items-center gap-1 rounded-full px-2 text-[0.9375rem] font-semibold text-musgo">
           <ChevronLeft className="size-5" strokeWidth={2} /> Hato
         </Link>
-        {puedeEscribir(rol, "hato") ? (
+        {puedeEscribir(rol, "hato", finca.plan) ? (
           <Link
             href={`/hato/${id}/editar`}
             className="inline-flex min-h-11 items-center gap-1.5 rounded-full bg-papel px-4 text-sm font-semibold text-musgo ring-1 ring-arena transition hover:bg-arena/40"
@@ -319,7 +319,7 @@ export default async function FichaAnimal({ params, searchParams }: { params: Pr
               {lacAbierta && animal.estado === "activo" ? (
                 <div className="mt-4 space-y-1.5">
                   <p className="text-sm font-semibold">Turnos de ordeño</p>
-                  <TurnosAnimal animalId={id} programados={animal.turnos_ordeno} puedeEditar={puedeEscribir(rol, "hato")} />
+                  <TurnosAnimal animalId={id} programados={animal.turnos_ordeno} puedeEditar={puedeEscribir(rol, "hato", finca.plan)} />
                 </div>
               ) : null}
               <Link href={`/leche?animal=${id}`} className="mt-3 inline-flex min-h-11 items-center text-[0.9375rem] font-semibold text-musgo underline-offset-4 hover:underline">
@@ -347,7 +347,7 @@ export default async function FichaAnimal({ params, searchParams }: { params: Pr
             ) : (
               <div className="space-y-3">
                 <p className="text-[0.9375rem] text-humo">Todavía no está en ordeño. Si ya da leche, ponla en el ordeño para registrar sus litros.</p>
-                {puedeEscribir(rol, "leche") && animal.estado === "activo" ? (
+                {puedeEscribir(rol, "leche", finca.plan) && animal.estado === "activo" ? (
                   <Link href={`/hato?vista=ordeno&agregar=${id}`} className={clasesBoton("secundario")}>
                     Poner en ordeño
                   </Link>
@@ -386,7 +386,7 @@ export default async function FichaAnimal({ params, searchParams }: { params: Pr
                 {repro.estado === "servida" && repro.ultimo_servicio && diasHasta(hoyBogota(), repro.ultimo_servicio) >= DIAS_PARA_DIAGNOSTICO ? (
                   <Aviso tipo="atencion">Ya pasaron {diasHasta(hoyBogota(), repro.ultimo_servicio)} días del servicio: conviene confirmar con un diagnóstico si quedó gestante.</Aviso>
                 ) : null}
-                {animal.estado === "activo" ? <PartosPrevios animalId={id} previos={animal.partos_previos} registrados={repro.partos_registrados} puedeEditar={puedeEscribir(rol, "hato")} /> : null}
+                {animal.estado === "activo" ? <PartosPrevios animalId={id} previos={animal.partos_previos} registrados={repro.partos_registrados} puedeEditar={puedeEscribir(rol, "hato", finca.plan)} /> : null}
               </div>
             ) : null}
             {historialRepro.length > 0 ? (
@@ -397,7 +397,7 @@ export default async function FichaAnimal({ params, searchParams }: { params: Pr
                       <span className="font-semibold">{e.texto}</span>
                       <span className="block text-sm text-humo">{formatoFecha(e.fecha, { day: "numeric", month: "short", year: "numeric" })}</span>
                     </span>
-                    {puedeEscribir(rol, "reproduccion") ? (
+                    {puedeEscribir(rol, "reproduccion", finca.plan) ? (
                       <Link href={e.href} className="inline-flex min-h-11 shrink-0 items-center text-sm font-semibold text-musgo underline-offset-4 hover:underline">
                         Editar
                       </Link>
@@ -417,7 +417,7 @@ export default async function FichaAnimal({ params, searchParams }: { params: Pr
                 .
               </p>
             ) : null}
-            {puedeEscribir(rol, "reproduccion") && animal.estado === "activo" ? (
+            {puedeEscribir(rol, "reproduccion", finca.plan) && animal.estado === "activo" ? (
               <div className="mt-3 grid grid-cols-1 gap-2 min-[420px]:grid-cols-3">
                 <Link href={`/hato/${id}/reproduccion/servicio/nuevo`} className={clasesBoton("secundario")}>
                   Servicio
@@ -461,7 +461,7 @@ export default async function FichaAnimal({ params, searchParams }: { params: Pr
                           <span className="mt-1 block"><Insignia tono="aviso">Sin documento</Insignia></span>
                         )}
                       </span>
-                      {puedeEscribir(rol, "leche") ? (
+                      {puedeEscribir(rol, "leche", finca.plan) ? (
                         <Link href={`/leche/calidad/${a.id}`} className="inline-flex min-h-11 shrink-0 items-center text-sm font-semibold text-musgo underline-offset-4 hover:underline">
                           Editar
                         </Link>
@@ -480,7 +480,7 @@ export default async function FichaAnimal({ params, searchParams }: { params: Pr
                 )}
               </p>
             ) : null}
-            {puedeEscribir(rol, "leche") && animal.estado === "activo" ? (
+            {puedeEscribir(rol, "leche", finca.plan) && animal.estado === "activo" ? (
               <Link href={`/hato/${id}/calidad/nuevo`} className={`${clasesBoton("secundario")} mt-3`}>
                 Registrar análisis
               </Link>
@@ -498,11 +498,11 @@ export default async function FichaAnimal({ params, searchParams }: { params: Pr
                 nivel={miCandidato.nivel}
                 motivos={textosMotivos(miCandidato, reglaCandidato)}
                 advertencias={textosAdvertencias(miCandidato, reglaCandidato, hoy)}
-                puedeEditar={puedeEscribir(rol, "carne") && puedeEscribir(rol, "hato")}
+                puedeEditar={puedeEscribir(rol, "carne", finca.plan) && puedeEscribir(rol, "hato", finca.plan)}
               />
             ) : null}
             {animal.ceba_pospuesto_hasta && animal.ceba_pospuesto_hasta > hoy && animal.estado === "activo" ? (
-              <AplazadoCeba animalId={id} hasta={animal.ceba_pospuesto_hasta} puedeEditar={puedeEscribir(rol, "carne") && puedeEscribir(rol, "hato")} />
+              <AplazadoCeba animalId={id} hasta={animal.ceba_pospuesto_hasta} puedeEditar={puedeEscribir(rol, "carne", finca.plan) && puedeEscribir(rol, "hato", finca.plan)} />
             ) : null}
             <dl className="divide-y divide-arena">
               {animal.peso_nacer_kg ? <Dato etiqueta="Peso al nacer">{litros(animal.peso_nacer_kg)} kg</Dato> : null}
@@ -535,7 +535,7 @@ export default async function FichaAnimal({ params, searchParams }: { params: Pr
                       <span className="font-semibold">{kg(p.peso_kg)}</span>
                       <span className="text-humo"> · {formatoFecha(p.fecha, { day: "numeric", month: "short", year: "numeric" })}{p.tipo !== "control" ? ` · ${ETIQUETA_PESAJE[p.tipo]}` : ""}{p.condicion_corporal != null ? ` · CC ${textoCC(p.condicion_corporal)}` : ""}</span>
                     </span>
-                    {puedeEscribir(rol, "carne") ? (
+                    {puedeEscribir(rol, "carne", finca.plan) ? (
                       <Link href={`/carne/pesajes/${p.id}`} className="inline-flex min-h-11 shrink-0 items-center text-sm font-semibold text-musgo underline-offset-4 hover:underline">
                         Editar
                       </Link>
@@ -545,7 +545,7 @@ export default async function FichaAnimal({ params, searchParams }: { params: Pr
               </ul>
             ) : null}
             {listaPesos.length > 8 ? <p className="mt-1 text-sm text-humo">Y {listaPesos.length - 8} pesos más en Carne → Pesos.</p> : null}
-            {puedeEscribir(rol, "carne") && animal.estado === "activo" ? (
+            {puedeEscribir(rol, "carne", finca.plan) && animal.estado === "activo" ? (
               <div className="mt-3 space-y-3">
                 {esCeba || miLote || miCandidato ? <LoteAnimal animalId={id} loteId={miLote && !miLote.cerrado_en ? miLote.id : null} lotes={lotesCeba.filter((l) => !l.cerrado_en).map((l) => ({ id: l.id, nombre: l.nombre }))} /> : null}
                 <Link href={`/hato/${id}/peso/nuevo`} className={clasesBoton("secundario")}>
@@ -637,7 +637,7 @@ export default async function FichaAnimal({ params, searchParams }: { params: Pr
                   <Insignia tono={estadoFama.tono}>{estadoFama.texto}</Insignia>
                 </div>
                 {estadoFama.clave === "desparasitar" || estadoFama.clave === "vigilar" ? <p className="mt-1.5 text-sm text-humo">{FAMACHA[famachaActual.data.puntaje].accion}</p> : null}
-                {estadoFama.clave === "desparasitar" && puedeEscribir(rol, "sanidad") && animal.estado === "activo" ? (
+                {estadoFama.clave === "desparasitar" && puedeEscribir(rol, "sanidad", finca.plan) && animal.estado === "activo" ? (
                   <Link href={`/hato/sanidad/nuevo?animal=${id}&tipo=desparasitacion`} className="mt-1 inline-flex min-h-11 items-center text-sm font-semibold text-musgo underline-offset-4 hover:underline">
                     Registrar la desparasitación
                   </Link>
@@ -672,7 +672,7 @@ export default async function FichaAnimal({ params, searchParams }: { params: Pr
                       </span>
                       <span className="flex items-center gap-2">
                         <Insignia tono={e.tono}>{e.texto}</Insignia>
-                        {puedeEscribir(rol, "sanidad") && animal.estado === "activo" ? (
+                        {puedeEscribir(rol, "sanidad", finca.plan) && animal.estado === "activo" ? (
                           <Link href={`/hato/sanidad/nuevo?programa=${p.id}&animal=${id}`} className="inline-flex min-h-11 items-center rounded-full bg-musgo px-4 text-sm font-semibold text-sobre-musgo">
                             Aplicar
                           </Link>
@@ -686,9 +686,9 @@ export default async function FichaAnimal({ params, searchParams }: { params: Pr
             {historialEventos.length === 0 && historialPruebas.length === 0 && historialFamacha.length === 0 ? (
               <p className="text-[0.9375rem] text-humo">Todavía no tiene vacunas, tratamientos ni pruebas registrados.</p>
             ) : (
-              <HistorialSanidadAnimal eventos={historialEventos} pruebas={historialPruebas} famacha={historialFamacha} puedeEditar={puedeEscribir(rol, "sanidad")} />
+              <HistorialSanidadAnimal eventos={historialEventos} pruebas={historialPruebas} famacha={historialFamacha} puedeEditar={puedeEscribir(rol, "sanidad", finca.plan)} />
             )}
-            {puedeEscribir(rol, "sanidad") && animal.estado === "activo" ? (
+            {puedeEscribir(rol, "sanidad", finca.plan) && animal.estado === "activo" ? (
               <div className="mt-3 space-y-3">
                 <div>
                   <p className="text-sm font-semibold">Registrar lo que se le aplicó</p>
@@ -744,10 +744,10 @@ export default async function FichaAnimal({ params, searchParams }: { params: Pr
             {(totalMovimientos.count ?? 0) > 0 ? (
               <div className="mt-3">
                 <p className="mb-1.5 text-sm font-semibold">Por dónde ha pasado</p>
-                <ListaMovimientos fincaId={finca.id} ubicaciones={nombresUbicacion} animalId={id} puedeEditar={puedeEscribir(rol, "corrales")} />
+                <ListaMovimientos fincaId={finca.id} ubicaciones={nombresUbicacion} animalId={id} puedeEditar={puedeEscribir(rol, "corrales", finca.plan)} />
               </div>
             ) : null}
-            {puedeEscribir(rol, "corrales") && animal.estado === "activo" ? (
+            {puedeEscribir(rol, "corrales", finca.plan) && animal.estado === "activo" ? (
               <div className="mt-3">
                 <Link href={`/hato/corrales/mover?animal=${id}`} className={clasesBoton("secundario")}>
                   {movimientoActual.data ? "Moverlo a otra instalación" : "Asignarle una instalación"}
@@ -781,7 +781,7 @@ export default async function FichaAnimal({ params, searchParams }: { params: Pr
                     </span>
                     <span className="flex shrink-0 flex-col items-end">
                       <span className="font-semibold tabular-nums">{pesos(g.monto)}</span>
-                      {puedeEscribir(rol, "contabilidad") ? (
+                      {puedeEscribir(rol, "contabilidad", finca.plan) ? (
                         <Link href={`/hato/gastos/${g.id}/editar?volver=${id}`} className="inline-flex min-h-11 items-center text-sm font-semibold text-musgo underline-offset-4 hover:underline">
                           Editar
                         </Link>
@@ -796,7 +796,7 @@ export default async function FichaAnimal({ params, searchParams }: { params: Pr
               El costo completo del animal suma además su parte de los tratamientos y de lo cargado a su lote, su corral o su especie: está en{" "}
               <Link href="/costos?vista=animales" className="font-semibold text-musgo underline underline-offset-2">Costos → Por animal</Link>.
             </p>
-            {puedeEscribir(rol, "contabilidad") && animal.estado === "activo" ? (
+            {puedeEscribir(rol, "contabilidad", finca.plan) && animal.estado === "activo" ? (
               <div className="mt-3">
                 <Link href={`/hato/gastos/nuevo?animal=${id}`} className={clasesBoton("secundario")}>
                   Registrar un gasto de este animal
@@ -835,7 +835,7 @@ export default async function FichaAnimal({ params, searchParams }: { params: Pr
                           detalle={f ? formatoFecha(f.fecha_inicio) : undefined}
                           enlace={`/ferias/${p.feria_id}`}
                           fotoUrl={p.foto_path ? fotosPremios.get(p.foto_path) : undefined}
-                          editar={puedeEscribir(rol, "ferias") ? `/ferias/participacion/${p.id}/editar` : undefined}
+                          editar={puedeEscribir(rol, "ferias", finca.plan) ? `/ferias/participacion/${p.id}/editar` : undefined}
                         />
                       </li>
                     );
@@ -843,7 +843,7 @@ export default async function FichaAnimal({ params, searchParams }: { params: Pr
                 </ul>
               </>
             )}
-            {puedeEscribir(rol, "ferias") && animal.estado === "activo" ? (
+            {puedeEscribir(rol, "ferias", finca.plan) && animal.estado === "activo" ? (
               <Link href={`/ferias/participacion/nueva?animal=${id}`} className={`${clasesBoton("secundario")} mt-3`}>
                 Registrar premio
               </Link>
@@ -875,7 +875,7 @@ export default async function FichaAnimal({ params, searchParams }: { params: Pr
               ) : null}
             </dl>
             {baja.data?.detalle ? <p className="mt-3 whitespace-pre-wrap text-[0.9375rem] text-humo">{baja.data.detalle}</p> : null}
-            {baja.data && puedeEscribir(rol, "hato") ? (
+            {baja.data && puedeEscribir(rol, "hato", finca.plan) ? (
               <Link href={`/hato/${id}/baja/editar`} className="mt-2 inline-flex min-h-11 items-center gap-1.5 text-sm font-semibold text-musgo underline-offset-4 hover:underline">
                 Corregir datos de la salida
               </Link>
@@ -887,7 +887,7 @@ export default async function FichaAnimal({ params, searchParams }: { params: Pr
                   <Insignia tono={etiquetaControles.tono}>{etiquetaControles.texto}</Insignia>
                 </p>
                 <Link href={`/hato/${id}/controles`} className={clasesBoton("secundario")}>
-                  {puedeEscribir(rol, "carne") ? "Responder los controles" : "Ver los controles"}
+                  {puedeEscribir(rol, "carne", finca.plan) ? "Responder los controles" : "Ver los controles"}
                 </Link>
               </div>
             ) : null}
@@ -914,7 +914,7 @@ export default async function FichaAnimal({ params, searchParams }: { params: Pr
                 ) : (
                   <p className="text-[0.9375rem] text-humo">Todavía no tiene la canal registrada. Con el peso de la canal se calcula el rendimiento.</p>
                 )}
-                {puedeEscribir(rol, "carne") ? (
+                {puedeEscribir(rol, "carne", finca.plan) ? (
                   <Link href={canal ? `/carne/canales/${canal.id}` : `/hato/${id}/canal/nuevo`} className={clasesBoton("secundario")}>
                     {canal ? "Editar canal" : "Registrar canal"}
                   </Link>
@@ -927,7 +927,7 @@ export default async function FichaAnimal({ params, searchParams }: { params: Pr
               </div>
             ) : null}
           </Tarjeta>
-        ) : puedeEscribir(rol, "hato") ? (
+        ) : puedeEscribir(rol, "hato", finca.plan) ? (
           <Tarjeta titulo="Salida del hato">
             <p className="text-[0.9375rem] text-humo">
               Si se vendió, murió, se sacrificó o se perdió, regístralo para sacarlo del hato{animal.sexo === "hembra" ? " y del ordeño" : ""}. Puedes deshacerlo después.

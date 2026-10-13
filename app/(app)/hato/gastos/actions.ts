@@ -94,7 +94,7 @@ function refrescar(animal?: string | null) {
 
 export async function crearGasto(_: EstadoForm, form: FormData): Promise<EstadoForm> {
   const { finca, rol } = await obtenerContexto();
-  if (!puedeEscribir(rol, "contabilidad")) return { error: "No tienes permiso para registrar gastos en esta finca." };
+  if (!puedeEscribir(rol, "contabilidad", finca.plan)) return { error: "No tienes permiso para registrar gastos en esta finca." };
   const datos = esquema.safeParse(Object.fromEntries(form));
   if (!datos.success) return { error: datos.error.issues[0]?.message ?? "Revisa los datos." };
   const d = datos.data;
@@ -112,7 +112,7 @@ export async function crearGasto(_: EstadoForm, form: FormData): Promise<EstadoF
 
 export async function editarGasto(_: EstadoForm, form: FormData): Promise<EstadoForm> {
   const { finca, rol } = await obtenerContexto();
-  if (!puedeEscribir(rol, "contabilidad")) return { error: "No tienes permiso para editar gastos en esta finca." };
+  if (!puedeEscribir(rol, "contabilidad", finca.plan)) return { error: "No tienes permiso para editar gastos en esta finca." };
   const datos = esquema.safeParse(Object.fromEntries(form));
   if (!datos.success) return { error: datos.error.issues[0]?.message ?? "Revisa los datos." };
   const d = datos.data;
@@ -145,7 +145,7 @@ export async function eliminarGasto(id: string): Promise<Resultado> {
 /** Marca un gasto como pagado (hoy, o en la fecha dada) o lo devuelve a «por pagar». */
 export async function marcarPago(id: string, pagado: boolean, fechaPago?: string): Promise<Resultado> {
   const { finca, rol } = await obtenerContexto();
-  if (!puedeEscribir(rol, "contabilidad")) return { ok: false, error: "No tienes permiso para cambiar gastos en esta finca." };
+  if (!puedeEscribir(rol, "contabilidad", finca.plan)) return { ok: false, error: "No tienes permiso para cambiar gastos en esta finca." };
   if (!ID_UUID.safeParse(id).success) return { ok: false, error: "Gasto no válido." };
   const hoy = hoyBogota();
   const fecha = fechaPago && /^\d{4}-\d{2}-\d{2}$/.test(fechaPago) ? fechaPago : hoy;

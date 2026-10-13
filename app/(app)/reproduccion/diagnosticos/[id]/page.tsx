@@ -22,7 +22,7 @@ export default async function PaginaEditarDiagnostico({ params }: { params: Prom
   const supabase = await crearClienteServidor();
   const { data: diagnostico } = await supabase.from("diagnosticos_gestacion").select("*").eq("id", id).eq("finca_id", finca.id).maybeSingle();
   if (!diagnostico) notFound();
-  if (!puedeEscribir(rol, "reproduccion")) redirect(`/hato/${diagnostico.hembra_id}`);
+  if (!puedeEscribir(rol, "reproduccion", finca.plan)) redirect(`/hato/${diagnostico.hembra_id}`);
   const { data: animal } = await supabase.from("animales").select("id, numero_arete, nombre").eq("id", diagnostico.hembra_id).eq("finca_id", finca.id).maybeSingle();
   if (!animal) notFound();
   const { data: servicio } = diagnostico.servicio_id ? await supabase.from("servicios").select("id, fecha").eq("id", diagnostico.servicio_id).eq("finca_id", finca.id).maybeSingle() : { data: null };

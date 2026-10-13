@@ -3,8 +3,8 @@
 Los planes viven en `lib/planes.ts` (una sola fuente: la presentación de `/login` y `/registro` los pinta con `components/presentacion/Planes.tsx`).
 **Se cobra por los servicios que incluye cada plan, nunca por número de animales** (decisión del dueño del producto). Precios en **pesos colombianos por mes**; pagando por año, 20 % menos (redondeado a la centena). **No hay plan gratuito.**
 
-> Estado: los planes son **oferta comercial en la presentación**. Todavía no hay cobro ni la aplicación aplica los límites (animales, fincas, usuarios);
-> eso es una fase aparte (pasarela de pago + bloqueo de los módulos que cada plan no incluye). No hay topes por animales.
+> Estado: los planes **ya se aplican** (ver «Cómo se aplican»), pero **todavía no hay cobro automático**: no hay pasarela de pago. El propietario pide la mejora
+> y el superadmin la activa cuando confirma el pago. No hay topes por animales.
 
 ## 1. Valoración de costos (de menor a mayor)
 
@@ -30,7 +30,7 @@ es un aprisco pequeño y el plan de entrada tiene que ser muy accesible; como lo
 1. Hato y ficha del animal, leche, sanidad básica → uso diario, poco peso técnico. *(Cría)*
 2. Endogamia y genealogía → cálculo recursivo, pero gran valor y diferenciador. *(Cría)*
 3. Corrales, monta, FAMACHA, ceba, premios, simulador de cruzas → más tablas, más usuarios activos. *(Hato)*
-4. Costos y reportes en Excel por cualquier fecha, costo por animal/lote → consultas pesadas y valor financiero alto. *(Majada)*
+4. Costos y reportes en Excel por cualquier fecha, costo por animal/lote → consultas pesadas y valor financiero alto. *(Profesional)*
 5. Varias fincas, equipos grandes, soportes (PDF/foto) y acompañamiento → más almacenamiento y más atención humana. *(Hacienda)*
 
 ## 2. Planes
@@ -39,10 +39,26 @@ es un aprisco pequeño y el plan de entrada tiene que ser muy accesible; como lo
 |---|---|---|---|
 | **Cría** | $29.900 | $23.900 | Hato y ficha con foto y genealogía, endogamia, leche (ordeño y calidad), sanidad con periodos de retiro, servicios y partos, traer animales del libro |
 | **Hato** (recomendado) | $59.900 | $47.900 | Todo Cría + equipo con roles (ordeñador, veterinario, contador), corrales y potreros, temporada de monta, programas sanitarios con FAMACHA y pediluvio, carne y ceba, premios y ferias, simulador de cruzas, gastos y costo por litro |
-| **Majada** | $119.900 | $95.900 | Todo Hato + reportes de costos en Excel por fechas, costo por animal, lote y especie, controles de calidad con constancia, soportes de gastos |
-| **Hacienda** | $249.900 | $199.900 | Todo Majada + varias fincas en una sola cuenta, soporte prioritario, acompañamiento para cargar la información inicial |
+| **Profesional** | $119.900 | $95.900 | Todo Hato + reportes de costos en Excel por fechas, costo por animal, lote y especie, controles de calidad con constancia, soportes de gastos |
+| **Hacienda** | $249.900 | $199.900 | Todo Profesional + varias fincas en una sola cuenta, soporte prioritario, acompañamiento para cargar la información inicial |
 
 Todos: animales sin límite, cabras y ovejas, celular y computador.
 
 **Referencia de valor:** una finca de 20 cabras en ordeño mueve del orden de 3 millones de pesos al mes en leche; Cría cuesta alrededor del 1 %.
 Una finca con equipo, corrales, ceba y gastos se mueve en el rango de Hato. Los precios son una propuesta: validar con 5 a 10 criadores antes de fijarlos.
+
+## 3. Cómo se aplican (implementado)
+
+- **Plan de cada finca:** `fincas.plan` (`cria`, `hato`, `profesional`, `hacienda`). Las fincas que ya existían quedaron en Hacienda; una finca nueva empieza en **Cría**
+  (hasta que haya cobro automático, Cría se activa al registrarse). El plan **no se puede cambiar a mano**: un disparador lo impide.
+- **Módulos (lo cierra la base):** `private.puede_ver` y `puede_escribir` exigen además que el plan incluya el módulo (`private.modulo_rango`): desde **Hato**, corrales,
+  carne, premios y ferias, y contabilidad (gastos). Cría tiene hato, genealogía, leche, sanidad y reproducción.
+- **Equipo con roles:** desde Hato (disparador sobre `invitaciones`; la pantalla de Equipo muestra el candado).
+- **Varias fincas:** solo con Hacienda (disparador sobre `fincas`; una finca nueva hereda el plan; «Agregar otra finca» lleva a mejorar si no aplica).
+- **Servicios dentro de un módulo (los cierra el servidor y la pantalla, `lib/planes.ts#SERVICIOS_PLAN`):** reportes y Excel de costos, costo por animal/lote/especie,
+  controles de calidad con constancia y soportes de gastos desde **Profesional**. Quien pida uno sin plan ve `RequierePlan` con el botón de mejorar.
+- **Mejorar mi plan:** `/mas/plan` (menú lateral y «Más», solo propietario y solo si hay un plan superior). Muestra solo planes **hacia adelante** y lo que se suma;
+  `solicitar_mejora_plan` guarda la solicitud (una pendiente por finca) y la base vuelve a comprobar que sea un plan superior.
+- **Activar (superadmin):** `/admin/planes` lista las solicitudes pendientes y «Activar» llama a `admin_asignar_plan(correo, plan)`, que cambia el plan de todas las
+  fincas de ese propietario y cierra la solicitud. También se puede con SQL: `select public.admin_asignar_plan('correo', 'hato');`.
+- **Cuando haya pasarela de pago:** reemplazar el botón «Mejorar a …» por el pago y llamar a la misma activación al confirmarse (webhook).

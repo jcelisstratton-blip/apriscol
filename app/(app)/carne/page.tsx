@@ -36,10 +36,10 @@ type Vista = (typeof PESTANAS)[number]["valor"];
  */
 export default async function PaginaCarne({ searchParams }: { searchParams: Promise<{ vista?: string; guardado?: string }> }) {
   const { finca, rol } = await obtenerContexto();
-  if (!puedeVer(rol, "carne")) redirect("/");
+  if (!puedeVer(rol, "carne", finca.plan)) redirect("/");
   const sp = await searchParams;
   const vista: Vista = PESTANAS.some((p) => p.valor === sp.vista) ? (sp.vista as Vista) : "resumen";
-  const puedeEditar = puedeEscribir(rol, "carne");
+  const puedeEditar = puedeEscribir(rol, "carne", finca.plan);
 
   return (
     <>
@@ -60,7 +60,7 @@ export default async function PaginaCarne({ searchParams }: { searchParams: Prom
       {vista === "salidas" ? (
         <div className="space-y-4">
           <PorQueAnalizar linea="carne" />
-          <ListaSalidas fincaId={finca.id} puedeEditar={puedeEscribir(rol, "hato")} />
+          <ListaSalidas fincaId={finca.id} puedeEditar={puedeEscribir(rol, "hato", finca.plan)} />
         </div>
       ) : null}
     </>

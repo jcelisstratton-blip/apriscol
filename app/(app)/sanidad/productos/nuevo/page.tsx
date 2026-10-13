@@ -11,7 +11,7 @@ export const metadata: Metadata = { title: "Producto nuevo" };
 
 export default async function PaginaProductoNuevo() {
   const { finca, rol } = await obtenerContexto();
-  if (!puedeEscribir(rol, "sanidad")) redirect("/sanidad?vista=productos");
+  if (!puedeEscribir(rol, "sanidad", finca.plan)) redirect("/sanidad?vista=productos");
   return (
     <>
       <Link href="/sanidad?vista=productos" className="-ml-2 mt-3 inline-flex min-h-11 items-center gap-1 rounded-full px-2 text-[0.9375rem] font-semibold text-musgo">

@@ -60,7 +60,7 @@ const fotoValida = (ruta: string | undefined, fincaId: string) => !ruta || new R
  */
 export async function prepararSubidaFotoAnimal(tipoMime: string): Promise<{ path: string; token: string } | { error: string }> {
   const { finca, rol } = await obtenerContexto();
-  if (!puedeEscribir(rol, "hato")) return { error: "No tienes permiso para subir fotos en esta finca." };
+  if (!puedeEscribir(rol, "hato", finca.plan)) return { error: "No tienes permiso para subir fotos en esta finca." };
   const ext = TIPOS_FOTO[tipoMime];
   if (!ext) return { error: "Usa una foto en formato JPG, PNG o WebP." };
 
@@ -73,7 +73,7 @@ export async function prepararSubidaFotoAnimal(tipoMime: string): Promise<{ path
 
 export async function crearAnimal(_: EstadoAnimal, form: FormData): Promise<EstadoAnimal> {
   const { finca, rol } = await obtenerContexto();
-  if (!puedeEscribir(rol, "hato")) return { error: "No tienes permiso para registrar animales en esta finca." };
+  if (!puedeEscribir(rol, "hato", finca.plan)) return { error: "No tienes permiso para registrar animales en esta finca." };
 
   const datos = esquema.safeParse(Object.fromEntries(form));
   if (!datos.success) return { error: datos.error.issues[0]?.message };
@@ -156,7 +156,7 @@ async function desciendeDe(supabase: Awaited<ReturnType<typeof crearClienteServi
  */
 export async function editarAnimal(_: EstadoAnimal, form: FormData): Promise<EstadoAnimal> {
   const { finca, rol } = await obtenerContexto();
-  if (!puedeEscribir(rol, "hato")) return { error: "No tienes permiso para editar animales en esta finca." };
+  if (!puedeEscribir(rol, "hato", finca.plan)) return { error: "No tienes permiso para editar animales en esta finca." };
 
   const datos = esquemaEdicion.safeParse(Object.fromEntries(form));
   if (!datos.success) return { error: datos.error.issues[0]?.message };
@@ -258,7 +258,7 @@ const datosComerciales = (d: { tipo: string; pesoKg?: number; guiaMovilizacion?:
  */
 export async function darDeBaja(entrada: z.input<typeof esquemaBaja>): Promise<ResultadoBaja> {
   const { finca, rol } = await obtenerContexto();
-  if (!puedeEscribir(rol, "hato")) return { ok: false, error: "No tienes permiso para dar de baja animales en esta finca." };
+  if (!puedeEscribir(rol, "hato", finca.plan)) return { ok: false, error: "No tienes permiso para dar de baja animales en esta finca." };
   const datos = esquemaBaja.safeParse(entrada);
   if (!datos.success) return { ok: false, error: datos.error.issues[0]?.message ?? "Dato inválido." };
   const d = datos.data;
@@ -342,7 +342,7 @@ type ResultadoPrograma = { ok: true } | { ok: false; error: string };
 /** Define en qué turnos se ordeña una hembra. Una lista vacía significa que por ahora no se ordeña en ningún turno. */
 export async function programarOrdeno(animalId: string, turnos: string[]): Promise<ResultadoPrograma> {
   const { finca, rol } = await obtenerContexto();
-  if (!puedeEscribir(rol, "hato")) return { ok: false, error: "No tienes permiso para programar el ordeño en esta finca." };
+  if (!puedeEscribir(rol, "hato", finca.plan)) return { ok: false, error: "No tienes permiso para programar el ordeño en esta finca." };
   const datos = z.object({ animalId: z.uuid(), turnos: z.array(TURNO).max(3) }).safeParse({ animalId, turnos });
   if (!datos.success) return { ok: false, error: "El turno no es válido." };
 
@@ -366,7 +366,7 @@ export async function programarOrdeno(animalId: string, turnos: string[]): Promi
 /** Prende o apaga un turno en todas las hembras que están en leche, sin tocar los otros turnos de cada una. */
 export async function programarOrdenoLote(turno: string, activo: boolean): Promise<{ ok: true; afectadas: number } | { ok: false; error: string }> {
   const { finca, rol } = await obtenerContexto();
-  if (!puedeEscribir(rol, "hato")) return { ok: false, error: "No tienes permiso para programar el ordeño en esta finca." };
+  if (!puedeEscribir(rol, "hato", finca.plan)) return { ok: false, error: "No tienes permiso para programar el ordeño en esta finca." };
   const t = TURNO.safeParse(turno);
   if (!t.success) return { ok: false, error: "El turno no es válido." };
 
@@ -425,7 +425,7 @@ const esquemaSalida = z.object({
  */
 export async function corregirSalida(entrada: z.input<typeof esquemaSalida>): Promise<ResultadoBaja> {
   const { finca, rol } = await obtenerContexto();
-  if (!puedeEscribir(rol, "hato")) return { ok: false, error: "No tienes permiso para corregir salidas en esta finca." };
+  if (!puedeEscribir(rol, "hato", finca.plan)) return { ok: false, error: "No tienes permiso para corregir salidas en esta finca." };
   const datos = esquemaSalida.safeParse(entrada);
   if (!datos.success) return { ok: false, error: datos.error.issues[0]?.message ?? "Dato inválido." };
   const d = datos.data;

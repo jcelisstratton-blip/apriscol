@@ -12,8 +12,8 @@ import { hoyBogota } from "@/lib/fechas";
 export const metadata: Metadata = { title: "Equipo de ordeño" };
 
 export default async function PaginaEquipoNuevo() {
-  const { rol } = await obtenerContexto();
-  if (!puedeEscribir(rol, "leche")) redirect("/leche?vista=frio");
+  const { finca, rol } = await obtenerContexto();
+  if (!puedeEscribir(rol, "leche", finca.plan)) redirect("/leche?vista=frio");
 
   return (
     <>

@@ -23,6 +23,8 @@ export default async function PanelGlobal() {
     );
   }
   const r = data as Record<string, number>;
+  const { data: solicitudes } = await supabase.rpc("admin_listar_solicitudes_plan");
+  const pendientesPlan = (solicitudes ?? []).length;
   const enFincas = r.libro_total > 0 ? Math.round((r.libro_en_fincas / r.libro_total) * 100) : 0;
 
   const tiles: { etiqueta: string; valor: string; detalle?: string; href?: string }[] = [
@@ -32,6 +34,7 @@ export default async function PanelGlobal() {
     { etiqueta: "Leche, 7 días", valor: `${num(Math.round(r.litros_7d))} L`, detalle: "sin contar descartada" },
     { etiqueta: "Libro genealógico", valor: num(r.libro_total), detalle: `${num(r.libro_en_fincas)} ya en fincas · ${enFincas} %` },
     { etiqueta: "Importaciones", valor: num(r.importaciones), href: "/admin/importaciones" },
+    { etiqueta: "Solicitudes de plan", valor: num(pendientesPlan), detalle: pendientesPlan === 1 ? "pendiente de activar" : "pendientes de activar", href: "/admin/planes" },
   ];
 
   return (

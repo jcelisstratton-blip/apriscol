@@ -5,6 +5,7 @@ import { notFound, redirect } from "next/navigation";
 import { ChevronLeft } from "lucide-react";
 import { Encabezado } from "@/components/Encabezado";
 import { FormGasto } from "@/components/FormGasto";
+import { servicioEnPlan } from "@/lib/planes";
 import { obtenerContexto } from "@/lib/contexto";
 import { crearClienteServidor } from "@/lib/supabase/server";
 import { puedeEscribir } from "@/lib/permisos";
@@ -22,7 +23,7 @@ const ID_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
  */
 export default async function PaginaGastoNuevo({ searchParams }: { searchParams: Promise<{ animal?: string; lote?: string; ubicacion?: string; rubro?: string }> }) {
   const { finca, rol } = await obtenerContexto();
-  if (!puedeEscribir(rol, "contabilidad")) redirect("/hato?vista=gastos");
+  if (!puedeEscribir(rol, "contabilidad", finca.plan)) redirect("/hato?vista=gastos");
   const sp = await searchParams;
   const supabase = await crearClienteServidor();
 
@@ -53,6 +54,7 @@ export default async function PaginaGastoNuevo({ searchParams }: { searchParams:
       <Encabezado titulo="Registrar un gasto" subtitulo={animal ? etiquetaAnimal(animal) : finca.nombre} />
       <div className="lg:max-w-xl">
         <FormGasto
+          conSoporte={servicioEnPlan(finca.plan, "soportes")}
           fincaId={finca.id}
           especies={finca.especies}
           ubicaciones={ubicaciones ?? []}

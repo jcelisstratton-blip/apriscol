@@ -23,7 +23,7 @@ const noFutura = (fecha: string) => (fecha > hoyBogota() ? "La fecha no puede se
 
 async function permiso(verbo: string) {
   const { finca, rol } = await obtenerContexto();
-  if (!puedeEscribir(rol, "carne")) return { ok: false, error: `No tienes permiso para ${verbo} en esta finca.` } as const;
+  if (!puedeEscribir(rol, "carne", finca.plan)) return { ok: false, error: `No tienes permiso para ${verbo} en esta finca.` } as const;
   return { ok: true, finca, rol } as const;
 }
 

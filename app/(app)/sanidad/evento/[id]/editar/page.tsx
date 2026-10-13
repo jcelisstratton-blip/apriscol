@@ -18,7 +18,7 @@ export default async function PaginaEditarEvento({ params }: { params: Promise<{
   const { id } = await params;
   if (!ID_UUID.test(id)) notFound();
   const { finca, rol } = await obtenerContexto();
-  if (!puedeEscribir(rol, "sanidad")) redirect(`/sanidad/evento/${id}`);
+  if (!puedeEscribir(rol, "sanidad", finca.plan)) redirect(`/sanidad/evento/${id}`);
   const supabase = await crearClienteServidor();
 
   const [{ data: e }, { data: filas }] = await Promise.all([

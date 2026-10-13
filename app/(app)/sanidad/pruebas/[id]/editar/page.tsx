@@ -23,7 +23,7 @@ export default async function PaginaEditarPrueba({ params }: { params: Promise<{
   const supabase = await crearClienteServidor();
   const { data: prueba } = await supabase.from("pruebas_sanitarias").select("*").eq("id", id).eq("finca_id", finca.id).maybeSingle();
   if (!prueba) notFound();
-  if (!puedeEscribir(rol, "sanidad")) redirect(`/hato/${prueba.animal_id}`);
+  if (!puedeEscribir(rol, "sanidad", finca.plan)) redirect(`/hato/${prueba.animal_id}`);
   const { data: animal } = await supabase.from("animales").select("id, numero_arete, nombre").eq("id", prueba.animal_id).eq("finca_id", finca.id).maybeSingle();
   if (!animal) notFound();
 

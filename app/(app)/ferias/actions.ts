@@ -32,7 +32,7 @@ const esquemaEdicionFeria = esquemaFeria.extend({ feria_id: z.uuid() });
 /** Corrige los datos de una feria. Lo que se deja vacío queda vacío. */
 export async function editarFeria(_: EstadoForm, form: FormData): Promise<EstadoForm> {
   const { finca, rol } = await obtenerContexto();
-  if (!puedeEscribir(rol, "ferias")) return { error: "No tienes permiso para editar ferias en esta finca." };
+  if (!puedeEscribir(rol, "ferias", finca.plan)) return { error: "No tienes permiso para editar ferias en esta finca." };
   const datos = esquemaEdicionFeria.safeParse(Object.fromEntries(form));
   if (!datos.success) return { error: datos.error.issues[0]?.message };
   const d = datos.data;
@@ -61,7 +61,7 @@ export async function editarFeria(_: EstadoForm, form: FormData): Promise<Estado
 /** Elimina una feria con todas sus participaciones y las fotos de sus premios. No se puede deshacer. */
 export async function eliminarFeria(feriaId: string): Promise<{ ok: true } | { ok: false; error: string }> {
   const { finca, rol } = await obtenerContexto();
-  if (!puedeEscribir(rol, "ferias")) return { ok: false, error: "No tienes permiso para eliminar ferias en esta finca." };
+  if (!puedeEscribir(rol, "ferias", finca.plan)) return { ok: false, error: "No tienes permiso para eliminar ferias en esta finca." };
   if (!z.uuid().safeParse(feriaId).success) return { ok: false, error: "Feria no válida." };
 
   const supabase = await crearClienteServidor();
@@ -86,7 +86,7 @@ export async function eliminarFeria(feriaId: string): Promise<{ ok: true } | { o
  */
 export async function prepararSubidaFoto(tipoMime: string): Promise<{ path: string; token: string } | { error: string }> {
   const { finca, rol } = await obtenerContexto();
-  if (!puedeEscribir(rol, "ferias")) return { error: "No tienes permiso para subir fotos en esta finca." };
+  if (!puedeEscribir(rol, "ferias", finca.plan)) return { error: "No tienes permiso para subir fotos en esta finca." };
   const ext = TIPOS_FOTO[tipoMime];
   if (!ext) return { error: "Usa una foto en formato JPG, PNG o WebP." };
 
@@ -114,7 +114,7 @@ const esquemaParticipacion = z.object({
 
 export async function crearParticipacion(_: EstadoForm, form: FormData): Promise<EstadoForm> {
   const { finca, rol } = await obtenerContexto();
-  if (!puedeEscribir(rol, "ferias")) return { error: "No tienes permiso para registrar premios en esta finca." };
+  if (!puedeEscribir(rol, "ferias", finca.plan)) return { error: "No tienes permiso para registrar premios en esta finca." };
   const datos = esquemaParticipacion.safeParse(Object.fromEntries(form));
   if (!datos.success) return { error: datos.error.issues[0]?.message };
   const d = datos.data;
@@ -182,7 +182,7 @@ const esquemaEdicionParticipacion = esquemaParticipacion
 /** Corrige un premio: feria, animal, categoría, resultado, premio y foto. Si cambia o se quita la foto, el archivo viejo se borra. */
 export async function editarParticipacion(_: EstadoForm, form: FormData): Promise<EstadoForm> {
   const { finca, rol } = await obtenerContexto();
-  if (!puedeEscribir(rol, "ferias")) return { error: "No tienes permiso para editar premios en esta finca." };
+  if (!puedeEscribir(rol, "ferias", finca.plan)) return { error: "No tienes permiso para editar premios en esta finca." };
   const datos = esquemaEdicionParticipacion.safeParse(Object.fromEntries(form));
   if (!datos.success) return { error: datos.error.issues[0]?.message };
   const d = datos.data;
@@ -236,7 +236,7 @@ export async function editarParticipacion(_: EstadoForm, form: FormData): Promis
 /** Elimina un premio y su foto. No se puede deshacer. Devuelve el animal al que pertenecía. */
 export async function eliminarParticipacion(participacionId: string): Promise<{ ok: true; animalId: string } | { ok: false; error: string }> {
   const { finca, rol } = await obtenerContexto();
-  if (!puedeEscribir(rol, "ferias")) return { ok: false, error: "No tienes permiso para eliminar premios en esta finca." };
+  if (!puedeEscribir(rol, "ferias", finca.plan)) return { ok: false, error: "No tienes permiso para eliminar premios en esta finca." };
   if (!z.uuid().safeParse(participacionId).success) return { ok: false, error: "Premio no válido." };
 
   const supabase = await crearClienteServidor();

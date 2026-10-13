@@ -7,6 +7,8 @@ import { ControlCalidadFila } from "@/components/ControlCalidadFila";
 import { Encabezado } from "@/components/Encabezado";
 import { Insignia } from "@/components/Insignia";
 import { PorQueAnalizar } from "@/components/PorQueAnalizar";
+import { RequierePlan } from "@/components/RequierePlan";
+import { servicioEnPlan } from "@/lib/planes";
 import { obtenerContexto } from "@/lib/contexto";
 import { crearClienteServidor } from "@/lib/supabase/server";
 import { puedeEscribir, puedeVer } from "@/lib/permisos";
@@ -25,7 +27,15 @@ export default async function PaginaControlesAnimal({ params, searchParams }: { 
   const { nuevo } = await searchParams;
   if (!ID_UUID.test(id)) notFound();
   const { finca, rol } = await obtenerContexto();
-  if (!puedeVer(rol, "carne")) redirect(`/hato/${id}`);
+  if (!puedeVer(rol, "carne", finca.plan)) redirect(`/hato/${id}`);
+  if (!servicioEnPlan(finca.plan, "calidad")) {
+    return (
+      <>
+        <Encabezado titulo="Controles de calidad" subtitulo={finca.nombre} />
+        <RequierePlan servicio="calidad" rol={rol} />
+      </>
+    );
+  }
   const supabase = await crearClienteServidor();
   const { data: animal } = await supabase.from("animales").select("id, numero_arete, nombre").eq("id", id).eq("finca_id", finca.id).is("deleted_at", null).maybeSingle();
   if (!animal) notFound();
@@ -38,7 +48,7 @@ export default async function PaginaControlesAnimal({ params, searchParams }: { 
   const controles = (data ?? []) as ControlCalidad[];
   const porTipo = new Map(controles.map((c) => [c.tipo, c]));
   const etiqueta = etiquetaResumen(resumenControles(aplican, controles));
-  const puedeEditar = puedeEscribir(rol, "carne");
+  const puedeEditar = puedeEscribir(rol, "carne", finca.plan);
 
   return (
     <>

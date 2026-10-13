@@ -23,7 +23,7 @@ const PESTANAS = [
  */
 export default async function PaginaPremios({ searchParams }: { searchParams: Promise<{ vista?: string }> }) {
   const { finca, rol } = await obtenerContexto();
-  if (!puedeVer(rol, "ferias")) redirect("/");
+  if (!puedeVer(rol, "ferias", finca.plan)) redirect("/");
   const { vista } = await searchParams;
   const actual = vista === "ferias" ? "ferias" : "premios";
 
@@ -61,7 +61,7 @@ export default async function PaginaPremios({ searchParams }: { searchParams: Pr
 
       <PestanasTarjetas pestanas={armarPestanas("/ferias", "premios", PESTANAS)} actual={actual} />
 
-      {actual === "premios" ? <ListaPremios fincaId={finca.id} puedeEditar={puedeEscribir(rol, "ferias")} /> : <ListaFerias fincaId={finca.id} />}
+      {actual === "premios" ? <ListaPremios fincaId={finca.id} puedeEditar={puedeEscribir(rol, "ferias", finca.plan)} /> : <ListaFerias fincaId={finca.id} />}
     </>
   );
 }

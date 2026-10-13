@@ -28,10 +28,10 @@ export default async function PaginaHoy({ searchParams }: { searchParams: Promis
   const { finca, fincas, rol, perfil } = await obtenerContexto();
   const supabase = await crearClienteServidor();
   const hoy = hoyBogota();
-  const verLeche = puedeVer(rol, "leche");
-  const verRepro = puedeVer(rol, "reproduccion");
-  const verSanidad = puedeVer(rol, "sanidad");
-  const verCarne = puedeVer(rol, "carne");
+  const verLeche = puedeVer(rol, "leche", finca.plan);
+  const verRepro = puedeVer(rol, "reproduccion", finca.plan);
+  const verSanidad = puedeVer(rol, "sanidad", finca.plan);
+  const verCarne = puedeVer(rol, "carne", finca.plan);
 
   const activos = () =>
     supabase.from("animales").select("*", { count: "exact", head: true }).eq("finca_id", finca.id).is("deleted_at", null).eq("estado", "activo");
@@ -66,11 +66,11 @@ export default async function PaginaHoy({ searchParams }: { searchParams: Promis
   ]);
 
   // Gastos por pagar que ya vencieron (Hato → Gastos): solo quien maneja costos.
-  const verGastos = puedeVer(rol, "contabilidad");
+  const verGastos = puedeVer(rol, "contabilidad", finca.plan);
   const gastosVencidos = verGastos ? ((await supabase.from("gastos").select("id, descripcion, monto, vence").eq("finca_id", finca.id).is("pagado_en", null).lt("vence", hoy).order("vence").limit(50)).data ?? []) : [];
 
   // Corrales: hacinamiento, potreros que deben desocuparse y animales comprados sin cuarentena (Hato → Corrales).
-  const verCorrales = puedeVer(rol, "corrales");
+  const verCorrales = puedeVer(rol, "corrales", finca.plan);
   const [ubicacionesAlerta, cuarentenaAlerta] = verCorrales
     ? await Promise.all([
         supabase.from("v_ubicaciones").select("*").eq("finca_id", finca.id).eq("activa", true).or("hacinada.eq.true,estado.eq.debe_salir").limit(50),
@@ -144,7 +144,7 @@ export default async function PaginaHoy({ searchParams }: { searchParams: Promis
             titulo="Empecemos por el hato"
             descripcion="Registra tu primer animal y desde ahí vas sumando ordeños, partos y sanidad."
           >
-            {puedeEscribir(rol, "hato") ? <EnlaceBoton href="/hato/nuevo">Registrar animal</EnlaceBoton> : null}
+            {puedeEscribir(rol, "hato", finca.plan) ? <EnlaceBoton href="/hato/nuevo">Registrar animal</EnlaceBoton> : null}
           </EstadoVacio>
         </Tarjeta>
       ) : (
@@ -166,7 +166,7 @@ export default async function PaginaHoy({ searchParams }: { searchParams: Promis
                       litrosDescartados > 0 ? ` · ${litros(litrosDescartados)} L descartados` : ""
                     }`}
               </p>
-              {puedeEscribir(rol, "leche") ? (
+              {puedeEscribir(rol, "leche", finca.plan) ? (
                 <Link
                   href="/hato?vista=ordeno"
                   className="mt-4 inline-flex min-h-11 items-center gap-1 rounded-full bg-sobre-musgo/15 px-4 text-sm font-semibold"
@@ -216,7 +216,7 @@ export default async function PaginaHoy({ searchParams }: { searchParams: Promis
                         </span>
                         <span className="mt-1 block"><Insignia tono={e.tono}>{e.texto}</Insignia></span>
                       </span>
-                      {puedeEscribir(rol, "sanidad") ? (
+                      {puedeEscribir(rol, "sanidad", finca.plan) ? (
                         <Link href={`/hato/sanidad/nuevo?programa=${p.id}`} className="inline-flex min-h-11 shrink-0 items-center rounded-full bg-musgo px-4 text-sm font-semibold text-sobre-musgo">
                           Aplicar
                         </Link>
@@ -244,7 +244,7 @@ export default async function PaginaHoy({ searchParams }: { searchParams: Promis
                         </span>
                         <span className="mt-1 block"><Insignia tono={e.tono}>{e.texto}</Insignia></span>
                       </span>
-                      {puedeEscribir(rol, "sanidad") ? (
+                      {puedeEscribir(rol, "sanidad", finca.plan) ? (
                         <Link href={`/hato/sanidad/nuevo?refuerzo=${g.evento_id}`} className="inline-flex min-h-11 shrink-0 items-center rounded-full bg-musgo px-4 text-sm font-semibold text-sobre-musgo">
                           Aplicar
                         </Link>

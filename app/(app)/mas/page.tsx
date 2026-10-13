@@ -1,12 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Baby, Beef, ChevronRight, Fence, FileText, GitFork, KeyRound, LogOut, MapPin, Pencil, Plus, Shuffle, ShieldCheck, Syringe, Trophy, Users, Wallet } from "lucide-react";
+import { Baby, Beef, ChevronRight, Fence, FileText, GitFork, KeyRound, LogOut, MapPin, Pencil, Plus, Rocket, ShieldCheck, Syringe, Trophy, Users, Wallet } from "lucide-react";
 import { Encabezado } from "@/components/Encabezado";
 import { AvisoGuardado } from "@/components/AvisoGuardado";
 import { FincaSelector } from "@/components/FincaSelector";
 import { Insignia } from "@/components/Insignia";
 import { Tarjeta } from "@/components/Tarjeta";
 import { esAdminPlataforma, obtenerContexto } from "@/lib/contexto";
+import { nombrePlan, servicioEnPlan } from "@/lib/planes";
 import { ETIQUETA_ROL, puedeGestionar, puedeVer } from "@/lib/permisos";
 import { cerrarSesion } from "@/app/login/actions";
 
@@ -50,7 +51,10 @@ export default async function PaginaMas({ searchParams }: { searchParams: Promis
                   </p>
                 ) : null}
               </div>
-              <Insignia tono="musgo">{ETIQUETA_ROL[rol]}</Insignia>
+              <div className="flex shrink-0 flex-col items-end gap-1">
+                <Insignia tono="musgo">{ETIQUETA_ROL[rol]}</Insignia>
+                <Insignia tono="neutro">Plan {nombrePlan(finca.plan)}</Insignia>
+              </div>
             </div>
             <FincaSelector fincas={fincas.map((f) => ({ id: f.id, nombre: f.nombre, rol: f.rol }))} activa={finca.id} />
             {puedeGestionar(rol) ? (
@@ -69,35 +73,35 @@ export default async function PaginaMas({ searchParams }: { searchParams: Promis
               <ChevronRight className="size-5 text-humo" strokeWidth={1.75} />
             </Link>
           ) : null}
-          {puedeVer(rol, "reproduccion") ? (
+          {puedeVer(rol, "reproduccion", finca.plan) ? (
             <Link href="/reproduccion" className={FILA}>
               <Baby className="size-5 text-musgo" strokeWidth={1.75} />
               <span className="flex-1 font-semibold">Reproducción</span>
               <ChevronRight className="size-5 text-humo" strokeWidth={1.75} />
             </Link>
           ) : null}
-          {puedeVer(rol, "carne") ? (
+          {puedeVer(rol, "carne", finca.plan) ? (
             <Link href="/carne" className={FILA}>
               <Beef className="size-5 text-musgo" strokeWidth={1.75} />
               <span className="flex-1 font-semibold">Carne</span>
               <ChevronRight className="size-5 text-humo" strokeWidth={1.75} />
             </Link>
           ) : null}
-          {puedeVer(rol, "sanidad") ? (
+          {puedeVer(rol, "sanidad", finca.plan) ? (
             <Link href="/sanidad" className={FILA}>
               <Syringe className="size-5 text-musgo" strokeWidth={1.75} />
               <span className="flex-1 font-semibold">Sanidad</span>
               <ChevronRight className="size-5 text-humo" strokeWidth={1.75} />
             </Link>
           ) : null}
-          {puedeVer(rol, "contabilidad") ? (
+          {puedeVer(rol, "contabilidad", finca.plan) ? (
             <Link href="/costos" className={FILA}>
               <Wallet className="size-5 text-musgo" strokeWidth={1.75} />
               <span className="flex-1 font-semibold">Costos</span>
               <ChevronRight className="size-5 text-humo" strokeWidth={1.75} />
             </Link>
           ) : null}
-          {puedeVer(rol, "corrales") ? (
+          {puedeVer(rol, "corrales", finca.plan) ? (
             <Link href="/corrales" className={FILA}>
               <Fence className="size-5 text-musgo" strokeWidth={1.75} />
               <span className="flex-1 font-semibold">Corrales</span>
@@ -109,12 +113,7 @@ export default async function PaginaMas({ searchParams }: { searchParams: Promis
             <span className="flex-1 font-semibold">Endogamia del hato</span>
             <ChevronRight className="size-5 text-humo" strokeWidth={1.75} />
           </Link>
-          <Link href="/hato/cruza" className={FILA}>
-            <Shuffle className="size-5 text-musgo" strokeWidth={1.75} />
-            <span className="flex-1 font-semibold">Simular cruza</span>
-            <ChevronRight className="size-5 text-humo" strokeWidth={1.75} />
-          </Link>
-          {puedeVer(rol, "ferias") ? (
+          {puedeVer(rol, "ferias", finca.plan) ? (
             <Link href="/ferias" className={FILA}>
               <Trophy className="size-5 text-musgo" strokeWidth={1.75} />
               <span className="flex-1 font-semibold">Premios</span>
@@ -128,7 +127,14 @@ export default async function PaginaMas({ searchParams }: { searchParams: Promis
               <ChevronRight className="size-5 text-humo" strokeWidth={1.75} />
             </Link>
           ) : null}
-          <Link href="/onboarding" className={FILA}>
+          {rol === "propietario" && finca.plan !== "hacienda" ? (
+            <Link href="/mas/plan" className={FILA}>
+              <Rocket className="size-5 text-ocre" strokeWidth={1.75} />
+              <span className="flex-1 font-semibold">Mejorar mi plan</span>
+              <ChevronRight className="size-5 text-humo" strokeWidth={1.75} />
+            </Link>
+          ) : null}
+          <Link href={servicioEnPlan(finca.plan, "fincas") ? "/onboarding" : "/mas/plan?motivo=fincas"} className={FILA}>
             <Plus className="size-5 text-musgo" strokeWidth={1.75} />
             <span className="flex-1 font-semibold">Agregar otra finca</span>
             <ChevronRight className="size-5 text-humo" strokeWidth={1.75} />

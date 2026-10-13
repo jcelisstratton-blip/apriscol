@@ -22,7 +22,7 @@ const noFutura = (fecha: string) => (fecha > hoyBogota() ? "La fecha no puede se
 
 async function permiso(verbo: string) {
   const { finca, rol } = await obtenerContexto();
-  if (!puedeEscribir(rol, "reproduccion")) return { ok: false, error: `No tienes permiso para ${verbo} en esta finca.` } as const;
+  if (!puedeEscribir(rol, "reproduccion", finca.plan)) return { ok: false, error: `No tienes permiso para ${verbo} en esta finca.` } as const;
   return { ok: true, finca, rol } as const;
 }
 
@@ -383,7 +383,7 @@ const esquemaPrevios = z.object({
 /** Cuántos partos había tenido la hembra antes de registrarlos aquí (vacío = no se sabe). De este número depende el aviso de pasar a ceba. */
 export async function guardarPartosPrevios(entrada: { animalId: string; partos: string }): Promise<Resultado> {
   const { finca, rol } = await obtenerContexto();
-  if (!puedeEscribir(rol, "hato")) return { ok: false, error: "No tienes permiso para editar animales en esta finca." };
+  if (!puedeEscribir(rol, "hato", finca.plan)) return { ok: false, error: "No tienes permiso para editar animales en esta finca." };
   const datos = esquemaPrevios.safeParse(entrada);
   if (!datos.success) return { ok: false, error: datos.error.issues[0]?.message ?? "Revisa los datos." };
   const supabase = await crearClienteServidor();

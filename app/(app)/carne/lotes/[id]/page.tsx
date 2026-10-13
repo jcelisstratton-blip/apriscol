@@ -26,11 +26,11 @@ export default async function PaginaLote({ params, searchParams }: { params: Pro
   const { guardado } = await searchParams;
   if (!ID_UUID.test(id)) notFound();
   const { finca, rol } = await obtenerContexto();
-  if (!puedeVer(rol, "carne")) redirect("/");
+  if (!puedeVer(rol, "carne", finca.plan)) redirect("/");
   const supabase = await crearClienteServidor();
   const { data: lote } = await supabase.from("lotes_ceba").select("*").eq("id", id).eq("finca_id", finca.id).maybeSingle();
   if (!lote) notFound();
-  const puedeEditar = puedeEscribir(rol, "carne");
+  const puedeEditar = puedeEscribir(rol, "carne", finca.plan);
 
   const [estadisticas, animalesDB, cebaDB, retirosDB] = await Promise.all([
     supabase.rpc("ceba_lotes", { p_finca: finca.id }),

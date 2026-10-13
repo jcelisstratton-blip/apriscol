@@ -5,6 +5,7 @@ import { ChevronLeft } from "lucide-react";
 import { EliminarRegistro } from "@/components/EliminarRegistro";
 import { Encabezado } from "@/components/Encabezado";
 import { FormGasto } from "@/components/FormGasto";
+import { servicioEnPlan } from "@/lib/planes";
 import { obtenerContexto } from "@/lib/contexto";
 import { crearClienteServidor } from "@/lib/supabase/server";
 import { puedeEscribir, puedeGestionar } from "@/lib/permisos";
@@ -24,7 +25,7 @@ export default async function PaginaGastoEditar({ params, searchParams }: { para
   const supabase = await crearClienteServidor();
   const { data: gasto } = await supabase.from("gastos").select("*").eq("id", id).eq("finca_id", finca.id).maybeSingle();
   if (!gasto) notFound();
-  if (!puedeEscribir(rol, "contabilidad")) redirect("/hato?vista=gastos");
+  if (!puedeEscribir(rol, "contabilidad", finca.plan)) redirect("/hato?vista=gastos");
 
   const [animal, { data: ubicaciones }, { data: lotes }] = await Promise.all([
     gasto.animal_id ? supabase.from("animales").select("id, numero_arete, nombre").eq("id", gasto.animal_id).eq("finca_id", finca.id).maybeSingle().then((r) => r.data) : Promise.resolve(null),
@@ -44,6 +45,7 @@ export default async function PaginaGastoEditar({ params, searchParams }: { para
       <Encabezado titulo="Editar gasto" subtitulo={finca.nombre} />
       <div className="space-y-8 lg:max-w-xl">
         <FormGasto
+          conSoporte={servicioEnPlan(finca.plan, "soportes")}
           fincaId={finca.id}
           especies={finca.especies}
           ubicaciones={ubicacionesOfrecidas}

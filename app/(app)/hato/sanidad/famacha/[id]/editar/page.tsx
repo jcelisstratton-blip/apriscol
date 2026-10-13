@@ -22,7 +22,7 @@ export default async function PaginaEditarFamacha({ params }: { params: Promise<
   const supabase = await crearClienteServidor();
   const { data: evaluacion } = await supabase.from("evaluaciones_famacha").select("*").eq("id", id).eq("finca_id", finca.id).maybeSingle();
   if (!evaluacion) notFound();
-  if (!puedeEscribir(rol, "sanidad")) redirect(`/hato/${evaluacion.animal_id}`);
+  if (!puedeEscribir(rol, "sanidad", finca.plan)) redirect(`/hato/${evaluacion.animal_id}`);
   const { data: animal } = await supabase.from("animales").select("id, numero_arete, nombre").eq("id", evaluacion.animal_id).eq("finca_id", finca.id).maybeSingle();
   if (!animal) notFound();
 

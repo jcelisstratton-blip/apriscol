@@ -22,7 +22,7 @@ export default async function PaginaEditarParto({ params }: { params: Promise<{ 
   const supabase = await crearClienteServidor();
   const { data: parto } = await supabase.from("partos").select("*").eq("id", id).eq("finca_id", finca.id).maybeSingle();
   if (!parto) notFound();
-  if (!puedeEscribir(rol, "reproduccion")) redirect(`/hato/${parto.madre_id}`);
+  if (!puedeEscribir(rol, "reproduccion", finca.plan)) redirect(`/hato/${parto.madre_id}`);
   const [{ data: animal }, { data: crias }] = await Promise.all([
     supabase.from("animales").select("id, numero_arete, nombre").eq("id", parto.madre_id).eq("finca_id", finca.id).maybeSingle(),
     supabase.from("crias").select("*").eq("parto_id", id).eq("finca_id", finca.id).order("created_at"),

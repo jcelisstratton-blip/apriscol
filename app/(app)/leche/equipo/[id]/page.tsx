@@ -22,7 +22,7 @@ export default async function PaginaEditar({ params }: { params: Promise<{ id: s
   const supabase = await crearClienteServidor();
   const { data: registro } = await supabase.from("mantenimiento_ordeno").select("*").eq("id", id).eq("finca_id", finca.id).maybeSingle();
   if (!registro) notFound();
-  if (!puedeEscribir(rol, "leche")) redirect("/leche?vista=frio");
+  if (!puedeEscribir(rol, "leche", finca.plan)) redirect("/leche?vista=frio");
 
   return (
     <>

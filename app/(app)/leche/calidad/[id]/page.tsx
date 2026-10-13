@@ -22,7 +22,7 @@ export default async function PaginaEditar({ params }: { params: Promise<{ id: s
   const supabase = await crearClienteServidor();
   const { data: registro } = await supabase.from("analisis_leche").select("*").eq("id", id).eq("finca_id", finca.id).maybeSingle();
   if (!registro) notFound();
-  if (!puedeEscribir(rol, "leche")) redirect(registro.animal_id ? `/hato/${registro.animal_id}` : "/leche?vista=calidad");
+  if (!puedeEscribir(rol, "leche", finca.plan)) redirect(registro.animal_id ? `/hato/${registro.animal_id}` : "/leche?vista=calidad");
   // Un análisis de un animal se corrige desde su ficha y vuelve a ella.
   const animal = registro.animal_id
     ? (await supabase.from("animales").select("id, numero_arete, nombre").eq("id", registro.animal_id).eq("finca_id", finca.id).maybeSingle()).data

@@ -21,7 +21,7 @@ export default async function PaginaEmpadronamientoEditar({ params }: { params: 
   const supabase = await crearClienteServidor();
   const { data: lote } = await supabase.from("v_empadronamientos").select("*").eq("id", id).eq("finca_id", finca.id).maybeSingle();
   if (!lote) notFound();
-  if (!puedeEscribir(rol, "reproduccion")) redirect(`/reproduccion/empadronamiento/${id}`);
+  if (!puedeEscribir(rol, "reproduccion", finca.plan)) redirect(`/reproduccion/empadronamiento/${id}`);
 
   return (
     <>

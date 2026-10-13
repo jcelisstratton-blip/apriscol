@@ -28,10 +28,10 @@ type Vista = (typeof PESTANAS)[number]["valor"];
  */
 export default async function PaginaReproduccion({ searchParams }: { searchParams: Promise<{ vista?: string; guardado?: string; estado?: string; periodo?: string; desde?: string; hasta?: string }> }) {
   const { finca, rol } = await obtenerContexto();
-  if (!puedeVer(rol, "reproduccion")) redirect("/");
+  if (!puedeVer(rol, "reproduccion", finca.plan)) redirect("/");
   const sp = await searchParams;
   const vista: Vista = PESTANAS.some((p) => p.valor === sp.vista) ? (sp.vista as Vista) : "resumen";
-  const puedeEditar = puedeEscribir(rol, "reproduccion");
+  const puedeEditar = puedeEscribir(rol, "reproduccion", finca.plan);
 
   return (
     <>

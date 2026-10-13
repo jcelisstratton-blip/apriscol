@@ -12,7 +12,7 @@ export const metadata: Metadata = { title: "Nueva instalación" };
 /** Un corral o un potrero se crea desde Hato → Corrales y vuelve a él. */
 export default async function PaginaUbicacionNueva() {
   const { finca, rol } = await obtenerContexto();
-  if (!puedeEscribir(rol, "corrales")) redirect("/hato?vista=corrales");
+  if (!puedeEscribir(rol, "corrales", finca.plan)) redirect("/hato?vista=corrales");
   return (
     <>
       <Link href="/hato?vista=corrales" className="-ml-2 mt-3 inline-flex min-h-11 items-center gap-1 rounded-full px-2 text-[0.9375rem] font-semibold text-musgo">

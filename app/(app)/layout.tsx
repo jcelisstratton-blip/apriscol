@@ -9,7 +9,7 @@ import { puedeEscribir, puedeGestionar, puedeVer } from "@/lib/permisos";
  */
 export default async function LayoutApp({ children }: { children: React.ReactNode }) {
   const { user, perfil, finca, fincas, rol } = await obtenerContexto();
-  const permisos = { puedeOrdenar: puedeEscribir(rol, "leche"), puedeCrearAnimal: puedeEscribir(rol, "hato"), puedeSanidad: puedeEscribir(rol, "sanidad"), puedeCarne: puedeEscribir(rol, "carne") };
+  const permisos = { puedeOrdenar: puedeEscribir(rol, "leche", finca.plan), puedeCrearAnimal: puedeEscribir(rol, "hato", finca.plan), puedeSanidad: puedeEscribir(rol, "sanidad", finca.plan), puedeCarne: puedeEscribir(rol, "carne", finca.plan) };
   const esSuperadmin = await esAdminPlataforma();
 
   return (
@@ -20,14 +20,15 @@ export default async function LayoutApp({ children }: { children: React.ReactNod
         fincas={fincas.map((f) => ({ id: f.id, nombre: f.nombre, rol: f.rol }))}
         fincaActiva={finca.id}
         permisos={permisos}
-        verLeche={puedeVer(rol, "leche")}
-        verPremios={puedeVer(rol, "ferias")}
-        verSanidad={puedeVer(rol, "sanidad")}
-        verCorrales={puedeVer(rol, "corrales")}
-        verCostos={puedeVer(rol, "contabilidad")}
-        verCarne={puedeVer(rol, "carne")}
-        verRepro={puedeVer(rol, "reproduccion")}
+        verLeche={puedeVer(rol, "leche", finca.plan)}
+        verPremios={puedeVer(rol, "ferias", finca.plan)}
+        verSanidad={puedeVer(rol, "sanidad", finca.plan)}
+        verCorrales={puedeVer(rol, "corrales", finca.plan)}
+        verCostos={puedeVer(rol, "contabilidad", finca.plan)}
+        verCarne={puedeVer(rol, "carne", finca.plan)}
+        verRepro={puedeVer(rol, "reproduccion", finca.plan)}
         verEquipo={puedeGestionar(rol)}
+        puedeMejorar={rol === "propietario" && finca.plan !== "hacienda"}
         esSuperadmin={esSuperadmin}
       />
       <div className="lg:pl-64">

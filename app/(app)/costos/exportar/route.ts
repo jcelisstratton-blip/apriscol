@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { obtenerContexto } from "@/lib/contexto";
 import { crearClienteServidor } from "@/lib/supabase/server";
 import { puedeVer } from "@/lib/permisos";
+import { servicioEnPlan } from "@/lib/planes";
 import { animalesPorIds } from "@/lib/animal-etiquetas";
 import { etiquetaAnimal } from "@/lib/animal";
 import { ETIQUETA_GRUPO, GRUPOS, type GrupoGasto } from "@/lib/costos";
@@ -23,7 +24,8 @@ const TOPE_FILAS = 50_000;
  */
 export async function GET(req: NextRequest) {
   const { finca, rol } = await obtenerContexto();
-  if (!puedeVer(rol, "contabilidad")) return new NextResponse("No tienes permiso para ver los costos de esta finca.", { status: 403 });
+  if (!puedeVer(rol, "contabilidad", finca.plan)) return new NextResponse("No tienes permiso para ver los costos de esta finca.", { status: 403 });
+  if (!servicioEnPlan(finca.plan, "reportes")) return new NextResponse("Los reportes en Excel están en el plan Profesional.", { status: 403 });
   const q = req.nextUrl.searchParams;
   const reporte = q.get("reporte");
   if (!ES_REPORTE(reporte)) return new NextResponse("Ese reporte no existe.", { status: 400 });

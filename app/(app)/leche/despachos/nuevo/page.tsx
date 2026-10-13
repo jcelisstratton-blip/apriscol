@@ -12,8 +12,8 @@ import { hoyBogota } from "@/lib/fechas";
 export const metadata: Metadata = { title: "Registrar despacho" };
 
 export default async function PaginaDespachoNuevo() {
-  const { rol } = await obtenerContexto();
-  if (!puedeEscribir(rol, "leche")) redirect("/leche?vista=despachos");
+  const { finca, rol } = await obtenerContexto();
+  if (!puedeEscribir(rol, "leche", finca.plan)) redirect("/leche?vista=despachos");
 
   return (
     <>

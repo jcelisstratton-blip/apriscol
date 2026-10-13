@@ -17,7 +17,7 @@ export default async function PaginaEditarProducto({ params }: { params: Promise
   const { id } = await params;
   if (!ID_UUID.test(id)) notFound();
   const { finca, rol } = await obtenerContexto();
-  if (!puedeEscribir(rol, "sanidad")) redirect("/sanidad?vista=productos");
+  if (!puedeEscribir(rol, "sanidad", finca.plan)) redirect("/sanidad?vista=productos");
   const supabase = await crearClienteServidor();
   const { data: producto } = await supabase.from("productos_veterinarios").select("*").eq("id", id).eq("finca_id", finca.id).maybeSingle();
   if (!producto) notFound();

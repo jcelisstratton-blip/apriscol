@@ -16,7 +16,7 @@ export default async function PaginaEditarFeria({ params }: { params: Promise<{ 
   const { id } = await params;
   if (!ID_UUID.test(id)) notFound();
   const { finca, rol } = await obtenerContexto();
-  if (!puedeEscribir(rol, "ferias")) redirect(`/ferias/${id}`);
+  if (!puedeEscribir(rol, "ferias", finca.plan)) redirect(`/ferias/${id}`);
 
   const supabase = await crearClienteServidor();
   const { data: feria } = await supabase.from("ferias").select("*").eq("id", id).eq("finca_id", finca.id).maybeSingle();

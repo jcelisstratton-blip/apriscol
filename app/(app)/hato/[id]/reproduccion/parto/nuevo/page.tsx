@@ -19,7 +19,7 @@ export default async function PaginaPartoNuevo({ params }: { params: Promise<{ i
   const { id } = await params;
   if (!ID_UUID.test(id)) notFound();
   const { finca, rol } = await obtenerContexto();
-  if (!puedeEscribir(rol, "reproduccion")) redirect(`/hato/${id}`);
+  if (!puedeEscribir(rol, "reproduccion", finca.plan)) redirect(`/hato/${id}`);
   const supabase = await crearClienteServidor();
   const { data: animal } = await supabase.from("animales").select("id, numero_arete, nombre, sexo, estado").eq("id", id).eq("finca_id", finca.id).is("deleted_at", null).maybeSingle();
   if (!animal) notFound();

@@ -22,7 +22,7 @@ export default async function PaginaEditarConsumo({ params }: { params: Promise<
   const supabase = await crearClienteServidor();
   const { data: consumo } = await supabase.from("consumo_lote").select("*").eq("id", id).eq("finca_id", finca.id).maybeSingle();
   if (!consumo) notFound();
-  if (!puedeEscribir(rol, "carne")) redirect(`/carne/lotes/${consumo.lote_id}`);
+  if (!puedeEscribir(rol, "carne", finca.plan)) redirect(`/carne/lotes/${consumo.lote_id}`);
   const { data: lote } = await supabase.from("lotes_ceba").select("id, nombre").eq("id", consumo.lote_id).eq("finca_id", finca.id).maybeSingle();
   if (!lote) notFound();
 

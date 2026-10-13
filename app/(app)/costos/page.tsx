@@ -20,6 +20,8 @@ import { Reportes } from "./Reportes";
 import { Resumen } from "./Resumen";
 import { Aviso } from "@/components/Aviso";
 import { pesos } from "@/lib/ferias";
+import { RequierePlan } from "@/components/RequierePlan";
+import { servicioEnPlan } from "@/lib/planes";
 
 export const metadata: Metadata = { title: "Costos" };
 
@@ -39,19 +41,21 @@ const REPORTE_DE: Partial<Record<Vista, ReporteId>> = { resumen: "resultado", co
  */
 export default async function PaginaCostos({ searchParams }: { searchParams: Promise<{ vista?: string; periodo?: string; desde?: string; hasta?: string }> }) {
   const { finca, rol } = await obtenerContexto();
-  if (!puedeVer(rol, "contabilidad")) redirect("/");
+  if (!puedeVer(rol, "contabilidad", finca.plan)) redirect("/");
   const sp = await searchParams;
   const vista: Vista = PESTANAS.some((p) => p.valor === sp.vista) ? (sp.vista as Vista) : "resumen";
-  const puedeEditar = puedeEscribir(rol, "contabilidad");
+  const puedeEditar = puedeEscribir(rol, "contabilidad", finca.plan);
   const periodo = esPeriodo(sp.periodo) ? sp.periodo : "todo";
   const filtro = { periodo, desde: sp.desde, hasta: sp.hasta };
   const hoy = hoyBogota();
   const rango = rangoPeriodo(periodo, hoy, sp.desde, sp.hasta);
-  const reporte = REPORTE_DE[vista];
+  const reporte = servicioEnPlan(finca.plan, "reportes") ? REPORTE_DE[vista] : undefined;
+  const verAnimales = servicioEnPlan(finca.plan, "costoAnimal");
+  const verReportes = servicioEnPlan(finca.plan, "reportes");
 
   // «Por animal»: el costo de cada uno y los gastos de toda la finca, que no se reparten.
   let animales: Awaited<ReturnType<typeof costosAnimales>> | null = null;
-  if (vista === "animales") animales = await costosAnimales(finca.id, rango);
+  if (vista === "animales" && verAnimales) animales = await costosAnimales(finca.id, rango);
 
   return (
     <>
@@ -74,13 +78,14 @@ export default async function PaginaCostos({ searchParams }: { searchParams: Pro
 
       {vista === "resumen" ? <Resumen fincaId={finca.id} filtros={filtro} /> : null}
       {vista === "costos" ? <ListaCostos fincaId={finca.id} hoy={hoy} puedeEditar={puedeEditar} rango={rango} /> : null}
+      {vista === "animales" && !verAnimales ? <RequierePlan servicio="costoAnimal" rol={rol} /> : null}
       {vista === "animales" && animales ? (
         <div className="space-y-3">
           {animales.generales > 0 ? <Aviso tipo="info">Además hay {pesos(animales.generales)} de gastos generales de la finca que no se reparten entre los animales.</Aviso> : null}
           <ListaCostoAnimales filas={animales.filas} />
         </div>
       ) : null}
-      {vista === "reportes" ? <Reportes filtro={filtro} /> : null}
+      {vista === "reportes" ? (verReportes ? <Reportes filtro={filtro} /> : <RequierePlan servicio="reportes" rol={rol} />) : null}
     </>
   );
 }

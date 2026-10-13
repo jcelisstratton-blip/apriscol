@@ -39,7 +39,7 @@ const esRepetido = (e: { code?: string; message: string }) => e.code === "23505"
 
 async function permiso(verbo: "registrar" | "editar") {
   const { finca, rol } = await obtenerContexto();
-  if (!puedeEscribir(rol, "leche")) return { error: `No tienes permiso para ${verbo} datos de leche en esta finca.` } as const;
+  if (!puedeEscribir(rol, "leche", finca.plan)) return { error: `No tienes permiso para ${verbo} datos de leche en esta finca.` } as const;
   return { finca, rol } as const;
 }
 

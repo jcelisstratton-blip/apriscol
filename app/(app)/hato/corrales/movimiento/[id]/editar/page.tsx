@@ -24,7 +24,7 @@ export default async function PaginaEditarMovimiento({ params, searchParams }: {
   const supabase = await crearClienteServidor();
   const { data: mov } = await supabase.from("movimientos_animales").select("*").eq("id", id).eq("finca_id", finca.id).maybeSingle();
   if (!mov) notFound();
-  if (!puedeEscribir(rol, "corrales")) redirect(`/hato/${mov.animal_id}#ubicacion`);
+  if (!puedeEscribir(rol, "corrales", finca.plan)) redirect(`/hato/${mov.animal_id}#ubicacion`);
   const [{ data: animal }, { data }] = await Promise.all([
     supabase.from("animales").select("id, numero_arete, nombre").eq("id", mov.animal_id).eq("finca_id", finca.id).maybeSingle(),
     supabase.from("v_ubicaciones").select("*").eq("finca_id", finca.id).order("tipo").order("nombre").limit(300),

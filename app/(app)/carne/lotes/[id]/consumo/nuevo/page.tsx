@@ -17,7 +17,7 @@ export default async function PaginaConsumoNuevo({ params }: { params: Promise<{
   const { id } = await params;
   if (!ID_UUID.test(id)) notFound();
   const { finca, rol } = await obtenerContexto();
-  if (!puedeEscribir(rol, "carne")) redirect(`/carne/lotes/${id}`);
+  if (!puedeEscribir(rol, "carne", finca.plan)) redirect(`/carne/lotes/${id}`);
   const supabase = await crearClienteServidor();
   const { data: lote } = await supabase.from("lotes_ceba").select("id, nombre").eq("id", id).eq("finca_id", finca.id).maybeSingle();
   if (!lote) notFound();

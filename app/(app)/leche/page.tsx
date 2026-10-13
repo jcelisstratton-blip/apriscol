@@ -33,14 +33,14 @@ export default async function PaginaLeche({
   searchParams: Promise<{ vista?: string; agregar?: string; periodo?: string; desde?: string; hasta?: string; animal?: string; guardado?: string }>;
 }) {
   const { finca, rol } = await obtenerContexto();
-  if (!puedeVer(rol, "leche")) redirect("/");
+  if (!puedeVer(rol, "leche", finca.plan)) redirect("/");
   const sp = await searchParams;
   // Enlaces viejos al registro del ordeño: ahora está en Hato.
   if (sp.vista === "registrar") redirect(sp.agregar && /^[0-9a-f-]{36}$/i.test(sp.agregar) ? `/hato?vista=ordeno&agregar=${sp.agregar}` : "/hato?vista=ordeno");
   if (sp.agregar && /^[0-9a-f-]{36}$/i.test(sp.agregar)) redirect(`/hato?vista=ordeno&agregar=${sp.agregar}`);
 
   const vista: Vista = PESTANAS.some((p) => p.valor === sp.vista) ? (sp.vista as Vista) : "produccion";
-  const puedeEditar = puedeEscribir(rol, "leche");
+  const puedeEditar = puedeEscribir(rol, "leche", finca.plan);
   const accion =
     puedeEditar && vista === "calidad" ? (
       <EnlaceBoton href="/leche/calidad/nuevo" ancho={false}>Registrar</EnlaceBoton>

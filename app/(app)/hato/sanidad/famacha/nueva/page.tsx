@@ -19,7 +19,7 @@ export default async function PaginaFamachaNueva({ searchParams }: { searchParam
   const { finca, rol } = await obtenerContexto();
   const { animal } = await searchParams;
   if (!animal || !ID_UUID.test(animal)) redirect("/hato");
-  if (!puedeEscribir(rol, "sanidad")) redirect(`/hato/${animal}`);
+  if (!puedeEscribir(rol, "sanidad", finca.plan)) redirect(`/hato/${animal}`);
   const supabase = await crearClienteServidor();
   const { data } = await supabase.from("animales").select("id, numero_arete, nombre, estado, fecha_nacimiento").eq("id", animal).eq("finca_id", finca.id).is("deleted_at", null).maybeSingle();
   if (!data) notFound();

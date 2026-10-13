@@ -12,7 +12,7 @@ export default async function PaginaEmpadronamiento({ params, searchParams }: { 
   const { id } = await params;
   if (!ID_UUID.test(id)) notFound();
   const { finca, rol } = await obtenerContexto();
-  if (!puedeVer(rol, "reproduccion")) redirect("/");
+  if (!puedeVer(rol, "reproduccion", finca.plan)) redirect("/");
   const sp = await searchParams;
   return (
     <>

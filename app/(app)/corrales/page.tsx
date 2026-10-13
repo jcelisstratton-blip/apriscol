@@ -33,10 +33,10 @@ export default async function PaginaCorrales({
   searchParams: Promise<{ vista?: string; periodo?: string; desde?: string; hasta?: string; motivo?: string }>;
 }) {
   const { finca, rol } = await obtenerContexto();
-  if (!puedeVer(rol, "corrales")) redirect("/");
+  if (!puedeVer(rol, "corrales", finca.plan)) redirect("/");
   const sp = await searchParams;
   const vista: Vista = PESTANAS.some((p) => p.valor === sp.vista) ? (sp.vista as Vista) : "resumen";
-  const puedeEditar = puedeEscribir(rol, "corrales");
+  const puedeEditar = puedeEscribir(rol, "corrales", finca.plan);
   const periodo = esPeriodo(sp.periodo) ? sp.periodo : "todo";
   const motivo: MotivoMovimiento | "todos" = MOTIVOS.includes(sp.motivo as MotivoMovimiento) ? (sp.motivo as MotivoMovimiento) : "todos";
   const filtroFechas = { periodo, desde: sp.desde, hasta: sp.hasta };

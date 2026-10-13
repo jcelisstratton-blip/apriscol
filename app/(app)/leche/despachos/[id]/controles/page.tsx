@@ -7,6 +7,8 @@ import { ControlCalidadFila, type CandidatoAnalisis } from "@/components/Control
 import { Encabezado } from "@/components/Encabezado";
 import { Insignia } from "@/components/Insignia";
 import { PorQueAnalizar } from "@/components/PorQueAnalizar";
+import { RequierePlan } from "@/components/RequierePlan";
+import { servicioEnPlan } from "@/lib/planes";
 import { obtenerContexto } from "@/lib/contexto";
 import { crearClienteServidor } from "@/lib/supabase/server";
 import { puedeEscribir, puedeVer } from "@/lib/permisos";
@@ -28,11 +30,19 @@ export default async function PaginaControlesDespacho({ params, searchParams }: 
   const { nuevo } = await searchParams;
   if (!ID_UUID.test(id)) notFound();
   const { finca, rol } = await obtenerContexto();
-  if (!puedeVer(rol, "leche")) redirect("/");
+  if (!puedeVer(rol, "leche", finca.plan)) redirect("/");
+  if (!servicioEnPlan(finca.plan, "calidad")) {
+    return (
+      <>
+        <Encabezado titulo="Controles de calidad" subtitulo={finca.nombre} />
+        <RequierePlan servicio="calidad" rol={rol} />
+      </>
+    );
+  }
   const supabase = await crearClienteServidor();
   const { data: despacho } = await supabase.from("despachos_leche").select("*").eq("id", id).eq("finca_id", finca.id).maybeSingle();
   if (!despacho) notFound();
-  const puedeEditar = puedeEscribir(rol, "leche");
+  const puedeEditar = puedeEscribir(rol, "leche", finca.plan);
 
   const [controlesDB, analisisDB] = await Promise.all([
     supabase.from("controles_calidad").select("*").eq("despacho_id", id).eq("finca_id", finca.id),

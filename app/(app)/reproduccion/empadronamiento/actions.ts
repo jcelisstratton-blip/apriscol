@@ -25,7 +25,7 @@ const REPETIDO_NOMBRE = "Ya tienes un empadronamiento con ese nombre. Ponle otro
 
 async function permiso(verbo: string) {
   const { finca, rol } = await obtenerContexto();
-  if (!puedeEscribir(rol, "reproduccion")) return { ok: false, error: `No tienes permiso para ${verbo} en esta finca.` } as const;
+  if (!puedeEscribir(rol, "reproduccion", finca.plan)) return { ok: false, error: `No tienes permiso para ${verbo} en esta finca.` } as const;
   return { ok: true, finca, rol } as const;
 }
 

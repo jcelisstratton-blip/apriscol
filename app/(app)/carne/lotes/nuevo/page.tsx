@@ -12,8 +12,8 @@ import { hoyBogota } from "@/lib/fechas";
 export const metadata: Metadata = { title: "Nuevo lote de ceba" };
 
 export default async function PaginaLoteNuevo() {
-  const { rol } = await obtenerContexto();
-  if (!puedeEscribir(rol, "carne")) redirect("/carne?vista=lotes");
+  const { finca, rol } = await obtenerContexto();
+  if (!puedeEscribir(rol, "carne", finca.plan)) redirect("/carne?vista=lotes");
 
   return (
     <>

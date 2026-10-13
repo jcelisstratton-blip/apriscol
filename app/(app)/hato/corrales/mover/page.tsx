@@ -21,7 +21,7 @@ const ID_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
  */
 export default async function PaginaMover({ searchParams }: { searchParams: Promise<{ destino?: string; de?: string; animal?: string; grupo?: string }> }) {
   const { finca, rol } = await obtenerContexto();
-  if (!puedeEscribir(rol, "corrales")) redirect("/hato?vista=corrales");
+  if (!puedeEscribir(rol, "corrales", finca.plan)) redirect("/hato?vista=corrales");
   const sp = await searchParams;
   const supabase = await crearClienteServidor();
 

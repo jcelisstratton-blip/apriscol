@@ -37,10 +37,10 @@ export default async function PaginaSanidad({
   searchParams: Promise<{ vista?: string; guardado?: string; periodo?: string; desde?: string; hasta?: string; tipo?: string }>;
 }) {
   const { finca, rol } = await obtenerContexto();
-  if (!puedeVer(rol, "sanidad")) redirect("/");
+  if (!puedeVer(rol, "sanidad", finca.plan)) redirect("/");
   const sp = await searchParams;
   const vista: Vista = PESTANAS.some((p) => p.valor === sp.vista) ? (sp.vista as Vista) : "resumen";
-  const puedeEditar = puedeEscribir(rol, "sanidad");
+  const puedeEditar = puedeEscribir(rol, "sanidad", finca.plan);
   const periodo = esPeriodo(sp.periodo) ? sp.periodo : "todo";
   const tipo: TipoEvento | "todos" = TIPOS_EVENTO.includes(sp.tipo as TipoEvento) ? (sp.tipo as TipoEvento) : "todos";
   const filtroFechas = { periodo, desde: sp.desde, hasta: sp.hasta };

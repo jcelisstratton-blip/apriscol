@@ -25,7 +25,7 @@ const ID_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 export default async function PaginaEventoNuevo({ searchParams }: { searchParams: Promise<{ animal?: string; refuerzo?: string; programa?: string; tipo?: string }> }) {
   const { finca, rol } = await obtenerContexto();
   const { animal, refuerzo, programa, tipo } = await searchParams;
-  if (!puedeEscribir(rol, "sanidad")) redirect(animal && ID_UUID.test(animal) ? `/hato/${animal}` : "/hato?vista=sanidad");
+  if (!puedeEscribir(rol, "sanidad", finca.plan)) redirect(animal && ID_UUID.test(animal) ? `/hato/${animal}` : "/hato?vista=sanidad");
   const supabase = await crearClienteServidor();
   const hoy = hoyBogota();
 

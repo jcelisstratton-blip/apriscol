@@ -13,7 +13,7 @@ export const metadata: Metadata = { title: "Animal nuevo" };
 
 export default async function PaginaAnimalNuevo() {
   const { finca, rol } = await obtenerContexto();
-  if (!puedeEscribir(rol, "hato")) redirect("/hato");
+  if (!puedeEscribir(rol, "hato", finca.plan)) redirect("/hato");
   const supabase = await crearClienteServidor();
   const { data: razas } = await supabase.from("razas").select("*").in("especie", finca.especies).order("nombre");
 

@@ -21,7 +21,7 @@ export default async function PaginaEditarLote({ params }: { params: Promise<{ i
   const supabase = await crearClienteServidor();
   const { data: lote } = await supabase.from("lotes_ceba").select("*").eq("id", id).eq("finca_id", finca.id).maybeSingle();
   if (!lote) notFound();
-  if (!puedeEscribir(rol, "carne")) redirect(`/carne/lotes/${id}`);
+  if (!puedeEscribir(rol, "carne", finca.plan)) redirect(`/carne/lotes/${id}`);
 
   return (
     <>

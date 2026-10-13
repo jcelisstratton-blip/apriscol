@@ -21,7 +21,7 @@ export default async function PaginaEditarParticipacion({ params }: { params: Pr
   const supabase = await crearClienteServidor();
   const { data: p } = await supabase.from("participaciones_feria").select("*").eq("id", id).eq("finca_id", finca.id).maybeSingle();
   if (!p) notFound();
-  if (!puedeEscribir(rol, "ferias")) redirect(`/hato/${p.animal_id}`);
+  if (!puedeEscribir(rol, "ferias", finca.plan)) redirect(`/hato/${p.animal_id}`);
 
   const [{ data: ferias }, { data: animal }, fotos] = await Promise.all([
     supabase.from("ferias").select("id, nombre, fecha_inicio").eq("finca_id", finca.id).order("fecha_inicio", { ascending: false }).limit(100),

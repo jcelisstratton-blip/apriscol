@@ -1,7 +1,9 @@
-import type { ModuloApp, RolFinca } from "@/lib/tipos";
+import { moduloEnPlan } from "@/lib/planes";
+import type { ModuloApp, PlanId, RolFinca } from "@/lib/tipos";
 
 /** Espejo en la interfaz de private.puede_escribir / puede_ver. La autoridad real es la RLS de la base. */
-export function puedeEscribir(rol: RolFinca, modulo: ModuloApp): boolean {
+export function puedeEscribir(rol: RolFinca, modulo: ModuloApp, plan: PlanId = "hacienda"): boolean {
+  if (!moduloEnPlan(plan, modulo)) return false;
   switch (rol) {
     case "propietario":
     case "administrador":
@@ -15,7 +17,8 @@ export function puedeEscribir(rol: RolFinca, modulo: ModuloApp): boolean {
   }
 }
 
-export function puedeVer(rol: RolFinca, modulo: ModuloApp): boolean {
+export function puedeVer(rol: RolFinca, modulo: ModuloApp, plan: PlanId = "hacienda"): boolean {
+  if (!moduloEnPlan(plan, modulo)) return false;
   switch (rol) {
     case "propietario":
     case "administrador":

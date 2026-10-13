@@ -21,7 +21,7 @@ export default async function DetalleFeria({ params, searchParams }: { params: P
   const { guardado } = await searchParams;
   if (!ID_UUID.test(id)) notFound();
   const { finca, rol } = await obtenerContexto();
-  if (!puedeVer(rol, "ferias")) redirect("/");
+  if (!puedeVer(rol, "ferias", finca.plan)) redirect("/");
   const supabase = await crearClienteServidor();
 
   const { data: feria } = await supabase.from("ferias").select("*").eq("id", id).eq("finca_id", finca.id).maybeSingle();
@@ -51,7 +51,7 @@ export default async function DetalleFeria({ params, searchParams }: { params: P
         <Link href="/ferias?vista=ferias" className="-ml-2 inline-flex min-h-11 items-center gap-1 rounded-full px-2 text-[0.9375rem] font-semibold text-musgo">
           <ChevronLeft className="size-5" strokeWidth={2} /> Ferias
         </Link>
-        {puedeEscribir(rol, "ferias") ? (
+        {puedeEscribir(rol, "ferias", finca.plan) ? (
           <Link
             href={`/ferias/${id}/editar`}
             className="inline-flex min-h-11 items-center gap-1.5 rounded-full bg-papel px-4 text-sm font-semibold text-musgo ring-1 ring-arena transition hover:bg-arena/40"
@@ -90,7 +90,7 @@ export default async function DetalleFeria({ params, searchParams }: { params: P
                 titulo={nombres.get(p.animal_id) ?? "Animal"}
                 enlace={`/hato/${p.animal_id}`}
                 fotoUrl={p.foto_path ? fotos.get(p.foto_path) : undefined}
-                editar={puedeEscribir(rol, "ferias") ? `/ferias/participacion/${p.id}/editar` : undefined}
+                editar={puedeEscribir(rol, "ferias", finca.plan) ? `/ferias/participacion/${p.id}/editar` : undefined}
               />
             </li>
           ))}

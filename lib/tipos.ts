@@ -6,6 +6,7 @@ export type Vocacion = "leche" | "carne" | "doble";
 export type RolFinca = "propietario" | "administrador" | "ordenador" | "veterinario" | "contador";
 export type ModuloApp =
   | "hato" | "genealogia" | "leche" | "carne" | "sanidad" | "reproduccion" | "nutricion" | "ambiente" | "contabilidad" | "ferias" | "corrales";
+export type PlanId = "cria" | "hato" | "profesional" | "hacienda";
 export type UsoMacho = "reproductor" | "carne";
 export type Jornada = "manana" | "tarde" | "noche" | "unico";
 export type TipoBaja = "venta" | "sacrificio" | "muerte" | "perdida";
@@ -95,9 +96,19 @@ export type Finca = {
   proposito: Vocacion;
   umbral_endogamia: number;
   zona_horaria: string;
+  plan: PlanId;
   created_by: string | null;
   created_at: string;
   updated_at: string;
+};
+
+export type SolicitudPlan = {
+  id: string; finca: string; correo: string; nombre: string; plan_actual: PlanId; plan_nuevo: PlanId; periodo: "mensual" | "anual"; creada_en: string;
+};
+
+export type FilaSolicitudPlan = {
+  id: string; finca_id: string; user_id: string; plan_actual: PlanId; plan_nuevo: PlanId; periodo: "mensual" | "anual";
+  estado: "pendiente" | "activada" | "cancelada"; created_at: string; atendida_en: string | null;
 };
 
 export type Perfil = {
@@ -1036,6 +1047,7 @@ export type Database = {
       animales: Tabla<Animal, "finca_id" | "especie" | "numero_arete" | "sexo">;
       bajas: Tabla<Baja, "finca_id" | "animal_id" | "tipo">;
       fincas: Tabla<Finca, "nombre">;
+      solicitudes_plan: Tabla<FilaSolicitudPlan>;
       finca_miembros: Tabla<Miembro, "finca_id" | "user_id" | "rol">;
       perfiles: Tabla<Perfil, "id">;
       invitaciones: Tabla<Invitacion, "finca_id" | "email" | "rol">;
@@ -1204,6 +1216,9 @@ export type Database = {
       simular_endogamia_libro: { Args: { p_macho: string; p_hembra: string }; Returns: number };
       completitud_pedigri_libro: { Args: { p_libro: string; p_generaciones?: number }; Returns: number };
       admin_resumen: { Args: Record<string, never>; Returns: Record<string, number> };
+      solicitar_mejora_plan: { Args: { p_finca: string; p_plan: PlanId; p_periodo?: "mensual" | "anual" }; Returns: undefined };
+      admin_asignar_plan: { Args: { p_correo: string; p_plan: PlanId }; Returns: number };
+      admin_listar_solicitudes_plan: { Args: Record<string, never>; Returns: SolicitudPlan[] };
       admin_listar_fincas: {
         Args: Record<string, never>;
         Returns: {

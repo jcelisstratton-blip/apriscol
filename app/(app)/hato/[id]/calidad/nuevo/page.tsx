@@ -19,7 +19,7 @@ export default async function PaginaCalidadAnimal({ params }: { params: Promise<
   const { id } = await params;
   if (!ID_UUID.test(id)) notFound();
   const { finca, rol } = await obtenerContexto();
-  if (!puedeEscribir(rol, "leche")) redirect(`/hato/${id}`);
+  if (!puedeEscribir(rol, "leche", finca.plan)) redirect(`/hato/${id}`);
   const supabase = await crearClienteServidor();
   const { data: animal } = await supabase.from("animales").select("id, numero_arete, nombre, sexo, estado").eq("id", id).eq("finca_id", finca.id).is("deleted_at", null).maybeSingle();
   if (!animal) notFound();

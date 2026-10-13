@@ -33,7 +33,7 @@ export default async function DetalleEvento({ params, searchParams }: { params: 
   const { guardado } = await searchParams;
   if (!ID_UUID.test(id)) notFound();
   const { finca, rol } = await obtenerContexto();
-  if (!puedeVer(rol, "sanidad")) redirect("/");
+  if (!puedeVer(rol, "sanidad", finca.plan)) redirect("/");
   const supabase = await crearClienteServidor();
   const hoy = hoyBogota();
 
@@ -55,7 +55,7 @@ export default async function DetalleEvento({ params, searchParams }: { params: 
         <Link href="/sanidad?vista=historial" className="-ml-2 inline-flex min-h-11 items-center gap-1 rounded-full px-2 text-[0.9375rem] font-semibold text-musgo">
           <ChevronLeft className="size-5" strokeWidth={2} /> Historial
         </Link>
-        {puedeEscribir(rol, "sanidad") ? (
+        {puedeEscribir(rol, "sanidad", finca.plan) ? (
           <Link href={`/sanidad/evento/${id}/editar`} className="inline-flex min-h-11 items-center gap-1.5 rounded-full bg-papel px-4 text-sm font-semibold text-musgo ring-1 ring-arena transition hover:bg-arena/40">
             <Pencil className="size-4" strokeWidth={2} aria-hidden="true" /> Editar
           </Link>
@@ -99,7 +99,7 @@ export default async function DetalleEvento({ params, searchParams }: { params: 
               <Insignia tono={dosis.tono}>{dosis.texto}</Insignia>
             </div>
             <p className="mt-2 text-sm text-humo">Aparece como pendiente en Sanidad hasta que se registre una nueva aplicación del mismo producto.</p>
-            {puedeEscribir(rol, "sanidad") ? (
+            {puedeEscribir(rol, "sanidad", finca.plan) ? (
               <Link href={`/hato/sanidad/nuevo?refuerzo=${id}`} className="mt-3 inline-flex min-h-11 items-center rounded-full bg-musgo px-4 text-sm font-semibold text-sobre-musgo">
                 Aplicar la siguiente dosis
               </Link>

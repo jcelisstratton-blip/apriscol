@@ -41,6 +41,23 @@ const SECCIONES: SeccionLegal[] = [
     ),
   },
   {
+    id: "planes",
+    titulo: "Planes y pagos",
+    contenido: (
+      <>
+        <P>
+          Apriscol se ofrece en cuatro planes (Cría, Hato, Profesional y Hacienda) que se diferencian por <strong>los servicios que incluyen</strong>, no por cuántos animales registres. Los precios están en pesos colombianos y se muestran en la página de entrada; puedes pagar cada mes o cada año (con 20 % de descuento).
+        </P>
+        <Lista>
+          <li>Puedes mejorar tu plan cuando quieras desde «Más → Mejorar mi plan». Solo se puede pasar a un plan superior al que tienes, y solo el propietario de la finca puede hacerlo.</li>
+          <li>La mejora se activa cuando se confirma el pago. Pedirla no genera ningún cobro por sí sola.</li>
+          <li>Los servicios que tu plan no incluye aparecen bloqueados, con el aviso del plan que los trae.</li>
+          <li>Si cambiamos los precios, te avisaremos antes de que se apliquen a tu siguiente periodo de pago.</li>
+        </Lista>
+      </>
+    ),
+  },
+  {
     id: "datos-tuyos",
     titulo: "Tus datos son tuyos",
     contenido: (

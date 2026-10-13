@@ -35,7 +35,7 @@ const esquemaReglas = z.object({
 /** Guarda las reglas de ceba de una especie. Las edades de las hembras y del reproductor se escriben en años; se guardan en meses. */
 export async function guardarReglasCeba(_: EstadoReglas, form: FormData): Promise<EstadoReglas> {
   const { finca, rol } = await obtenerContexto();
-  if (!puedeEscribir(rol, "carne")) return { error: "No tienes permiso para cambiar las reglas de ceba en esta finca." };
+  if (!puedeEscribir(rol, "carne", finca.plan)) return { error: "No tienes permiso para cambiar las reglas de ceba en esta finca." };
   const datos = esquemaReglas.safeParse(Object.fromEntries(form));
   if (!datos.success) return { error: datos.error.issues[0]?.message ?? "Revisa los datos." };
   const d = datos.data;
@@ -68,7 +68,7 @@ export async function guardarReglasCeba(_: EstadoReglas, form: FormData): Promis
 /** Vuelve a los valores sugeridos de una especie (borra la regla propia de la finca). */
 export async function restablecerReglasCeba(especie: string): Promise<Resultado> {
   const { finca, rol } = await obtenerContexto();
-  if (!puedeEscribir(rol, "carne")) return { ok: false, error: "No tienes permiso para cambiar las reglas de ceba en esta finca." };
+  if (!puedeEscribir(rol, "carne", finca.plan)) return { ok: false, error: "No tienes permiso para cambiar las reglas de ceba en esta finca." };
   const e = z.enum(["caprino", "ovino"]).safeParse(especie);
   if (!e.success) return { ok: false, error: "Especie no válida." };
   const supabase = await crearClienteServidor();
@@ -85,7 +85,7 @@ const esquemaPosponer = z.object({ animalId: z.uuid(), meses: z.union([z.literal
 async function permisoAnimal(verbo: string) {
   const { finca, rol } = await obtenerContexto();
   // Cambiar un animal exige además poder editar el hato.
-  if (!puedeEscribir(rol, "carne") || !puedeEscribir(rol, "hato")) return { ok: false, error: `No tienes permiso para ${verbo} en esta finca.` } as const;
+  if (!puedeEscribir(rol, "carne", finca.plan) || !puedeEscribir(rol, "hato", finca.plan)) return { ok: false, error: `No tienes permiso para ${verbo} en esta finca.` } as const;
   return { ok: true, finca } as const;
 }
 

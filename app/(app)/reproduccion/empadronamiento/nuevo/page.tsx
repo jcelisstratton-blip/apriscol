@@ -15,7 +15,7 @@ export const metadata: Metadata = { title: "Nuevo empadronamiento" };
 /** Una temporada de monta se arma desde Hato → Empadronamiento y vuelve a él. */
 export default async function PaginaEmpadronamientoNuevo() {
   const { finca, rol } = await obtenerContexto();
-  if (!puedeEscribir(rol, "reproduccion")) redirect("/hato?vista=empadronamiento");
+  if (!puedeEscribir(rol, "reproduccion", finca.plan)) redirect("/hato?vista=empadronamiento");
   const { data: razas } = await (await crearClienteServidor()).from("razas").select("*").in("especie", finca.especies).order("nombre");
   return (
     <>

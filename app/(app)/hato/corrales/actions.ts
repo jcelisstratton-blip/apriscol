@@ -60,7 +60,7 @@ function datosUbicacion(d: z.output<typeof esquemaUbicacion>) {
 
 export async function crearUbicacion(_: EstadoForm, form: FormData): Promise<EstadoForm> {
   const { finca, rol } = await obtenerContexto();
-  if (!puedeEscribir(rol, "corrales")) return { error: "No tienes permiso para crear instalaciones en esta finca." };
+  if (!puedeEscribir(rol, "corrales", finca.plan)) return { error: "No tienes permiso para crear instalaciones en esta finca." };
   const datos = esquemaUbicacion.safeParse(Object.fromEntries(form));
   if (!datos.success) return { error: datos.error.issues[0]?.message ?? "Revisa los datos." };
   const supabase = await crearClienteServidor();
@@ -74,7 +74,7 @@ export async function crearUbicacion(_: EstadoForm, form: FormData): Promise<Est
 
 export async function editarUbicacion(_: EstadoForm, form: FormData): Promise<EstadoForm> {
   const { finca, rol } = await obtenerContexto();
-  if (!puedeEscribir(rol, "corrales")) return { error: "No tienes permiso para editar instalaciones en esta finca." };
+  if (!puedeEscribir(rol, "corrales", finca.plan)) return { error: "No tienes permiso para editar instalaciones en esta finca." };
   const datos = esquemaUbicacion.safeParse(Object.fromEntries(form));
   if (!datos.success) return { error: datos.error.issues[0]?.message ?? "Revisa los datos." };
   if (!datos.data.ubicacion_id) return { error: "No encontramos esa instalación." };
@@ -91,7 +91,7 @@ export async function editarUbicacion(_: EstadoForm, form: FormData): Promise<Es
 /** Archivar una instalación (deja de ofrecerse para mover animales; su historial se conserva) o volver a activarla. */
 export async function cambiarActivaUbicacion(id: string, activa: boolean): Promise<Resultado> {
   const { finca, rol } = await obtenerContexto();
-  if (!puedeEscribir(rol, "corrales")) return { ok: false, error: "No tienes permiso para cambiar instalaciones en esta finca." };
+  if (!puedeEscribir(rol, "corrales", finca.plan)) return { ok: false, error: "No tienes permiso para cambiar instalaciones en esta finca." };
   if (!ID_UUID.safeParse(id).success) return { ok: false, error: "Instalación no válida." };
   const supabase = await crearClienteServidor();
   if (!activa) {
@@ -137,7 +137,7 @@ const esquemaMover = z.object({
 /** Mueve a los animales elegidos a una instalación (o los saca de la que tienen) y deja el movimiento en el historial de cada uno. */
 export async function moverAnimales(_: EstadoForm, form: FormData): Promise<EstadoForm> {
   const { finca, rol } = await obtenerContexto();
-  if (!puedeEscribir(rol, "corrales")) return { error: "No tienes permiso para mover animales en esta finca." };
+  if (!puedeEscribir(rol, "corrales", finca.plan)) return { error: "No tienes permiso para mover animales en esta finca." };
   const datos = esquemaMover.safeParse(Object.fromEntries(form));
   if (!datos.success) return { error: datos.error.issues[0]?.message ?? "Revisa los datos." };
   const d = datos.data;
@@ -173,7 +173,7 @@ const esquemaEditarMovimiento = z.object({
 /** Corrige un movimiento ya registrado: a qué instalación fue el animal, desde cuándo, el motivo y la nota. */
 export async function editarMovimiento(_: EstadoForm, form: FormData): Promise<EstadoForm> {
   const { finca, rol } = await obtenerContexto();
-  if (!puedeEscribir(rol, "corrales")) return { error: "No tienes permiso para editar movimientos en esta finca." };
+  if (!puedeEscribir(rol, "corrales", finca.plan)) return { error: "No tienes permiso para editar movimientos en esta finca." };
   const datos = esquemaEditarMovimiento.safeParse(Object.fromEntries(form));
   if (!datos.success) return { error: datos.error.issues[0]?.message ?? "Revisa los datos." };
   const d = datos.data;

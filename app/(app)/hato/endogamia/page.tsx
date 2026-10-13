@@ -18,7 +18,7 @@ export const metadata: Metadata = { title: "Endogamia" };
 
 export default async function PaginaEndogamia() {
   const { finca, rol } = await obtenerContexto();
-  if (!puedeVer(rol, "hato")) redirect("/hato");
+  if (!puedeVer(rol, "hato", finca.plan)) redirect("/hato");
   const supabase = await crearClienteServidor();
 
   const [calculo, activos] = await Promise.all([
