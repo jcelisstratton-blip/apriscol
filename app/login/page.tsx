@@ -1,21 +1,27 @@
 import type { Metadata } from "next";
 import { FormAuth } from "@/components/FormAuth";
-import { PantallaAuth } from "@/components/PantallaAuth";
+import { Presentacion } from "@/components/presentacion/Presentacion";
 import { destinoSeguro } from "@/lib/redireccion";
 import { iniciarSesion } from "./actions";
 
-export const metadata: Metadata = { title: "Entrar" };
+export const metadata: Metadata = {
+  title: "Entrar",
+  description: "Apriscol: hato, genealogía, leche, sanidad, partos, corrales, carne y costos de cabras y ovejas, desde el celular.",
+};
 
 export default async function PaginaLogin({ searchParams }: { searchParams: Promise<{ next?: string; error?: string }> }) {
   const { next, error } = await searchParams;
   return (
-    <PantallaAuth titulo="Tu aprisco, al día" subtitulo="Ordeños, sanidad, partos y genealogía de cabras y ovejas, desde el celular.">
-      <FormAuth
-        accion={iniciarSesion}
-        modo="login"
-        next={next ? destinoSeguro(next) : undefined}
-        errorInicial={error === "enlace" ? "El enlace del correo venció o ya se usó. Inicia sesión o pide uno nuevo." : undefined}
-      />
-    </PantallaAuth>
+    <Presentacion
+      modo="login"
+      formulario={
+        <FormAuth
+          accion={iniciarSesion}
+          modo="login"
+          next={next ? destinoSeguro(next) : undefined}
+          errorInicial={error === "enlace" ? "El enlace del correo venció o ya se usó. Inicia sesión o pide uno nuevo." : undefined}
+        />
+      }
+    />
   );
 }

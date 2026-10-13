@@ -113,3 +113,7 @@ verdad por todas sus ramas** (con datos, vacía, con un animal, con otro periodo
 
 `npx tsc --noEmit` · `npm run lint` · `npm run build` · auditoría de celular de arriba · pruebas de RLS con usuarios
 simulados (propietario / ordeñador / ajeno) cuando se toque una política.
+
+## Pantalla de entrada
+
+`/login` y `/registro` renderizan `components/presentacion/Presentacion.tsx` (presentación completa con el formulario en la portada). Su contenido describe solo lo que la app hace de verdad y las cifras salen de constantes (`RUBROS`, `REPORTES`); sin precios, planes ni testimonios inventados. Módulo nuevo ⇒ actualizar sus tarjetas ahí.

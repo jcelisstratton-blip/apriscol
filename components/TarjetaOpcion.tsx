@@ -13,7 +13,7 @@ const COLOR: Record<Tono, string> = {
 };
 
 /** La «escena» de una tarjeta: un fondo con color, una trama suave, un icono grande que hace referencia al contenido y otro pequeño de compañía. */
-export function Escena({ escena, alto = "h-16" }: { escena: EscenaDef; alto?: string }) {
+export function Escena({ escena, alto = "h-16", grande = false }: { escena: EscenaDef; alto?: string; grande?: boolean }) {
   const { icono: Icono, extra: Extra, tono } = escena;
   return (
     <span
@@ -26,10 +26,10 @@ export function Escena({ escena, alto = "h-16" }: { escena: EscenaDef; alto?: st
         style={{ backgroundImage: "radial-gradient(color-mix(in oklab, var(--c) 34%, transparent) 1px, transparent 1.5px)", backgroundSize: "9px 9px", maskImage: "linear-gradient(135deg, transparent 15%, #000 95%)" }}
       />
       <span className="absolute -bottom-7 -right-5 size-20 rounded-full border-[9px]" style={{ borderColor: "color-mix(in oklab, var(--c) 16%, transparent)" }} />
-      <span className="relative grid size-10 place-items-center rounded-2xl bg-papel/90 shadow-sm ring-1" style={{ color: "var(--c)", "--tw-ring-color": "color-mix(in oklab, var(--c) 28%, transparent)" } as CSSProperties}>
-        <Icono className="size-5" strokeWidth={1.7} />
+      <span className={`relative grid place-items-center bg-papel/90 shadow-sm ring-1 ${grande ? "size-14 rounded-3xl" : "size-10 rounded-2xl"}`} style={{ color: "var(--c)", "--tw-ring-color": "color-mix(in oklab, var(--c) 28%, transparent)" } as CSSProperties}>
+        <Icono className={grande ? "size-7" : "size-5"} strokeWidth={1.7} />
       </span>
-      {Extra ? <Extra className="absolute right-2.5 top-2 size-4 rotate-12 opacity-60" strokeWidth={1.6} style={{ color: "var(--c)" }} /> : null}
+      {Extra ? <Extra className={`absolute right-3 top-2.5 rotate-12 opacity-60 ${grande ? "size-5" : "size-4"}`} strokeWidth={1.6} style={{ color: "var(--c)" }} /> : null}
     </span>
   );
 }
