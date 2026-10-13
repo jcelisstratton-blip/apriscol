@@ -16,6 +16,7 @@ import { crearClienteServidor } from "@/lib/supabase/server";
 import { puedeEscribir, puedeVer } from "@/lib/permisos";
 import { diasHasta, formatoFecha, hoyBogota, litros, sumarDias } from "@/lib/fechas";
 import { etiquetaAnimal, saludo } from "@/lib/animal";
+import { pesos } from "@/lib/ferias";
 import { IconoEvento } from "@/components/IconoEvento";
 import { ETIQUETA_EVENTO, estadoDosis, estadoFechaPrograma, nombreEvento } from "@/lib/sanidad";
 import type { CandidatoCeba, CuarentenaAlerta, ProgramaSanitarioResumen, SanidadPendiente, ServicioConParto, TipoEvento, UbicacionVista } from "@/lib/tipos";
@@ -63,6 +64,10 @@ export default async function PaginaHoy({ searchParams }: { searchParams: Promis
       ? supabase.from("v_programas_sanitarios").select("*").eq("finca_id", finca.id).eq("estado", "abierto").lte("fecha_programada", sumarDias(hoy, 7)).order("fecha_programada").limit(20)
       : Promise.resolve({ data: [] as ProgramaSanitarioResumen[] }),
   ]);
+
+  // Gastos por pagar que ya vencieron (Hato → Gastos): solo quien maneja costos.
+  const verGastos = puedeVer(rol, "contabilidad");
+  const gastosVencidos = verGastos ? ((await supabase.from("gastos").select("id, descripcion, monto, vence").eq("finca_id", finca.id).is("pagado_en", null).lt("vence", hoy).order("vence").limit(50)).data ?? []) : [];
 
   // Corrales: hacinamiento, potreros que deben desocuparse y animales comprados sin cuarentena (Hato → Corrales).
   const verCorrales = puedeVer(rol, "corrales");
@@ -267,6 +272,24 @@ export default async function PaginaHoy({ searchParams }: { searchParams: Promis
                   </li>
                 ))}
               </ul>
+            </Tarjeta>
+          ) : null}
+
+          {gastosVencidos.length > 0 ? (
+            <Tarjeta titulo="Gastos vencidos" acciones={<Link href="/hato?vista=gastos" className="text-sm font-semibold text-musgo">Ver Hato → Gastos</Link>}>
+              <p className="font-display text-2xl font-semibold tabular-nums">{pesos(gastosVencidos.reduce((s, g) => s + Number(g.monto), 0))}</p>
+              <ul className="mt-2 divide-y divide-arena">
+                {gastosVencidos.slice(0, 4).map((g) => (
+                  <li key={g.id} className="flex items-center justify-between gap-3 py-2">
+                    <span className="min-w-0">
+                      <span className="block font-medium [overflow-wrap:anywhere]">{g.descripcion}</span>
+                      <span className="block text-sm text-humo">Venció hace {-diasHasta(g.vence!, hoy)} {-diasHasta(g.vence!, hoy) === 1 ? "día" : "días"}</span>
+                    </span>
+                    <span className="shrink-0 font-semibold tabular-nums">{pesos(Number(g.monto))}</span>
+                  </li>
+                ))}
+              </ul>
+              {gastosVencidos.length > 4 ? <p className="mt-2 border-t border-arena pt-2 text-sm text-humo">Y {gastosVencidos.length - 4} más en Hato → Gastos.</p> : null}
             </Tarjeta>
           ) : null}
 

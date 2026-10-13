@@ -74,3 +74,27 @@ export const AYUDA_ORDENO: Ayuda = {
   ],
   enlace: { href: "/leche", texto: "Ver la producción de la finca" },
 };
+
+export const AYUDA_GASTOS: Ayuda = {
+  titulo: "Gastos del aprisco",
+  puntos: [
+    { titulo: "Registrar", texto: "Anota cada compra o pago con su rubro, proveedor y valor. Puedes adjuntar la factura." },
+    { titulo: "A quién se carga", texto: "A toda la finca, a una especie, a un corral, a un lote o a un animal. Así sabes cuánto cuesta cada animal y cada litro." },
+    { titulo: "Lo que ya registraste", texto: "El costo de cada tratamiento (Sanidad) y del alimento de la ceba se suma solo: no lo escribas dos veces." },
+    { titulo: "Por pagar", texto: "Si lo compraste a crédito, deja la fecha de vencimiento: te avisamos en Hoy cuando se pase y lo marcas pagado con un toque." },
+    { titulo: "Reportes", texto: "En el menú Costos ves el resumen con las fechas que quieras y descargas cada reporte en Excel." },
+  ],
+  enlace: { href: "/costos", texto: "Ver los costos de toda la finca" },
+};
+
+export const AYUDA_COSTOS: Ayuda = {
+  titulo: "Cómo leer los costos",
+  puntos: [
+    { titulo: "Fechas", texto: "Todo el resumen y cada reporte usan el periodo que elijas: un año, unos meses o cualquier rango entre dos fechas." },
+    { titulo: "Costo total", texto: "Suma los gastos registrados, el costo de los tratamientos y el alimento de la ceba." },
+    { titulo: "Costo por litro", texto: "Es el costo total del periodo dividido entre los litros que se registraron en el ordeño." },
+    { titulo: "Costo por animal", texto: "Suma lo cargado al animal y su parte de lo cargado a su lote, su corral o su especie. Lo de toda la finca no se reparte." },
+    { titulo: "Saca y mortalidad", texto: "Compara lo que costó cada animal con lo que se recibió al venderlo, o lo perdido si murió. Pide el valor de compra en la ficha." },
+  ],
+  enlace: { href: "/hato?vista=gastos", texto: "Registrar gastos" },
+};

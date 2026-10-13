@@ -1,5 +1,5 @@
 /** Documentos de respaldo (resultados de laboratorio, actas): formatos aceptados y rutas. Viven en el bucket privado «soportes». */
-export const CARPETAS_SOPORTE = ["calidad", "carne", "sanidad"] as const;
+export const CARPETAS_SOPORTE = ["calidad", "carne", "sanidad", "gastos"] as const;
 export type CarpetaSoporte = (typeof CARPETAS_SOPORTE)[number];
 
 export const TIPOS_SOPORTE: Record<string, string> = {
@@ -19,4 +19,4 @@ export const soporteValido = (ruta: string | null | undefined, fincaId: string, 
 /** Dirección que abre un documento: comprueba el permiso y redirige a un enlace temporal. */
 export const direccionSoporte = (ruta: string) => `/soporte?ruta=${encodeURIComponent(ruta)}`;
 
-export const ES_RUTA_SOPORTE = new RegExp(`^${UUID}/(calidad|carne|sanidad)/${UUID}\\.(pdf|jpg|png|webp)$`);
+export const ES_RUTA_SOPORTE = new RegExp(`^${UUID}/(calidad|carne|sanidad|gastos)/${UUID}\\.(pdf|jpg|png|webp)$`);

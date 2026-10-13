@@ -1,0 +1,318 @@
+import ExcelJS from "exceljs";
+import { ETIQUETA_GRUPO, ETIQUETA_ORIGEN, ETIQUETA_RUBRO, GRUPO_DE, GRUPOS } from "@/lib/costos";
+import { REPORTES, type ReporteId } from "@/lib/costos-reportes";
+import type { RubroGasto } from "@/lib/tipos";
+
+// ───────────────────────── Datos que llegan ya consultados ─────────────────────────
+export type FilaRubro = { rubro: RubroGasto; total: number; por_pagar: number; de_gastos: number; de_sanidad: number; de_ceba: number; movimientos: number };
+export type FilaMes = { mes: string; costos: number; ingresos_leche: number; ingresos_animales: number; litros: number };
+export type FilaDetalle = {
+  fecha: string;
+  origen: "gasto" | "sanidad" | "ceba";
+  rubro: RubroGasto;
+  descripcion: string;
+  proveedor: string | null;
+  cargado_a: string;
+  estado: "Pagado" | "Por pagar" | "Vencido";
+  vence: string | null;
+  monto: number;
+};
+export type FilaAnimal = { numero_arete: string; nombre: string | null; especie: string; sexo: string; estado: string; directo: number; repartido: number; total: number; valor_compra: number | null };
+export type FilaPendiente = { fecha: string; vence: string | null; atraso: number; proveedor: string | null; descripcion: string; rubro: RubroGasto; monto: number };
+export type Indicadores = { total_costos: number; por_pagar: number; vencido: number; ingresos_leche: number; ingresos_animales: number; litros: number; animales_activos: number };
+export type FilaDepreciacion = { tipo: "saca" | "mortalidad"; animales: number; con_valor: number; perdida: number };
+
+export type DatosReporte = {
+  finca: string;
+  /** Primera y última fecha del periodo, en AAAA-MM-DD (para el título y el nombre del archivo). */
+  desde: string;
+  hasta: string;
+  /** Cómo se eligió el periodo: «Este año», «Entre fechas»… */
+  periodoTexto: string;
+  filtros: string[];
+  generado: Date;
+  rubros?: FilaRubro[];
+  meses?: FilaMes[];
+  detalle?: FilaDetalle[];
+  /** Gastos de toda la finca (no se reparten a los animales): se muestran aparte en «Costo por animal». */
+  generalesFinca?: number;
+  animales?: FilaAnimal[];
+  pendientes?: FilaPendiente[];
+  indicadores?: Indicadores;
+  depreciacion?: FilaDepreciacion[];
+};
+
+// ───────────────────────── Estilo ─────────────────────────
+const MUSGO = "FF2F5A45";
+const LANA = "FFF5F0E6";
+const ARENA = "FFE6DEC9";
+const FMT_PESOS = '"$" #,##0;[Red]-"$" #,##0';
+const FMT_FECHA = "dd/mm/yyyy";
+const FMT_LITROS = "#,##0.0";
+const FMT_PCT = "0.0%";
+
+const aFecha = (iso: string | null | undefined): Date | null => {
+  if (!iso) return null;
+  const [a, m, d] = iso.slice(0, 10).split("-").map(Number);
+  return new Date(Date.UTC(a, m - 1, d));
+};
+const textoFecha = (iso: string) => {
+  const [a, m, d] = iso.split("-");
+  return `${d}/${m}/${a}`;
+};
+const mesTexto = (iso: string) => {
+  const [a, m] = iso.split("-").map(Number);
+  return `${["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"][m - 1]} ${a}`;
+};
+
+type Col = { titulo: string; ancho: number; formato?: string; alinear?: "left" | "right" | "center" };
+
+/** Las cinco filas del título (finca, reporte, periodo, filtros, fecha de generación) y la fila de encabezados; devuelve la primera fila de datos. */
+function encabezado(ws: ExcelJS.Worksheet, d: DatosReporte, titulo: string, cols: Col[]): number {
+  const n = cols.length;
+  ws.columns = cols.map((c) => ({ width: c.ancho }));
+  const linea = (fila: number, texto: string, opciones: { size?: number; bold?: boolean; color?: string } = {}) => {
+    ws.mergeCells(fila, 1, fila, n);
+    const celda = ws.getCell(fila, 1);
+    celda.value = texto;
+    celda.font = { name: "Calibri", size: opciones.size ?? 11, bold: opciones.bold ?? false, color: { argb: opciones.color ?? "FF1F1B16" } };
+    celda.alignment = { vertical: "middle", horizontal: "left", wrapText: true };
+  };
+  linea(1, d.finca, { size: 16, bold: true, color: MUSGO });
+  linea(2, titulo, { size: 13, bold: true });
+  linea(3, `Periodo: del ${textoFecha(d.desde)} al ${textoFecha(d.hasta)} (${d.periodoTexto})`);
+  linea(4, d.filtros.length > 0 ? `Filtros: ${d.filtros.join(" · ")}` : "Filtros: ninguno");
+  linea(5, `Generado el ${textoFecha(d.generado.toISOString().slice(0, 10))}`, { color: "FF6B6457" });
+  ws.getRow(1).height = 24;
+  const fila = 7;
+  const r = ws.getRow(fila);
+  cols.forEach((c, i) => {
+    const celda = r.getCell(i + 1);
+    celda.value = c.titulo;
+    celda.font = { name: "Calibri", bold: true, color: { argb: "FFFFFFFF" } };
+    celda.fill = { type: "pattern", pattern: "solid", fgColor: { argb: MUSGO } };
+    celda.alignment = { vertical: "middle", horizontal: c.alinear ?? (c.formato ? "right" : "left"), wrapText: true };
+  });
+  r.height = 30;
+  ws.views = [{ state: "frozen", ySplit: fila, xSplit: 0 }];
+  ws.pageSetup = { orientation: "landscape", fitToPage: true, fitToWidth: 1, fitToHeight: 0, paperSize: 9 };
+  ws.headerFooter = { oddFooter: "&L&A&RPágina &P de &N" };
+  return fila + 1;
+}
+
+/** Pone una fila de datos con el formato de cada columna y las rayas suaves entre filas. */
+function filaDatos(ws: ExcelJS.Worksheet, fila: number, cols: Col[], valores: (string | number | Date | null | { formula: string })[]) {
+  const r = ws.getRow(fila);
+  valores.forEach((v, i) => {
+    const c = r.getCell(i + 1);
+    c.value = v as ExcelJS.CellValue;
+    if (cols[i].formato) c.numFmt = cols[i].formato!;
+    c.alignment = { vertical: "top", horizontal: cols[i].alinear ?? (cols[i].formato && !(v instanceof Date) ? "right" : "left"), wrapText: !cols[i].formato };
+    c.border = { bottom: { style: "hair", color: { argb: ARENA } } };
+  });
+}
+
+/** La fila de totales: negrita, fondo de lana y fórmulas SUM sobre las columnas indicadas (se recalculan si se edita el archivo). */
+function filaTotales(ws: ExcelJS.Worksheet, fila: number, primera: number, ultima: number, cols: Col[], sumar: number[], etiqueta = "Total") {
+  const r = ws.getRow(fila);
+  r.getCell(1).value = etiqueta;
+  cols.forEach((c, i) => {
+    const celda = r.getCell(i + 1);
+    if (sumar.includes(i) && ultima >= primera) {
+      const letra = ws.getColumn(i + 1).letter;
+      celda.value = { formula: `SUM(${letra}${primera}:${letra}${ultima})` };
+      if (c.formato) celda.numFmt = c.formato;
+    }
+    celda.font = { name: "Calibri", bold: true };
+    celda.fill = { type: "pattern", pattern: "solid", fgColor: { argb: LANA } };
+    celda.border = { top: { style: "thin", color: { argb: MUSGO } } };
+  });
+}
+
+function autofiltro(ws: ExcelJS.Worksheet, filaEncabezado: number, n: number) {
+  ws.autoFilter = { from: { row: filaEncabezado, column: 1 }, to: { row: filaEncabezado, column: n } };
+}
+
+// ───────────────────────── Reportes ─────────────────────────
+function hojaRubros(wb: ExcelJS.Workbook, d: DatosReporte, nombre = "Gastos por rubro", titulo = "Gastos por rubro") {
+  const ws = wb.addWorksheet(nombre);
+  const cols: Col[] = [
+    { titulo: "Grupo", ancho: 26 }, { titulo: "Rubro", ancho: 30 },
+    { titulo: "Gastos registrados", ancho: 18, formato: FMT_PESOS }, { titulo: "Tratamientos (Sanidad)", ancho: 18, formato: FMT_PESOS }, { titulo: "Alimento de ceba", ancho: 18, formato: FMT_PESOS },
+    { titulo: "Total", ancho: 18, formato: FMT_PESOS }, { titulo: "% del total", ancho: 12, formato: FMT_PCT }, { titulo: "Por pagar", ancho: 16, formato: FMT_PESOS }, { titulo: "Movimientos", ancho: 13, formato: "0" },
+  ];
+  const inicio = encabezado(ws, d, titulo, cols);
+  const filas = [...(d.rubros ?? [])].sort((a, b) => GRUPOS.indexOf(GRUPO_DE[a.rubro]) - GRUPOS.indexOf(GRUPO_DE[b.rubro]) || b.total - a.total);
+  const ultima = inicio + filas.length - 1;
+  const filaTotal = ultima + 1;
+  filas.forEach((f, i) => {
+    const fila = inicio + i;
+    filaDatos(ws, fila, cols, [ETIQUETA_GRUPO[GRUPO_DE[f.rubro]], ETIQUETA_RUBRO[f.rubro], f.de_gastos, f.de_sanidad, f.de_ceba, { formula: `C${fila}+D${fila}+E${fila}` }, { formula: `IF(F$${filaTotal}>0,F${fila}/F$${filaTotal},0)` }, f.por_pagar, f.movimientos]);
+  });
+  filaTotales(ws, filaTotal, inicio, ultima, cols, [2, 3, 4, 5, 7, 8]);
+  ws.getCell(filaTotal, 7).value = { formula: `IF(F${filaTotal}>0,SUM(G${inicio}:G${ultima}),0)` };
+  ws.getCell(filaTotal, 7).numFmt = FMT_PCT;
+  autofiltro(ws, inicio - 1, cols.length);
+  if (filas.length === 0) ws.getCell(inicio, 1).value = "No hay gastos en este periodo.";
+}
+
+function hojaMeses(wb: ExcelJS.Workbook, d: DatosReporte, nombre = "Por mes", titulo = "Costos e ingresos por mes") {
+  const ws = wb.addWorksheet(nombre);
+  const cols: Col[] = [
+    { titulo: "Mes", ancho: 20 }, { titulo: "Costos", ancho: 18, formato: FMT_PESOS }, { titulo: "Ingresos por leche", ancho: 18, formato: FMT_PESOS }, { titulo: "Ingresos por animales", ancho: 20, formato: FMT_PESOS },
+    { titulo: "Total ingresos", ancho: 18, formato: FMT_PESOS }, { titulo: "Resultado", ancho: 18, formato: FMT_PESOS }, { titulo: "Litros producidos", ancho: 16, formato: FMT_LITROS }, { titulo: "Costo por litro", ancho: 16, formato: FMT_PESOS },
+  ];
+  const inicio = encabezado(ws, d, titulo, cols);
+  const filas = d.meses ?? [];
+  const ultima = inicio + filas.length - 1;
+  filas.forEach((f, i) => {
+    const fila = inicio + i;
+    filaDatos(ws, fila, cols, [mesTexto(f.mes), f.costos, f.ingresos_leche, f.ingresos_animales, { formula: `C${fila}+D${fila}` }, { formula: `E${fila}-B${fila}` }, f.litros, { formula: `IF(G${fila}>0,B${fila}/G${fila},"")` }]);
+  });
+  const filaTotal = ultima + 1;
+  filaTotales(ws, filaTotal, inicio, ultima, cols, [1, 2, 3, 4, 5, 6]);
+  ws.getCell(filaTotal, 8).value = { formula: `IF(G${filaTotal}>0,B${filaTotal}/G${filaTotal},"")` };
+  ws.getCell(filaTotal, 8).numFmt = FMT_PESOS;
+  autofiltro(ws, inicio - 1, cols.length);
+  if (filas.length === 0) ws.getCell(inicio, 1).value = "No hay movimientos en este periodo.";
+}
+
+function hojaDetalle(wb: ExcelJS.Workbook, d: DatosReporte) {
+  const ws = wb.addWorksheet("Detalle de costos");
+  const cols: Col[] = [
+    { titulo: "Fecha", ancho: 12, formato: FMT_FECHA, alinear: "left" }, { titulo: "Origen", ancho: 11 }, { titulo: "Grupo", ancho: 24 }, { titulo: "Rubro", ancho: 28 },
+    { titulo: "Descripción", ancho: 40 }, { titulo: "Proveedor", ancho: 26 }, { titulo: "Se cargó a", ancho: 28 }, { titulo: "Estado de pago", ancho: 14 }, { titulo: "Vence", ancho: 12, formato: FMT_FECHA, alinear: "left" }, { titulo: "Valor", ancho: 16, formato: FMT_PESOS },
+  ];
+  const inicio = encabezado(ws, d, "Detalle de costos", cols);
+  const filas = d.detalle ?? [];
+  filas.forEach((f, i) => filaDatos(ws, inicio + i, cols, [aFecha(f.fecha), ETIQUETA_ORIGEN[f.origen], ETIQUETA_GRUPO[GRUPO_DE[f.rubro]], ETIQUETA_RUBRO[f.rubro], f.descripcion, f.proveedor ?? "", f.cargado_a, f.estado, aFecha(f.vence), f.monto]));
+  const ultima = inicio + filas.length - 1;
+  filaTotales(ws, ultima + 1, inicio, ultima, cols, [9]);
+  autofiltro(ws, inicio - 1, cols.length);
+  if (filas.length === 0) ws.getCell(inicio, 1).value = "No hay costos en este periodo.";
+}
+
+function hojaAnimales(wb: ExcelJS.Workbook, d: DatosReporte) {
+  const ws = wb.addWorksheet("Costo por animal");
+  const cols: Col[] = [
+    { titulo: "Arete", ancho: 16 }, { titulo: "Nombre", ancho: 22 }, { titulo: "Especie", ancho: 11 }, { titulo: "Sexo", ancho: 9 }, { titulo: "Estado", ancho: 11 },
+    { titulo: "Costo directo", ancho: 16, formato: FMT_PESOS }, { titulo: "Costo repartido", ancho: 16, formato: FMT_PESOS }, { titulo: "Costo total", ancho: 16, formato: FMT_PESOS }, { titulo: "Valor de compra", ancho: 16, formato: FMT_PESOS },
+  ];
+  const inicio = encabezado(ws, d, "Costo por animal", cols);
+  const filas = d.animales ?? [];
+  filas.forEach((f, i) => {
+    const fila = inicio + i;
+    filaDatos(ws, fila, cols, [f.numero_arete, f.nombre ?? "", f.especie === "caprino" ? "Cabra" : "Oveja", f.sexo === "hembra" ? "Hembra" : "Macho", f.estado === "activo" ? "Activo" : "Fuera del hato", f.directo, f.repartido, { formula: `F${fila}+G${fila}` }, f.valor_compra]);
+  });
+  const ultima = inicio + filas.length - 1;
+  filaTotales(ws, ultima + 1, inicio, ultima, cols, [5, 6, 7], "Total de los animales");
+  const nota = ultima + 3;
+  ws.mergeCells(nota, 1, nota, cols.length);
+  ws.getCell(nota, 1).value = `Gastos generales de la finca, que no se reparten a los animales: ${new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 }).format(d.generalesFinca ?? 0)}.`;
+  ws.getCell(nota, 1).font = { italic: true, color: { argb: "FF6B6457" } };
+  ws.mergeCells(nota + 1, 1, nota + 1, cols.length);
+  ws.getCell(nota + 1, 1).value = "Costo directo: gastos cargados al animal y su parte de cada tratamiento. Costo repartido: su parte de lo cargado a su lote, su corral o su especie.";
+  ws.getCell(nota + 1, 1).font = { italic: true, color: { argb: "FF6B6457" } };
+  autofiltro(ws, inicio - 1, cols.length);
+  if (filas.length === 0) ws.getCell(inicio, 1).value = "Ningún animal tiene costos en este periodo.";
+}
+
+function hojaPendientes(wb: ExcelJS.Workbook, d: DatosReporte) {
+  const ws = wb.addWorksheet("Gastos por pagar");
+  const cols: Col[] = [
+    { titulo: "Fecha del gasto", ancho: 14, formato: FMT_FECHA, alinear: "left" }, { titulo: "Vence", ancho: 12, formato: FMT_FECHA, alinear: "left" }, { titulo: "Días de atraso", ancho: 13, formato: "0" },
+    { titulo: "Proveedor", ancho: 28 }, { titulo: "Descripción", ancho: 40 }, { titulo: "Rubro", ancho: 28 }, { titulo: "Valor", ancho: 16, formato: FMT_PESOS },
+  ];
+  const inicio = encabezado(ws, d, "Gastos por pagar", cols);
+  const filas = d.pendientes ?? [];
+  filas.forEach((f, i) => filaDatos(ws, inicio + i, cols, [aFecha(f.fecha), aFecha(f.vence), f.atraso > 0 ? f.atraso : 0, f.proveedor ?? "", f.descripcion, ETIQUETA_RUBRO[f.rubro], f.monto]));
+  const ultima = inicio + filas.length - 1;
+  filaTotales(ws, ultima + 1, inicio, ultima, cols, [6]);
+  autofiltro(ws, inicio - 1, cols.length);
+  if (filas.length === 0) ws.getCell(inicio, 1).value = "No hay gastos por pagar en este periodo.";
+}
+
+function hojaResultado(wb: ExcelJS.Workbook, d: DatosReporte) {
+  const ws = wb.addWorksheet("Resultado");
+  const cols: Col[] = [{ titulo: "Concepto", ancho: 46 }, { titulo: "Valor", ancho: 20, formato: FMT_PESOS }, { titulo: "Nota", ancho: 54 }];
+  const inicio = encabezado(ws, d, "Resultado del periodo", cols);
+  const i = d.indicadores;
+  const sec = (fila: number, texto: string) => {
+    ws.mergeCells(fila, 1, fila, 3);
+    const c = ws.getCell(fila, 1);
+    c.value = texto;
+    c.font = { bold: true, color: { argb: MUSGO } };
+    c.border = { bottom: { style: "thin", color: { argb: MUSGO } } };
+  };
+  let f = inicio;
+  sec(f++, "Lo que entró");
+  filaDatos(ws, f++, cols, ["Ingresos por leche despachada", i?.ingresos_leche ?? 0, "Despachos de leche con precio por litro"]);
+  filaDatos(ws, f++, cols, ["Ingresos por animales vendidos", i?.ingresos_animales ?? 0, "Ventas y sacrificios registrados en Carne"]);
+  const filaIng = f++;
+  filaDatos(ws, filaIng, cols, ["Total ingresos", { formula: `B${filaIng - 2}+B${filaIng - 1}` }, ""]);
+  ws.getRow(filaIng).font = { bold: true };
+  f++;
+  sec(f++, "Lo que costó");
+  const desdeCostos = f;
+  const porGrupo = new Map<string, number>();
+  for (const r of d.rubros ?? []) porGrupo.set(GRUPO_DE[r.rubro], (porGrupo.get(GRUPO_DE[r.rubro]) ?? 0) + r.total);
+  for (const g of GRUPOS) filaDatos(ws, f++, cols, [ETIQUETA_GRUPO[g], porGrupo.get(g) ?? 0, ""]);
+  const filaCostos = f++;
+  filaDatos(ws, filaCostos, cols, ["Total costos", { formula: `SUM(B${desdeCostos}:B${filaCostos - 1})` }, "Gastos registrados, tratamientos y alimento de ceba"]);
+  ws.getRow(filaCostos).font = { bold: true };
+  f++;
+  sec(f++, "Resultado");
+  const filaRes = f++;
+  filaDatos(ws, filaRes, cols, ["Ingresos menos costos", { formula: `B${filaIng}-B${filaCostos}` }, "Positivo: el periodo dejó ganancia"]);
+  ws.getRow(filaRes).font = { bold: true };
+  const filaL = f++;
+  filaDatos(ws, filaL, cols, ["Litros producidos", i?.litros ?? 0, "Suma de los ordeños registrados"]);
+  ws.getCell(filaL, 2).numFmt = FMT_LITROS;
+  const filaCL = f++;
+  filaDatos(ws, filaCL, cols, ["Costo por litro", { formula: `IF(B${filaL}>0,B${filaCostos}/B${filaL},"")` }, "Costo total del periodo entre los litros producidos"]);
+  filaDatos(ws, f++, cols, ["Costo por animal activo", { formula: `IF(${i?.animales_activos ?? 0}>0,B${filaCostos}/${i?.animales_activos ?? 0},"")` }, `Entre los ${i?.animales_activos ?? 0} animales activos de hoy`]);
+  filaDatos(ws, f++, cols, ["Gastos por pagar", i?.por_pagar ?? 0, `De ellos, ${new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 }).format(i?.vencido ?? 0)} ya vencieron`]);
+  f++;
+  sec(f++, "Pérdida por saca y mortalidad");
+  for (const x of d.depreciacion ?? []) {
+    filaDatos(ws, f++, cols, [x.tipo === "saca" ? "Saca (descarte vendido por debajo de su costo)" : "Mortalidad (animales muertos o perdidos)", x.perdida, `${x.animales} animales; ${x.con_valor} con valor de compra registrado${x.con_valor < x.animales ? ": la cifra está incompleta" : ""}`]);
+  }
+  hojaMeses(wb, d, "Por mes", "Costos e ingresos por mes");
+}
+
+/** El libro de Excel de un reporte: una hoja con el título (finca, reporte, periodo y filtros), la tabla y los totales como fórmulas. */
+export async function construirLibro(reporte: ReporteId, d: DatosReporte): Promise<Buffer> {
+  const wb = new ExcelJS.Workbook();
+  const info = REPORTES.find((r) => r.id === reporte);
+  wb.creator = "Apriscol";
+  wb.created = d.generado;
+  wb.title = `${d.finca} - ${info?.titulo ?? "Reporte"} - ${d.desde} a ${d.hasta}`;
+  switch (reporte) {
+    case "rubros":
+      hojaRubros(wb, d);
+      break;
+    case "meses":
+      hojaMeses(wb, d);
+      break;
+    case "detalle":
+      hojaDetalle(wb, d);
+      break;
+    case "animales":
+      hojaAnimales(wb, d);
+      break;
+    case "pendientes":
+      hojaPendientes(wb, d);
+      break;
+    case "resultado":
+      hojaResultado(wb, d);
+      break;
+  }
+  return Buffer.from(await wb.xlsx.writeBuffer());
+}
+
+/** El nombre del archivo: finca, reporte y fechas («La yulianca - Gastos por rubro - 2026-01-01 a 2026-10-13.xlsx»), sin caracteres que un sistema de archivos rechace. */
+export function nombreArchivo(finca: string, reporte: ReporteId, desde: string, hasta: string): string {
+  const titulo = REPORTES.find((r) => r.id === reporte)?.titulo ?? "Reporte";
+  const limpio = (t: string) => t.replace(/[\\/:*?"<>|\u0000-\u001f]/g, "-").replace(/\s+/g, " ").trim();
+  return `${limpio(finca)} - ${titulo} - ${desde} a ${hasta}.xlsx`;
+}

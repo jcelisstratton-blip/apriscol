@@ -198,6 +198,15 @@ Sistema `TarjetaOpcion` / `FilaTarjetas` / `PestanasTarjetas` / `SelectorTarjeta
 ### Ayuda de los módulos
 `AyudaModulo` + `lib/ayuda.ts`: botón «¿Cómo funciona?» arriba de Hato → Corrales y Hato → Sanidad (hoja con unas 120 palabras: instalaciones, cupo, mover, rotación, cuarentena; programar, retiro, FAMACHA, pezuñas) con enlace al resumen del menú. Reemplazó los párrafos de explicación. Cubre también Empadronamiento, Ceba y Ordeño.
 
+## 8b-quinquies. Costos y gastos
+- **Origen:** documento «Componentes de gastos del aprisco» (alimentación 60–70 %, sanidad, reproducción, saca y mortalidad, identificación y transporte). Módulo `contabilidad` ya existente en `modulo_app` (sin migración de enum).
+- **Dónde:** Hato → chip «Gastos» (trabajo), menú «Costos» (resumen con filtros de fecha, todo lo que costó, por animal, reportes en Excel), tarjeta «Costos» en la ficha, alerta de gastos vencidos en Hoy.
+- **Datos (migraciones `20261013001054_costos_gastos_y_reportes`, `…001307_costos_por_animal_tipos`, `…001641_costos_soporte_y_pagina`, `…002250_costos_filtro_por_grupo`):** `gastos` (con `destino_tipo` + una sola referencia no nula, llaves compuestas a ubicaciones, lotes y animales; `pagado_en` nulo = por pagar; `vence`), `animales.valor_compra`, funciones `costos_detalle`, `costos_pagina` (con total de filas), `costos_por_rubro`, `costos_por_mes`, `costos_indicadores`, `costos_por_animal`, `costos_depreciacion`, y el filtro por grupo (`grupo:alimentacion`). La carpeta `gastos` del bucket `soportes` pertenece al módulo contabilidad (`private.modulo_soporte`).
+- **Decisiones:** los costos de Sanidad y Ceba se leen donde ya están (no se duplican) y se marcan con su origen; el costo por litro es el costo total del periodo entre los litros registrados; la pérdida por saca (descartes vendidos por debajo de lo que costaron) y por mortalidad solo cuenta animales con valor de compra y avisa cuántos faltan; los ingresos son la leche despachada con precio y los animales vendidos o sacrificados con valor.
+- **Excel:** seis reportes (resultado del periodo, gastos por rubro, costos e ingresos por mes, detalle, costo por animal, gastos por pagar). Para un periodo «todo» las fechas del título van del primer movimiento a hoy.
+- **MCP de Supabase:** además de `DELETE` y `DROP COLUMN`, un `DROP FUNCTION` queda esperando confirmación y vence a los 60 s; para cambiar el tipo de retorno de una función se crea otra con otro nombre (por eso existen `costos_detalle` y `costos_pagina`).
+- **Pendiente (acordado para después):** bodega con stock y consumo (cuánto queda y cuánto cuesta cada kilo consumido) y presupuesto por rubro con alertas; ingresos manuales (otros); un contador no ve corrales ni lotes, así que no puede cargar gastos a esos destinos.
+
 ## 8c. Carne (ceba: peso, lotes, alimento)
 - **Dónde vive (regla del menú):** lo global es el menú **Carne** (`/carne`, en el celular dentro de «Más»): pestañas **Resumen** (animales en ceba, peso promedio, ganancia por día, **listos para beneficio** con su aviso de retiro de carne, y cuántos llevan más de 30 días sin pesarse), **Lotes** (abiertos/cerrados con peso promedio, ganancia, conversión y barra hacia la meta) y **Pesos** (todos los pesos, con buscador). Lo de **un solo animal** vive en su ficha: tarjeta **«Peso y ceba»** (`#crecimiento`: peso al nacer, último peso, ganancia por día, lote, meta, historial de pesos, **Registrar peso** y elegir el lote) y en **Hato → filtro «Ceba»** (`/hato?vista=ceba`): la lista de animales en engorde para **pesar** rápido (peso por animal, día del pesaje, filtro por lote; se guarda al instante, un peso por animal y día).
 - **Tablas** (migraciones `20261012074336_permisos_carne`, `20261012074402_carne_ceba`; RLS del módulo `carne`): `lotes_ceba` (nombre único por finca, inicio, **peso meta**, cierre), `pesajes` (control, destete, antes del beneficio; uno por animal y día), `consumo_lote` (kg de alimento, qué alimento, costo) y `animales.lote_ceba_id`. El peso al nacer sigue en `animales.peso_nacer_kg`. Permisos: propietario y administrador manejan carne; veterinario y contador la ven.
@@ -282,7 +291,7 @@ Sistema `TarjetaOpcion` / `FilaTarjetas` / `PestanasTarjetas` / `SelectorTarjeta
 - **Sanidad:** hecha (ver sección 8b). Faltan el soporte adjunto de las pruebas y un plan sanitario por edad/etapa (propuesta de vacunación automática).
 - **Reproducción / partos:** hecha (ver sección 8e).
 - **Corrales:** hecha (ver 8b-ter). Falta probar con sesión real las acciones de mover y corregir. **FAMACHA y pediluvio:** hechos por animal (8b-quater).
-- **Pesos / GDP**, nutrición, ambiente (ITH) y contabilidad (módulos previstos en `modulo_app`).
+- **Pesos / GDP**, nutrición y ambiente (ITH) (módulos previstos en `modulo_app`). Contabilidad: hecha como Costos y gastos (8b-quinquies).
 - **Modo sin conexión** para el ordeño en el campo.
 - Verificar con sesión real: subida de fotos, limpieza de fotos huérfanas.
 

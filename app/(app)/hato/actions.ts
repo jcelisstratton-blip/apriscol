@@ -9,6 +9,7 @@ import { obtenerContexto } from "@/lib/contexto";
 import { puedeEscribir, puedeGestionar } from "@/lib/permisos";
 import { mensajeAmigable } from "@/lib/mensaje-amigable";
 import { hoyBogota } from "@/lib/fechas";
+import { leerNumero } from "@/lib/numeros";
 import { motivoBloqueoIdentidad } from "@/lib/animal-historia";
 import { TIPOS_FOTO } from "@/lib/ferias";
 
@@ -39,6 +40,10 @@ const esquema = z.object({
   peso_nacer_kg: z.preprocess(
     (v) => (typeof v === "string" ? v.replace(",", ".") : v),
     opcional(z.coerce.number("El peso al nacer debe ser un número.").min(0.1, "El peso al nacer debe estar entre 0,1 y 15 kg.").max(15, "El peso al nacer debe estar entre 0,1 y 15 kg.")),
+  ),
+  valor_compra: z.preprocess(
+    (v) => (typeof v === "string" ? (leerNumero(v) ?? v) : v),
+    opcional(z.number("El valor debe ser un número, en pesos.").min(0, "El valor no puede ser negativo.").max(99_999_999_999, "El valor es demasiado grande. Revísalo.")),
   ),
   notas: opcional(z.string().trim().max(1000, "Las notas son muy largas.")),
   fecha_ultimo_parto: opcional(z.iso.date("La fecha del parto no es válida.")),
@@ -199,6 +204,7 @@ export async function editarAnimal(_: EstadoAnimal, form: FormData): Promise<Est
       fecha_nacimiento_aprox: d.fecha_nacimiento ? d.fecha_nacimiento_aprox : false,
       origen: d.origen,
       peso_nacer_kg: d.origen === "nacido_en_finca" ? (d.peso_nacer_kg ?? null) : null,
+      valor_compra: d.valor_compra != null ? Math.round(d.valor_compra) : null,
       vocacion: d.sexo === "macho" ? "carne" : d.vocacion,
       uso_macho: d.sexo === "macho" && d.uso_macho && d.uso_macho !== "por_definir" ? d.uso_macho : null,
       padre_id: d.padre_id ?? null,

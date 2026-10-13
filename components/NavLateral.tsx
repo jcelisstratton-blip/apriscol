@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { Baby, Beef, Droplets, Fence, GitFork, Home, KeyRound, LogOut, MapPin, PawPrint, Plus, Settings, Shuffle, ShieldCheck, Syringe, Trophy, Users } from "lucide-react";
+import { Baby, Beef, Droplets, Fence, GitFork, Home, KeyRound, LogOut, MapPin, PawPrint, Plus, Settings, Shuffle, ShieldCheck, Syringe, Trophy, Users, Wallet } from "lucide-react";
 import { FincaSelector } from "@/components/FincaSelector";
 import { accionesRegistro, HojaRegistrar, type PermisosRegistro } from "@/components/HojaRegistrar";
 import { Marca } from "@/components/Marca";
@@ -27,6 +27,7 @@ export function NavLateral({
   verPremios,
   verSanidad,
   verCorrales,
+  verCostos,
   verCarne,
   verRepro,
   verEquipo,
@@ -41,6 +42,7 @@ export function NavLateral({
   verPremios: boolean;
   verSanidad: boolean;
   verCorrales: boolean;
+  verCostos: boolean;
   verCarne: boolean;
   verRepro: boolean;
   verEquipo: boolean;
@@ -58,6 +60,7 @@ export function NavLateral({
     ...(verCarne ? [{ href: "/carne", etiqueta: "Carne", Icono: Beef }] : []),
     ...(verSanidad ? [{ href: "/sanidad", etiqueta: "Sanidad", Icono: Syringe }] : []),
     ...(verCorrales ? [{ href: "/corrales", etiqueta: "Corrales", Icono: Fence }] : []),
+    ...(verCostos ? [{ href: "/costos", etiqueta: "Costos", Icono: Wallet }] : []),
     // Lo que mira o hace sobre todo el hato va aquí; lo que es de un solo animal vive en su ficha.
     { href: "/hato/endogamia", etiqueta: "Endogamia", Icono: GitFork },
     { href: "/hato/cruza", etiqueta: "Simular cruza", Icono: Shuffle },

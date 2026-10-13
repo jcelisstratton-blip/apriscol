@@ -8,7 +8,7 @@ import { mensajeAmigable } from "@/lib/mensaje-amigable";
 import { CARPETAS_SOPORTE, TIPOS_SOPORTE, type CarpetaSoporte } from "@/lib/soportes";
 import type { ModuloApp } from "@/lib/tipos";
 
-const MODULO: Record<CarpetaSoporte, ModuloApp> = { calidad: "leche", carne: "carne", sanidad: "sanidad" };
+const MODULO: Record<CarpetaSoporte, ModuloApp> = { calidad: "leche", carne: "carne", sanidad: "sanidad", gastos: "contabilidad" };
 
 /**
  * El servidor arma la ruta (<finca>/<carpeta>/<uuid>.<ext>) y emite un permiso de subida de un solo uso para un documento de respaldo.

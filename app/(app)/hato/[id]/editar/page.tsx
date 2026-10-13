@@ -68,6 +68,7 @@ export default async function PaginaEditarAnimal({ params }: { params: Promise<{
             fecha_nacimiento_aprox: animal.fecha_nacimiento_aprox,
             origen: animal.origen === "comprado" ? "comprado" : "nacido_en_finca",
             peso_nacer_kg: animal.peso_nacer_kg,
+            valor_compra: animal.valor_compra,
             vocacion: animal.vocacion,
             uso_macho: animal.uso_macho,
             padre,

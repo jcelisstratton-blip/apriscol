@@ -35,6 +35,8 @@ export type Animal = {
   origen: string;
   tipo_parto_origen: number | null;
   peso_nacer_kg: number | null;
+  /** Lo que costó el animal (compra o reposición), para medir la pérdida por saca y mortalidad. */
+  valor_compra: number | null;
   lote_id: string | null;
   lote_ceba_id: string | null;
   /** Partos que ya había tenido antes de registrarlos aquí (nulo = no se sabe). */
@@ -321,6 +323,59 @@ export type PruebaSanitaria = {
   created_by: string | null;
   created_at: string;
   updated_at: string;
+};
+
+// ───────────────────────── Costos y gastos ─────────────────────────
+export type RubroGasto =
+  | "concentrado" | "forraje" | "sales_suplementos" | "leche_maternizada"
+  | "vacunas_desparasitantes" | "tratamientos" | "pruebas_laboratorio" | "podologia" | "bioseguridad"
+  | "material_reproductivo" | "asistencia_veterinaria"
+  | "identificacion" | "fletes"
+  | "mano_obra" | "arriendo" | "servicios_publicos" | "combustible" | "mantenimiento" | "otros";
+export type DestinoGasto = "finca" | "especie" | "ubicacion" | "lote" | "animal";
+
+/** Un egreso del aprisco: qué se compró, a quién, cuánto, a quién se carga y si ya se pagó. */
+export type Gasto = {
+  id: string;
+  finca_id: string;
+  fecha: string;
+  rubro: RubroGasto;
+  descripcion: string;
+  proveedor: string | null;
+  cantidad: number | null;
+  unidad: string | null;
+  monto: number;
+  destino_tipo: DestinoGasto;
+  especie: Especie | null;
+  ubicacion_id: string | null;
+  lote_id: string | null;
+  animal_id: string | null;
+  vence: string | null;
+  pagado_en: string | null;
+  soporte_path: string | null;
+  observaciones: string | null;
+  client_request_id: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+};
+/** De dónde viene una línea de costo: un gasto registrado, el costo de un tratamiento (Sanidad) o el del alimento de un lote (Ceba). */
+export type OrigenCosto = "gasto" | "sanidad" | "ceba";
+export type CostoLinea = {
+  origen: OrigenCosto;
+  origen_id: string;
+  fecha: string;
+  rubro: RubroGasto;
+  descripcion: string;
+  proveedor: string | null;
+  monto: number;
+  destino_tipo: DestinoGasto | "evento";
+  especie: string | null;
+  ubicacion_id: string | null;
+  lote_id: string | null;
+  animal_id: string | null;
+  pagado: boolean;
+  vence: string | null;
 };
 
 /** Una evaluación FAMACHA: el color de la mucosa del ojo (1 a 5) de un animal en una fecha. */
@@ -1001,6 +1056,7 @@ export type Database = {
       eventos_sanitarios: Tabla<EventoSanitario, "finca_id" | "tipo">;
       evento_sanitario_animales: Tabla<EventoSanitarioAnimal, "evento_id" | "animal_id" | "finca_id">;
       pruebas_sanitarias: Tabla<PruebaSanitaria, "finca_id" | "animal_id" | "prueba">;
+      gastos: Tabla<Gasto, "finca_id" | "fecha" | "rubro" | "descripcion" | "monto">;
       evaluaciones_famacha: Tabla<EvaluacionFamacha, "finca_id" | "animal_id" | "fecha" | "puntaje">;
       analisis_leche: Tabla<AnalisisLeche, "finca_id">;
       controles_frio: Tabla<ControlFrio, "finca_id" | "momento" | "temperatura_c">;
@@ -1049,6 +1105,34 @@ export type Database = {
       editar_movimiento: {
         Args: { p_id: string; p_ubicacion: string; p_desde: string; p_motivo: string; p_observaciones: string };
         Returns: undefined;
+      };
+      costos_detalle: {
+        Args: { p_finca: string; p_desde: string | null; p_hasta: string | null; p_rubro?: string | null; p_limite?: number; p_salto?: number };
+        Returns: CostoLinea[];
+      };
+      costos_pagina: {
+        Args: { p_finca: string; p_desde: string | null; p_hasta: string | null; p_rubro?: string | null; p_limite?: number; p_salto?: number };
+        Returns: (CostoLinea & { total: number })[];
+      };
+      costos_por_rubro: {
+        Args: { p_finca: string; p_desde: string | null; p_hasta: string | null };
+        Returns: { rubro: RubroGasto; total: number; por_pagar: number; de_gastos: number; de_sanidad: number; de_ceba: number; movimientos: number }[];
+      };
+      costos_por_mes: {
+        Args: { p_finca: string; p_desde: string | null; p_hasta: string | null };
+        Returns: { mes: string; costos: number; ingresos_leche: number; ingresos_animales: number; litros: number }[];
+      };
+      costos_indicadores: {
+        Args: { p_finca: string; p_desde: string | null; p_hasta: string | null };
+        Returns: { total_costos: number; por_pagar: number; vencido: number; ingresos_leche: number; ingresos_animales: number; litros: number; animales_activos: number }[];
+      };
+      costos_por_animal: {
+        Args: { p_finca: string; p_desde: string | null; p_hasta: string | null };
+        Returns: { animal_id: string; numero_arete: string; nombre: string | null; especie: string; sexo: string; estado: string; directo: number; repartido: number; total: number; valor_compra: number | null }[];
+      };
+      costos_depreciacion: {
+        Args: { p_finca: string; p_desde: string | null; p_hasta: string | null };
+        Returns: { tipo: "saca" | "mortalidad"; animales: number; con_valor: number; perdida: number }[];
       };
       guardar_programa_sanitario: {
         Args: { p_finca: string; p_programa: string | null; p_datos: Record<string, unknown>; p_animales: string[] };

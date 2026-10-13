@@ -34,6 +34,7 @@ export type AnimalEditable = {
   fecha_nacimiento_aprox: boolean;
   origen: "nacido_en_finca" | "comprado";
   peso_nacer_kg: number | null;
+  valor_compra: number | null;
   vocacion: Vocacion;
   uso_macho: UsoMacho | null;
   padre: Ref | null;
@@ -258,6 +259,10 @@ export function FormAnimal({
               {(id) => <input id={id} name="peso_nacer_kg" defaultValue={animal?.peso_nacer_kg != null ? String(animal.peso_nacer_kg).replace(".", ",") : ""} inputMode="decimal" autoComplete="off" enterKeyHint="next" className={CLASE_INPUT} placeholder="Ej. 3,2" />}
             </Campo>
           ) : null}
+
+          <Campo etiqueta={origen === "comprado" ? "Valor de compra" : "Valor de reposición"} ayuda={origen === "comprado" ? "Opcional. En pesos, lo que costó. Sirve para medir la pérdida si se descarta o muere." : "Opcional. En pesos, lo que costaría reponerlo. Sirve para medir la pérdida si se descarta o muere."}>
+            {(id) => <input id={id} name="valor_compra" defaultValue={animal?.valor_compra != null ? String(animal.valor_compra) : ""} inputMode="decimal" autoComplete="off" enterKeyHint="next" className={CLASE_INPUT} placeholder="Ej. 800.000" />}
+          </Campo>
         </div>
       </Seccion>
 

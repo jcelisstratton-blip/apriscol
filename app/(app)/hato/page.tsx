@@ -16,6 +16,7 @@ import { Ceba } from "./Ceba";
 import { Monta } from "./Monta";
 import { Sanidad } from "./Sanidad";
 import { Corrales } from "./Corrales";
+import { Gastos } from "./Gastos";
 import { Animales, CalidadLeche, ProgramaLeche } from "./ProgramaLeche";
 
 export const metadata: Metadata = { title: "Hato" };
@@ -40,7 +41,9 @@ export default async function PaginaHato({ searchParams }: { searchParams: Promi
   const verCorrales = puedeVer(rol, "corrales");
   const enCorrales = sp.vista === "corrales" && verCorrales;
   const conteos = await conteosHato(await crearClienteServidor(), finca.id, finca.especies);
-  const vistas = vistasHato({ leche: verLeche, carne: verCarne, repro: verRepro, sanidad: verSanidad, corrales: verCorrales });
+  const verGastos = puedeVer(rol, "contabilidad");
+  const enGastos = sp.vista === "gastos" && verGastos;
+  const vistas = vistasHato({ leche: verLeche, carne: verCarne, repro: verRepro, sanidad: verSanidad, corrales: verCorrales, gastos: verGastos });
   // Quien no puede escribir leche (veterinario, contador) no registra ordeños: ve el programa y la calidad, sin poder cambiarlos.
   const modo = sp.modo === "calidad" ? "calidad" : sp.modo === "programar" || !puedeRegistrar ? "programar" : "registrar";
 
@@ -80,6 +83,11 @@ export default async function PaginaHato({ searchParams }: { searchParams: Promi
         <div className="space-y-4">
           <TarjetasHato especies={finca.especies} vistas={vistas} conteos={conteos} vistaActiva="corrales" />
           <Corrales fincaId={finca.id} puedeEditar={puedeEscribir(rol, "corrales")} guardado={sp.guardado === "1"} />
+        </div>
+      ) : enGastos ? (
+        <div className="space-y-4">
+          <TarjetasHato especies={finca.especies} vistas={vistas} conteos={conteos} vistaActiva="gastos" />
+          <Gastos fincaId={finca.id} puedeEditar={puedeEscribir(rol, "contabilidad")} guardado={sp.guardado === "1"} />
         </div>
       ) : enOrdeno ? (
         <div className="space-y-4">

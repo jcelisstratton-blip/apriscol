@@ -50,6 +50,7 @@ export function TarjetaOpcion({
   tamano = "compacta",
   rol = "boton",
   deshabilitada = false,
+  descarga = false,
 }: {
   escena: EscenaDef;
   titulo: string;
@@ -63,6 +64,8 @@ export function TarjetaOpcion({
   /** «radio» cuando es una de varias opciones excluyentes de un formulario. */
   rol?: "boton" | "radio";
   deshabilitada?: boolean;
+  /** Con `href`: la tarjeta descarga un archivo (un enlace común, sin navegación de la aplicación). */
+  descarga?: boolean;
 }) {
   const ancho = tamano === "compacta" ? "w-[9.5rem] shrink-0 snap-start" : "w-full min-w-0";
   const clases = `group relative flex ${ancho} flex-col overflow-hidden rounded-3xl text-left ring-1 transition motion-safe:duration-200 motion-safe:hover:-translate-y-0.5 motion-safe:active:scale-[0.98] disabled:opacity-50 ${
@@ -83,6 +86,13 @@ export function TarjetaOpcion({
       ) : null}
     </>
   );
+  if (href && descarga) {
+    return (
+      <a href={href} download className={clases}>
+        {contenido}
+      </a>
+    );
+  }
   if (href) {
     return (
       <Link href={href} aria-current={activo ? "page" : undefined} className={clases}>
