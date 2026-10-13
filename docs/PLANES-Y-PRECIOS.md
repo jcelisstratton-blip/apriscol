@@ -1,10 +1,10 @@
 # Planes y precios de Apriscol
 
 Los planes viven en `lib/planes.ts` (una sola fuente: la presentación de `/login` y `/registro` los pinta con `components/presentacion/Planes.tsx`).
-Precios en **pesos colombianos por mes**; pagando por año, 20 % menos (redondeado a la centena). **No hay plan gratuito.**
+**Se cobra por los servicios que incluye cada plan, nunca por número de animales** (decisión del dueño del producto). Precios en **pesos colombianos por mes**; pagando por año, 20 % menos (redondeado a la centena). **No hay plan gratuito.**
 
 > Estado: los planes son **oferta comercial en la presentación**. Todavía no hay cobro ni la aplicación aplica los límites (animales, fincas, usuarios);
-> eso es una fase aparte (pasarela de pago + tope por plan + bloqueo de módulos).
+> eso es una fase aparte (pasarela de pago + bloqueo de los módulos que cada plan no incluye). No hay topes por animales.
 
 ## 1. Valoración de costos (de menor a mayor)
 
@@ -24,7 +24,7 @@ y después los cálculos pesados (endogamia sobre la genealogía y reportes de c
 
 **Conclusión:** el costo no es lo que fija el precio (la infraestructura se paga con ~5 clientes del plan Hato); lo fija el **valor** que recibe
 el criador y lo que puede pagar. Dato real del libro genealógico: 6.632 animales entre 368 titulares ≈ **18 animales por criador**, así que la mayoría
-es un aprisco pequeño y el plan de entrada tiene que ser muy accesible.
+es un aprisco pequeño y el plan de entrada tiene que ser muy accesible; como los animales no se cobran, crecer el hato no encarece la cuenta.
 
 **Valor de cada capacidad (de menor a mayor costo de servir y de valor para el criador):**
 1. Hato y ficha del animal, leche, sanidad básica → uso diario, poco peso técnico. *(Cría)*
@@ -35,12 +35,14 @@ es un aprisco pequeño y el plan de entrada tiene que ser muy accesible.
 
 ## 2. Planes
 
-| Plan | Mensual | Anual (por mes) | Límites propuestos | Qué suma |
-|---|---|---|---|---|
-| **Cría** | $29.900 | $23.900 | 1 finca · 30 animales · 2 usuarios | Hato, genealogía, endogamia, leche, sanidad con retiros, partos, traer animales del libro |
-| **Hato** (recomendado) | $59.900 | $47.900 | 1 finca · 100 animales · 4 usuarios | Corrales, monta, FAMACHA/pediluvio, ceba, premios, simulador, gastos y costo por litro |
-| **Majada** | $119.900 | $95.900 | 3 fincas · 300 animales · 8 usuarios | Excel por fechas, costo por animal/lote, controles de calidad, soportes de gastos |
-| **Hacienda** | $249.900 | $199.900 | 10 fincas · 1.000 animales · 20 usuarios | Soporte prioritario, acompañamiento para cargar la información inicial |
+| Plan | Mensual | Anual (por mes) | Servicios |
+|---|---|---|---|
+| **Cría** | $29.900 | $23.900 | Hato y ficha con foto y genealogía, endogamia, leche (ordeño y calidad), sanidad con periodos de retiro, servicios y partos, traer animales del libro |
+| **Hato** (recomendado) | $59.900 | $47.900 | Todo Cría + equipo con roles (ordeñador, veterinario, contador), corrales y potreros, temporada de monta, programas sanitarios con FAMACHA y pediluvio, carne y ceba, premios y ferias, simulador de cruzas, gastos y costo por litro |
+| **Majada** | $119.900 | $95.900 | Todo Hato + reportes de costos en Excel por fechas, costo por animal, lote y especie, controles de calidad con constancia, soportes de gastos |
+| **Hacienda** | $249.900 | $199.900 | Todo Majada + varias fincas en una sola cuenta, soporte prioritario, acompañamiento para cargar la información inicial |
+
+Todos: animales sin límite, cabras y ovejas, celular y computador.
 
 **Referencia de valor:** una finca de 20 cabras en ordeño mueve del orden de 3 millones de pesos al mes en leche; Cría cuesta alrededor del 1 %.
-Una finca con corrales, ceba y costos se mueve en el rango de Hato. Los precios son una propuesta: validar con 5 a 10 criadores antes de fijarlos.
+Una finca con equipo, corrales, ceba y gastos se mueve en el rango de Hato. Los precios son una propuesta: validar con 5 a 10 criadores antes de fijarlos.

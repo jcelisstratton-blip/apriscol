@@ -33,7 +33,7 @@ export function Planes({ hrefCrear }: { hrefCrear: string }) {
                 <h3 className="font-display text-2xl font-semibold leading-tight">{p.nombre}</h3>
                 {p.recomendado ? <span className="rounded-full bg-musgo/10 px-2.5 py-0.5 font-mono text-[0.625rem] font-semibold uppercase tracking-[0.14em] text-musgo">Recomendado</span> : null}
               </div>
-              <p className="mt-1.5 min-h-[3.25rem] text-[0.9375rem] text-humo">{p.para}</p>
+              <p className="mt-1.5 min-h-[4.75rem] text-[0.9375rem] text-humo">{p.para}</p>
 
               <p className="mt-4 flex flex-wrap items-baseline gap-x-1.5 font-display text-4xl font-semibold tabular-nums tracking-tight">
                 {pesos(mes)}
@@ -49,7 +49,7 @@ export function Planes({ hrefCrear }: { hrefCrear: string }) {
               </Link>
 
               <ul className="mt-5 space-y-2 border-t border-arena pt-4">
-                {p.limites.map((l) => (
+                {p.destacados.map((l) => (
                   <li key={l} className="flex items-start gap-2 text-[0.9375rem] font-semibold [overflow-wrap:anywhere]">
                     <Check className="mt-0.5 size-4 shrink-0 text-ok" strokeWidth={2.4} aria-hidden="true" />
                     {l}

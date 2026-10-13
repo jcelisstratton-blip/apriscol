@@ -1,4 +1,4 @@
-/** Planes de Apriscol: de menor a mayor. Precios en pesos colombianos por mes; el anual descuenta 20 %. */
+/** Planes de Apriscol: de menor a mayor. Se cobra por los servicios que incluye cada plan, nunca por número de animales. Precios en pesos colombianos por mes; el anual descuenta 20 %. */
 export type Plan = {
   id: string;
   nombre: string;
@@ -6,8 +6,8 @@ export type Plan = {
   /** Pesos por mes pagando cada mes. */
   mensual: number;
   recomendado?: boolean;
-  /** Límites del plan: fincas, animales activos y usuarios. */
-  limites: string[];
+  /** Lo que define al plan, en negrita arriba de la lista. */
+  destacados: string[];
   /** Si el plan incluye todo lo del anterior. */
   incluyeDe?: string;
   funciones: string[];
@@ -19,9 +19,9 @@ export const PLANES: Plan[] = [
   {
     id: "cria",
     nombre: "Cría",
-    para: "Para empezar ordenado: un aprisco pequeño y tú.",
+    para: "Para empezar ordenado: el manejo diario de tu aprisco.",
     mensual: 29900,
-    limites: ["1 finca", "Hasta 30 animales activos", "2 usuarios (tú y 1 más)"],
+    destacados: ["Animales sin límite", "Cabras y ovejas", "Tú, como propietario"],
     funciones: [
       "Ficha de cada animal con foto y genealogía",
       "Endogamia calculada antes de cruzar",
@@ -34,10 +34,10 @@ export const PLANES: Plan[] = [
   {
     id: "hato",
     nombre: "Hato",
-    para: "Para el criador que ya maneja corrales, monta y cuentas.",
+    para: "Para el criador que trabaja con equipo, corrales, monta y cuentas.",
     mensual: 59900,
     recomendado: true,
-    limites: ["1 finca", "Hasta 100 animales activos", "4 usuarios con roles"],
+    destacados: ["Animales sin límite", "Equipo con roles: ordeñador, veterinario y contador"],
     incluyeDe: "Cría",
     funciones: [
       "Corrales y potreros con rotación y cuarentena",
@@ -51,9 +51,9 @@ export const PLANES: Plan[] = [
   {
     id: "majada",
     nombre: "Majada",
-    para: "Para quien necesita reportes y manejar varias fincas.",
+    para: "Para quien quiere reportes en Excel, costo por animal y control de calidad.",
     mensual: 119900,
-    limites: ["3 fincas", "Hasta 300 animales activos", "8 usuarios con roles"],
+    destacados: ["Animales sin límite", "Reportes y costos al detalle"],
     incluyeDe: "Hato",
     funciones: [
       "Reportes de costos en Excel con las fechas que elijas",
@@ -65,9 +65,9 @@ export const PLANES: Plan[] = [
   {
     id: "hacienda",
     nombre: "Hacienda",
-    para: "Para grandes hatos y empresas con equipo propio.",
+    para: "Para quien maneja más de una finca y quiere acompañamiento.",
     mensual: 249900,
-    limites: ["10 fincas", "Hasta 1.000 animales activos", "20 usuarios con roles"],
+    destacados: ["Animales sin límite", "Varias fincas en una sola cuenta"],
     incluyeDe: "Majada",
     funciones: ["Soporte prioritario", "Acompañamiento para cargar tu información inicial"],
   },

@@ -67,7 +67,7 @@ const PREGUNTAS: { p: string; r: string }[] = [
   { p: "¿Puedo traer mis animales de un libro genealógico?", r: "Sí. Si tus animales están en el libro genealógico, los traes una sola vez al crear tu cuenta, demostrando que son tuyos con el documento del titular y el microchip de uno de ellos." },
   { p: "¿Quién ve la información de mi finca?", r: "Solo quienes tú invites. Los datos están separados por finca, y cada persona ve únicamente lo que le toca según su rol." },
   { p: "¿Puedo invitar al ordeñador, al veterinario y al contador?", r: "Sí. El ordeñador registra leche, el veterinario maneja sanidad, reproducción y corrales, y el contador ve y registra costos." },
-  { p: "¿Cuánto cuesta?", r: "Hay cuatro planes, de $29.900 a $249.900 al mes, según cuántos animales, fincas y personas manejes. Pagando por año tienes 20 % de descuento. Los ves completos en la sección Planes." },
+  { p: "¿Cuánto cuesta?", r: "Hay cuatro planes, de $29.900 a $249.900 al mes, según los servicios que uses, sin importar cuántos animales tengas. Pagando por año tienes 20 % de descuento. Los ves completos en la sección Planes." },
   { p: "¿Puedo sacar reportes?", r: "Los reportes de costos se descargan en Excel con el periodo que elijas, y el archivo lleva el nombre de la finca, del reporte y las fechas." },
 ];
 
@@ -310,7 +310,7 @@ export function Presentacion({ modo, formulario }: { modo: "login" | "registro";
         </Seccion>
 
         {/* Planes */}
-        <Seccion id="planes" rotulo="Planes" titulo="Elige el que se ajuste al tamaño de tu aprisco" texto="Precios en pesos colombianos. Todos incluyen cabras y ovejas, el celular y el computador, y tus datos siempre tuyos.">
+        <Seccion id="planes" rotulo="Planes" titulo="Elige el que se ajuste al tamaño de tu aprisco" texto="Precios en pesos colombianos. Pagas por los servicios que usas, no por cuántos animales tienes. Todos funcionan en el celular y en el computador, y tus datos siempre son tuyos.">
           <Planes hrefCrear={hrefCrear} />
         </Seccion>
 
