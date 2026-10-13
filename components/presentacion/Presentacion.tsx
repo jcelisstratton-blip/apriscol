@@ -1,11 +1,12 @@
 import Link from "next/link";
 import { ArrowRight, Check, ChevronDown, Droplets, FlaskConical, Layers, Moon, PawPrint, Smartphone, Tags, Trophy, Users, Warehouse, Beef, Hand, Keyboard, Download, Sprout, Building2, UserPlus } from "lucide-react";
+import { Planes } from "@/components/presentacion/Planes";
 import { PieLegal } from "@/components/legal/PieLegal";
 import { Marca } from "@/components/Marca";
 import { Escena } from "@/components/TarjetaOpcion";
 import { REPORTES } from "@/lib/costos-reportes";
 import { RUBROS } from "@/lib/costos";
-import { escena, ESCENA_HATO, type EscenaDef } from "@/lib/escenas";
+import { ESCENA_HATO, type EscenaDef } from "@/lib/escenas";
 import { ETIQUETA_ROL } from "@/lib/permisos";
 
 /** El rótulo pequeño de cada sección: monoespaciado, en mayúsculas y con el ocre de la marca. */
@@ -66,6 +67,7 @@ const PREGUNTAS: { p: string; r: string }[] = [
   { p: "¿Puedo traer mis animales de un libro genealógico?", r: "Sí. Si tus animales están en el libro genealógico, los traes una sola vez al crear tu cuenta, demostrando que son tuyos con el documento del titular y el microchip de uno de ellos." },
   { p: "¿Quién ve la información de mi finca?", r: "Solo quienes tú invites. Los datos están separados por finca, y cada persona ve únicamente lo que le toca según su rol." },
   { p: "¿Puedo invitar al ordeñador, al veterinario y al contador?", r: "Sí. El ordeñador registra leche, el veterinario maneja sanidad, reproducción y corrales, y el contador ve y registra costos." },
+  { p: "¿Cuánto cuesta?", r: "Hay cuatro planes, de $29.900 a $249.900 al mes, según cuántos animales, fincas y personas manejes. Pagando por año tienes 20 % de descuento. Los ves completos en la sección Planes." },
   { p: "¿Puedo sacar reportes?", r: "Los reportes de costos se descargan en Excel con el periodo que elijas, y el archivo lleva el nombre de la finca, del reporte y las fechas." },
 ];
 
@@ -96,6 +98,7 @@ export function Presentacion({ modo, formulario }: { modo: "login" | "registro";
               ["#que-resuelve", "Qué resuelve"],
               ["#como-funciona", "Cómo funciona"],
               ["#equipo", "Tu equipo"],
+              ["#planes", "Planes"],
               ["#preguntas", "Preguntas"],
             ].map(([href, texto]) => (
               <a key={href} href={href} className="inline-flex min-h-10 items-center rounded-full px-3 text-sm font-semibold text-humo hover:text-tinta">
@@ -306,24 +309,9 @@ export function Presentacion({ modo, formulario }: { modo: "login" | "registro";
           </ul>
         </Seccion>
 
-        {/* De un aprisco pequeño a una finca grande */}
-        <Seccion rotulo="A tu medida" titulo="De un aprisco pequeño a una finca grande">
-          <ul className="grid grid-cols-1 gap-3 min-[480px]:grid-cols-2 lg:grid-cols-4">
-            {[
-              ["Un aprisco pequeño", "Unas cuantas cabras u ovejas y tú solo.", ESCENA_HATO.caprino],
-              ["Cabras y ovejas", "Las dos especies en la misma finca, cada una con lo suyo.", ESCENA_HATO.ovino],
-              ["Con equipo", "Ordeñador, veterinario y contador, cada uno con su acceso.", escena(Users, "ocre", PawPrint)],
-              ["Varias fincas", "Una sola cuenta para todas, con un selector para cambiar.", ESCENA_HATO.corrales],
-            ].map(([t, d, e]) => (
-              <li key={t as string} className="flex min-w-0 flex-col overflow-hidden rounded-3xl bg-papel ring-1 ring-arena">
-                <Escena escena={e as EscenaDef} alto="h-20" />
-                <div className="p-4">
-                  <h3 className="font-display text-lg font-semibold leading-tight">{t as string}</h3>
-                  <p className="mt-1 text-[0.9375rem] text-humo">{d as string}</p>
-                </div>
-              </li>
-            ))}
-          </ul>
+        {/* Planes */}
+        <Seccion id="planes" rotulo="Planes" titulo="Elige el que se ajuste al tamaño de tu aprisco" texto="Precios en pesos colombianos. Todos incluyen cabras y ovejas, el celular y el computador, y tus datos siempre tuyos.">
+          <Planes hrefCrear={hrefCrear} />
         </Seccion>
 
         {/* Preguntas */}
