@@ -68,6 +68,20 @@ export function FormAuth({
         {esRegistro ? "Crear cuenta" : "Entrar"}
       </Boton>
 
+      {esRegistro ? (
+        <p className="-mt-1 text-center text-sm text-humo">
+          Al crear tu cuenta aceptas los{" "}
+          <Link href="/terminos" className="font-semibold text-musgo underline underline-offset-4">
+            Términos de servicio
+          </Link>{" "}
+          y la{" "}
+          <Link href="/privacidad" className="font-semibold text-musgo underline underline-offset-4">
+            Política de privacidad
+          </Link>
+          .
+        </p>
+      ) : null}
+
       <p className="text-center text-[0.9375rem] text-humo">
         {esRegistro ? "¿Ya tienes cuenta? " : "¿Primera vez? "}
         <Link href={`${esRegistro ? "/login" : "/registro"}${sufijo}`} className="-mx-1 inline-flex min-h-11 items-center px-1 font-semibold text-musgo underline-offset-4 hover:underline">

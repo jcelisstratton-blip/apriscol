@@ -65,6 +65,7 @@
 
 ## 3. Cuentas, acceso y roles
 
+- **Legales:** `/terminos` y `/privacidad` (públicas). Cubren Supabase (ca-central-1) como almacén, medidas de protección, finalidades, derechos del titular (Ley 1581 de 2012) y transferencia a Vercel (EE. UU.). Fecha y responsable en `lib/legal.ts`; el correo de contacto, en la variable `NEXT_PUBLIC_CORREO_PRIVACIDAD` de Vercel (pendiente de definir). El registro enlaza ambos documentos; «Más → Términos y privacidad» para quien ya entró. Conviene que un abogado los revise.
 - **Entrada = presentación:** `/login` y `/registro` muestran la misma página de presentación (`components/presentacion/Presentacion.tsx`: portada con el formulario en la tarjeta de la derecha, qué resuelve, equipo y roles, pasos, preguntas). Todo su contenido sale de funciones reales de la app y de constantes (`RUBROS`, `REPORTES`); no se inventan precios, planes ni testimonios. Si se agrega un módulo, se agrega su tarjeta ahí.
 - **Archivos:** `app/login`, `app/registro`, `app/recuperar`, `app/cambiar-clave`, `app/auth/confirm`, `app/invitacion/[token]`, `app/onboarding`, `proxy.ts`, `lib/supabase/*`, `lib/contexto.ts`, `lib/permisos.ts`.
 - **Flujos:** registro con confirmación por correo · recuperar y cambiar contraseña (misma respuesta exista o no la cuenta) · invitaciones por token con rol · selector de finca activa (`perfiles.finca_activa_id`).

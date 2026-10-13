@@ -3,7 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { SUPABASE_KEY, SUPABASE_URL } from "@/lib/env";
 import type { Database } from "@/lib/tipos";
 
-const PUBLICAS = ["/login", "/registro", "/recuperar", "/auth"];
+const PUBLICAS = ["/login", "/registro", "/recuperar", "/auth", "/terminos", "/privacidad"];
 
 /** Refresca la sesión en cada navegación y manda a /login a quien no la tenga. */
 export async function actualizarSesion(request: NextRequest) {

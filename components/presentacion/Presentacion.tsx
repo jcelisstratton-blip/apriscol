@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { ArrowRight, Check, ChevronDown, Droplets, FlaskConical, Layers, Moon, PawPrint, Smartphone, Tags, Trophy, Users, Warehouse, Beef, Hand, Keyboard, Download, Sprout, Building2, UserPlus, Sheet as Hoja } from "lucide-react";
+import { ArrowRight, Check, ChevronDown, Droplets, FlaskConical, Layers, Moon, PawPrint, Smartphone, Tags, Trophy, Users, Warehouse, Beef, Hand, Keyboard, Download, Sprout, Building2, UserPlus } from "lucide-react";
+import { PieLegal } from "@/components/legal/PieLegal";
 import { Marca } from "@/components/Marca";
 import { Escena } from "@/components/TarjetaOpcion";
 import { REPORTES } from "@/lib/costos-reportes";
@@ -358,12 +359,7 @@ export function Presentacion({ modo, formulario }: { modo: "login" | "registro";
         </section>
       </main>
 
-      <footer className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-3 px-4 pb-10 text-sm text-humo sm:px-6">
-        <Marca />
-        <p className="flex items-center gap-1.5">
-          <Hoja className="size-4" strokeWidth={1.75} aria-hidden="true" /> Apriscol · manejo de aprisco de cabras y ovejas
-        </p>
-      </footer>
+      <PieLegal />
     </div>
   );
 }

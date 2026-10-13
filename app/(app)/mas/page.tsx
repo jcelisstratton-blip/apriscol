@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Baby, Beef, ChevronRight, Fence, GitFork, KeyRound, LogOut, MapPin, Pencil, Plus, Shuffle, ShieldCheck, Syringe, Trophy, Users, Wallet } from "lucide-react";
+import { Baby, Beef, ChevronRight, Fence, FileText, GitFork, KeyRound, LogOut, MapPin, Pencil, Plus, Shuffle, ShieldCheck, Syringe, Trophy, Users, Wallet } from "lucide-react";
 import { Encabezado } from "@/components/Encabezado";
 import { AvisoGuardado } from "@/components/AvisoGuardado";
 import { FincaSelector } from "@/components/FincaSelector";
@@ -136,6 +136,11 @@ export default async function PaginaMas({ searchParams }: { searchParams: Promis
           <Link href="/cambiar-clave" className={FILA}>
             <KeyRound className="size-5 text-musgo" strokeWidth={1.75} />
             <span className="flex-1 font-semibold">Cambiar contraseña</span>
+            <ChevronRight className="size-5 text-humo" strokeWidth={1.75} />
+          </Link>
+          <Link href="/terminos" className={FILA}>
+            <FileText className="size-5 text-musgo" strokeWidth={1.75} />
+            <span className="flex-1 font-semibold">Términos y privacidad</span>
             <ChevronRight className="size-5 text-humo" strokeWidth={1.75} />
           </Link>
           <form action={cerrarSesion}>
