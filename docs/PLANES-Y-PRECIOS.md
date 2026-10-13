@@ -1,7 +1,7 @@
 # Planes y precios de Apriscol
 
 Los planes viven en `lib/planes.ts` (una sola fuente: la presentación de `/login` y `/registro` los pinta con `components/presentacion/Planes.tsx`).
-**Se cobra por los servicios que incluye cada plan, nunca por número de animales** (decisión del dueño del producto). Precios en **pesos colombianos por mes**; pagando por año, 20 % menos (redondeado a la centena). **No hay plan gratuito.**
+**Se cobra por los servicios que incluye cada plan, nunca por número de animales** (decisión del dueño del producto). Precios en **dólares (US$) por mes** (mientras se define la pasarela de pago; la referencia original en pesos era $29.900 / $59.900 / $119.900 / $249.900); pagando por año, 20 % menos (redondeado a la centena). **No hay plan gratuito.**
 
 > Estado: los planes **ya se aplican** (ver «Cómo se aplican»), pero **todavía no hay cobro automático**: no hay pasarela de pago. El propietario pide la mejora
 > y el superadmin la activa cuando confirma el pago. No hay topes por animales.
@@ -37,10 +37,10 @@ es un aprisco pequeño y el plan de entrada tiene que ser muy accesible; como lo
 
 | Plan | Mensual | Anual (por mes) | Servicios |
 |---|---|---|---|
-| **Cría** | $29.900 | $23.900 | Hato y ficha con foto y genealogía, endogamia, leche (ordeño y calidad), sanidad con periodos de retiro, servicios y partos, traer animales del libro |
-| **Hato** (recomendado) | $59.900 | $47.900 | Todo Cría + equipo con roles (ordeñador, veterinario, contador), corrales y potreros, temporada de monta, programas sanitarios con FAMACHA y pediluvio, carne y ceba, premios y ferias, simulador de cruzas, gastos y costo por litro |
-| **Profesional** | $119.900 | $95.900 | Todo Hato + reportes de costos en Excel por fechas, costo por animal, lote y especie, controles de calidad con constancia, soportes de gastos |
-| **Hacienda** | $249.900 | $199.900 | Todo Profesional + varias fincas en una sola cuenta, soporte prioritario, acompañamiento para cargar la información inicial |
+| **Cría** | US$ 8 | US$ 6,40 | Hato y ficha con foto y genealogía, endogamia, leche (ordeño y calidad), sanidad con periodos de retiro, servicios y partos, traer animales del libro |
+| **Hato** (recomendado) | US$ 15 | US$ 12 | Todo Cría + equipo con roles (ordeñador, veterinario, contador), corrales y potreros, temporada de monta, programas sanitarios con FAMACHA y pediluvio, carne y ceba, premios y ferias, simulador de cruzas, gastos y costo por litro |
+| **Profesional** | US$ 30 | US$ 24 | Todo Hato + reportes de costos en Excel por fechas, costo por animal, lote y especie, controles de calidad con constancia, soportes de gastos |
+| **Hacienda** | US$ 60 | US$ 48 | Todo Profesional + varias fincas en una sola cuenta, soporte prioritario, acompañamiento para cargar la información inicial |
 
 Todos: animales sin límite, cabras y ovejas, celular y computador.
 

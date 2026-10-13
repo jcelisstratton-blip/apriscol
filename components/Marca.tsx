@@ -1,19 +1,8 @@
-/** Isotipo de Apriscol: el techo de dos aguas de un aprisco con una cría debajo. */
-export function Isotipo({ className = "size-8" }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 48 48" className={className} fill="none" aria-hidden="true">
-      <rect width="48" height="48" rx="13" className="fill-musgo" />
-      <path
-        d="M9 25.5 24 12.5l15 13"
-        className="stroke-sobre-musgo"
-        strokeWidth="3.2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path d="M14 27v8.5h20V27" className="stroke-sobre-musgo" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" />
-      <circle cx="24" cy="30.2" r="2.7" fill="var(--ocre)" />
-    </svg>
-  );
+import Image from "next/image";
+
+/** Logo de Apriscol: el escudo con la oveja, la cabra y el mapa de Colombia (`public/logo.webp`). El tamaño lo da `className`. */
+export function Isotipo({ className = "size-9", prioridad = false }: { className?: string; prioridad?: boolean }) {
+  return <Image src="/logo.webp" alt="" width={112} height={112} priority={prioridad} className={`shrink-0 rounded-full ${className}`} aria-hidden="true" />;
 }
 
 export function Marca({ className = "" }: { className?: string }) {

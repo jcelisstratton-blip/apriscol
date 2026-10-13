@@ -1,11 +1,11 @@
-/** Planes de Apriscol: de menor a mayor. Se cobra por los servicios que incluye cada plan, nunca por número de animales. Precios en pesos colombianos por mes; el anual descuenta 20 %. */
+/** Planes de Apriscol: de menor a mayor. Se cobra por los servicios que incluye cada plan, nunca por número de animales. Precios en dólares (US$) por mes; el anual descuenta 20 %. */
 import type { ModuloApp, PlanId } from "@/lib/tipos";
 
 export type Plan = {
   id: PlanId;
   nombre: string;
   para: string;
-  /** Pesos por mes pagando cada mes. */
+  /** Dólares por mes pagando cada mes. */
   mensual: number;
   recomendado?: boolean;
   /** Lo que define al plan, en negrita arriba de la lista. */
@@ -22,7 +22,7 @@ export const PLANES: Plan[] = [
     id: "cria",
     nombre: "Cría",
     para: "Para empezar ordenado: el manejo diario de tu aprisco.",
-    mensual: 29900,
+    mensual: 8,
     destacados: ["Animales sin límite", "Cabras y ovejas", "Tú, como propietario"],
     funciones: [
       "Ficha de cada animal con foto y genealogía",
@@ -37,7 +37,7 @@ export const PLANES: Plan[] = [
     id: "hato",
     nombre: "Hato",
     para: "Para el criador que trabaja con equipo, corrales, monta y cuentas.",
-    mensual: 59900,
+    mensual: 15,
     recomendado: true,
     destacados: ["Animales sin límite", "Equipo con roles: ordeñador, veterinario y contador"],
     incluyeDe: "Cría",
@@ -54,7 +54,7 @@ export const PLANES: Plan[] = [
     id: "profesional",
     nombre: "Profesional",
     para: "Para quien quiere reportes en Excel, costo por animal y control de calidad.",
-    mensual: 119900,
+    mensual: 30,
     destacados: ["Animales sin límite", "Reportes y costos al detalle"],
     incluyeDe: "Hato",
     funciones: [
@@ -68,15 +68,18 @@ export const PLANES: Plan[] = [
     id: "hacienda",
     nombre: "Hacienda",
     para: "Para quien maneja más de una finca y quiere acompañamiento.",
-    mensual: 249900,
+    mensual: 60,
     destacados: ["Animales sin límite", "Varias fincas en una sola cuenta"],
     incluyeDe: "Profesional",
     funciones: ["Soporte prioritario", "Acompañamiento para cargar tu información inicial"],
   },
 ];
 
-/** Precio mensual que se muestra: con el descuento anual, redondeado a la centena. */
-export const precioMes = (p: Plan, anual: boolean) => (anual ? Math.round((p.mensual * (1 - DESCUENTO_ANUAL)) / 100) * 100 : p.mensual);
+/** Precio mensual que se muestra: con el descuento anual, al centavo. */
+export const precioMes = (p: Plan, anual: boolean) => (anual ? Math.round(p.mensual * (1 - DESCUENTO_ANUAL) * 100) / 100 : p.mensual);
+
+/** «US$ 8», «US$ 6,40»: sin centavos cuando el valor es entero. */
+export const usd = (n: number) => `US$ ${Number.isInteger(n) ? n : n.toFixed(2).replace(".", ",")}`;
 
 const PLAN_POR_ID = Object.fromEntries(PLANES.map((p) => [p.id, p])) as Record<PlanId, Plan>;
 export const planPorId = (id: PlanId): Plan => PLAN_POR_ID[id];

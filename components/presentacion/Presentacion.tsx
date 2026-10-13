@@ -2,7 +2,7 @@ import Link from "next/link";
 import { ArrowRight, Check, ChevronDown, Droplets, FlaskConical, Layers, Moon, PawPrint, Smartphone, Tags, Trophy, Users, Warehouse, Beef, Hand, Keyboard, Download, Sprout, Building2, UserPlus } from "lucide-react";
 import { Planes } from "@/components/presentacion/Planes";
 import { PieLegal } from "@/components/legal/PieLegal";
-import { Marca } from "@/components/Marca";
+import { Isotipo, Marca } from "@/components/Marca";
 import { Escena } from "@/components/TarjetaOpcion";
 import { REPORTES } from "@/lib/costos-reportes";
 import { RUBROS } from "@/lib/costos";
@@ -67,7 +67,7 @@ const PREGUNTAS: { p: string; r: string }[] = [
   { p: "¿Puedo traer mis animales de un libro genealógico?", r: "Sí. Si tus animales están en el libro genealógico, los traes una sola vez al crear tu cuenta, demostrando que son tuyos con el documento del titular y el microchip de uno de ellos." },
   { p: "¿Quién ve la información de mi finca?", r: "Solo quienes tú invites. Los datos están separados por finca, y cada persona ve únicamente lo que le toca según su rol." },
   { p: "¿Puedo invitar al ordeñador, al veterinario y al contador?", r: "Sí. El ordeñador registra leche, el veterinario maneja sanidad, reproducción y corrales, y el contador ve y registra costos." },
-  { p: "¿Cuánto cuesta?", r: "Hay cuatro planes, de $29.900 a $249.900 al mes, según los servicios que uses, sin importar cuántos animales tengas. Pagando por año tienes 20 % de descuento. Los ves completos en la sección Planes." },
+  { p: "¿Cuánto cuesta?", r: "Hay cuatro planes, de US$ 8 a US$ 60 al mes, según los servicios que uses, sin importar cuántos animales tengas. Pagando por año tienes 20 % de descuento. Los ves completos en la sección Planes." },
   { p: "¿Puedo sacar reportes?", r: "Los reportes de costos se descargan en Excel con el periodo que elijas, y el archivo lleva el nombre de la finca, del reporte y las fechas." },
 ];
 
@@ -121,6 +121,7 @@ export function Presentacion({ modo, formulario }: { modo: "login" | "registro";
         {/* Portada y acceso */}
         <section className="mx-auto grid w-full max-w-6xl grid-cols-1 gap-8 px-4 pb-8 pt-8 sm:px-6 lg:grid-cols-[1.15fr_0.85fr] lg:items-start lg:gap-12 lg:pt-14">
           <div className="min-w-0 space-y-6">
+            <Isotipo className="size-24 sm:size-28" prioridad />
             <Rotulo>Para criadores de cabras y ovejas</Rotulo>
             <h1 className="font-display text-[2.375rem] font-semibold leading-[1.02] tracking-tight sm:text-6xl">
               Registra una vez. <span className="text-musgo">Tu aprisco, al día.</span>
@@ -310,7 +311,7 @@ export function Presentacion({ modo, formulario }: { modo: "login" | "registro";
         </Seccion>
 
         {/* Planes */}
-        <Seccion id="planes" rotulo="Planes" titulo="Elige el que se ajuste al tamaño de tu aprisco" texto="Precios en pesos colombianos. Pagas por los servicios que usas, no por cuántos animales tienes. Todos funcionan en el celular y en el computador, y tus datos siempre son tuyos.">
+        <Seccion id="planes" rotulo="Planes" titulo="Elige el que se ajuste al tamaño de tu aprisco" texto="Precios en dólares (US$) por mes. Pagas por los servicios que usas, no por cuántos animales tienes. Todos funcionan en el celular y en el computador, y tus datos siempre son tuyos.">
           <Planes hrefCrear={hrefCrear} />
         </Seccion>
 

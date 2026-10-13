@@ -9,13 +9,11 @@ import { MejorarPlan } from "@/components/MejorarPlan";
 import { Tarjeta } from "@/components/Tarjeta";
 import { obtenerContexto } from "@/lib/contexto";
 import { formatoFecha } from "@/lib/fechas";
-import { nombrePlan, planPorId, planesSuperiores } from "@/lib/planes";
+import { nombrePlan, planPorId, planesSuperiores, usd } from "@/lib/planes";
 import { crearClienteServidor } from "@/lib/supabase/server";
 import type { PlanId } from "@/lib/tipos";
 
 export const metadata: Metadata = { title: "Mejorar mi plan" };
-
-const pesos = (n: number) => n.toLocaleString("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 });
 
 /** Mejorar el plan de la finca: solo hacia adelante. Muestra lo que ya tienes y lo que sumas con cada plan superior. */
 export default async function PaginaPlan({ searchParams }: { searchParams: Promise<{ motivo?: string }> }) {
@@ -47,7 +45,7 @@ export default async function PaginaPlan({ searchParams }: { searchParams: Promi
             <div className="min-w-0">
               <p className="font-display text-2xl font-semibold leading-tight">{actual.nombre}</p>
               <p className="mt-0.5 text-sm text-humo">
-                {pesos(actual.mensual)} al mes · {actual.para}
+                {usd(actual.mensual)} al mes · {actual.para}
               </p>
             </div>
             <span className="shrink-0">

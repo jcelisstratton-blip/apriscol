@@ -3,9 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Check } from "lucide-react";
-import { PLANES, precioMes } from "@/lib/planes";
-
-const pesos = (n: number) => n.toLocaleString("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 });
+import { PLANES, precioMes, usd } from "@/lib/planes";
 
 /** Los cuatro planes con el cambio mensual / anual. `hrefCrear` lleva a crear la cuenta. */
 export function Planes({ hrefCrear }: { hrefCrear: string }) {
@@ -36,10 +34,10 @@ export function Planes({ hrefCrear }: { hrefCrear: string }) {
               <p className="mt-1.5 min-h-[4.75rem] text-[0.9375rem] text-humo">{p.para}</p>
 
               <p className="mt-4 flex flex-wrap items-baseline gap-x-1.5 font-display text-4xl font-semibold tabular-nums tracking-tight">
-                {pesos(mes)}
+                {usd(mes)}
                 <span className="font-sans text-sm font-normal text-humo">/ mes</span>
               </p>
-              <p className="mt-1 font-mono text-xs text-humo">{anual ? `Pagando cada año · ${pesos(mes * 12)} al año` : "Pagando cada mes"}</p>
+              <p className="mt-1 font-mono text-xs text-humo">{anual ? `Pagando cada año · ${usd(mes * 12)} al año` : "Pagando cada mes"}</p>
 
               <Link
                 href={hrefCrear}

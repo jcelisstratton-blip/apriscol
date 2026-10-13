@@ -5,10 +5,8 @@ import { Check } from "lucide-react";
 import { Aviso } from "@/components/Aviso";
 import { Boton } from "@/components/Boton";
 import { solicitarMejora, type ResultadoMejora } from "@/app/(app)/mas/plan/actions";
-import { nombrePlan, PLANES, planesSuperiores, precioMes, rangoPlan } from "@/lib/planes";
+import { nombrePlan, PLANES, planesSuperiores, precioMes, rangoPlan, usd } from "@/lib/planes";
 import type { PlanId } from "@/lib/tipos";
-
-const pesos = (n: number) => n.toLocaleString("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 });
 
 /** Lo que suma un plan frente al actual: los servicios de los planes intermedios y del propio plan. */
 function loQueSumas(actual: PlanId, destino: PlanId): string[] {
@@ -60,10 +58,10 @@ export function MejorarPlan({ actual }: { actual: PlanId }) {
               </div>
               <p className="mt-1.5 text-[0.9375rem] text-humo">{p.para}</p>
               <p className="mt-3 flex flex-wrap items-baseline gap-x-1.5 font-display text-3xl font-semibold tabular-nums tracking-tight">
-                {pesos(mes)}
+                {usd(mes)}
                 <span className="font-sans text-sm font-normal text-humo">/ mes</span>
               </p>
-              <p className="mt-1 font-mono text-xs text-humo">{anual ? `Pagando cada año · ${pesos(mes * 12)} al año` : "Pagando cada mes"}</p>
+              <p className="mt-1 font-mono text-xs text-humo">{anual ? `Pagando cada año · ${usd(mes * 12)} al año` : "Pagando cada mes"}</p>
 
               <p className="mt-4 text-sm font-semibold">Con este plan sumas:</p>
               <ul className="mt-2 space-y-2">

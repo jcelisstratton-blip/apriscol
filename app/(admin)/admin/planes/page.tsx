@@ -7,12 +7,10 @@ import { Encabezado } from "@/components/Encabezado";
 import { EstadoVacio } from "@/components/EstadoVacio";
 import { Insignia } from "@/components/Insignia";
 import { formatoFecha } from "@/lib/fechas";
-import { nombrePlan, planPorId, precioMes } from "@/lib/planes";
+import { nombrePlan, planPorId, precioMes, usd } from "@/lib/planes";
 import { crearClienteServidor } from "@/lib/supabase/server";
 
 export const metadata: Metadata = { title: "Solicitudes de plan" };
-const pesos = (n: number) => n.toLocaleString("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 });
-
 /** Solicitudes de mejora de plan pendientes: quién la pidió, a qué plan y con qué periodo de pago. Se activa cuando el pago está confirmado. */
 export default async function PaginaSolicitudesPlan() {
   const supabase = await crearClienteServidor();
@@ -45,7 +43,7 @@ export default async function PaginaSolicitudesPlan() {
                 </div>
                 <p className="text-[0.9375rem]">
                   De <span className="font-semibold">{nombrePlan(s.plan_actual)}</span> a <span className="font-semibold">{nombrePlan(s.plan_nuevo)}</span> ·{" "}
-                  {anual ? `anual, ${pesos(mes * 12)} al año` : `mensual, ${pesos(mes)} al mes`}
+                  {anual ? `anual, ${usd(mes * 12)} al año` : `mensual, ${usd(mes)} al mes`}
                 </p>
                 <p className="text-xs text-humo">Pedida el {formatoFecha(s.creada_en.slice(0, 10), { day: "numeric", month: "short" })}</p>
                 <AccionActivarPlan correo={s.correo} plan={s.plan_nuevo} />
