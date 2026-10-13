@@ -10,12 +10,15 @@ export function Sheet({
   titulo,
   children,
   pie,
+  ancho = "max-w-md",
 }: {
   abierta: boolean;
   onCerrar: () => void;
   titulo?: string;
   children: React.ReactNode;
   pie?: React.ReactNode;
+  /** Clase de ancho máximo de la hoja (por defecto `max-w-md`). */
+  ancho?: string;
 }) {
   const panel = useRef<HTMLDivElement>(null);
   // `onCerrar` casi siempre llega como una función nueva en cada render del padre. Si fuera dependencia del efecto, cada letra escrita en un campo
@@ -53,7 +56,7 @@ export function Sheet({
         aria-modal="true"
         aria-label={titulo}
         tabIndex={-1}
-        className="anim-hoja relative flex max-h-[88dvh] w-full max-w-md flex-col rounded-t-[1.75rem] bg-papel shadow-2xl outline-none sm:rounded-[1.75rem]"
+        className={`anim-hoja relative flex max-h-[88dvh] w-full ${ancho} flex-col rounded-t-[1.75rem] bg-papel shadow-2xl outline-none sm:rounded-[1.75rem]`}
       >
         <div className="mx-auto mt-2.5 h-1.5 w-10 shrink-0 rounded-full bg-arena sm:hidden" aria-hidden="true" />
         <div className="flex shrink-0 items-center justify-between gap-3 px-5 pb-1 pt-3">

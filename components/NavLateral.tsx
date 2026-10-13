@@ -3,13 +3,13 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { Baby, Beef, Droplets, Fence, GitFork, Home, KeyRound, LogOut, MapPin, PawPrint, Plus, Rocket, Settings, ShieldCheck, Syringe, Trophy, Users, Wallet } from "lucide-react";
+import { Baby, Beef, Droplets, Fence, GitFork, Home, KeyRound, LogOut, MapPin, PawPrint, Rocket, Settings, ShieldCheck, Syringe, Trophy, Users, Wallet, Zap } from "lucide-react";
 import { FincaSelector } from "@/components/FincaSelector";
-import { accionesRegistro, HojaRegistrar, type PermisosRegistro } from "@/components/HojaRegistrar";
+import { HojaAlGrano } from "@/components/HojaAlGrano";
 import { Marca } from "@/components/Marca";
 import { cerrarSesion } from "@/app/login/actions";
 import { entradaMarcada } from "@/lib/nav";
-import type { RolFinca } from "@/lib/tipos";
+import type { PlanId, RolFinca } from "@/lib/tipos";
 
 type Enlace = { href: string; etiqueta: string; Icono: typeof Home };
 
@@ -22,7 +22,8 @@ export function NavLateral({
   correo,
   fincas,
   fincaActiva,
-  permisos,
+  rol,
+  plan,
   verLeche,
   verPremios,
   verSanidad,
@@ -39,7 +40,8 @@ export function NavLateral({
   correo: string;
   fincas: { id: string; nombre: string; rol: RolFinca }[];
   fincaActiva: string;
-  permisos: PermisosRegistro;
+  rol: RolFinca;
+  plan: PlanId;
   verLeche: boolean;
   verPremios: boolean;
   verSanidad: boolean;
@@ -56,7 +58,6 @@ export function NavLateral({
 }) {
   const ruta = usePathname();
   const [abierta, setAbierta] = useState(false);
-  const acciones = accionesRegistro(permisos);
 
   const enlaces: Enlace[] = [
     { href: "/", etiqueta: "Hoy", Icono: Home },
@@ -91,10 +92,9 @@ export function NavLateral({
         <button
           type="button"
           onClick={() => setAbierta(true)}
-          disabled={acciones.length === 0}
-          className="mt-5 inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-ocre px-4 text-[0.9375rem] font-semibold text-papel shadow-sm transition hover:brightness-95 active:scale-[0.98] disabled:opacity-40"
+          className="mt-5 inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-ocre px-4 text-[0.9375rem] font-semibold text-papel shadow-sm transition hover:brightness-95 active:scale-[0.98]"
         >
-          <Plus className="size-5" strokeWidth={2.4} /> Registrar
+          <Zap className="size-5" strokeWidth={2.2} /> Al grano
         </button>
 
         <nav aria-label="Principal" className="mt-4 space-y-1">
@@ -142,7 +142,7 @@ export function NavLateral({
         </div>
       </aside>
 
-      <HojaRegistrar abierta={abierta} onCerrar={() => setAbierta(false)} acciones={acciones} />
+      <HojaAlGrano abierta={abierta} onCerrar={() => setAbierta(false)} rol={rol} plan={plan} />
     </>
   );
 }

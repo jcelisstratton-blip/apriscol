@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ArrowRight, Check, ChevronDown, Droplets, FlaskConical, Layers, Moon, PawPrint, Smartphone, Tags, Trophy, Users, Warehouse, Beef, Hand, Keyboard, Download, Sprout, Building2, UserPlus } from "lucide-react";
+import { CarruselCubre } from "@/components/presentacion/CarruselCubre";
 import { Planes } from "@/components/presentacion/Planes";
 import { PLANES, usd } from "@/lib/planes";
 import { PieLegal } from "@/components/legal/PieLegal";
@@ -41,8 +42,6 @@ function Paso({ n, icono, titulo, texto }: { n: string; icono: React.ReactNode; 
     </li>
   );
 }
-
-const CUBRE = ["Cabras", "Ovejas", "Genealogía y endogamia", "Leche", "Reproducción y partos", "Carne y ceba", "Sanidad", "Corrales y potreros", "Costos y gastos", "Premios y ferias"];
 
 type Funcion = { n: string; escena: EscenaDef; titulo: string; lema: string; puntos: string[] };
 const FUNCIONES: Funcion[] = [
@@ -159,16 +158,7 @@ export function Presentacion({ modo, formulario }: { modo: "login" | "registro";
         </section>
 
         {/* Qué cubre */}
-        <section aria-label="Qué cubre" className="mx-auto w-full max-w-6xl px-4 py-4 sm:px-6">
-          <div className="flex flex-wrap items-center gap-x-2.5 gap-y-2">
-            <span className="mr-1 font-mono text-[0.6875rem] font-semibold uppercase tracking-[0.18em] text-humo">Cubre</span>
-            {CUBRE.map((c) => (
-              <span key={c} className="inline-flex items-center rounded-full bg-papel px-3 py-1.5 text-xs font-semibold text-humo ring-1 ring-arena">
-                {c}
-              </span>
-            ))}
-          </div>
-        </section>
+        <CarruselCubre />
 
         {/* Cifras */}
         <section aria-label="Apriscol en cifras" className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6">

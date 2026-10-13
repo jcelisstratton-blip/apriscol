@@ -3,8 +3,9 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { Droplets, Home, MoreHorizontal, PawPrint, Plus } from "lucide-react";
-import { accionesRegistro, HojaRegistrar } from "@/components/HojaRegistrar";
+import { Droplets, Home, MoreHorizontal, PawPrint, Zap } from "lucide-react";
+import { HojaAlGrano } from "@/components/HojaAlGrano";
+import type { PlanId, RolFinca } from "@/lib/tipos";
 
 const TABS = [
   { href: "/", etiqueta: "Hoy", Icono: Home },
@@ -17,11 +18,9 @@ const TABS = [
  * Barra inferior de 4 pestañas con un botón central de acción rápida (patrón Mobbin: Attio, ClickUp, Jobber).
  * Respeta el área segura del teléfono. Desde pantallas anchas (lg) se oculta: ahí manda el menú lateral (`NavLateral`).
  */
-export function BottomNav({ puedeOrdenar, puedeCrearAnimal, puedeSanidad, puedeCarne }: { puedeOrdenar: boolean; puedeCrearAnimal: boolean; puedeSanidad: boolean; puedeCarne: boolean }) {
+export function BottomNav({ rol, plan }: { rol: RolFinca; plan: PlanId }) {
   const ruta = usePathname();
   const [abierta, setAbierta] = useState(false);
-
-  const acciones = accionesRegistro({ puedeOrdenar, puedeCrearAnimal, puedeSanidad, puedeCarne });
 
   const activo = (href: string) => (href === "/" ? ruta === "/" : ruta.startsWith(href));
   const izquierda = TABS.slice(0, 2);
@@ -55,11 +54,10 @@ export function BottomNav({ puedeOrdenar, puedeCrearAnimal, puedeSanidad, puedeC
             <button
               type="button"
               onClick={() => setAbierta(true)}
-              disabled={acciones.length === 0}
-              aria-label="Registrar"
-              className="-mt-6 grid size-14 place-items-center rounded-full bg-ocre text-papel shadow-lg ring-4 ring-lana transition active:scale-95 disabled:opacity-40"
+              aria-label="Al grano"
+              className="-mt-6 grid size-14 place-items-center rounded-full bg-ocre text-papel shadow-lg ring-4 ring-lana transition active:scale-95"
             >
-              <Plus className="size-7" strokeWidth={2.4} />
+              <Zap className="size-7" strokeWidth={2.2} />
             </button>
           </div>
           {derecha.map((t) => (
@@ -68,7 +66,7 @@ export function BottomNav({ puedeOrdenar, puedeCrearAnimal, puedeSanidad, puedeC
         </div>
       </nav>
 
-      <HojaRegistrar abierta={abierta} onCerrar={() => setAbierta(false)} acciones={acciones} />
+      <HojaAlGrano abierta={abierta} onCerrar={() => setAbierta(false)} rol={rol} plan={plan} />
     </>
   );
 }

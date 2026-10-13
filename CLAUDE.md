@@ -71,7 +71,7 @@ correspondiente en `node_modules/next/dist/docs/` (esta versión cambia APIs: `m
   si lo tiene). Antes de dar una pantalla por terminada se revisa con un animal de cada tipo: hembra, macho y dado de baja.
 - **Los números se escriben a la colombiana:** coma decimal y punto de miles («3,6», «2.500» = dos mil quinientos). Todo campo numérico que llega del navegador se lee con `leerNumero` (`lib/numeros.ts`), nunca con `replace(",", ".")` (que convertía «25.000» en 25).
 - Objetivos táctiles ≥ 44 px, campos de 16 px (evita el zoom de iOS), respetar `env(safe-area-inset-*)`.
-- Navegación: barra inferior de 4 pestañas + botón central de acción (`BottomNav`). Elegir/confirmar/capturar en
+- Navegación: barra inferior de 4 pestañas + botón central **«Al grano»** (`BottomNav`; en el computador, el botón «Al grano» del menú lateral). Elegir/confirmar/capturar en
   **hojas inferiores** (`Sheet`). Números con el **teclado propio** (`Teclado`), un solo botón principal fijo abajo.
 - Listas que pueden crecer: `ListaEscalable` (tramos de 20, paginación en servidor, «Mostrando X de N») y
   `CampoBusqueda`. Nunca un `.map()` sin límite sobre datos que crecen.
@@ -121,3 +121,7 @@ simulados (propietario / ordeñador / ajeno) cuando se toque una política.
 **Documentos legales:** `/terminos` y `/privacidad` (públicas, en `PUBLICAS` de `lib/supabase/proxy.ts`) usan `components/legal/PaginaLegal.tsx`; su pie (`PieLegal`) lleva los enlaces y, al final y centrada, «Design by © Stratt-On Agency». Los textos describen cómo se protege la información en Supabase (RLS por finca, roles, buckets privados con URL firmada, hash de documentos con Vault): **si cambia una de esas medidas, se actualiza la política y la fecha en `lib/legal.ts`**. El correo de contacto sale de `NEXT_PUBLIC_CORREO_PRIVACIDAD`.
 
 **Planes y precios:** `lib/planes.ts` es la única fuente (4 planes: Cría, Hato, Profesional, Hacienda, con precios en **US$** mientras se define la pasarela; sin plan gratuito; **se cobra por servicios, nunca por número de animales**). `fincas.plan` manda: `private.puede_ver/puede_escribir` exigen que el plan incluya el módulo (`private.modulo_rango`), y los servicios dentro de un módulo se cierran con `servicioEnPlan` + `<RequierePlan>`. Las funciones de permisos reciben el plan: `puedeVer(rol, "modulo", finca.plan)`. Un módulo o servicio nuevo se asigna a un plan en `lib/planes.ts` **y** en `private.modulo_rango`. «Mejorar mi plan» (`/mas/plan`) solo va hacia adelante; la activación la hace el superadmin (`/admin/planes`, `admin_asignar_plan`) hasta que exista pasarela de pago. Detalle: `docs/PLANES-Y-PRECIOS.md`.
+
+**«Al grano»** (`components/HojaAlGrano.tsx`, antes «Registrar»): una hoja con buscador y filtros (Todo / Registrar / Abrir) que lleva en un toque a todo lo que se puede hacer o abrir en la app. El catálogo está en `lib/atajos.ts` y se filtra por rol y por plan (`atajosPara`). **Pantalla nueva con menú, pestaña o botón de «crear» ⇒ se agrega su atajo ahí** (con su módulo, y su servicio si es de un plan superior); lo que es de un animal sin elegirlo manda al Hato para escoger el animal.
+
+**Portada de entrada:** «Qué cubre» es un carrusel de tarjetas (`components/presentacion/CarruselCubre.tsx`): dedo en el celular; flechas, teclado y arrastre con mouse en el computador.

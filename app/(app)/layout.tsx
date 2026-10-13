@@ -1,7 +1,7 @@
 import { BottomNav } from "@/components/BottomNav";
 import { NavLateral } from "@/components/NavLateral";
 import { esAdminPlataforma, obtenerContexto } from "@/lib/contexto";
-import { puedeEscribir, puedeGestionar, puedeVer } from "@/lib/permisos";
+import { puedeGestionar, puedeVer } from "@/lib/permisos";
 
 /**
  * Celular: una columna con la barra inferior. Computador (desde `lg`): menú lateral fijo y contenido más ancho.
@@ -9,7 +9,6 @@ import { puedeEscribir, puedeGestionar, puedeVer } from "@/lib/permisos";
  */
 export default async function LayoutApp({ children }: { children: React.ReactNode }) {
   const { user, perfil, finca, fincas, rol } = await obtenerContexto();
-  const permisos = { puedeOrdenar: puedeEscribir(rol, "leche", finca.plan), puedeCrearAnimal: puedeEscribir(rol, "hato", finca.plan), puedeSanidad: puedeEscribir(rol, "sanidad", finca.plan), puedeCarne: puedeEscribir(rol, "carne", finca.plan) };
   const esSuperadmin = await esAdminPlataforma();
 
   return (
@@ -19,7 +18,8 @@ export default async function LayoutApp({ children }: { children: React.ReactNod
         correo={user.email ?? ""}
         fincas={fincas.map((f) => ({ id: f.id, nombre: f.nombre, rol: f.rol }))}
         fincaActiva={finca.id}
-        permisos={permisos}
+        rol={rol}
+        plan={finca.plan}
         verLeche={puedeVer(rol, "leche", finca.plan)}
         verPremios={puedeVer(rol, "ferias", finca.plan)}
         verSanidad={puedeVer(rol, "sanidad", finca.plan)}
@@ -37,7 +37,7 @@ export default async function LayoutApp({ children }: { children: React.ReactNod
           {children}
         </main>
       </div>
-      <BottomNav {...permisos} />
+      <BottomNav rol={rol} plan={finca.plan} />
     </>
   );
 }
