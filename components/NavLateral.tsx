@@ -52,7 +52,7 @@ export function NavLateral({
   verEquipo: boolean;
   /** El propietario ve su plan en el menú principal. */
   verPlan: boolean;
-  /** Hay un plan superior al actual: la entrada dice «Mejorar mi plan»; si no, «Mi plan». */
+  /** Hay un plan superior al actual: la entrada dice «Cambiar el plan»; si no, «Plan de esta finca». */
   planMejorable: boolean;
   esSuperadmin: boolean;
 }) {
@@ -72,7 +72,7 @@ export function NavLateral({
     { href: "/hato/endogamia", etiqueta: "Endogamia", Icono: GitFork },
     ...(verPremios ? [{ href: "/ferias", etiqueta: "Premios", Icono: Trophy }] : []),
     ...(verEquipo ? [{ href: "/mas/miembros", etiqueta: "Equipo", Icono: Users }] : []),
-    ...(verPlan ? [{ href: "/mas/plan", etiqueta: planMejorable ? "Mejorar mi plan" : "Mi plan", Icono: Rocket }] : []),
+    ...(verPlan ? [{ href: "/mas/plan", etiqueta: planMejorable ? "Cambiar el plan" : "Plan de esta finca", Icono: Rocket }] : []),
   ];
 
   const marcada = entradaMarcada(ruta, [...enlaces.map((e) => e.href), ...(verEquipo ? ["/mas/finca"] : []), "/mas/ajustes", "/mas"]);

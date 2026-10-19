@@ -53,7 +53,15 @@ export default async function PaginaMas({ searchParams }: { searchParams: Promis
               </div>
               <div className="flex shrink-0 flex-col items-end gap-1">
                 <Insignia tono="musgo">{ETIQUETA_ROL[rol]}</Insignia>
-                <Insignia tono="neutro">Plan {nombrePlan(finca.plan)}</Insignia>
+                {rol === "propietario" ? (
+                  <Link href="/mas/plan" aria-label={`Plan ${nombrePlan(finca.plan)}: ver y cambiar el plan de esta finca`} className="-m-2 inline-flex min-h-11 items-center p-2">
+                    <span className="inline-flex items-center gap-1 rounded-full bg-ocre/15 px-2.5 py-0.5 text-xs font-semibold text-ocre">
+                      Plan {nombrePlan(finca.plan)} · Cambiar <ChevronRight className="size-3.5" strokeWidth={2.2} aria-hidden="true" />
+                    </span>
+                  </Link>
+                ) : (
+                  <Insignia tono="neutro">Plan {nombrePlan(finca.plan)}</Insignia>
+                )}
               </div>
             </div>
             <FincaSelector fincas={fincas.map((f) => ({ id: f.id, nombre: f.nombre, rol: f.rol }))} activa={finca.id} />
@@ -147,7 +155,7 @@ export default async function PaginaMas({ searchParams }: { searchParams: Promis
           {rol === "propietario" ? (
             <Link href="/mas/plan" className={FILA}>
               <Rocket className="size-5 text-ocre" strokeWidth={1.75} />
-              <span className="flex-1 font-semibold">{finca.plan !== "hacienda" ? "Mejorar el plan de esta finca" : "Plan de esta finca"}</span>
+              <span className="flex-1 font-semibold">{finca.plan !== "hacienda" ? "Cambiar el plan de esta finca" : "Plan de esta finca"}</span>
               <ChevronRight className="size-5 text-humo" strokeWidth={1.75} />
             </Link>
           ) : null}
