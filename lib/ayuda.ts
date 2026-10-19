@@ -35,6 +35,7 @@ export const AYUDA_IMPORTAR: Ayuda = {
     { titulo: "La plantilla", texto: `Descárgala, escribe un animal por fila (hasta ${MAX_FILAS_IMPORTAR} por archivo) y súbela. Los desplegables te ayudan con la especie, el sexo y la raza.` },
     { titulo: "Genealogía", texto: "Escribe el arete del padre y de la madre. Pueden ser animales del mismo archivo (el orden de las filas no importa) o animales que ya están en tu hato." },
     { titulo: "Padres de fuera", texto: "Si el padre o la madre no son tuyos, escribe su nombre o registro en las columnas «si no está en tu hato»." },
+    { titulo: "Partos, servicio y corral", texto: "Si tu plan lo permite, la plantilla trae columnas para los partos de cada hembra, su último servicio y preñez, y el corral o potrero donde está hoy. Así la finca arranca con su estado reproductivo y sus corrales ya armados." },
     { titulo: "Revisión", texto: "Antes de guardar ves cada fila. Si algo está mal, la app dice la fila y qué corregir; mientras haya errores no se guarda nada." },
     { titulo: "Solo animales nuevos", texto: "Un arete que ya existe en tu finca se rechaza: este cargue crea animales, no cambia los que ya tienes." },
   ],
