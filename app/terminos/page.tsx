@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Contacto } from "@/components/legal/Contacto";
 import { Lista, P, PaginaLegal, Resumen, type SeccionLegal } from "@/components/legal/PaginaLegal";
 import { RESPONSABLE } from "@/lib/legal";
+import { TEXTO_SOLO_CON_PLAN } from "@/lib/referidos";
 
 export const metadata: Metadata = {
   title: "Términos de servicio",
@@ -66,6 +67,7 @@ const SECCIONES: SeccionLegal[] = [
           Cada persona con cuenta tiene un enlace personal de referidos («Más → Referidos»). <strong>Por cada persona que se registre con tu enlace y adquiera un plan, recibes el 5 % del valor de ese plan cada mes durante 6 meses</strong>, contados desde que la persona adquiere su plan.
         </P>
         <Lista>
+          <li>{TEXTO_SOLO_CON_PLAN}</li>
           <li>La comisión se calcula sobre el precio mensual del plan que adquiere la persona referida, en dólares estadounidenses (US$).</li>
           <li>Tú ves a tus referidos solo con su primer nombre, el plan que adquirieron y cuánto va causado; no ves sus datos ni los de su finca.</li>
           <li>Registrarse con tu propio enlace no genera comisión.</li>
