@@ -102,6 +102,18 @@ export const AYUDA_VENTAS: Ayuda = {
   enlace: { href: "/costos?vista=ventas", texto: "Ver las ventas de toda la finca" },
 };
 
+export const AYUDA_PERSONAL: Ayuda = {
+  titulo: "Personal y pagos",
+  puntos: [
+    { titulo: "Cada persona, una vez", texto: "Registras a quien trabaja en la finca con su vinculación (contrato de trabajo o prestación de servicios) y lo que se le paga: salario, jornal o valor por servicio." },
+    { titulo: "El pago se calcula solo", texto: "Eliges a la persona y escribes cuántos meses, días o servicios se pagan: el valor viene de su contrato." },
+    { titulo: "Lo que cuesta de verdad", texto: "Con contrato de trabajo, el costo suma las cargas de ley con el factor prestacional que defines en Ajustes. Por prestación de servicios cuesta lo que se le paga." },
+    { titulo: "Seguridad social", texto: "A quien trabaja por prestación de servicios se le adjunta el comprobante de pago de su seguridad social (PILA) para registrar el pago como hecho." },
+    { titulo: "Aparte de las compras", texto: "La mano de obra se suma en Costos como «Mano de obra», separada de lo que compras." },
+  ],
+  enlace: { href: "/mas/ajustes", texto: "Ver el factor prestacional en Ajustes" },
+};
+
 export const AYUDA_COSTOS: Ayuda = {
   titulo: "Cómo leer las cuentas",
   puntos: [

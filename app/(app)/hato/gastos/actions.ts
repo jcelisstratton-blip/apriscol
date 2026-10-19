@@ -130,6 +130,7 @@ export async function crearGasto(_: EstadoForm, form: FormData): Promise<EstadoF
   const d = datos.data;
   const problema = revisar(d, finca.id);
   if (problema) return { error: problema };
+  if (d.rubro === "mano_obra") return { error: "Los pagos al personal se registran en Personal, para que se cuenten una sola vez como mano de obra." };
 
   const supabase = await crearClienteServidor();
   const listas = await resolverListas(supabase, finca.id, d);

@@ -127,8 +127,9 @@ export async function Resumen({
         {doble.length > 0 ? (
           <Tarjeta titulo="Revisa que no se cuente dos veces">
             <Aviso tipo="atencion">
-              {doble.map((d) => `${ETIQUETA_RUBRO[d.rubro]}: ${pesos(Number(d.compras))} en compras y ${pesos(Number(d.consumo))} ${d.origen_consumo === "ceba" ? "de alimento de ceba" : "de tratamientos"}`).join(". ")}. Si es el mismo alimento o
-              la misma medicina, se está sumando dos veces: deja el costo en un solo lugar (la compra o el registro de ceba o de sanidad).
+              {doble.map((d) => `${ETIQUETA_RUBRO[d.rubro]}: ${pesos(Number(d.compras))} en compras y ${pesos(Number(d.consumo))} ${d.origen_consumo === "ceba" ? "de alimento de ceba" : d.origen_consumo === "nomina" ? "de pagos al personal" : "de tratamientos"}`).join(". ")}.
+              {doble.some((d) => d.origen_consumo === "nomina") ? " Si la mano de obra de las compras es la misma que pagaste en Personal, se está sumando dos veces: déjala solo en Personal y elimina o corrige la compra." : ""}
+              {doble.some((d) => d.origen_consumo !== "nomina") ? " Si es el mismo alimento o la misma medicina, se está sumando dos veces: deja el costo en un solo lugar (la compra o el registro de ceba o de sanidad)." : ""}
             </Aviso>
           </Tarjeta>
         ) : null}

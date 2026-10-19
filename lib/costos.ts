@@ -90,7 +90,7 @@ export const DETALLE_DESTINO: Record<DestinoGasto, string> = {
   animal: "Se suma a su costo",
 };
 
-export const ETIQUETA_ORIGEN: Record<OrigenCosto, string> = { gasto: "Compra", sanidad: "Sanidad", ceba: "Ceba", compra: "Compra de animal" };
+export const ETIQUETA_ORIGEN: Record<OrigenCosto, string> = { gasto: "Compra", sanidad: "Sanidad", ceba: "Ceba", compra: "Compra de animal", nomina: "Nómina" };
 
 /** Cómo se paga un gasto: ya se pagó, o queda por pagar con su fecha de vencimiento. */
 export type EstadoPago = "pagado" | "por_pagar";

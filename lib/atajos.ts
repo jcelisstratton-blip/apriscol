@@ -1,6 +1,7 @@
 import {
   Activity, ArrowRightLeft, Baby, Banknote, BarChart3, Beef, CalendarClock, ClipboardCheck, Droplets, FileText, FlaskConical, GitFork, HeartPulse, Home, KeyRound, Layers, MapPin,
   Microscope, Package, PawPrint, Plus, Rocket, Scale, Shuffle, SlidersHorizontal, Snowflake, Syringe, Trophy, Truck, UserPlus, Users, Wallet, Wrench, Fence, Sheet, type LucideIcon,
+  HardHat,
 } from "lucide-react";
 import { puedeEscribir, puedeGestionar, puedeVer } from "@/lib/permisos";
 import { servicioEnPlan, type ServicioPlan } from "@/lib/planes";
@@ -91,6 +92,8 @@ export const ATAJOS: Atajo[] = [
   { grupo: "Costos", tipo: "registrar", titulo: "Registrar una compra", detalle: "Alimento, sanidad, servicios y más: eliges y pones la cantidad", href: "/hato/gastos/nuevo", Icono: Wallet, modulo: "contabilidad", clave: "gasto costo factura compra concentrado" },
   { grupo: "Costos", tipo: "registrar", titulo: "Registrar una venta", detalle: "Carne, queso, abono, lana…: eliges y pones la cantidad", href: "/hato/ventas/nueva", Icono: Banknote, modulo: "contabilidad", clave: "vender ingreso cobrar queso carne abono" },
   { grupo: "Costos", tipo: "ir", titulo: "Compras", detalle: "Lo que cuesta el hato, y lo que falta por pagar", href: "/hato?vista=gastos", Icono: Wallet, modulo: "contabilidad", clave: "gastos por pagar" },
+  { grupo: "Costos", tipo: "registrar", titulo: "Registrar un pago al personal", detalle: "Salario, jornal u honorarios de quien trabaja en la finca", href: "/personal/pagos/nuevo", Icono: HardHat, modulo: "contabilidad", clave: "nomina mano de obra salario jornal pago personal empleado" },
+  { grupo: "Costos", tipo: "ir", titulo: "Personal", detalle: "Las personas que trabajan en la finca y sus pagos", href: "/personal", Icono: HardHat, modulo: "contabilidad", clave: "nomina mano de obra empleados trabajadores pila contratista" },
   { grupo: "Costos", tipo: "ir", titulo: "Ventas", detalle: "Lo que vendes, y lo que falta por cobrar", href: "/hato?vista=ventas", Icono: Banknote, modulo: "contabilidad", clave: "ingresos por cobrar leche animales" },
   { grupo: "Costos", tipo: "ir", titulo: "Costos y resultado", detalle: "Compras, mano de obra, ventas y resultado por fechas", href: "/costos", Icono: BarChart3, modulo: "contabilidad" },
   { grupo: "Costos", tipo: "ir", titulo: "Productos y terceros", detalle: "Tus listas de productos, proveedores y compradores", href: "/mas/productos", Icono: Package, modulo: "contabilidad", clave: "catalogo precios proveedores compradores" },

@@ -1,10 +1,11 @@
 import {
   Archive, Banknote, Beef, Bug, CalendarClock, CircleCheck, ClipboardList, Coins, Fence, FileSpreadsheet, FlaskConical, Footprints, Fuel, Hammer, Heart, Leaf, LayoutDashboard,
-  Milk, Package, PawPrint, Pill, Receipt, ScanBarcode, Scissors, ShieldPlus, Sprout, Stethoscope, Syringe, Tags, TrendingDown, TrendingUp, Truck, Users, Wallet, Warehouse, Wheat, Zap, Dna,
+  Milk, Package, PawPrint, UserCheck, UserRound, Pill, Receipt, ScanBarcode, Scissors, ShieldPlus, Sprout, Stethoscope, Syringe, Tags, TrendingDown, TrendingUp, Truck, Users, Wallet, Warehouse, Wheat, Zap, Dna,
 } from "lucide-react";
 import { escena, type EscenaDef } from "@/lib/escenas";
 import { ESCENA_ESPECIE } from "@/lib/escenas-forms-b-hato";
 import type { GrupoCosto, GrupoGasto } from "@/lib/costos";
+import type { FormaPago, Vinculacion } from "@/lib/tipos";
 import type { DestinoGasto, LineaVenta, RubroGasto } from "@/lib/tipos";
 
 export const ESCENA_GRUPO_GASTO: Record<GrupoGasto, EscenaDef> = {
@@ -83,6 +84,7 @@ export const ESCENA_PESTANA_COSTOS: Record<string, EscenaDef> = {
   costos: escena(Receipt, "ocre", Coins),
   animales: escena(PawPrint, "ambar", Tags),
   reportes: escena(FileSpreadsheet, "oliva", Archive),
+  personal: escena(Users, "ocre", Hammer),
 };
 
 /** Cada reporte descargable. */
@@ -94,5 +96,20 @@ export const ESCENA_REPORTE: Record<string, EscenaDef> = {
   pendientes: escena(CalendarClock, "arcilla", Wallet),
   resultado: escena(TrendingDown, "grafito", TrendingUp),
 };
+
+/** Nómina: cómo está vinculada una persona, cómo se le paga y si sigue trabajando. */
+export const ESCENA_VINCULACION: Record<Vinculacion, EscenaDef> = {
+  laboral: escena(UserCheck, "musgo", ShieldPlus),
+  servicios: escena(FileSpreadsheet, "ocre", Receipt),
+};
+export const ESCENA_FORMA_PAGO: Record<FormaPago, EscenaDef> = {
+  mensual: escena(CalendarClock, "ambar", Banknote),
+  jornal: escena(Hammer, "arcilla", Coins),
+  por_servicio: escena(Stethoscope, "oliva", Receipt),
+};
+export const ESCENA_ACTIVA = {
+  si: escena(UserCheck, "oliva", CircleCheck),
+  no: escena(UserRound, "grafito", Archive),
+} as const;
 
 export { ESCENA_ESPECIE };
