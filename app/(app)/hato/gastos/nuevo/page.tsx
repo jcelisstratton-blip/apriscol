@@ -7,6 +7,7 @@ import { Encabezado } from "@/components/Encabezado";
 import { FormGasto } from "@/components/FormGasto";
 import { servicioEnPlan } from "@/lib/planes";
 import { obtenerContexto } from "@/lib/contexto";
+import { obtenerProductos, obtenerTerceros } from "@/lib/catalogos-servidor";
 import { crearClienteServidor } from "@/lib/supabase/server";
 import { puedeEscribir } from "@/lib/permisos";
 import { etiquetaAnimal } from "@/lib/animal";
@@ -14,7 +15,7 @@ import { RUBROS } from "@/lib/costos";
 import { hoyBogota } from "@/lib/fechas";
 import type { RubroGasto } from "@/lib/tipos";
 
-export const metadata: Metadata = { title: "Registrar gasto" };
+export const metadata: Metadata = { title: "Registrar una compra" };
 const ID_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /**
@@ -34,6 +35,7 @@ export default async function PaginaGastoNuevo({ searchParams }: { searchParams:
     if (!data) notFound();
     animal = data;
   }
+  const [productos, terceros] = await Promise.all([obtenerProductos(), obtenerTerceros()]);
   const [{ data: ubicaciones }, { data: lotes }] = await Promise.all([
     supabase.from("ubicaciones").select("id, nombre").eq("finca_id", finca.id).eq("activa", true).order("nombre").limit(300),
     supabase.from("lotes_ceba").select("id, nombre").eq("finca_id", finca.id).is("cerrado_en", null).order("nombre").limit(300),
@@ -51,7 +53,7 @@ export default async function PaginaGastoNuevo({ searchParams }: { searchParams:
       <Link href={animal ? `/hato/${animal.id}#costos` : "/hato?vista=gastos"} className="-ml-2 mt-3 inline-flex min-h-11 items-center gap-1 rounded-full px-2 text-[0.9375rem] font-semibold text-musgo">
         <ChevronLeft className="size-5" strokeWidth={2} /> {animal ? (animal.nombre ?? animal.numero_arete) : "Hato"}
       </Link>
-      <Encabezado titulo="Registrar un gasto" subtitulo={animal ? etiquetaAnimal(animal) : finca.nombre} />
+      <Encabezado titulo="Registrar una compra" subtitulo={animal ? etiquetaAnimal(animal) : finca.nombre} />
       <div className="lg:max-w-xl">
         <FormGasto
           conSoporte={servicioEnPlan(finca.plan, "soportes")}
@@ -65,6 +67,8 @@ export default async function PaginaGastoNuevo({ searchParams }: { searchParams:
           destinoInicial={destinoInicial}
           animalDe={animal?.id}
           solicitud={randomUUID()}
+          productos={productos.filter((p) => p.tipo === "compra" && p.activo)}
+          terceros={terceros}
         />
       </div>
     </>

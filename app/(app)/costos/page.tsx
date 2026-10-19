@@ -16,6 +16,7 @@ import { puedeEscribir, puedeVer } from "@/lib/permisos";
 import { crearClienteServidor } from "@/lib/supabase/server";
 import { ListaCostoAnimales } from "./ListaCostoAnimales";
 import { ListaCostos } from "./ListaCostos";
+import { ListaVentas } from "@/components/ListaVentas";
 import { Reportes } from "./Reportes";
 import { Resumen } from "./Resumen";
 import { Aviso } from "@/components/Aviso";
@@ -26,24 +27,26 @@ import { servicioEnPlan } from "@/lib/planes";
 export const metadata: Metadata = { title: "Costos" };
 
 const PESTANAS = [
-  { valor: "resumen", etiqueta: "Resumen", detalle: "Costos, ingresos y resultado" },
-  { valor: "costos", etiqueta: "Costos", detalle: "Todo lo que costó, uno por uno" },
+  { valor: "resumen", etiqueta: "Resumen", detalle: "Compras, ventas y resultado" },
+  { valor: "compras", etiqueta: "Compras", detalle: "Todo lo que costó, uno por uno" },
+  { valor: "ventas", etiqueta: "Ventas", detalle: "Todo lo que se vendió y se cobró" },
   { valor: "animales", etiqueta: "Por animal", detalle: "Cuánto cuesta cada animal" },
   { valor: "reportes", etiqueta: "Reportes", detalle: "Descarga en Excel" },
 ] as const;
 type Vista = (typeof PESTANAS)[number]["valor"];
 /** Qué reporte descarga el botón de cada pestaña. */
-const REPORTE_DE: Partial<Record<Vista, ReporteId>> = { resumen: "resultado", costos: "detalle", animales: "animales" };
+const REPORTE_DE: Partial<Record<Vista, ReporteId>> = { resumen: "resultado", compras: "detalle", ventas: "ventas", animales: "animales" };
 
 /**
- * Costos (menú de todo el hato): el resumen de lo que cuesta el aprisco con filtros por cualquier fecha, todo lo que costó, el costo por animal y
- * los reportes en Excel. Registrar gastos se hace en Hato → Gastos, y lo de cada animal en su ficha.
+ * Costos (menú de todo el hato): el resumen de compras, mano de obra y ventas con filtros por cualquier fecha, todo lo que costó, todo lo que se vendió,
+ * el costo por animal y los reportes en Excel. Compras y ventas se registran en Hato → Compras y Hato → Ventas, y lo de cada animal en su ficha.
  */
 export default async function PaginaCostos({ searchParams }: { searchParams: Promise<{ vista?: string; periodo?: string; desde?: string; hasta?: string }> }) {
   const { finca, rol } = await obtenerContexto();
   if (!puedeVer(rol, "contabilidad", finca.plan)) redirect("/");
   const sp = await searchParams;
-  const vista: Vista = PESTANAS.some((p) => p.valor === sp.vista) ? (sp.vista as Vista) : "resumen";
+  // «costos» era el nombre de la pestaña de compras: los enlaces viejos siguen funcionando.
+  const vista: Vista = sp.vista === "costos" ? "compras" : PESTANAS.some((p) => p.valor === sp.vista) ? (sp.vista as Vista) : "resumen";
   const puedeEditar = puedeEscribir(rol, "contabilidad", finca.plan);
   const periodo = esPeriodo(sp.periodo) ? sp.periodo : "todo";
   const filtro = { periodo, desde: sp.desde, hasta: sp.hasta };
@@ -77,11 +80,12 @@ export default async function PaginaCostos({ searchParams }: { searchParams: Pro
       ) : null}
 
       {vista === "resumen" ? <Resumen fincaId={finca.id} filtros={filtro} /> : null}
-      {vista === "costos" ? <ListaCostos fincaId={finca.id} hoy={hoy} puedeEditar={puedeEditar} rango={rango} /> : null}
+      {vista === "compras" ? <ListaCostos fincaId={finca.id} hoy={hoy} puedeEditar={puedeEditar} rango={rango} /> : null}
+      {vista === "ventas" ? <ListaVentas fincaId={finca.id} hoy={hoy} puedeEditar={puedeEditar} rango={rango} /> : null}
       {vista === "animales" && !verAnimales ? <RequierePlan servicio="costoAnimal" rol={rol} /> : null}
       {vista === "animales" && animales ? (
         <div className="space-y-3">
-          {animales.generales > 0 ? <Aviso tipo="info">Además hay {pesos(animales.generales)} de gastos generales de la finca que no se reparten entre los animales.</Aviso> : null}
+          {animales.generales > 0 ? <Aviso tipo="info">Además hay {pesos(animales.generales)} de compras generales de la finca que no se reparten entre los animales.</Aviso> : null}
           <ListaCostoAnimales filas={animales.filas} />
         </div>
       ) : null}

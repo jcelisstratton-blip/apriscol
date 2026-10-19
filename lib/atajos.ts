@@ -1,5 +1,5 @@
 import {
-  Activity, ArrowRightLeft, Baby, BarChart3, Beef, CalendarClock, ClipboardCheck, Droplets, FileText, FlaskConical, GitFork, HeartPulse, Home, KeyRound, Layers, MapPin,
+  Activity, ArrowRightLeft, Baby, Banknote, BarChart3, Beef, CalendarClock, ClipboardCheck, Droplets, FileText, FlaskConical, GitFork, HeartPulse, Home, KeyRound, Layers, MapPin,
   Microscope, Package, PawPrint, Plus, Rocket, Scale, Shuffle, SlidersHorizontal, Snowflake, Syringe, Trophy, Truck, UserPlus, Users, Wallet, Wrench, Fence, Sheet, type LucideIcon,
 } from "lucide-react";
 import { puedeEscribir, puedeGestionar, puedeVer } from "@/lib/permisos";
@@ -88,9 +88,12 @@ export const ATAJOS: Atajo[] = [
   { grupo: "Corrales", tipo: "ir", titulo: "Resumen de corrales", detalle: "Ocupación, movimientos y alertas", href: "/corrales", Icono: BarChart3, modulo: "corrales", clave: "hacinamiento cuarentena" },
 
   // Costos
-  { grupo: "Costos", tipo: "registrar", titulo: "Registrar un gasto", detalle: "Alimento, sanidad, mano de obra y más", href: "/hato/gastos/nuevo", Icono: Wallet, modulo: "contabilidad", clave: "gasto costo factura compra" },
-  { grupo: "Costos", tipo: "ir", titulo: "Gastos", detalle: "Lo que cuesta el hato, y lo que falta por pagar", href: "/hato?vista=gastos", Icono: Wallet, modulo: "contabilidad", clave: "por pagar" },
-  { grupo: "Costos", tipo: "ir", titulo: "Costos y resultado", detalle: "Costos, ingresos y resultado por fechas", href: "/costos", Icono: BarChart3, modulo: "contabilidad" },
+  { grupo: "Costos", tipo: "registrar", titulo: "Registrar una compra", detalle: "Alimento, sanidad, servicios y más: eliges y pones la cantidad", href: "/hato/gastos/nuevo", Icono: Wallet, modulo: "contabilidad", clave: "gasto costo factura compra concentrado" },
+  { grupo: "Costos", tipo: "registrar", titulo: "Registrar una venta", detalle: "Carne, queso, abono, lana…: eliges y pones la cantidad", href: "/hato/ventas/nueva", Icono: Banknote, modulo: "contabilidad", clave: "vender ingreso cobrar queso carne abono" },
+  { grupo: "Costos", tipo: "ir", titulo: "Compras", detalle: "Lo que cuesta el hato, y lo que falta por pagar", href: "/hato?vista=gastos", Icono: Wallet, modulo: "contabilidad", clave: "gastos por pagar" },
+  { grupo: "Costos", tipo: "ir", titulo: "Ventas", detalle: "Lo que vendes, y lo que falta por cobrar", href: "/hato?vista=ventas", Icono: Banknote, modulo: "contabilidad", clave: "ingresos por cobrar leche animales" },
+  { grupo: "Costos", tipo: "ir", titulo: "Costos y resultado", detalle: "Compras, mano de obra, ventas y resultado por fechas", href: "/costos", Icono: BarChart3, modulo: "contabilidad" },
+  { grupo: "Costos", tipo: "ir", titulo: "Productos y terceros", detalle: "Tus listas de productos, proveedores y compradores", href: "/mas/productos", Icono: Package, modulo: "contabilidad", clave: "catalogo precios proveedores compradores" },
   { grupo: "Costos", tipo: "ir", titulo: "Costo por animal", detalle: "Cuánto cuesta cada animal", href: "/costos?vista=animales", Icono: PawPrint, modulo: "contabilidad", servicio: "costoAnimal" },
   { grupo: "Costos", tipo: "ir", titulo: "Reportes en Excel", detalle: "Descarga por las fechas que elijas", href: "/costos?vista=reportes", Icono: Sheet, modulo: "contabilidad", servicio: "reportes", clave: "descargar excel" },
 

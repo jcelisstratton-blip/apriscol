@@ -10,7 +10,7 @@ import { formatoFecha, hoyBogota } from "@/lib/fechas";
 import { pesos } from "@/lib/ferias";
 
 /**
- * Hato → Gastos: donde se registran los gastos del aprisco (concentrado, sales, mano de obra, fletes…), se ven los que quedan por pagar y se corrigen.
+ * Hato → Compras: donde se registran las compras del aprisco (concentrado, sales, vacunas, fletes…), se ven las que quedan por pagar y se corrigen.
  * El resumen de toda la finca, con filtros por fechas y reportes en Excel, está en el menú «Costos».
  */
 export async function Gastos({
@@ -38,7 +38,7 @@ export async function Gastos({
       <AyudaModulo ayuda={AYUDA_GASTOS} />
       {puedeEditar ? (
         <Link href="/hato/gastos/nuevo" className={clasesBoton("primario")}>
-          <Plus className="size-5" strokeWidth={2.2} aria-hidden="true" /> Registrar un gasto
+          <Plus className="size-5" strokeWidth={2.2} aria-hidden="true" /> Registrar una compra
         </Link>
       ) : null}
 
@@ -51,7 +51,7 @@ export async function Gastos({
                 Por pagar: <span className="tabular-nums">{pesos(porPagar)}</span>
               </p>
               <p className="mt-0.5 text-[0.9375rem] text-humo">
-                {(pendientes ?? []).length} {(pendientes ?? []).length === 1 ? "gasto" : "gastos"}
+                {(pendientes ?? []).length} {(pendientes ?? []).length === 1 ? "compra" : "compras"}
                 {vencidos.length > 0 ? `, ${vencidos.length} ya ${vencidos.length === 1 ? "venció" : "vencieron"}` : ""}
                 {proximo ? `. El próximo vence el ${formatoFecha(proximo, { day: "numeric", month: "short" })}` : ""}.
               </p>

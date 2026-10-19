@@ -5,6 +5,7 @@ import { ChevronLeft } from "lucide-react";
 import { Encabezado } from "@/components/Encabezado";
 import { FormSalida } from "@/components/FormSalida";
 import { obtenerContexto } from "@/lib/contexto";
+import { obtenerTerceros } from "@/lib/catalogos-servidor";
 import { crearClienteServidor } from "@/lib/supabase/server";
 import { puedeEscribir } from "@/lib/permisos";
 import { etiquetaAnimal } from "@/lib/animal";
@@ -33,7 +34,7 @@ export default async function PaginaCorregirSalida({ params }: { params: Promise
       </Link>
       <Encabezado titulo="Corregir salida" subtitulo={`${etiquetaAnimal(animal)} · ${ETIQUETA_TIPO_BAJA[baja.tipo]} del ${formatoFecha(baja.fecha)}`} />
       <div className="lg:max-w-xl">
-        <FormSalida baja={baja} />
+        <FormSalida baja={baja} terceros={await obtenerTerceros()} />
       </div>
     </>
   );

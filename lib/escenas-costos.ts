@@ -4,8 +4,8 @@ import {
 } from "lucide-react";
 import { escena, type EscenaDef } from "@/lib/escenas";
 import { ESCENA_ESPECIE } from "@/lib/escenas-forms-b-hato";
-import type { GrupoGasto } from "@/lib/costos";
-import type { DestinoGasto, RubroGasto } from "@/lib/tipos";
+import type { GrupoCosto, GrupoGasto } from "@/lib/costos";
+import type { DestinoGasto, LineaVenta, RubroGasto } from "@/lib/tipos";
 
 export const ESCENA_GRUPO_GASTO: Record<GrupoGasto, EscenaDef> = {
   alimentacion: escena(Wheat, "ambar", Leaf),
@@ -51,9 +51,35 @@ export const ESCENA_PAGO = {
   por_pagar: escena(CalendarClock, "ambar", Receipt),
 } as const;
 
+/** Los grupos con que se reporta el costo: los cinco de compra más la mano de obra y la compra de animales. */
+export const ESCENA_GRUPO_COSTO: Record<GrupoCosto, EscenaDef> = {
+  ...ESCENA_GRUPO_GASTO,
+  personal: escena(Users, "ocre", Hammer),
+  animales: escena(PawPrint, "ambar", Banknote),
+};
+
+/** Las líneas de ingreso (lo que se vende). */
+export const ESCENA_LINEA_VENTA: Record<LineaVenta, EscenaDef> = {
+  leche: escena(Milk, "oliva", Package),
+  animales: escena(PawPrint, "ambar", Tags),
+  carne: escena(Beef, "arcilla", Package),
+  derivados: escena(Milk, "ocre", Heart),
+  subproductos: escena(Sprout, "oliva", Leaf),
+  otros: escena(ClipboardList, "grafito", Receipt),
+};
+export const ESCENA_TODAS_LINEAS: EscenaDef = escena(LayoutDashboard, "musgo", TrendingUp);
+
+/** Si ya se cobró o queda por cobrar. */
+export const ESCENA_COBRO = {
+  cobrado: escena(CircleCheck, "oliva", Banknote),
+  por_cobrar: escena(CalendarClock, "ambar", Receipt),
+} as const;
+
 /** Las pestañas del menú Costos (se suman a ESCENA_PESTANA). */
 export const ESCENA_PESTANA_COSTOS: Record<string, EscenaDef> = {
   resumen: escena(LayoutDashboard, "musgo", TrendingUp),
+  compras: escena(Receipt, "ocre", Coins),
+  ventas: escena(Banknote, "oliva", TrendingUp),
   costos: escena(Receipt, "ocre", Coins),
   animales: escena(PawPrint, "ambar", Tags),
   reportes: escena(FileSpreadsheet, "oliva", Archive),

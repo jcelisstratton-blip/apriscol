@@ -38,6 +38,8 @@ export type Animal = {
   peso_nacer_kg: number | null;
   /** Lo que costó el animal (compra o reposición), para medir la pérdida por saca y mortalidad. */
   valor_compra: number | null;
+  /** Cuándo se compró (solo animales comprados); sin fecha, la compra cuenta el día en que se registró. */
+  fecha_compra: string | null;
   lote_id: string | null;
   lote_ceba_id: string | null;
   /** Partos que ya había tenido antes de registrarlos aquí (nulo = no se sabe). */
@@ -74,6 +76,11 @@ export type Baja = {
   fecha: string;
   destino: string | null;
   comprador: string | null;
+  /** Quién compró, elegido de la lista de compradores. */
+  tercero_id: string | null;
+  /** Cuándo se cobró; nulo = por cobrar. */
+  cobrado_en: string | null;
+  cobro_vence: string | null;
   destino_consumo: boolean;
   peso_kg: number | null;
   valor: number | null;
@@ -343,6 +350,8 @@ export type RubroGasto =
   | "material_reproductivo" | "asistencia_veterinaria"
   | "identificacion" | "fletes"
   | "mano_obra" | "arriendo" | "servicios_publicos" | "combustible" | "mantenimiento" | "otros";
+/** Un rubro de costo: los de un gasto y la compra de animales, que entra sola desde el valor de compra de cada animal. */
+export type RubroCosto = RubroGasto | "compra_animales";
 export type DestinoGasto = "finca" | "especie" | "ubicacion" | "lote" | "animal";
 
 /** Un egreso del aprisco: qué se compró, a quién, cuánto, a quién se carga y si ya se pagó. */
@@ -353,6 +362,10 @@ export type Gasto = {
   rubro: RubroGasto;
   descripcion: string;
   proveedor: string | null;
+  /** Proveedor elegido de la lista; `proveedor` guarda su nombre para lo que se escribió antes. */
+  tercero_id: string | null;
+  /** Producto del catálogo de compras. Nulo en los gastos escritos a mano («otro»). */
+  producto_id: string | null;
   cantidad: number | null;
   unidad: string | null;
   monto: number;
@@ -370,23 +383,84 @@ export type Gasto = {
   created_at: string;
   updated_at: string;
 };
-/** De dónde viene una línea de costo: un gasto registrado, el costo de un tratamiento (Sanidad) o el del alimento de un lote (Ceba). */
-export type OrigenCosto = "gasto" | "sanidad" | "ceba";
+/** De dónde viene una línea de costo: un gasto registrado, el costo de un tratamiento (Sanidad), el del alimento de un lote (Ceba) o la compra de un animal. */
+export type OrigenCosto = "gasto" | "sanidad" | "ceba" | "compra";
 export type CostoLinea = {
   origen: OrigenCosto;
   origen_id: string;
   fecha: string;
-  rubro: RubroGasto;
+  rubro: RubroCosto;
   descripcion: string;
   proveedor: string | null;
   monto: number;
-  destino_tipo: DestinoGasto | "evento";
+  destino_tipo: DestinoGasto | "evento" | "adquisicion";
   especie: string | null;
   ubicacion_id: string | null;
   lote_id: string | null;
   animal_id: string | null;
   pagado: boolean;
   vence: string | null;
+};
+
+// ───────────────────────── Catálogos y ventas ─────────────────────────
+export type TipoTercero = "proveedor" | "comprador" | "ambos";
+/** A quién se le compra o a quién se le vende. Se crea una vez y se elige siempre. */
+export type Tercero = { id: string; finca_id: string; nombre: string; tipo: TipoTercero; activo: boolean; created_at: string; updated_at: string };
+
+export type LineaVenta = "leche" | "animales" | "carne" | "derivados" | "subproductos" | "otros";
+export type TipoCatalogo = "compra" | "venta";
+/** Algo que se compra (con su rubro) o se vende (con su línea), con su unidad y el último precio. */
+export type Producto = {
+  id: string;
+  finca_id: string;
+  clave: string | null;
+  tipo: TipoCatalogo;
+  nombre: string;
+  rubro: Exclude<RubroGasto, "mano_obra"> | null;
+  linea: LineaVenta | null;
+  unidad: string | null;
+  precio_habitual: number | null;
+  automatico: boolean;
+  activo: boolean;
+  orden: number;
+  created_at: string;
+  updated_at: string;
+};
+
+/** Una venta registrada a mano (carne, queso, abono…). La leche y los animales vendidos entran solos desde Leche y desde la baja. */
+export type Venta = {
+  id: string;
+  finca_id: string;
+  fecha: string;
+  producto_id: string;
+  cantidad: number;
+  unidad: string | null;
+  precio_unitario: number;
+  /** Generada por la base: cantidad × precio. */
+  valor_total: number;
+  tercero_id: string | null;
+  cobrado_en: string | null;
+  cobro_vence: string | null;
+  observaciones: string | null;
+  client_request_id: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+};
+/** De dónde viene una línea de venta: una venta registrada, la leche despachada o un animal vendido o sacrificado. */
+export type OrigenVenta = "venta" | "leche" | "animal";
+export type VentaLinea = {
+  origen: OrigenVenta;
+  origen_id: string;
+  fecha: string;
+  linea: LineaVenta;
+  producto: string;
+  cantidad: number;
+  unidad: string | null;
+  valor: number;
+  tercero: string | null;
+  cobrado: boolean;
+  cobro_vence: string | null;
 };
 
 /** Una evaluación FAMACHA: el color de la mucosa del ojo (1 a 5) de un animal en una fecha. */
@@ -662,6 +736,11 @@ export type DespachoLeche = {
   litros: number;
   destino_tipo: DestinoLeche;
   comprador: string | null;
+  /** Quién compró, elegido de la lista de compradores. */
+  tercero_id: string | null;
+  /** Cuándo se cobró; nulo = por cobrar. */
+  cobrado_en: string | null;
+  cobro_vence: string | null;
   tanque: string | null;
   guia: string | null;
   precio_litro: number | null;
@@ -1087,6 +1166,9 @@ export type Database = {
       evento_sanitario_animales: Tabla<EventoSanitarioAnimal, "evento_id" | "animal_id" | "finca_id">;
       pruebas_sanitarias: Tabla<PruebaSanitaria, "finca_id" | "animal_id" | "prueba">;
       gastos: Tabla<Gasto, "finca_id" | "fecha" | "rubro" | "descripcion" | "monto">;
+      finca_terceros: Tabla<Tercero, "finca_id" | "nombre">;
+      finca_productos: Tabla<Producto, "finca_id" | "tipo" | "nombre">;
+      ventas: Tabla<Venta, "finca_id" | "fecha" | "producto_id" | "cantidad" | "precio_unitario">;
       evaluaciones_famacha: Tabla<EvaluacionFamacha, "finca_id" | "animal_id" | "fecha" | "puntaje">;
       analisis_leche: Tabla<AnalisisLeche, "finca_id">;
       controles_frio: Tabla<ControlFrio, "finca_id" | "momento" | "temperatura_c">;
@@ -1145,9 +1227,27 @@ export type Database = {
         Args: { p_finca: string; p_desde: string | null; p_hasta: string | null; p_rubro?: string | null; p_limite?: number; p_salto?: number };
         Returns: (CostoLinea & { total: number })[];
       };
+      ventas_pagina: {
+        Args: { p_finca: string; p_desde: string | null; p_hasta: string | null; p_linea?: string | null; p_limite?: number; p_salto?: number };
+        Returns: (VentaLinea & { total: number })[];
+      };
+      ventas_detalle: {
+        Args: { p_finca: string; p_desde: string | null; p_hasta: string | null; p_linea?: string | null };
+        Returns: VentaLinea[];
+      };
+      ventas_por_linea: {
+        Args: { p_finca: string; p_desde: string | null; p_hasta: string | null };
+        Returns: { linea: LineaVenta; total: number; por_cobrar: number; vencido: number; movimientos: number }[];
+      };
+      marcar_cobro_venta: { Args: { p_finca: string; p_origen: OrigenVenta; p_id: string; p_fecha: string | null }; Returns: undefined };
+      recordar_precio_producto: { Args: { p_finca: string; p_producto: string; p_precio: number }; Returns: undefined };
+      costos_posible_doble_conteo: {
+        Args: { p_finca: string; p_desde: string | null; p_hasta: string | null };
+        Returns: { rubro: RubroCosto; compras: number; consumo: number; origen_consumo: "sanidad" | "ceba" }[];
+      };
       costos_por_rubro: {
         Args: { p_finca: string; p_desde: string | null; p_hasta: string | null };
-        Returns: { rubro: RubroGasto; total: number; por_pagar: number; de_gastos: number; de_sanidad: number; de_ceba: number; movimientos: number }[];
+        Returns: { rubro: RubroCosto; total: number; por_pagar: number; de_gastos: number; de_sanidad: number; de_ceba: number; movimientos: number }[];
       };
       costos_por_mes: {
         Args: { p_finca: string; p_desde: string | null; p_hasta: string | null };

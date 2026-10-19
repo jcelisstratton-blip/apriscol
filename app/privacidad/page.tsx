@@ -35,9 +35,9 @@ const SECCIONES: SeccionLegal[] = [
             ["Tu cuenta", "Nombre, correo y contraseña (esta última cifrada; no se puede leer)."],
             ["Tu finca", "Nombre, departamento, municipio y vereda; coordenadas si las registras; especies y propósito del aprisco."],
             ["Tu equipo", "Correo y rol de las personas que invitas, y la fecha en que aceptan."],
-            ["Tu hato y tu trabajo diario", "Animales, genealogía, leche, sanidad y retiros, reproducción, partos, corrales y movimientos, ceba y pesos, ferias y premios, gastos y costos."],
+            ["Tu hato y tu trabajo diario", "Animales, genealogía, leche, sanidad y retiros, reproducción, partos, corrales y movimientos, ceba y pesos, ferias y premios, compras, ventas y costos."],
             ["Tus archivos", "Fotos de animales y de premios, y soportes (facturas, constancias, resultados) en PDF o imagen."],
-            ["Terceros que tú registras", "Por ejemplo, el nombre y teléfono del dueño de un semental prestado. Debes tener su autorización para registrarlos."],
+            ["Terceros que tú registras", "Por ejemplo, el nombre y teléfono del dueño de un semental prestado, o el nombre de tus proveedores y compradores. Debes tener su autorización para registrarlos."],
             ["Verificación del libro genealógico", "El documento del titular se convierte en un código irreversible; solo se guardan los últimos 4 dígitos. También se guarda constancia de cada intento y de cada importación."],
             ["Datos técnicos", "Cookies de sesión para mantenerte conectado y registros técnicos (por ejemplo, dirección IP y navegador) que generan Supabase y Vercel al operar el servicio."],
           ]}

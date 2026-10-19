@@ -80,25 +80,37 @@ export const AYUDA_ORDENO: Ayuda = {
 };
 
 export const AYUDA_GASTOS: Ayuda = {
-  titulo: "Gastos del aprisco",
+  titulo: "Compras del aprisco",
   puntos: [
-    { titulo: "Registrar", texto: "Anota cada compra o pago con su rubro, proveedor y valor. Puedes adjuntar la factura." },
+    { titulo: "Elegir, no escribir", texto: "Escoges qué compraste de la lista de productos de tu finca y a quién; solo escribes la cantidad. El precio de la última vez ya viene puesto." },
     { titulo: "A quién se carga", texto: "A toda la finca, a una especie, a un corral, a un lote o a un animal. Así sabes cuánto cuesta cada animal y cada litro." },
-    { titulo: "Lo que ya registraste", texto: "El costo de cada tratamiento (Sanidad) y del alimento de la ceba se suma solo: no lo escribas dos veces." },
+    { titulo: "Lo que ya registraste", texto: "El costo de cada tratamiento (Sanidad), el alimento de la ceba y la compra de cada animal comprado se suman solos. Si registras aquí el mismo alimento o medicina, el resumen de Costos te avisa para que no se cuente dos veces." },
     { titulo: "Por pagar", texto: "Si lo compraste a crédito, deja la fecha de vencimiento: te avisamos en Hoy cuando se pase y lo marcas pagado con un toque." },
-    { titulo: "Reportes", texto: "En el menú Costos ves el resumen con las fechas que quieras y descargas cada reporte en Excel." },
+    { titulo: "Tu lista", texto: "Si algo que compras no está en la lista, elige «Otra compra» o agrégalo a tus productos en Más → Productos y terceros." },
   ],
-  enlace: { href: "/costos", texto: "Ver los costos de toda la finca" },
+  enlace: { href: "/costos?vista=compras", texto: "Ver las compras de toda la finca" },
+};
+
+export const AYUDA_VENTAS: Ayuda = {
+  titulo: "Ventas del aprisco",
+  puntos: [
+    { titulo: "Lo que entra solo", texto: "La leche que despachas con precio y los animales que vendes o sacrificas aparecen aquí sin escribirlos de nuevo." },
+    { titulo: "Lo que registras tú", texto: "Carne, queso, abono, lana y demás: eliges el producto y el comprador, escribes la cantidad y el precio de la última vez ya viene puesto." },
+    { titulo: "Por cobrar", texto: "Si te lo deben, déjalo «por cobrar» con la fecha en que lo esperas. Cuando te paguen, lo marcas cobrado con un toque." },
+    { titulo: "Tu lista", texto: "Los productos y compradores se manejan en Más → Productos y terceros." },
+  ],
+  enlace: { href: "/costos?vista=ventas", texto: "Ver las ventas de toda la finca" },
 };
 
 export const AYUDA_COSTOS: Ayuda = {
-  titulo: "Cómo leer los costos",
+  titulo: "Cómo leer las cuentas",
   puntos: [
+    { titulo: "Compras y ventas, separadas", texto: "Compras es lo que pagas; ventas es lo que cobras; la mano de obra se cuenta aparte. El resultado es lo vendido menos todo lo que costó." },
     { titulo: "Fechas", texto: "Todo el resumen y cada reporte usan el periodo que elijas: un año, unos meses o cualquier rango entre dos fechas." },
-    { titulo: "Costo total", texto: "Suma los gastos registrados, el costo de los tratamientos y el alimento de la ceba." },
+    { titulo: "Lo que cuesta", texto: "Suma las compras registradas, el costo de los tratamientos, el alimento de la ceba y la compra de animales." },
     { titulo: "Costo por litro", texto: "Es el costo total del periodo dividido entre los litros que se registraron en el ordeño." },
-    { titulo: "Costo por animal", texto: "Suma lo cargado al animal y su parte de lo cargado a su lote, su corral o su especie. Lo de toda la finca no se reparte." },
+    { titulo: "Costo por animal", texto: "Suma lo cargado al animal y su parte de lo cargado a su lote, su corral o su especie. Lo de toda la finca no se reparte; la compra del animal se muestra aparte." },
     { titulo: "Saca y mortalidad", texto: "Compara lo que costó cada animal con lo que se recibió al venderlo, o lo perdido si murió. Pide el valor de compra en la ficha." },
   ],
-  enlace: { href: "/hato?vista=gastos", texto: "Registrar gastos" },
+  enlace: { href: "/hato?vista=gastos", texto: "Registrar compras" },
 };

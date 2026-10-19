@@ -6,13 +6,15 @@ import { Aviso } from "@/components/Aviso";
 import { Boton } from "@/components/Boton";
 import { Campo, CLASE_INPUT } from "@/components/Campo";
 import { SelectorTarjetas } from "@/components/SelectorTarjetas";
+import { SelectorTercero } from "@/components/SelectorTercero";
 import { useToast } from "@/components/Toast";
 import { darDeBaja } from "@/app/(app)/hato/actions";
 import { CamposTrazabilidad } from "@/components/CamposTrazabilidad";
 import { MOTIVOS_BAJA, TIPOS_BAJA } from "@/lib/bajas";
 import { ESCENA_MOTIVO_BAJA, ESCENA_TIPO_BAJA } from "@/lib/escenas-forms-a-hato";
+import { ESCENA_COBRO } from "@/lib/escenas-costos";
 import { leerNumero } from "@/lib/numeros";
-import type { MotivoBaja, TipoBaja } from "@/lib/tipos";
+import type { MotivoBaja, Tercero, TipoBaja } from "@/lib/tipos";
 
 /** Dar de baja a un animal: qué pasó, cuándo y, si fue una venta, a quién y por cuánto. */
 export function FormBaja({
@@ -21,6 +23,7 @@ export function FormBaja({
   hoy,
   nacimiento,
   enOrdeno,
+  terceros,
 }: {
   animalId: string;
   etiqueta: string;
@@ -28,13 +31,17 @@ export function FormBaja({
   nacimiento: string | null;
   /** Hembra con lactancia abierta: sale también de la lista del ordeño. */
   enOrdeno: boolean;
+  /** Los compradores de la finca: el comprador se elige de la lista. */
+  terceros: Tercero[];
 }) {
   const router = useRouter();
   const toast = useToast();
   const [tipo, setTipo] = useState<TipoBaja | "">("");
   const [fecha, setFecha] = useState(hoy);
   const [motivo, setMotivo] = useState<MotivoBaja | "">("");
-  const [comprador, setComprador] = useState("");
+  const [tercero, setTercero] = useState("");
+  const [cobro, setCobro] = useState<"cobrado" | "por_cobrar">("cobrado");
+  const [cobroVence, setCobroVence] = useState("");
   const [valor, setValor] = useState("");
   const [consumo, setConsumo] = useState(false);
   const [detalle, setDetalle] = useState("");
@@ -59,7 +66,9 @@ export function FormBaja({
         tipo,
         fecha,
         motivo: motivo || undefined,
-        comprador,
+        terceroId: tercero,
+        cobro: tipo === "venta" && numeroValor ? cobro : undefined,
+        cobroVence: cobro === "por_cobrar" ? cobroVence : undefined,
         valor: numeroValor,
         destinoConsumo: consumo,
         detalle,
@@ -88,12 +97,32 @@ export function FormBaja({
 
       {tipo === "venta" ? (
         <>
-          <Campo etiqueta="Comprador" ayuda="Opcional.">
-            {(id) => <input id={id} value={comprador} maxLength={160} autoComplete="off" onChange={(e) => setComprador(e.target.value)} className={CLASE_INPUT} placeholder="Nombre de quien lo compró" />}
+          <Campo etiqueta="Comprador" ayuda="Opcional. Se elige de tu lista o se agrega una vez.">
+            {(id) => <SelectorTercero id={id} tipo="comprador" terceros={terceros} valor={tercero} onCambio={(v) => setTercero(v)} titulo="¿A quién se lo vendiste?" placeholder="Elegir o agregar" />}
           </Campo>
           <Campo etiqueta="Valor de la venta" ayuda="Opcional. En pesos." error={valorInvalido ? "Escribe solo números." : undefined}>
             {(id) => <input id={id} value={valor} inputMode="decimal" autoComplete="off" onChange={(e) => setValor(e.target.value)} className={CLASE_INPUT} placeholder="Ej. 450000" />}
           </Campo>
+          {numeroValor ? (
+            <>
+              <Campo etiqueta="¿Ya te pagaron?">
+                {(id) => (
+                  <SelectorTarjetas
+                    id={id}
+                    valor={cobro}
+                    onCambio={(v) => v && setCobro(v)}
+                    titulo="Cobro"
+                    opciones={(["cobrado", "por_cobrar"] as const).map((c) => ({ valor: c, etiqueta: c === "cobrado" ? "Ya me pagaron" : "Me lo deben", escena: ESCENA_COBRO[c] }))}
+                  />
+                )}
+              </Campo>
+              {cobro === "por_cobrar" ? (
+                <Campo etiqueta="Lo esperas el" ayuda="Opcional. Te avisamos cuando se pase.">
+                  {(id) => <input id={id} type="date" value={cobroVence} min={fecha} onChange={(e) => setCobroVence(e.target.value)} className={CLASE_INPUT} />}
+                </Campo>
+              ) : null}
+            </>
+          ) : null}
           <label className="flex min-h-11 items-start gap-3 text-[0.9375rem]">
             <input type="checkbox" checked={consumo} onChange={(e) => setConsumo(e.target.checked)} className="mt-0.5 size-5 shrink-0 accent-[var(--musgo)]" />
             <span>

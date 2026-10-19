@@ -27,6 +27,9 @@ const esquema = z
     rubro: z.enum(RUBROS as [string, ...string[]], "Elige en qué se gastó."),
     descripcion: z.string().trim().min(1, "Cuenta en una frase qué se compró o se pagó.").max(160, "La descripción es muy larga (máximo 160 letras)."),
     proveedor: opcional(z.string().trim().max(120, "El nombre del proveedor es muy largo.")),
+    /** Proveedor elegido de la lista y producto elegido del catálogo (lo que se compró). */
+    tercero_id: opcional(ID_UUID),
+    producto_id: opcional(ID_UUID),
     cantidad: opcional(numero("La cantidad debe ser un número.").pipe(z.number().positive("La cantidad debe ser mayor que cero.").max(9_999_999_999, "La cantidad es muy grande."))),
     unidad: opcional(z.string().trim().max(20, "La unidad es muy larga.")),
     monto: numero("Escribe cuánto costó (solo números).").pipe(z.number().positive("El valor debe ser mayor que cero.").max(99_999_999_999, "El valor es demasiado grande. Revísalo.")),
@@ -53,12 +56,14 @@ const esquema = z
 type Datos = z.output<typeof esquema>;
 
 /** Lo que se guarda: solo el dato del destino elegido, y el pago resuelto (pagado → su fecha; por pagar → su vencimiento). */
-function fila(d: Datos) {
+function fila(d: Datos, proveedor: string | null) {
   return {
     fecha: d.fecha,
     rubro: d.rubro as never,
     descripcion: d.descripcion,
-    proveedor: d.proveedor ?? null,
+    proveedor,
+    tercero_id: d.tercero_id ?? null,
+    producto_id: d.producto_id ?? null,
     cantidad: d.cantidad ?? null,
     unidad: d.cantidad != null ? (d.unidad ?? null) : null,
     monto: d.monto,
@@ -85,6 +90,31 @@ function revisar(d: Datos, fincaId: string): string | null {
   return null;
 }
 
+/**
+ * Resuelve lo que se eligió de las listas: el nombre del proveedor (se guarda también como texto, para lo que lee lo anterior) y que el producto sea de la
+ * finca, de compra y del mismo rubro. Devuelve el nombre del proveedor o un error en lenguaje llano.
+ */
+async function resolverListas(supabase: Awaited<ReturnType<typeof crearClienteServidor>>, fincaId: string, d: Datos): Promise<{ proveedor: string | null } | { error: string }> {
+  let proveedor = d.proveedor ?? null;
+  if (d.tercero_id) {
+    const { data } = await supabase.from("finca_terceros").select("nombre").eq("id", d.tercero_id).eq("finca_id", fincaId).maybeSingle();
+    if (!data) return { error: "No encontramos ese proveedor. Elígelo de nuevo." };
+    proveedor = data.nombre;
+  }
+  if (d.producto_id) {
+    const { data } = await supabase.from("finca_productos").select("tipo, rubro").eq("id", d.producto_id).eq("finca_id", fincaId).maybeSingle();
+    if (!data || data.tipo !== "compra") return { error: "No encontramos ese producto. Elígelo de nuevo." };
+    if (data.rubro !== d.rubro) return { error: "Ese producto no corresponde a ese rubro. Elígelo de nuevo." };
+  }
+  return { proveedor };
+}
+
+/** Guarda el precio por unidad como el habitual del producto, para proponerlo la próxima vez. No bloquea el guardado si falla. */
+async function recordarPrecio(supabase: Awaited<ReturnType<typeof crearClienteServidor>>, fincaId: string, d: Datos) {
+  if (!d.producto_id || !d.cantidad || d.cantidad <= 0) return;
+  await supabase.rpc("recordar_precio_producto", { p_finca: fincaId, p_producto: d.producto_id, p_precio: Math.round((d.monto / d.cantidad) * 100) / 100 });
+}
+
 function refrescar(animal?: string | null) {
   revalidatePath("/hato");
   revalidatePath("/costos");
@@ -102,9 +132,12 @@ export async function crearGasto(_: EstadoForm, form: FormData): Promise<EstadoF
   if (problema) return { error: problema };
 
   const supabase = await crearClienteServidor();
-  const { error } = await supabase.from("gastos").insert({ finca_id: finca.id, ...fila(d), client_request_id: d.client_request_id ?? null });
+  const listas = await resolverListas(supabase, finca.id, d);
+  if ("error" in listas) return { error: listas.error };
+  const { error } = await supabase.from("gastos").insert({ finca_id: finca.id, ...fila(d, listas.proveedor), client_request_id: d.client_request_id ?? null });
   // Doble toque: ya se guardó.
   if (error && !(error.code === "23505" && /client_req/.test(error.message))) return { error: mensajeAmigable(error.message) };
+  if (!error) await recordarPrecio(supabase, finca.id, d);
 
   refrescar(d.animal_id);
   redirect(d.volver ? `/hato/${d.volver}?guardado=1#costos` : `${DIRECCION_GASTOS}&guardado=1`);
@@ -121,9 +154,12 @@ export async function editarGasto(_: EstadoForm, form: FormData): Promise<Estado
   if (problema) return { error: problema };
 
   const supabase = await crearClienteServidor();
-  const { data, error } = await supabase.from("gastos").update(fila(d)).eq("id", d.gasto_id).eq("finca_id", finca.id).select("id");
+  const listas = await resolverListas(supabase, finca.id, d);
+  if ("error" in listas) return { error: listas.error };
+  const { data, error } = await supabase.from("gastos").update(fila(d, listas.proveedor)).eq("id", d.gasto_id).eq("finca_id", finca.id).select("id");
   if (error) return { error: mensajeAmigable(error.message) };
   if (!data || data.length === 0) return { error: "No encontramos ese gasto." };
+  await recordarPrecio(supabase, finca.id, d);
 
   refrescar(d.animal_id);
   redirect(d.volver ? `/hato/${d.volver}?guardado=1#costos` : `${DIRECCION_GASTOS}&guardado=1`);

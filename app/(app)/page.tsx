@@ -67,6 +67,8 @@ export default async function PaginaHoy({ searchParams }: { searchParams: Promis
 
   // Gastos por pagar que ya vencieron (Hato → Gastos): solo quien maneja costos.
   const verGastos = puedeVer(rol, "contabilidad", finca.plan);
+  // Ventas cuyo cobro esperado ya pasó: la leche, los animales y lo demás que se vendió.
+  const cobrosVencidos = verGastos ? ((await supabase.rpc("ventas_pagina", { p_finca: finca.id, p_desde: null, p_hasta: null, p_linea: null, p_limite: 200, p_salto: 0 })).data ?? []).filter((v) => !v.cobrado && v.cobro_vence !== null && v.cobro_vence < hoy) : [];
   const gastosVencidos = verGastos ? ((await supabase.from("gastos").select("id, descripcion, monto, vence").eq("finca_id", finca.id).is("pagado_en", null).lt("vence", hoy).order("vence").limit(50)).data ?? []) : [];
 
   // Corrales: hacinamiento, potreros que deben desocuparse y animales comprados sin cuarentena (Hato → Corrales).
@@ -276,7 +278,7 @@ export default async function PaginaHoy({ searchParams }: { searchParams: Promis
           ) : null}
 
           {gastosVencidos.length > 0 ? (
-            <Tarjeta titulo="Gastos vencidos" acciones={<Link href="/hato?vista=gastos" className="text-sm font-semibold text-musgo">Ver Hato → Gastos</Link>}>
+            <Tarjeta titulo="Compras por pagar vencidas" acciones={<Link href="/hato?vista=gastos" className="text-sm font-semibold text-musgo">Ver Hato → Compras</Link>}>
               <p className="font-display text-2xl font-semibold tabular-nums">{pesos(gastosVencidos.reduce((s, g) => s + Number(g.monto), 0))}</p>
               <ul className="mt-2 divide-y divide-arena">
                 {gastosVencidos.slice(0, 4).map((g) => (
@@ -289,7 +291,25 @@ export default async function PaginaHoy({ searchParams }: { searchParams: Promis
                   </li>
                 ))}
               </ul>
-              {gastosVencidos.length > 4 ? <p className="mt-2 border-t border-arena pt-2 text-sm text-humo">Y {gastosVencidos.length - 4} más en Hato → Gastos.</p> : null}
+              {gastosVencidos.length > 4 ? <p className="mt-2 border-t border-arena pt-2 text-sm text-humo">Y {gastosVencidos.length - 4} más en Hato → Compras.</p> : null}
+            </Tarjeta>
+          ) : null}
+
+          {cobrosVencidos.length > 0 ? (
+            <Tarjeta titulo="Ventas por cobrar vencidas" acciones={<Link href="/hato?vista=ventas" className="text-sm font-semibold text-musgo">Ver Hato → Ventas</Link>}>
+              <p className="font-display text-2xl font-semibold tabular-nums">{pesos(cobrosVencidos.reduce((s, v) => s + Number(v.valor), 0))}</p>
+              <ul className="mt-2 divide-y divide-arena">
+                {cobrosVencidos.slice(0, 4).map((v) => (
+                  <li key={`${v.origen}-${v.origen_id}`} className="flex items-center justify-between gap-3 py-2">
+                    <span className="min-w-0">
+                      <span className="block font-medium [overflow-wrap:anywhere]">{v.producto}{v.tercero ? ` · ${v.tercero}` : ""}</span>
+                      <span className="block text-sm text-humo">Lo esperabas hace {-diasHasta(v.cobro_vence!, hoy)} {-diasHasta(v.cobro_vence!, hoy) === 1 ? "día" : "días"}</span>
+                    </span>
+                    <span className="shrink-0 font-semibold tabular-nums">{pesos(Number(v.valor))}</span>
+                  </li>
+                ))}
+              </ul>
+              {cobrosVencidos.length > 4 ? <p className="mt-2 border-t border-arena pt-2 text-sm text-humo">Y {cobrosVencidos.length - 4} más en Hato → Ventas.</p> : null}
             </Tarjeta>
           ) : null}
 

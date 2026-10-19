@@ -14,7 +14,7 @@ const TARJETAS: { titulo: string; detalle: string; escena: EscenaDef }[] = [
   { titulo: "Carne y ceba", detalle: "Pesos, lotes y rendimiento al sacrificio.", escena: ESCENA_HATO.ceba },
   { titulo: "Sanidad", detalle: "Vacunas, tratamientos y periodos de retiro.", escena: ESCENA_HATO.sanidad },
   { titulo: "Corrales y potreros", detalle: "Cupo, rotación y cuarentena.", escena: ESCENA_HATO.corrales },
-  { titulo: "Costos y gastos", detalle: "Cuánto cuesta cada litro y cada animal.", escena: ESCENA_HATO.gastos },
+  { titulo: "Compras, ventas y costos", detalle: "Lo que compras, lo que vendes y cuánto cuesta cada litro y cada animal.", escena: ESCENA_HATO.gastos },
   { titulo: "Premios y ferias", detalle: "El palmarés de cada animal.", escena: escena(Trophy, "ambar", Crown) },
 ];
 

@@ -25,7 +25,7 @@ export function ListaCostoAnimales({ filas }: { filas: CostoAnimalFila[] }) {
         <EstadoVacio
           icono={<PawPrint strokeWidth={1.5} />}
           titulo={busqueda ? "Nada con esa búsqueda" : "Ningún animal tiene costos en este periodo"}
-          descripcion={busqueda ? "Prueba con otro arete o nombre." : "Carga gastos a un animal, a su lote, a su corral o a su especie, o registra el costo de sus tratamientos, y aquí verás cuánto cuesta cada uno."}
+          descripcion={busqueda ? "Prueba con otro arete o nombre." : "Carga compras a un animal, a su lote, a su corral o a su especie, o registra el costo de sus tratamientos, y aquí verás cuánto cuesta cada uno."}
         />
       ) : (
         <ListaPorTramos

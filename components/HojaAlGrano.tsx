@@ -28,7 +28,7 @@ function Contenido({ rol, plan, onCerrar }: { rol: RolFinca; plan: PlanId; onCer
           enterKeyHint="search"
           value={texto}
           onChange={(e) => setTexto(e.target.value)}
-          placeholder="Busca: ordeño, vacuna, gasto…"
+          placeholder="Busca: ordeño, vacuna, compra, venta…"
           aria-label="Buscar qué hacer"
           className="min-h-12 w-full rounded-2xl border border-arena bg-papel pl-12 pr-11 text-base placeholder:text-humo/70 focus:border-musgo focus:outline-none focus:ring-2 focus:ring-musgo/25 [&::-webkit-search-cancel-button]:hidden"
         />

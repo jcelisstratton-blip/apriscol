@@ -8,12 +8,15 @@ import { FormDespacho } from "@/components/FormDespacho";
 import { obtenerContexto } from "@/lib/contexto";
 import { puedeEscribir } from "@/lib/permisos";
 import { hoyBogota } from "@/lib/fechas";
+import { obtenerProductos, obtenerTerceros } from "@/lib/catalogos-servidor";
 
 export const metadata: Metadata = { title: "Registrar despacho" };
 
 export default async function PaginaDespachoNuevo() {
   const { finca, rol } = await obtenerContexto();
   if (!puedeEscribir(rol, "leche", finca.plan)) redirect("/leche?vista=despachos");
+  const [productos, terceros] = await Promise.all([obtenerProductos(), obtenerTerceros()]);
+  const precioHabitual = productos.find((p) => p.clave === "leche_cruda")?.precio_habitual ?? null;
 
   return (
     <>
@@ -22,7 +25,7 @@ export default async function PaginaDespachoNuevo() {
       </Link>
       <Encabezado titulo="Registrar despacho" subtitulo="Leche que salió de la finca" />
       <div className="lg:max-w-xl">
-        <FormDespacho hoy={hoyBogota()} solicitud={randomUUID()} />
+        <FormDespacho hoy={hoyBogota()} solicitud={randomUUID()} terceros={terceros} precioHabitual={precioHabitual} />
       </div>
     </>
   );

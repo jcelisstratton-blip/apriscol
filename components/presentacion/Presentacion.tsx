@@ -50,7 +50,7 @@ const FUNCIONES: Funcion[] = [
   { n: "03", escena: ESCENA_HATO.sanidad, titulo: "Sanidad", lema: "Vacunas, tratamientos y retiros", puntos: ["Programa para un lote y aplica el día que toca", "FAMACHA y pediluvio por animal", "Periodos de retiro de leche y de carne"] },
   { n: "04", escena: ESCENA_HATO.empadronamiento, titulo: "Reproducción", lema: "Monta, gestación y partos", puntos: ["Temporada de monta con control de endogamia", "Fecha prevista de parto de cada hembra", "Partos, crías y lactancias al día"] },
   { n: "05", escena: ESCENA_HATO.corrales, titulo: "Corrales", lema: "Cada animal en su sitio", puntos: ["No deja llenar un corral de más", "Rotación de potreros con días de descanso", "Cuarentena de los animales que llegan"] },
-  { n: "06", escena: ESCENA_HATO.gastos, titulo: "Costos", lema: "Cuánto cuesta cada litro", puntos: ["Gastos por rubro y a quién se cargan", "Costo por litro y por animal", "Reportes en Excel por las fechas que quieras"] },
+  { n: "06", escena: ESCENA_HATO.gastos, titulo: "Compras y ventas", lema: "Cuánto cuesta y cuánto deja", puntos: ["Compras y ventas por lista: eliges, no escribes", "Por pagar y por cobrar, y costo por litro y por animal", "Reportes en Excel por las fechas que quieras"] },
 ];
 
 const PASOS = [
@@ -66,7 +66,7 @@ const PREGUNTAS: { p: string; r: string }[] = [
   { p: "¿Se puede usar desde el celular?", r: "Está pensada primero para el celular, con botones grandes y teclado propio para los números. En el computador te da un menú lateral y más espacio." },
   { p: "¿Puedo traer mis animales de un libro genealógico?", r: "Sí. Si tus animales están en el libro genealógico, los traes una sola vez al crear tu cuenta, demostrando que son tuyos con el documento del titular y el microchip de uno de ellos." },
   { p: "¿Quién ve la información de mi finca?", r: "Solo quienes tú invites. Los datos están separados por finca, y cada persona ve únicamente lo que le toca según su rol." },
-  { p: "¿Puedo invitar al ordeñador, al veterinario y al contador?", r: "Sí. El ordeñador registra leche, el veterinario maneja sanidad, reproducción y corrales, y el contador ve y registra costos." },
+  { p: "¿Puedo invitar al ordeñador, al veterinario y al contador?", r: "Sí. El ordeñador registra leche, el veterinario maneja sanidad, reproducción y corrales, y el contador ve y registra compras, ventas y costos." },
   { p: "¿Cuánto cuesta?", r: `Hay cuatro planes, de ${usd(PLANES[0].mensual)} a ${usd(PLANES[PLANES.length - 1].mensual)} al mes, según los servicios que uses, sin importar cuántos animales tengas. Pagando por año tienes 20 % de descuento. Los ves completos en la sección Planes.` },
   { p: "¿Puedo sacar reportes?", r: "Los reportes de costos se descargan en Excel con el periodo que elijas, y el archivo lleva el nombre de la finca, del reporte y las fechas." },
 ];
@@ -81,7 +81,7 @@ export function Presentacion({ modo, formulario }: { modo: "login" | "registro";
   const cifras: [string, string][] = [
     ["2", "especies: cabras y ovejas"],
     ["9", "áreas del manejo en una sola app"],
-    [String(RUBROS.length), "rubros de gasto para saber cuánto cuesta cada litro"],
+    [String(RUBROS.length), "rubros de compra para saber cuánto cuesta cada litro"],
     [String(REPORTES.length), "reportes que se descargan en Excel"],
   ];
 
@@ -134,7 +134,7 @@ export function Presentacion({ modo, formulario }: { modo: "login" | "registro";
                 "Cada animal con su historia: genealogía, endogamia, leche y sanidad",
                 "Avisa los periodos de retiro: la leche tratada no llega al tanque",
                 "Corrales con cupo, rotación de potreros y cuarentena",
-                "Costos por litro y por animal, y reportes en Excel por cualquier fecha",
+                "Compras, ventas y costos por litro y por animal, y reportes en Excel por cualquier fecha",
               ].map((t) => (
                 <li key={t} className="flex items-start gap-2.5">
                   <Check className="mt-1 size-4 shrink-0 text-musgo" strokeWidth={2.6} aria-hidden="true" />
@@ -241,7 +241,7 @@ export function Presentacion({ modo, formulario }: { modo: "login" | "registro";
                     ["administrador", "Todo, igual que el propietario"],
                     ["ordenador", "Registra y mira la leche"],
                     ["veterinario", "Sanidad, reproducción y corrales"],
-                    ["contador", "Costos, gastos y reportes"],
+                    ["contador", "Compras, ventas y reportes"],
                   ] as const
                 ).map(([rol, ve]) => (
                   <li key={rol} className="flex items-center justify-between gap-3 py-2.5">

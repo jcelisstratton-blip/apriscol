@@ -35,6 +35,7 @@ export type AnimalEditable = {
   origen: "nacido_en_finca" | "comprado";
   peso_nacer_kg: number | null;
   valor_compra: number | null;
+  fecha_compra?: string | null;
   vocacion: Vocacion;
   uso_macho: UsoMacho | null;
   padre: Ref | null;
@@ -263,6 +264,11 @@ export function FormAnimal({
           <Campo etiqueta={origen === "comprado" ? "Valor de compra" : "Valor de reposición"} ayuda={origen === "comprado" ? "Opcional. En pesos, lo que costó. Sirve para medir la pérdida si se descarta o muere." : "Opcional. En pesos, lo que costaría reponerlo. Sirve para medir la pérdida si se descarta o muere."}>
             {(id) => <input id={id} name="valor_compra" defaultValue={animal?.valor_compra != null ? String(animal.valor_compra) : ""} inputMode="decimal" autoComplete="off" enterKeyHint="next" className={CLASE_INPUT} placeholder="Ej. 800.000" />}
           </Campo>
+          {origen === "comprado" ? (
+            <Campo etiqueta="Fecha de compra" ayuda="Opcional. Con ella, la compra cuenta como costo en su mes. Sin fecha cuenta el día en que registras el animal.">
+              {(id) => <input id={id} name="fecha_compra" type="date" defaultValue={animal?.fecha_compra ?? ""} max={hoy} className={CLASE_INPUT} />}
+            </Campo>
+          ) : null}
         </div>
       </Seccion>
 
