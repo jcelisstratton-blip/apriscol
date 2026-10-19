@@ -1,4 +1,4 @@
--- La duración de la gestación pasa a ser un ajuste de cada finca (`finca_ajustes_especie.gestacion_dias`, ver 20261019120000): el propietario puede
+-- La duración de la gestación pasa a ser un ajuste de cada finca (`finca_ajustes_especie.gestacion_dias`, ver 20261019121200): el propietario puede
 -- afinarla dentro del rango biológico de la especie. Sin ajuste (no debería pasar: cada finca tiene su fila) se usa el valor de `parametros_especie`.
 -- Solo cambia de dónde sale la cifra: las mismas columnas y la misma lógica de antes.
 
