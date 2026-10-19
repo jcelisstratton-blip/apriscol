@@ -6,6 +6,9 @@ export const MESES_REFERIDO = 6;
 
 export const TEXTO_PROGRAMA = `Por cada persona que se registre con tu enlace y adquiera un plan, recibes el ${PORCENTAJE_REFERIDO} % del valor de ese plan cada mes durante ${MESES_REFERIDO} meses.`;
 
+/** La aclaración que acompaña al programa: la comisión nace solo con la compra de un plan, y no hay ningún otro pago por referir. */
+export const TEXTO_SOLO_CON_PLAN = "Solo se paga cuando la persona que recibió tu enlace adquiere un plan. Compartir el enlace o que alguien se registre sin comprar un plan no genera ningún pago: las comisiones son únicamente las de este programa.";
+
 /** Lo que se gana cada mes con un plan (precio mensual del plan × 5 %), y en total durante los 6 meses. */
 export const comisionMensual = (p: Plan, porcentaje = PORCENTAJE_REFERIDO) => Math.round(p.mensual * porcentaje) / 100;
 export const comisionTotal = (p: Plan, porcentaje = PORCENTAJE_REFERIDO, meses = MESES_REFERIDO) => Math.round(p.mensual * porcentaje * meses) / 100;
