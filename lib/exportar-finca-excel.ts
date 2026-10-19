@@ -371,7 +371,7 @@ async function escribirAnimales(
       ? (diagnosticosDe.get(id) ?? []).some((d) => texto(d.fecha) >= texto(vigente.fecha) && d.resultado === "gestante")
       : false;
 
-    const v: Record<ColumnaId, unknown> = {
+    const v: Record<Exclude<ColumnaId, "estado">, unknown> = {
       especie: a.especie === "caprino" ? "Caprino" : "Ovino",
       numero_arete: a.numero_arete,
       nombre: a.nombre,
