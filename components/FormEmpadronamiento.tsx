@@ -17,7 +17,7 @@ import { crearClienteNavegador } from "@/lib/supabase/client";
 import { etiquetaAnimal } from "@/lib/animal";
 import { ESCENA_ESPECIE } from "@/lib/escenas-forms-b-hato";
 import { datosExternoVacios, etiquetaExterno, faltantesExterno, type DatosExterno } from "@/lib/semental-externo";
-import { capacidadSemental, CRITERIOS_POR_DEFECTO, DURACION_DEFECTO_DIAS, DURACION_MAX_DIAS, leerNumeroHembras, mesesDesde, textoCC, VALORES_CC } from "@/lib/empadronamiento";
+import { capacidadSemental, DURACION_DEFECTO_DIAS, DURACION_MAX_DIAS, leerNumeroHembras, mesesDesde, textoCC, VALORES_CC } from "@/lib/empadronamiento";
 import { diasHasta, formatoFecha, sumarDias } from "@/lib/fechas";
 import { leerNumero } from "@/lib/numeros";
 import type { Empadronamiento, Especie, Raza } from "@/lib/tipos";
@@ -39,8 +39,11 @@ export function FormEmpadronamiento({
   hoy,
   lote,
   solicitud,
+  criterios,
 }: {
   fincaId: string;
+  /** Edad, peso y condición corporal mínimos que propone la finca por especie (sus ajustes de reproducción). */
+  criterios: Record<Especie, { edadMeses: number; pesoKg: number; cc: number }>;
   /** Umbral de endogamia de la finca (para bloquear parejas al elegir las hembras). */
   umbral: number;
   /** Las razas de las especies de la finca: la del semental externo se elige de aquí y debe ser de la especie de la temporada. */
@@ -57,9 +60,9 @@ export function FormEmpadronamiento({
   const [especie, setEspecie] = useState<Especie>(lote?.especie ?? especies[0] ?? "caprino");
   const [inicio, setInicio] = useState(lote?.fecha_inicio ?? hoy);
   const [duracion, setDuracion] = useState(lote ? String(diasHasta(lote.fecha_fin_prevista, lote.fecha_inicio)) : String(DURACION_DEFECTO_DIAS));
-  const [edad, setEdad] = useState(String(lote?.edad_min_meses ?? CRITERIOS_POR_DEFECTO[lote?.especie ?? especies[0] ?? "caprino"].edadMeses));
-  const [peso, setPeso] = useState(lote ? coma(lote.peso_min_kg) : String(CRITERIOS_POR_DEFECTO[especies[0] ?? "caprino"].pesoKg));
-  const [cc, setCc] = useState<number>(lote?.cc_min ?? CRITERIOS_POR_DEFECTO[lote?.especie ?? especies[0] ?? "caprino"].cc);
+  const [edad, setEdad] = useState(String(lote?.edad_min_meses ?? criterios[lote?.especie ?? especies[0] ?? "caprino"].edadMeses));
+  const [peso, setPeso] = useState(lote ? coma(lote.peso_min_kg) : String(criterios[especies[0] ?? "caprino"].pesoKg));
+  const [cc, setCc] = useState<number>(lote?.cc_min ?? criterios[lote?.especie ?? especies[0] ?? "caprino"].cc);
   const [macho, setMacho] = useState<Macho | null>(null);
   const [origen, setOrigen] = useState<OrigenSemental>("propio");
   const [extBase, setExtBase] = useState<DatosExterno>(() => datosExternoVacios("", ""));
@@ -127,9 +130,9 @@ export function FormEmpadronamiento({
     setMacho(null);
     setHembras(null);
     setExtBase((d) => ({ ...d, razaId: "" }));
-    setEdad(String(CRITERIOS_POR_DEFECTO[e].edadMeses));
-    setPeso(String(CRITERIOS_POR_DEFECTO[e].pesoKg));
-    setCc(CRITERIOS_POR_DEFECTO[e].cc);
+    setEdad(String(criterios[e].edadMeses));
+    setPeso(String(criterios[e].pesoKg));
+    setCc(criterios[e].cc);
   };
 
   const alEnviar = (e: React.FormEvent<HTMLFormElement>) => {

@@ -1,4 +1,4 @@
-import { CRIOSCOPIA_MAX, CRIOSCOPIA_MIN, estadoResiduos, formatoCrioscopia, formatoMiles, RCS_ALTO } from "@/lib/leche-calidad";
+import { CRIOSCOPIA_MAX, CRIOSCOPIA_MIN, estadoResiduos, formatoCrioscopia, formatoMiles } from "@/lib/leche-calidad";
 import type { AnalisisLeche, ControlCalidad, ResultadoControl, TipoBaja, TipoControl } from "@/lib/tipos";
 
 /** Los controles de calidad que se responden en cada despacho de leche. */
@@ -83,10 +83,10 @@ export function analisisTraeResultado(a: Pick<AnalisisLeche, "residuos_antibioti
 }
 
 /** Si el resultado del análisis es conforme. La composición no se califica (depende de lo que pague cada comprador). */
-export function resultadoDeAnalisis(a: AnalisisLeche, tipo: TipoControl): ResultadoControl | null {
+export function resultadoDeAnalisis(a: AnalisisLeche, tipo: TipoControl, limiteRcs: number): ResultadoControl | null {
   if (tipo === "residuos_antibioticos") return a.residuos_antibioticos === "negativo" ? "conforme" : "no_conforme";
   if (tipo === "crioscopia") return a.crioscopia_c != null && a.crioscopia_c >= CRIOSCOPIA_MIN && a.crioscopia_c <= CRIOSCOPIA_MAX ? "conforme" : "no_conforme";
-  if (tipo === "celulas_somaticas") return a.rcs_miles_ml != null && a.rcs_miles_ml <= RCS_ALTO ? "conforme" : "no_conforme";
+  if (tipo === "celulas_somaticas") return a.rcs_miles_ml != null && a.rcs_miles_ml <= limiteRcs ? "conforme" : "no_conforme";
   return null;
 }
 

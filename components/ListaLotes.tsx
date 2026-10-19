@@ -29,7 +29,7 @@ export type FilaLote = {
 type Filtro = "abiertos" | "cerrados";
 
 /** Los lotes de ceba de la finca con lo que lleva cada uno. Abiertos primero; los cerrados quedan de historial. */
-export function ListaLotes({ lotes, puedeEditar }: { lotes: FilaLote[]; puedeEditar: boolean }) {
+export function ListaLotes({ lotes, puedeEditar, gdpMinima }: { lotes: FilaLote[]; puedeEditar: boolean; /** Ganancia diaria mínima de la finca (g). */ gdpMinima: number }) {
   const [filtro, setFiltro] = useState<Filtro>("abiertos");
   const abiertos = lotes.filter((l) => !l.cerradoEn);
   const cerrados = lotes.filter((l) => l.cerradoEn);
@@ -82,6 +82,7 @@ export function ListaLotes({ lotes, puedeEditar }: { lotes: FilaLote[]; puedeEdi
                     </div>
                   ))}
                 </dl>
+                {!l.cerradoEn && l.gdpG != null && l.gdpG < gdpMinima ? <Insignia tono="aviso">{`Gana menos de ${gdpMinima} g por día`}</Insignia> : null}
                 {avance !== null ? (
                   <span className="block space-y-1">
                     <span className="flex items-center justify-between gap-2 text-xs text-humo">

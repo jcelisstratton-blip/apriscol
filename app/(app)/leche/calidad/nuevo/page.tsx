@@ -6,6 +6,7 @@ import { ChevronLeft } from "lucide-react";
 import { Encabezado } from "@/components/Encabezado";
 import { FormCalidad } from "@/components/FormCalidad";
 import { obtenerContexto } from "@/lib/contexto";
+import { obtenerAjustes } from "@/lib/ajustes-servidor";
 import { puedeEscribir } from "@/lib/permisos";
 import { hoyBogota } from "@/lib/fechas";
 
@@ -27,7 +28,7 @@ export default async function PaginaCalidadNuevo({ searchParams }: { searchParam
       </Link>
       <Encabezado titulo="Análisis de calidad" subtitulo="Leche del tanque o del lote" />
       <div className="lg:max-w-xl">
-        <FormCalidad hoy={hoyBogota()} solicitud={randomUUID()} cancelar={volver ?? "/leche?vista=calidad"} volver={volver} />
+        <FormCalidad hoy={hoyBogota()} solicitud={randomUUID()} cancelar={volver ?? "/leche?vista=calidad"} volver={volver} limiteRcs={(await obtenerAjustes()).general.ccs_limite_miles_ml} />
       </div>
     </>
   );

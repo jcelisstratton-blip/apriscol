@@ -6,6 +6,7 @@ import { ChevronLeft } from "lucide-react";
 import { Encabezado } from "@/components/Encabezado";
 import { FormServicio } from "@/components/FormServicio";
 import { obtenerContexto } from "@/lib/contexto";
+import { obtenerAjustes } from "@/lib/ajustes-servidor";
 import { crearClienteServidor } from "@/lib/supabase/server";
 import { puedeEscribir } from "@/lib/permisos";
 import { etiquetaAnimal } from "@/lib/animal";
@@ -24,7 +25,7 @@ export default async function PaginaServicioNuevo({ params }: { params: Promise<
   const { data: animal } = await supabase.from("animales").select("id, numero_arete, nombre, sexo, estado, especie").eq("id", id).eq("finca_id", finca.id).is("deleted_at", null).maybeSingle();
   if (!animal) notFound();
   if (animal.sexo !== "hembra" || animal.estado !== "activo") redirect(`/hato/${id}`);
-  const { data: param } = await supabase.from("parametros_especie").select("gestacion_dias").eq("especie", animal.especie).maybeSingle();
+  const ajustes = await obtenerAjustes();
 
   return (
     <>
@@ -33,7 +34,7 @@ export default async function PaginaServicioNuevo({ params }: { params: Promise<
       </Link>
       <Encabezado titulo="Registrar servicio" subtitulo={etiquetaAnimal(animal)} />
       <div className="lg:max-w-xl">
-        <FormServicio fincaId={finca.id} hembraId={id} especie={animal.especie} gestacionDias={param?.gestacion_dias ?? 150} hoy={hoyBogota()} solicitud={randomUUID()} />
+        <FormServicio fincaId={finca.id} hembraId={id} especie={animal.especie} gestacionDias={ajustes.especie[animal.especie].gestacion_dias} hoy={hoyBogota()} solicitud={randomUUID()} />
       </div>
     </>
   );

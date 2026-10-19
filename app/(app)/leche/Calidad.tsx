@@ -6,12 +6,14 @@ import { PorQueAnalizar } from "@/components/PorQueAnalizar";
 import { ListaCalidad } from "@/components/ListaCalidad";
 import { Tarjeta } from "@/components/Tarjeta";
 import { crearClienteServidor } from "@/lib/supabase/server";
+import { obtenerAjustes } from "@/lib/ajustes-servidor";
+import { especieUnica, estadoEnRango } from "@/lib/ajustes";
 import { animalesPorIds } from "@/lib/animal-etiquetas";
 import { etiquetaAnimal } from "@/lib/animal";
 import { formatoFecha, hoyBogota, sumarDias } from "@/lib/fechas";
-import { estadoCrioscopia, estadoRcs, estadoResiduos, formatoCrioscopia, formatoMiles, RCS_ALTO } from "@/lib/leche-calidad";
+import { estadoCrioscopia, estadoRcs, estadoResiduos, formatoCrioscopia, formatoMiles } from "@/lib/leche-calidad";
 import { direccionSoporte } from "@/lib/soportes";
-import type { AnalisisLeche } from "@/lib/tipos";
+import type { AnalisisLeche, Especie } from "@/lib/tipos";
 
 const pct = (n: number) => `${n.toLocaleString("es-CO", { maximumFractionDigits: 2 })} %`;
 
@@ -19,25 +21,34 @@ const pct = (n: number) => `${n.toLocaleString("es-CO", { maximumFractionDigits:
 export async function Calidad({
   fincaId,
   puedeEditar,
+  especies,
   cliente,
 }: {
   fincaId: string;
   puedeEditar: boolean;
+  /** Las especies de la finca: con una sola, la grasa y la proteína del tanque se comparan con el rango de esa especie. */
+  especies: Especie[];
   /** Solo para pruebas: un cliente de base de datos en lugar del de la sesión. */
   cliente?: Awaited<ReturnType<typeof crearClienteServidor>>;
 }) {
   const supabase = cliente ?? (await crearClienteServidor());
+  const ajustes = await obtenerAjustes();
+  const limiteRcs = ajustes.general.ccs_limite_miles_ml;
   const desde = sumarDias(hoyBogota(), -180);
   const [tanque, altosDB] = await Promise.all([
     supabase.from("analisis_leche").select("*").eq("finca_id", fincaId).is("animal_id", null).order("fecha", { ascending: false }).order("created_at", { ascending: false }).limit(1).maybeSingle(),
     // El último recuento de cada animal (de los últimos 6 meses) que pasa del límite.
-    supabase.from("v_rcs_leche_ultimo").select("*").eq("finca_id", fincaId).gt("rcs_miles_ml", RCS_ALTO).gte("fecha", desde).order("rcs_miles_ml", { ascending: false }).limit(200),
+    supabase.from("v_rcs_leche_ultimo").select("*").eq("finca_id", fincaId).gt("rcs_miles_ml", limiteRcs).gte("fecha", desde).order("rcs_miles_ml", { ascending: false }).limit(200),
   ]);
 
   const ultimo = tanque.data as AnalisisLeche | null;
   const altos = (altosDB.data ?? []) as AnalisisLeche[];
   const nombres = new Map((await animalesPorIds(supabase, fincaId, altos.slice(0, 8).map((a) => a.animal_id!))).map((a) => [a.id, etiquetaAnimal(a)]));
-  const rcsTanque = ultimo?.rcs_miles_ml != null ? estadoRcs(ultimo.rcs_miles_ml) : null;
+  const rcsTanque = ultimo?.rcs_miles_ml != null ? estadoRcs(ultimo.rcs_miles_ml, limiteRcs) : null;
+  const unica = especieUnica(especies);
+  const rangoTanque = unica ? ajustes.especie[unica] : null;
+  const grasaTanque = ultimo?.grasa_pct != null && rangoTanque ? estadoEnRango(ultimo.grasa_pct, rangoTanque.grasa_min_pct, rangoTanque.grasa_max_pct) : null;
+  const proteinaTanque = ultimo?.proteina_pct != null && rangoTanque ? estadoEnRango(ultimo.proteina_pct, rangoTanque.proteina_min_pct, rangoTanque.proteina_max_pct) : null;
 
   return (
     <div className="space-y-4">
@@ -61,6 +72,8 @@ export async function Calidad({
             ))}
           </dl>
           <p className="mt-2 flex flex-wrap items-center gap-1.5 text-sm">
+            {grasaTanque && grasaTanque !== "ok" ? <Insignia tono="aviso">{`Grasa ${grasaTanque === "bajo" ? "baja" : "alta"} para tu rango`}</Insignia> : null}
+            {proteinaTanque && proteinaTanque !== "ok" ? <Insignia tono="aviso">{`Proteína ${proteinaTanque === "bajo" ? "baja" : "alta"} para tu rango`}</Insignia> : null}
             {rcsTanque ? <Insignia tono={rcsTanque.tono}>{`Células somáticas: ${rcsTanque.texto.toLowerCase()} (${formatoMiles(ultimo.rcs_miles_ml!)})`}</Insignia> : null}
             {ultimo.crioscopia_c != null ? <Insignia tono={estadoCrioscopia(ultimo.crioscopia_c).tono}>{`Crioscopia ${formatoCrioscopia(ultimo.crioscopia_c)}: ${estadoCrioscopia(ultimo.crioscopia_c).texto.toLowerCase()}`}</Insignia> : null}
             {ultimo.residuos_antibioticos ? <Insignia tono={estadoResiduos(ultimo.residuos_antibioticos).tono}>{`Antibióticos: ${estadoResiduos(ultimo.residuos_antibioticos).texto.toLowerCase()}`}</Insignia> : null}
@@ -78,7 +91,7 @@ export async function Calidad({
       {altos.length > 0 ? (
         <Tarjeta titulo="Animales con células somáticas altas">
           <Aviso tipo="atencion">
-            {altos.length === 1 ? "1 animal tiene" : `${altos.length} animales tienen`} más de {RCS_ALTO.toLocaleString("es-CO")} mil células por ml en su último análisis. Puede ser mastitis: conviene hacerles el CMT.
+            {altos.length === 1 ? "1 animal tiene" : `${altos.length} animales tienen`} más de {limiteRcs.toLocaleString("es-CO")} mil células por ml (el límite de tu finca) en su último análisis. Puede ser mastitis: conviene hacerles el CMT.
           </Aviso>
           <ul className="mt-2 divide-y divide-arena">
             {altos.slice(0, 8).map((a) => (
@@ -98,7 +111,7 @@ export async function Calidad({
         </Tarjeta>
       ) : null}
 
-      <ListaCalidad fincaId={fincaId} puedeEditar={puedeEditar} />
+      <ListaCalidad fincaId={fincaId} puedeEditar={puedeEditar} limiteRcs={limiteRcs} rangos={ajustes.especie} especieUnica={unica} />
     </div>
   );
 }

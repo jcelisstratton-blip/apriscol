@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { ChevronLeft, Pencil } from "lucide-react";
 import { AnimalesLote, type AnimalDeLote } from "@/components/AnimalesLote";
+import { Aviso } from "@/components/Aviso";
 import { AvisoGuardado } from "@/components/AvisoGuardado";
 import { EnlaceBoton } from "@/components/Boton";
 import { Encabezado } from "@/components/Encabezado";
@@ -10,6 +11,7 @@ import { Insignia } from "@/components/Insignia";
 import { ListaConsumo } from "@/components/ListaConsumo";
 import { Tarjeta } from "@/components/Tarjeta";
 import { obtenerContexto } from "@/lib/contexto";
+import { obtenerAjustes } from "@/lib/ajustes-servidor";
 import { crearClienteServidor } from "@/lib/supabase/server";
 import { puedeEscribir, puedeVer } from "@/lib/permisos";
 import { etiquetaAnimal } from "@/lib/animal";
@@ -26,6 +28,7 @@ export default async function PaginaLote({ params, searchParams }: { params: Pro
   const { guardado } = await searchParams;
   if (!ID_UUID.test(id)) notFound();
   const { finca, rol } = await obtenerContexto();
+  const { general: ajustes } = await obtenerAjustes();
   if (!puedeVer(rol, "carne", finca.plan)) redirect("/");
   const supabase = await crearClienteServidor();
   const { data: lote } = await supabase.from("lotes_ceba").select("*").eq("id", id).eq("finca_id", finca.id).maybeSingle();
@@ -88,6 +91,11 @@ export default async function PaginaLote({ params, searchParams }: { params: Pro
               </div>
             ))}
           </dl>
+          {!lote.cerrado_en && e?.gdp_g != null && Number(e.gdp_g) < ajustes.gdp_minima_g ? (
+            <Aviso tipo="atencion">
+              El lote gana {gdp(e.gdp_g)}, menos del mínimo de {ajustes.gdp_minima_g} g por día de tu finca. Revisa la alimentación, la sanidad y la carga de animales.
+            </Aviso>
+          ) : null}
           <div className="flex flex-wrap items-center gap-2 px-1 text-sm text-humo">
             {lote.peso_meta_kg != null ? <Insignia tono={(e?.listos ?? 0) > 0 ? "ok" : "neutro"}>{`Meta ${kg(lote.peso_meta_kg)} · ${e?.listos ?? 0} ${(e?.listos ?? 0) === 1 ? "listo" : "listos"}`}</Insignia> : <span>Sin peso meta: edítalo para ver cuáles animales están listos.</span>}
             {kgAlimento > 0 ? (

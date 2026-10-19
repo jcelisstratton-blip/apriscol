@@ -11,7 +11,7 @@ import type { LoteCeba } from "@/lib/tipos";
 const coma = (n: number | null | undefined) => (n == null ? "" : String(n).replace(".", ","));
 
 /** Crear o corregir un lote de ceba: el grupo de animales que se engorda junto, con su peso meta para el beneficio. */
-export function FormLote({ hoy, lote, solicitud }: { hoy: string; lote?: LoteCeba; solicitud?: string }) {
+export function FormLote({ hoy, lote, solicitud, pesoMetaSugerido }: { hoy: string; lote?: LoteCeba; solicitud?: string; /** Peso de faena de los ajustes de la finca (si tiene una sola especie): se propone al crear el lote. */ pesoMetaSugerido?: number | null }) {
   const editando = Boolean(lote);
   const [estado, enviar, pendiente] = useActionState(editando ? editarLote : crearLote, undefined);
   const [, iniciar] = useTransition();
@@ -36,7 +36,7 @@ export function FormLote({ hoy, lote, solicitud }: { hoy: string; lote?: LoteCeb
       </Campo>
 
       <Campo etiqueta="Peso meta para el beneficio (kg)" ayuda="Opcional. Con este peso, el animal aparece como «listo para beneficio».">
-        {(id) => <input id={id} name="peso_meta_kg" defaultValue={coma(lote?.peso_meta_kg)} inputMode="decimal" autoComplete="off" enterKeyHint="next" placeholder="Ej. 35" className={CLASE_INPUT} />}
+        {(id) => <input id={id} name="peso_meta_kg" defaultValue={lote ? coma(lote.peso_meta_kg) : coma(pesoMetaSugerido)} inputMode="decimal" autoComplete="off" enterKeyHint="next" placeholder="Ej. 35" className={CLASE_INPUT} />}
       </Campo>
 
       {editando ? (

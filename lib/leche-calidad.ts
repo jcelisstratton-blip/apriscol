@@ -26,16 +26,13 @@ export function estadoTemperatura(c: number): EstadoValor {
 
 // ───────────────────────── Recuento de células somáticas ─────────────────────────
 /**
- * Referencias orientativas para leche de cabra y oveja (miles de células por mililitro). No son una norma: cada comprador puede exigir
- * otro límite y las cabras suelen dar más que las vacas sin estar enfermas.
+ * Recuento de células somáticas (miles por mililitro) contra el límite de la finca (`finca_ajustes.ccs_limite_miles_ml`). Cada comprador puede exigir
+ * otro límite: el propietario lo ajusta. Hasta el 80 % del límite está bien, después se vigila y por encima se avisa.
  */
-export const RCS_BUENO = 1000;
-export const RCS_ALTO = 1500;
-
-export function estadoRcs(miles: number): EstadoValor {
-  if (miles <= RCS_BUENO) return { tono: "ok", texto: "Bajo" };
-  if (miles <= RCS_ALTO) return { tono: "aviso", texto: "Elevado" };
-  return { tono: "alerta", texto: "Alto" };
+export function estadoRcs(miles: number, limite: number): EstadoValor {
+  if (miles > limite) return { tono: "alerta", texto: "Sobre el límite" };
+  if (miles > limite * 0.8) return { tono: "aviso", texto: "Cerca del límite" };
+  return { tono: "ok", texto: "Bajo" };
 }
 
 export const formatoMiles = (miles: number) => `${miles.toLocaleString("es-CO")} mil/ml`;

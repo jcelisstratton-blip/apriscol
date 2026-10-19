@@ -9,6 +9,7 @@ import { nombrePlan, servicioEnPlan, SERVICIOS_PLAN } from "@/lib/planes";
 import { mensajeAmigable } from "@/lib/mensaje-amigable";
 import { diasHasta, hoyBogota } from "@/lib/fechas";
 import { analisisTraeResultado, CONTROLES_DESPACHO, controlesDeSalida, INFO_CONTROL, resultadoDeAnalisis, VENTANA_DIAS } from "@/lib/controles";
+import { obtenerAjustes } from "@/lib/ajustes-servidor";
 import { soporteValido } from "@/lib/soportes";
 import { opcional } from "@/lib/validacion";
 import type { AnalisisLeche, TipoControl } from "@/lib/tipos";
@@ -69,7 +70,7 @@ export async function guardarControl(entrada: EntradaControl): Promise<Resultado
       if (antes < 0) return { ok: false, error: "Ese análisis es posterior al despacho: no puede respaldarlo." };
       const ventana = VENTANA_DIAS[d.tipo] ?? 30;
       if (antes > ventana) return { ok: false, error: `Ese análisis es de ${antes} días antes del despacho. Para este control debe ser de máximo ${ventana} ${ventana === 1 ? "día" : "días"} antes.` };
-      fila = { ...fila, analisis_id: a.id, fecha: a.fecha, resultado: resultadoDeAnalisis(a, d.tipo) };
+      fila = { ...fila, analisis_id: a.id, fecha: a.fecha, resultado: resultadoDeAnalisis(a, d.tipo, (await obtenerAjustes()).general.ccs_limite_miles_ml) };
     } else {
       fila.motivo = d.motivo ?? null;
     }

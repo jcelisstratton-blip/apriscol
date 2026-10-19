@@ -13,7 +13,7 @@ import { crearClienteNavegador } from "@/lib/supabase/client";
 import { etiquetaAnimal } from "@/lib/animal";
 import { hoyBogota, sumarDias } from "@/lib/fechas";
 import { estadoFamacha } from "@/lib/famacha";
-import { DIAS_PODOLOGIA } from "@/lib/sanidad";
+import { diasEntrePediluvios, mesDeFecha } from "@/lib/ajustes";
 import type { Especie } from "@/lib/tipos";
 
 export type AnimalElegido = { id: string; numero_arete: string; nombre: string | null };
@@ -150,10 +150,28 @@ export function SelectorAnimales({
     },
     {
       clave: "podologia",
-      texto: "Sin podología en 6 meses",
+      texto: "Sin podología al día",
       cargar: async () => {
-        const limite = sumarDias(hoyBogota(), -DIAS_PODOLOGIA);
-        const { data, error: e } = await crearClienteNavegador().from("v_podologia_animal").select("animal_id, ultima_fecha").eq("finca_id", fincaId).limit(2000);
+        const supabase = crearClienteNavegador();
+        // El plazo es el que el propietario definió en los ajustes de la finca.
+        const { data: aj, error: ea } = await supabase.from("finca_ajustes").select("podologia_inspeccion_dias").eq("finca_id", fincaId).maybeSingle();
+        if (ea || !aj) throw new Error(ea?.message ?? "No se pudieron leer los ajustes de la finca.");
+        const limite = sumarDias(hoyBogota(), -aj.podologia_inspeccion_dias);
+        const { data, error: e } = await supabase.from("v_podologia_animal").select("animal_id, ultima_fecha").eq("finca_id", fincaId).limit(2000);
+        if (e) throw new Error(e.message);
+        return animalesPorId((data ?? []).filter((p) => !p.ultima_fecha || p.ultima_fecha < limite).map((p) => p.animal_id));
+      },
+    },
+    {
+      clave: "pediluvio",
+      texto: "Sin pediluvio al día",
+      cargar: async () => {
+        const supabase = crearClienteNavegador();
+        const { data: aj, error: ea } = await supabase.from("finca_ajustes").select("pediluvio_dias, pediluvio_dias_lluvia, meses_lluvia").eq("finca_id", fincaId).maybeSingle();
+        if (ea || !aj) throw new Error(ea?.message ?? "No se pudieron leer los ajustes de la finca.");
+        const hoy = hoyBogota();
+        const limite = sumarDias(hoy, -diasEntrePediluvios(aj as Parameters<typeof diasEntrePediluvios>[0], mesDeFecha(hoy)));
+        const { data, error: e } = await supabase.from("v_pediluvio_animal").select("animal_id, ultima_fecha").eq("finca_id", fincaId).limit(2000);
         if (e) throw new Error(e.message);
         return animalesPorId((data ?? []).filter((p) => !p.ultima_fecha || p.ultima_fecha < limite).map((p) => p.animal_id));
       },

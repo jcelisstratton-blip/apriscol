@@ -3,6 +3,7 @@ import { CalidadAnimales } from "@/components/CalidadAnimales";
 import { ListaHato } from "@/components/ListaHato";
 import { ProgramaOrdeno } from "@/components/ProgramaOrdeno";
 import { crearClienteServidor } from "@/lib/supabase/server";
+import { obtenerAjustes } from "@/lib/ajustes-servidor";
 import { etiquetaAnimal } from "@/lib/animal";
 import { hoyBogota } from "@/lib/fechas";
 import type { FiltroHato, VistaHato } from "@/lib/hato";
@@ -105,6 +106,7 @@ export async function CalidadLeche({
     <div className="lg:max-w-3xl">
       <CalidadAnimales
         puedeEditar={puedeEditar}
+        limiteRcs={(await obtenerAjustes()).general.ccs_limite_miles_ml}
         hembras={activas.map((a) => {
           const u = ultimos.get(a.id);
           return {

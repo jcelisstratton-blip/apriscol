@@ -107,9 +107,6 @@ export function nombreEvento(e: { tipo: TipoEvento | null; producto_nombre: stri
 }
 
 // ───────────────────────── Programación sanitaria ─────────────────────────
-/** Cada cuántos días se espera una inspección de pezuñas (la guía pide una cada semestre). */
-export const DIAS_PODOLOGIA = 182;
-
 /** Los tipos que se pueden programar (lo que se aplica a varios animales en una jornada). */
 export const TIPOS_PROGRAMABLES: TipoEvento[] = ["vacunacion", "desparasitacion", "tratamiento", "podologia", "pediluvio", "cirugia", "otro"];
 

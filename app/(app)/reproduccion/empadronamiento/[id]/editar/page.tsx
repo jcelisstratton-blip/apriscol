@@ -6,6 +6,8 @@ import { EliminarRegistro } from "@/components/EliminarRegistro";
 import { Encabezado } from "@/components/Encabezado";
 import { FormEmpadronamiento } from "@/components/FormEmpadronamiento";
 import { obtenerContexto } from "@/lib/contexto";
+import { obtenerAjustes } from "@/lib/ajustes-servidor";
+import { criteriosServicio } from "@/lib/ajustes";
 import { crearClienteServidor } from "@/lib/supabase/server";
 import { puedeEscribir, puedeGestionar } from "@/lib/permisos";
 import { hoyBogota } from "@/lib/fechas";
@@ -30,7 +32,7 @@ export default async function PaginaEmpadronamientoEditar({ params }: { params: 
       </Link>
       <Encabezado titulo="Editar empadronamiento" subtitulo={finca.nombre} />
       <div className="space-y-8 lg:max-w-xl">
-        <FormEmpadronamiento fincaId={finca.id} umbral={finca.umbral_endogamia} especies={finca.especies} hoy={hoyBogota()} lote={lote} />
+        <FormEmpadronamiento fincaId={finca.id} umbral={finca.umbral_endogamia} especies={finca.especies} hoy={hoyBogota()} lote={lote}  criterios={criteriosServicio(await obtenerAjustes())} />
         {puedeGestionar(rol) && !lote.cerrado_en ? (
           <EliminarRegistro
             etiqueta="Eliminar este empadronamiento"

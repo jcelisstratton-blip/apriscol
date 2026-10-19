@@ -9,10 +9,12 @@ import { EstadoVacio } from "@/components/EstadoVacio";
 import { IconoEvento } from "@/components/IconoEvento";
 import { Insignia } from "@/components/Insignia";
 import { crearClienteServidor } from "@/lib/supabase/server";
-import { AYUDA_SANIDAD } from "@/lib/ayuda";
+import { ayudaSanidad } from "@/lib/ayuda";
+import { obtenerAjustes } from "@/lib/ajustes-servidor";
+import { diasEntrePediluvios, mesDeFecha, textoPlazo } from "@/lib/ajustes";
 import { estadoFamacha } from "@/lib/famacha";
 import { formatoFecha, hoyBogota, sumarDias } from "@/lib/fechas";
-import { DIAS_PODOLOGIA, ETIQUETA_EVENTO, estadoDosis, estadoFechaPrograma, nombreEvento } from "@/lib/sanidad";
+import { ETIQUETA_EVENTO, estadoDosis, estadoFechaPrograma, nombreEvento } from "@/lib/sanidad";
 import type { ProgramaSanitarioResumen, SanidadPendiente, TipoEvento } from "@/lib/tipos";
 
 type GrupoRefuerzo = { evento_id: string; tipo: TipoEvento | null; producto_nombre: string | null; proxima_fecha: string; animales: number };
@@ -36,11 +38,15 @@ export async function Sanidad({
 }) {
   const supabase = cliente ?? (await crearClienteServidor());
   const hoy = hoyBogota();
-  const limitePodologia = sumarDias(hoy, -DIAS_PODOLOGIA);
-  const [programasDB, pendientesDB, podologiaDB, famachaDB] = await Promise.all([
+  const { general: ajustes } = await obtenerAjustes();
+  const limitePodologia = sumarDias(hoy, -ajustes.podologia_inspeccion_dias);
+  const diasPediluvio = diasEntrePediluvios(ajustes, mesDeFecha(hoy));
+  const limitePediluvio = sumarDias(hoy, -diasPediluvio);
+  const [programasDB, pendientesDB, podologiaDB, pediluvioDB, famachaDB] = await Promise.all([
     supabase.from("v_programas_sanitarios").select("*").eq("finca_id", fincaId).eq("estado", "abierto").order("fecha_programada").limit(50),
     supabase.from("v_sanidad_pendiente").select("*").eq("finca_id", fincaId).order("proxima_fecha").limit(1000),
     supabase.from("v_podologia_animal").select("animal_id, ultima_fecha").eq("finca_id", fincaId).limit(2000),
+    supabase.from("v_pediluvio_animal").select("animal_id, ultima_fecha").eq("finca_id", fincaId).limit(2000),
     supabase.from("v_famacha_animal").select("*").eq("finca_id", fincaId).gte("puntaje", 3).limit(2000),
   ]);
   const programas = (programasDB.data ?? []) as ProgramaSanitarioResumen[];
@@ -58,6 +64,7 @@ export async function Sanidad({
   const famachaDesparasitar = estadosFamacha.filter((c) => c === "desparasitar").length;
   const famachaVigilar = estadosFamacha.filter((c) => c === "vigilar").length;
   const sinPodologia = (podologiaDB.data ?? []).filter((p) => !p.ultima_fecha || p.ultima_fecha < limitePodologia).length;
+  const sinPediluvio = (pediluvioDB.data ?? []).filter((p) => !p.ultima_fecha || p.ultima_fecha < limitePediluvio).length;
 
   const botones = puedeEditar ? (
     <div className="grid grid-cols-1 gap-2 min-[420px]:grid-cols-2">
@@ -73,7 +80,7 @@ export async function Sanidad({
   return (
     <div className="space-y-4">
       <AvisoGuardado activo={guardado} />
-      <AyudaModulo ayuda={AYUDA_SANIDAD} />
+      <AyudaModulo ayuda={ayudaSanidad(ajustes)} />
       {botones}
 
       {programas.length === 0 && refuerzos.length === 0 ? (
@@ -175,11 +182,30 @@ export async function Sanidad({
             <div className="min-w-0">
               <p className="font-bold">Podología pendiente</p>
               <p className="mt-0.5 text-[0.9375rem] text-humo">
-                {sinPodologia} {sinPodologia === 1 ? "animal lleva" : "animales llevan"} más de 6 meses sin recorte de pezuñas registrado. La inspección semestral previene cojeras y gabatillo, sobre todo antes del empadre y de los partos.
+                {sinPodologia} {sinPodologia === 1 ? "animal lleva" : "animales llevan"} más de {textoPlazo(ajustes.podologia_inspeccion_dias)} sin recorte de pezuñas registrado. La inspección periódica previene cojeras y gabatillo, sobre todo antes del empadre y de los partos.
               </p>
               {puedeEditar ? (
                 <Link href="/hato/sanidad/programar?tipo=podologia&grupo=podologia" className="mt-1 inline-flex min-h-11 items-center font-semibold text-musgo underline-offset-4 hover:underline">
                   Programar podología para ellos
+                </Link>
+              ) : null}
+            </div>
+          </div>
+        </section>
+      ) : null}
+
+      {sinPediluvio > 0 ? (
+        <section className="rounded-2xl bg-lana p-3.5" aria-label="Pediluvio">
+          <div className="flex items-start gap-3">
+            <Footprints className="mt-0.5 size-6 shrink-0 text-musgo" strokeWidth={1.75} aria-hidden="true" />
+            <div className="min-w-0">
+              <p className="font-bold">Pediluvio pendiente</p>
+              <p className="mt-0.5 text-[0.9375rem] text-humo">
+                {sinPediluvio} {sinPediluvio === 1 ? "animal lleva" : "animales llevan"} más de {textoPlazo(diasPediluvio)} sin baño de patas registrado. Se repite cada {textoPlazo(ajustes.pediluvio_dias)}, y cada {textoPlazo(ajustes.pediluvio_dias_lluvia)} en épocas de lluvias.
+              </p>
+              {puedeEditar ? (
+                <Link href="/hato/sanidad/programar?tipo=pediluvio&grupo=pediluvio" className="mt-1 inline-flex min-h-11 items-center font-semibold text-musgo underline-offset-4 hover:underline">
+                  Programar pediluvio para ellos
                 </Link>
               ) : null}
             </div>

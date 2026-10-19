@@ -14,15 +14,32 @@ import { etiquetaAnimal } from "@/lib/animal";
 import { formatoFecha } from "@/lib/fechas";
 import { estadoCrioscopia, estadoRcs, estadoResiduos, formatoCrioscopia, formatoMiles } from "@/lib/leche-calidad";
 import { direccionSoporte } from "@/lib/soportes";
-import type { AnalisisLeche } from "@/lib/tipos";
+import { estadoEnRango } from "@/lib/ajustes";
+import type { AjustesEspecie } from "@/lib/ajustes";
+import type { AnalisisLeche, Especie } from "@/lib/tipos";
 
-type FilaAnalisis = AnalisisLeche & { animal?: { numero_arete: string; nombre: string | null } };
+type FilaAnalisis = AnalisisLeche & { animal?: { numero_arete: string; nombre: string | null; especie: Especie } };
 type Origen = "todos" | "tanque" | "animales";
 
 const pct = (n: number) => `${n.toLocaleString("es-CO", { maximumFractionDigits: 2 })} %`;
 
 /** Resultados de calidad de la leche: del tanque o lote y de cada animal. Los de un animal se registran desde su ficha. */
-export function ListaCalidad({ fincaId, puedeEditar }: { fincaId: string; puedeEditar: boolean }) {
+export function ListaCalidad({
+  fincaId,
+  puedeEditar,
+  limiteRcs,
+  rangos,
+  especieUnica,
+}: {
+  fincaId: string;
+  puedeEditar: boolean;
+  /** El límite de células somáticas de la finca (miles por ml). */
+  limiteRcs: number;
+  /** Los rangos de grasa y proteína de cada especie. */
+  rangos: Record<Especie, Pick<AjustesEspecie, "grasa_min_pct" | "grasa_max_pct" | "proteina_min_pct" | "proteina_max_pct">>;
+  /** La especie de la finca cuando tiene una sola: con ella se juzga la muestra del tanque. */
+  especieUnica: Especie | null;
+}) {
   const [busqueda, setBusqueda] = useState("");
   const [origen, setOrigen] = useState<Origen>("todos");
   const alBuscar = useCallback((t: string) => setBusqueda(t), []);
@@ -46,7 +63,7 @@ export function ListaCalidad({ fincaId, puedeEditar }: { fincaId: string; puedeE
       const filas = (data ?? []) as FilaAnalisis[];
       const ids = [...new Set(filas.map((f) => f.animal_id).filter((i): i is string => Boolean(i)))];
       if (ids.length) {
-        const { data: animales } = await supabase.from("animales").select("id, numero_arete, nombre").in("id", ids);
+        const { data: animales } = await supabase.from("animales").select("id, numero_arete, nombre, especie").in("id", ids);
         const porId = new Map((animales ?? []).map((a) => [a.id, a]));
         for (const f of filas) if (f.animal_id) f.animal = porId.get(f.animal_id);
       }
@@ -71,7 +88,11 @@ export function ListaCalidad({ fincaId, puedeEditar }: { fincaId: string; puedeE
         cargar={cargar}
         clave={(a) => a.id}
         fila={(a) => {
-          const rcs = a.rcs_miles_ml != null ? estadoRcs(a.rcs_miles_ml) : null;
+          const rcs = a.rcs_miles_ml != null ? estadoRcs(a.rcs_miles_ml, limiteRcs) : null;
+          const rango = rangos[a.animal?.especie ?? especieUnica ?? "ovino"];
+          const juzgar = a.animal_id ? Boolean(a.animal) : especieUnica !== null;
+          const grasa = juzgar && a.grasa_pct != null ? estadoEnRango(a.grasa_pct, rango.grasa_min_pct, rango.grasa_max_pct) : null;
+          const proteina = juzgar && a.proteina_pct != null ? estadoEnRango(a.proteina_pct, rango.proteina_min_pct, rango.proteina_max_pct) : null;
           const contenido = (
             <>
               <span className="block font-bold [overflow-wrap:anywhere]">
@@ -94,6 +115,8 @@ export function ListaCalidad({ fincaId, puedeEditar }: { fincaId: string; puedeE
                   .join(" · ")}
               </span>
               <span className="mt-1.5 flex flex-wrap gap-1.5">
+                {grasa && grasa !== "ok" ? <Insignia tono="aviso">{`Grasa ${grasa === "bajo" ? "baja" : "alta"} para tu rango`}</Insignia> : null}
+                {proteina && proteina !== "ok" ? <Insignia tono="aviso">{`Proteína ${proteina === "bajo" ? "baja" : "alta"} para tu rango`}</Insignia> : null}
                 {rcs ? <Insignia tono={rcs.tono}>{`Células somáticas: ${rcs.texto.toLowerCase()}`}</Insignia> : null}
                 {a.crioscopia_c != null ? <Insignia tono={estadoCrioscopia(a.crioscopia_c).tono}>{`Crioscopia: ${estadoCrioscopia(a.crioscopia_c).texto.toLowerCase()}`}</Insignia> : null}
                 {a.residuos_antibioticos ? <Insignia tono={estadoResiduos(a.residuos_antibioticos).tono}>{`Antibióticos: ${estadoResiduos(a.residuos_antibioticos).texto.toLowerCase()}`}</Insignia> : null}

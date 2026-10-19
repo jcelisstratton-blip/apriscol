@@ -6,6 +6,7 @@ import { EliminarRegistro } from "@/components/EliminarRegistro";
 import { Encabezado } from "@/components/Encabezado";
 import { FormServicio } from "@/components/FormServicio";
 import { obtenerContexto } from "@/lib/contexto";
+import { obtenerAjustes } from "@/lib/ajustes-servidor";
 import { crearClienteServidor } from "@/lib/supabase/server";
 import { puedeEscribir, puedeGestionar } from "@/lib/permisos";
 import { etiquetaAnimal } from "@/lib/animal";
@@ -25,8 +26,8 @@ export default async function PaginaEditarServicio({ params }: { params: Promise
   if (!puedeEscribir(rol, "reproduccion", finca.plan)) redirect(`/hato/${servicio.hembra_id}`);
   const { data: animal } = await supabase.from("animales").select("id, numero_arete, nombre, especie").eq("id", servicio.hembra_id).eq("finca_id", finca.id).maybeSingle();
   if (!animal) notFound();
-  const [{ data: param }, macho] = await Promise.all([
-    supabase.from("parametros_especie").select("gestacion_dias").eq("especie", animal.especie).maybeSingle(),
+  const [ajustes, macho] = await Promise.all([
+    obtenerAjustes(),
     servicio.macho_id ? supabase.from("animales").select("id, numero_arete, nombre").eq("id", servicio.macho_id).eq("finca_id", finca.id).maybeSingle() : Promise.resolve({ data: null }),
   ]);
 
@@ -37,7 +38,7 @@ export default async function PaginaEditarServicio({ params }: { params: Promise
       </Link>
       <Encabezado titulo="Editar servicio" subtitulo={etiquetaAnimal(animal)} />
       <div className="space-y-8 lg:max-w-xl">
-        <FormServicio fincaId={finca.id} hembraId={animal.id} especie={animal.especie} gestacionDias={param?.gestacion_dias ?? 150} hoy={hoyBogota()} servicio={servicio} machoInicial={macho.data} />
+        <FormServicio fincaId={finca.id} hembraId={animal.id} especie={animal.especie} gestacionDias={ajustes.especie[animal.especie].gestacion_dias} hoy={hoyBogota()} servicio={servicio} machoInicial={macho.data} />
         {puedeGestionar(rol) ? (
           <EliminarRegistro
             etiqueta="Eliminar este servicio"

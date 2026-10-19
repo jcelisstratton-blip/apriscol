@@ -6,6 +6,7 @@ import { ChevronLeft } from "lucide-react";
 import { Encabezado } from "@/components/Encabezado";
 import { FormCalidad } from "@/components/FormCalidad";
 import { obtenerContexto } from "@/lib/contexto";
+import { obtenerAjustes } from "@/lib/ajustes-servidor";
 import { crearClienteServidor } from "@/lib/supabase/server";
 import { puedeEscribir } from "@/lib/permisos";
 import { etiquetaAnimal } from "@/lib/animal";
@@ -33,7 +34,7 @@ export default async function PaginaCalidadAnimal({ params }: { params: Promise<
       </Link>
       <Encabezado titulo="Análisis de leche" subtitulo={etiquetaAnimal(animal)} />
       <div className="lg:max-w-xl">
-        <FormCalidad hoy={hoyBogota()} animalId={id} solicitud={randomUUID()} cancelar={`/hato/${id}#calidad`} />
+        <FormCalidad hoy={hoyBogota()} animalId={id} solicitud={randomUUID()} cancelar={`/hato/${id}#calidad`} limiteRcs={(await obtenerAjustes()).general.ccs_limite_miles_ml} />
       </div>
     </>
   );

@@ -1,6 +1,6 @@
 import { CUARENTENA_MIN_DIAS, CUARENTENA_RECOMENDADA_DIAS, DIAS_DESCANSO_DEFECTO, DIAS_OCUPACION_DEFECTO } from "@/lib/corrales";
 import { DIAS_EDAD_FAMACHA } from "@/lib/famacha";
-import { DIAS_PODOLOGIA } from "@/lib/sanidad";
+import { textoPlazo, type AjustesFinca } from "@/lib/ajustes";
 
 /** Una idea de la hoja «¿Cómo funciona?»: un título corto y una sola frase. */
 export type PuntoAyuda = { titulo: string; texto: string };
@@ -27,7 +27,8 @@ export const AYUDA_CORRALES: Ayuda = {
   enlace: { href: "/corrales", texto: "Ver el resumen de toda la finca" },
 };
 
-export const AYUDA_SANIDAD: Ayuda = {
+/** La ayuda de Sanidad: los tiempos de pezuñas y pediluvio son los que definió el propietario en los ajustes de la finca. */
+export const ayudaSanidad = (a: Pick<AjustesFinca, "podologia_inspeccion_dias" | "pediluvio_dias" | "pediluvio_dias_lluvia">): Ayuda => ({
   titulo: "Sanidad del hato",
   puntos: [
     { titulo: "Programar y aplicar", texto: "Programa una vacuna, desparasitación, tratamiento o pediluvio para los animales que aplican; cuando llega el día lo aplicas y queda en el historial de cada uno." },
@@ -36,10 +37,13 @@ export const AYUDA_SANIDAD: Ayuda = {
       titulo: "FAMACHA",
       texto: `Se evalúa el color del párpado de los animales de más de ${meses(DIAS_EDAD_FAMACHA)} meses. 1 y 2: sin anemia. 3: vigílalo. 4 y 5: desparasítalo. Así solo tratas a quien lo necesita.`,
     },
-    { titulo: "Pezuñas", texto: `Revisa las pezuñas cada ${meses(DIAS_PODOLOGIA)} meses (podología) y usa pediluvio con sulfato de cobre o de zinc, sobre todo en épocas de lluvia.` },
+    {
+      titulo: "Pezuñas",
+      texto: `Revisa las pezuñas cada ${textoPlazo(a.podologia_inspeccion_dias)} (podología) y usa pediluvio con sulfato de cobre o de zinc cada ${textoPlazo(a.pediluvio_dias)}, y cada ${textoPlazo(a.pediluvio_dias_lluvia)} en épocas de lluvia.`,
+    },
   ],
   enlace: { href: "/sanidad", texto: "Ver el resumen de toda la finca" },
-};
+});
 
 export const AYUDA_EMPADRONAMIENTO: Ayuda = {
   titulo: "Temporada de monta",

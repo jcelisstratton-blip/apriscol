@@ -1039,6 +1039,7 @@ export type CandidataEmp = {
 
 export type { AncestroEndogamia } from "@/lib/endogamia";
 import type { AncestroEndogamia } from "@/lib/endogamia";
+import type { AjustesEspecie, AjustesFinca } from "@/lib/ajustes";
 
 export type Database = {
   __InternalSupabase: { PostgrestVersion: "14.18" };
@@ -1055,7 +1056,24 @@ export type Database = {
       ordenos: Tabla<Ordeno, "finca_id" | "animal_id" | "jornada" | "litros">;
       lactancias: Tabla<Lactancia, "finca_id" | "animal_id" | "numero" | "fecha_parto">;
       partos: Tabla<Parto, "finca_id" | "madre_id">;
-      parametros_especie: Tabla<{ especie: Especie; gestacion_dias: number; ciclo_estral_dias: number }, "especie">;
+      parametros_especie: Tabla<
+        {
+          especie: Especie;
+          gestacion_dias: number;
+          ciclo_estral_dias: number;
+          gestacion_min: number;
+          gestacion_max: number;
+          grasa_min_pct: number | null;
+          grasa_max_pct: number | null;
+          proteina_min_pct: number | null;
+          proteina_max_pct: number | null;
+          peso_faena_min_kg: number | null;
+          peso_faena_max_kg: number | null;
+        },
+        "especie"
+      >;
+      finca_ajustes: Tabla<AjustesFinca, "finca_id">;
+      finca_ajustes_especie: Tabla<AjustesEspecie, "finca_id" | "especie" | "gestacion_dias">;
       servicios: Tabla<Servicio, "finca_id" | "hembra_id" | "tipo">;
       diagnosticos_gestacion: Tabla<DiagnosticoGestacion, "finca_id" | "hembra_id" | "resultado">;
       crias: Tabla<Cria, "finca_id" | "parto_id">;
@@ -1108,6 +1126,7 @@ export type Database = {
       v_cuarentena_alerta: { Row: CuarentenaAlerta; Relationships: [] };
       v_famacha_animal: { Row: FamachaAnimal; Relationships: [] };
       v_podologia_animal: { Row: { animal_id: string; finca_id: string; ultima_fecha: string | null }; Relationships: [] };
+      v_pediluvio_animal: { Row: { animal_id: string; finca_id: string; ultima_fecha: string | null }; Relationships: [] };
     };
     Functions: {
       mover_animales: {
@@ -1216,6 +1235,8 @@ export type Database = {
       simular_endogamia_libro: { Args: { p_macho: string; p_hembra: string }; Returns: number };
       completitud_pedigri_libro: { Args: { p_libro: string; p_generaciones?: number }; Returns: number };
       admin_resumen: { Args: Record<string, never>; Returns: Record<string, number> };
+      asegurar_ajustes_finca: { Args: { p_finca: string }; Returns: undefined };
+      restablecer_ajustes_finca: { Args: { p_finca: string; p_grupo: string }; Returns: undefined };
       solicitar_mejora_plan: { Args: { p_finca: string; p_plan: PlanId; p_periodo?: "mensual" | "anual" }; Returns: undefined };
       admin_asignar_plan: { Args: { p_correo: string; p_plan: PlanId }; Returns: number };
       admin_listar_solicitudes_plan: { Args: Record<string, never>; Returns: SolicitudPlan[] };
