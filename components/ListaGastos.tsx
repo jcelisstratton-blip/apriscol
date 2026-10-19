@@ -75,7 +75,7 @@ export function ListaGastos({
   return (
     <div className="space-y-3">
       <CampoBusqueda onBuscar={alBuscar} placeholder="Buscar por descripción o proveedor" />
-      <FilaTarjetas etiqueta="Grupo de gasto">
+      <FilaTarjetas etiqueta="Grupo de compra">
         <TarjetaOpcion escena={ESCENA_TODOS_GRUPOS} titulo="Todos" activo={grupo === "todos"} onClick={() => setGrupo("todos")} />
         {GRUPOS.map((g) => (
           <TarjetaOpcion key={g} escena={ESCENA_GRUPO_GASTO[g]} titulo={ETIQUETA_GRUPO[g]} activo={grupo === g} onClick={() => setGrupo(g)} />
@@ -128,13 +128,13 @@ export function ListaGastos({
         vacio={
           <EstadoVacio
             icono={<Receipt strokeWidth={1.5} />}
-            titulo={soloPorPagar && !hayFiltro ? "No tienes gastos por pagar" : hayFiltro ? "Nada con ese filtro" : "Todavía no hay gastos"}
+            titulo={soloPorPagar && !hayFiltro ? "No tienes compras por pagar" : hayFiltro ? "Nada con ese filtro" : "Todavía no hay compras"}
             descripcion={
               hayFiltro
                 ? "Prueba con otro grupo, otras fechas o quita la búsqueda."
                 : soloPorPagar
-                  ? "Cuando registres un gasto a crédito, aquí verás cuándo vence."
-                  : "Registra lo que compras y pagas (concentrado, sales, mano de obra…) y aquí queda el historial."
+                  ? "Cuando registres una compra a crédito, aquí verás cuándo vence."
+                  : "Registra lo que compras y pagas (concentrado, sales, vacunas…) y aquí queda el historial."
             }
           />
         }

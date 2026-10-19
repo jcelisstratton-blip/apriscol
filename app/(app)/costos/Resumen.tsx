@@ -4,7 +4,8 @@ import { Aviso } from "@/components/Aviso";
 import { EstadoVacio } from "@/components/EstadoVacio";
 import { Tarjeta } from "@/components/Tarjeta";
 import { crearClienteServidor } from "@/lib/supabase/server";
-import { ALIMENTACION_HABITUAL, ETIQUETA_GRUPO, ETIQUETA_RUBRO, GRUPOS, GRUPO_DE, porcentaje, type GrupoGasto } from "@/lib/costos";
+import { ALIMENTACION_HABITUAL, ETIQUETA_GRUPO_COSTO, ETIQUETA_RUBRO, GRUPOS_COSTO, grupoDe, porcentaje, type GrupoCosto } from "@/lib/costos";
+import { ETIQUETA_LINEA, LINEAS } from "@/lib/ventas";
 import { formatoFecha, hoyBogota, litros } from "@/lib/fechas";
 import { pesos } from "@/lib/ferias";
 import { rangoPeriodo, type Periodo } from "@/lib/periodos";
@@ -14,8 +15,9 @@ export type FiltrosCostos = { periodo: Periodo; desde?: string; hasta?: string }
 const mes = (iso: string) => formatoFecha(iso, { month: "long", year: "numeric" });
 
 /**
- * Costos → Resumen: lo que costó el hato en el periodo elegido (por grupo y rubro, mes a mes), lo que entró, el resultado, el costo por litro y por
- * animal, lo que queda por pagar y la pérdida por saca y mortalidad. Registrar gastos se hace en Hato → Gastos.
+ * Costos → Resumen: lo que se compró, la mano de obra y lo que se vendió, cada cosa por separado, y el resultado (ventas menos todo lo que costó) del
+ * periodo elegido; en qué se va (por grupo y rubro), qué se vende, mes a mes, el costo por litro y por animal, lo que queda por pagar y por cobrar y la
+ * pérdida por saca y mortalidad. Registrar compras y ventas se hace en Hato → Compras y Hato → Ventas.
  */
 export async function Resumen({
   fincaId,
@@ -31,26 +33,35 @@ export async function Resumen({
   const rango = rangoPeriodo(filtros.periodo, hoyBogota(), filtros.desde, filtros.hasta);
   const hayRango = Boolean(rango.desde || rango.hasta);
   const p = { p_finca: fincaId, p_desde: rango.desde, p_hasta: rango.hasta };
-  const [indDB, rubrosDB, mesesDB, depDB] = await Promise.all([
+  const [indDB, rubrosDB, mesesDB, depDB, lineasDB, dobleDB] = await Promise.all([
     supabase.rpc("costos_indicadores", p),
     supabase.rpc("costos_por_rubro", p),
     supabase.rpc("costos_por_mes", p),
     supabase.rpc("costos_depreciacion", p),
+    supabase.rpc("ventas_por_linea", p),
+    supabase.rpc("costos_posible_doble_conteo", p),
   ]);
   const ind = indDB.data?.[0];
   const rubros = rubrosDB.data ?? [];
   const meses = mesesDB.data ?? [];
   const dep = depDB.data ?? [];
+  const lineas = lineasDB.data ?? [];
+  const doble = dobleDB.data ?? [];
   const costos = Number(ind?.total_costos ?? 0);
-  const ingresos = Number(ind?.ingresos_leche ?? 0) + Number(ind?.ingresos_animales ?? 0);
-  const resultado = ingresos - costos;
+  // La mano de obra se cuenta aparte de las compras: no es un insumo.
+  const manoObra = rubros.filter((r) => r.rubro === "mano_obra").reduce((s, r) => s + Number(r.total), 0);
+  const compras = costos - manoObra;
+  const ventas = lineas.reduce((s, l) => s + Number(l.total), 0);
+  const porCobrar = lineas.reduce((s, l) => s + Number(l.por_cobrar), 0);
+  const cobroVencido = lineas.reduce((s, l) => s + Number(l.vencido), 0);
+  const resultado = ventas - costos;
   const litrosPeriodo = Number(ind?.litros ?? 0);
   const activos = ind?.animales_activos ?? 0;
-  const sinNada = costos === 0 && ingresos === 0 && litrosPeriodo === 0 && dep.every((d) => d.animales === 0);
+  const sinNada = costos === 0 && ventas === 0 && litrosPeriodo === 0 && dep.every((d) => d.animales === 0);
 
-  const porGrupo = new Map<GrupoGasto, { total: number; rubros: typeof rubros }>();
+  const porGrupo = new Map<GrupoCosto, { total: number; rubros: typeof rubros }>();
   for (const r of rubros) {
-    const g = GRUPO_DE[r.rubro];
+    const g = grupoDe(r.rubro);
     const previo = porGrupo.get(g) ?? { total: 0, rubros: [] };
     previo.total += Number(r.total);
     previo.rubros.push(r);
@@ -60,25 +71,25 @@ export async function Resumen({
 
   if (sinNada) {
     return hayRango ? (
-      <EstadoVacio icono={<SearchX strokeWidth={1.5} />} titulo="Nada en este periodo" descripcion="No hay gastos, ingresos ni producción entre esas fechas. Prueba con otro periodo.">
+      <EstadoVacio icono={<SearchX strokeWidth={1.5} />} titulo="Nada en este periodo" descripcion="No hay compras, ventas ni producción entre esas fechas. Prueba con otro periodo.">
         <Link href="/costos" className="inline-flex min-h-11 items-center font-semibold text-musgo underline-offset-4 hover:underline">
           Quitar el filtro de fechas
         </Link>
       </EstadoVacio>
     ) : (
-      <EstadoVacio icono={<Coins strokeWidth={1.5} />} titulo="Todavía no hay costos" descripcion="Registra lo que compras y pagas, y aquí verás cuánto cuesta el hato, cada litro y cada animal. Los tratamientos con costo y el alimento de la ceba se suman solos.">
+      <EstadoVacio icono={<Coins strokeWidth={1.5} />} titulo="Todavía no hay movimientos" descripcion="Registra lo que compras y lo que vendes, y aquí verás cuánto cuesta el hato, cuánto deja, cada litro y cada animal. Los tratamientos con costo, el alimento de la ceba, la leche despachada y los animales vendidos se suman solos.">
         <Link href="/hato?vista=gastos" className="inline-flex min-h-11 items-center font-semibold text-musgo underline-offset-4 hover:underline">
-          Ir a Hato → Gastos
+          Ir a Hato → Compras
         </Link>
       </EstadoVacio>
     );
   }
 
   const cifras: [string, string, "ok" | "alerta" | null][] = [
-    ["Costos", pesos(costos), null],
-    ["Ingresos", pesos(ingresos), null],
+    ["Compras", pesos(compras), null],
+    ["Mano de obra", pesos(manoObra), null],
+    ["Ventas", pesos(ventas), null],
     ["Resultado", pesos(resultado), resultado < 0 ? "alerta" : resultado > 0 ? "ok" : null],
-    ["Costo por litro", litrosPeriodo > 0 ? pesos(costos / litrosPeriodo) : "—", null],
   ];
 
   return (
@@ -93,23 +104,39 @@ export async function Resumen({
           ))}
         </dl>
         <p className="mt-3 border-t border-arena pt-2 text-center text-sm text-humo [overflow-wrap:anywhere]">
-          {litrosPeriodo > 0 ? `${litros(litrosPeriodo)} L producidos` : "Sin litros registrados"}
+          {litrosPeriodo > 0 ? `${litros(litrosPeriodo)} L producidos · ${pesos(costos / litrosPeriodo)} de costo por litro` : "Sin litros registrados"}
           {activos > 0 && costos > 0 ? ` · ${pesos(costos / activos)} por animal activo` : ""}
         </p>
       </Tarjeta>
 
       <div className="space-y-3.5 lg:columns-2 lg:gap-x-4 lg:space-y-0 lg:[&>*]:mb-3.5 lg:[&>*]:break-inside-avoid">
         {Number(ind?.por_pagar ?? 0) > 0 ? (
-          <Tarjeta titulo="Por pagar" acciones={<Link href="/hato?vista=gastos" className="text-sm font-semibold text-musgo">Hato → Gastos</Link>}>
+          <Tarjeta titulo="Por pagar" acciones={<Link href="/hato?vista=gastos" className="text-sm font-semibold text-musgo">Hato → Compras</Link>}>
             <p className="font-display text-2xl font-semibold tabular-nums">{pesos(Number(ind?.por_pagar))}</p>
             {Number(ind?.vencido ?? 0) > 0 ? <p className="mt-1 text-[0.9375rem] text-rojo">{pesos(Number(ind?.vencido))} ya venció.</p> : <p className="mt-1 text-[0.9375rem] text-humo">Nada vencido todavía.</p>}
+          </Tarjeta>
+        ) : null}
+
+        {porCobrar > 0 ? (
+          <Tarjeta titulo="Por cobrar" acciones={<Link href="/hato?vista=ventas" className="text-sm font-semibold text-musgo">Hato → Ventas</Link>}>
+            <p className="font-display text-2xl font-semibold tabular-nums">{pesos(porCobrar)}</p>
+            {cobroVencido > 0 ? <p className="mt-1 text-[0.9375rem] text-rojo">{pesos(cobroVencido)} ya pasó la fecha en que lo esperabas.</p> : <p className="mt-1 text-[0.9375rem] text-humo">Nada vencido todavía.</p>}
+          </Tarjeta>
+        ) : null}
+
+        {doble.length > 0 ? (
+          <Tarjeta titulo="Revisa que no se cuente dos veces">
+            <Aviso tipo="atencion">
+              {doble.map((d) => `${ETIQUETA_RUBRO[d.rubro]}: ${pesos(Number(d.compras))} en compras y ${pesos(Number(d.consumo))} ${d.origen_consumo === "ceba" ? "de alimento de ceba" : "de tratamientos"}`).join(". ")}. Si es el mismo alimento o
+              la misma medicina, se está sumando dos veces: deja el costo en un solo lugar (la compra o el registro de ceba o de sanidad).
+            </Aviso>
           </Tarjeta>
         ) : null}
 
         {costos > 0 ? (
           <Tarjeta titulo="En qué se va">
             <ul className="space-y-3">
-              {GRUPOS.filter((g) => porGrupo.has(g))
+              {GRUPOS_COSTO.filter((g) => porGrupo.has(g))
                 .sort((a, b) => (porGrupo.get(b)?.total ?? 0) - (porGrupo.get(a)?.total ?? 0))
                 .map((g) => {
                   const dato = porGrupo.get(g)!;
@@ -117,7 +144,7 @@ export async function Resumen({
                   return (
                     <li key={g}>
                       <div className="flex items-baseline justify-between gap-3">
-                        <span className="min-w-0 font-semibold">{ETIQUETA_GRUPO[g]}</span>
+                        <span className="min-w-0 font-semibold">{ETIQUETA_GRUPO_COSTO[g]}</span>
                         <span className="shrink-0 text-sm tabular-nums text-humo">
                           {pesos(dato.total)} · {String(pct).replace(".", ",")} %
                         </span>
@@ -146,6 +173,31 @@ export async function Resumen({
           </Tarjeta>
         ) : null}
 
+        {lineas.length > 0 ? (
+          <Tarjeta titulo="Qué se vende">
+            <ul className="space-y-3">
+              {LINEAS.filter((l) => lineas.some((x) => x.linea === l)).map((l) => {
+                const dato = lineas.find((x) => x.linea === l)!;
+                const pct = porcentaje(Number(dato.total), ventas);
+                return (
+                  <li key={l}>
+                    <div className="flex items-baseline justify-between gap-3">
+                      <span className="min-w-0 font-semibold">{ETIQUETA_LINEA[l]}</span>
+                      <span className="shrink-0 text-sm tabular-nums text-humo">
+                        {pesos(Number(dato.total))} · {String(pct).replace(".", ",")} %
+                      </span>
+                    </div>
+                    <div className="mt-1 h-2 overflow-hidden rounded-full bg-arena" aria-hidden="true">
+                      <div className="h-full rounded-full bg-ok" style={{ width: `${Math.max(3, pct)}%` }} />
+                    </div>
+                    {Number(dato.por_cobrar) > 0 ? <p className="mt-1 text-xs text-humo">Por cobrar {pesos(Number(dato.por_cobrar))}</p> : null}
+                  </li>
+                );
+              })}
+            </ul>
+          </Tarjeta>
+        ) : null}
+
         {meses.length > 0 ? (
           <Tarjeta titulo="Mes a mes">
             <ul className="divide-y divide-arena">
@@ -157,7 +209,7 @@ export async function Resumen({
                     <span className="min-w-0">
                       <span className="block font-semibold first-letter:uppercase">{mes(m.mes)}</span>
                       <span className="block text-sm text-humo [overflow-wrap:anywhere]">
-                        Costos {pesos(Number(m.costos))} · Ingresos {pesos(entra)}
+                        Costos {pesos(Number(m.costos))} · Ventas {pesos(entra)}
                       </span>
                     </span>
                     <span className={`shrink-0 text-right font-semibold tabular-nums ${queda < 0 ? "text-rojo" : queda > 0 ? "text-ok" : ""}`}>{pesos(queda)}</span>

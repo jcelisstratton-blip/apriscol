@@ -1,15 +1,16 @@
 import ExcelJS from "exceljs";
-import { ETIQUETA_GRUPO, ETIQUETA_ORIGEN, ETIQUETA_RUBRO, GRUPO_DE, GRUPOS } from "@/lib/costos";
+import { ETIQUETA_GRUPO_COSTO, ETIQUETA_ORIGEN, ETIQUETA_RUBRO, GRUPOS_COSTO, grupoDe } from "@/lib/costos";
+import { ETIQUETA_LINEA, ETIQUETA_ORIGEN_VENTA, LINEAS } from "@/lib/ventas";
 import { REPORTES, type ReporteId } from "@/lib/costos-reportes";
-import type { RubroGasto } from "@/lib/tipos";
+import type { LineaVenta, OrigenCosto, RubroCosto, RubroGasto, VentaLinea } from "@/lib/tipos";
 
 // ───────────────────────── Datos que llegan ya consultados ─────────────────────────
-export type FilaRubro = { rubro: RubroGasto; total: number; por_pagar: number; de_gastos: number; de_sanidad: number; de_ceba: number; movimientos: number };
+export type FilaRubro = { rubro: RubroCosto; total: number; por_pagar: number; de_gastos: number; de_sanidad: number; de_ceba: number; movimientos: number };
 export type FilaMes = { mes: string; costos: number; ingresos_leche: number; ingresos_animales: number; litros: number };
 export type FilaDetalle = {
   fecha: string;
-  origen: "gasto" | "sanidad" | "ceba";
-  rubro: RubroGasto;
+  origen: OrigenCosto;
+  rubro: RubroCosto;
   descripcion: string;
   proveedor: string | null;
   cargado_a: string;
@@ -20,6 +21,7 @@ export type FilaDetalle = {
 export type FilaAnimal = { numero_arete: string; nombre: string | null; especie: string; sexo: string; estado: string; directo: number; repartido: number; total: number; valor_compra: number | null };
 export type FilaPendiente = { fecha: string; vence: string | null; atraso: number; proveedor: string | null; descripcion: string; rubro: RubroGasto; monto: number };
 export type Indicadores = { total_costos: number; por_pagar: number; vencido: number; ingresos_leche: number; ingresos_animales: number; litros: number; animales_activos: number };
+export type FilaVentaLinea = { linea: LineaVenta; total: number; por_cobrar: number; vencido: number; movimientos: number };
 export type FilaDepreciacion = { tipo: "saca" | "mortalidad"; animales: number; con_valor: number; perdida: number };
 
 export type DatosReporte = {
@@ -40,6 +42,9 @@ export type DatosReporte = {
   pendientes?: FilaPendiente[];
   indicadores?: Indicadores;
   depreciacion?: FilaDepreciacion[];
+  /** Lo vendido por línea de ingreso, y cada venta una por una. */
+  ventasLinea?: FilaVentaLinea[];
+  ventas?: VentaLinea[];
 };
 
 // ───────────────────────── Estilo ─────────────────────────
@@ -134,33 +139,36 @@ function autofiltro(ws: ExcelJS.Worksheet, filaEncabezado: number, n: number) {
 }
 
 // ───────────────────────── Reportes ─────────────────────────
-function hojaRubros(wb: ExcelJS.Workbook, d: DatosReporte, nombre = "Gastos por rubro", titulo = "Gastos por rubro") {
+function hojaRubros(wb: ExcelJS.Workbook, d: DatosReporte, nombre = "Costos por rubro", titulo = "Costos por rubro") {
   const ws = wb.addWorksheet(nombre);
   const cols: Col[] = [
     { titulo: "Grupo", ancho: 26 }, { titulo: "Rubro", ancho: 30 },
-    { titulo: "Gastos registrados", ancho: 18, formato: FMT_PESOS }, { titulo: "Tratamientos (Sanidad)", ancho: 18, formato: FMT_PESOS }, { titulo: "Alimento de ceba", ancho: 18, formato: FMT_PESOS },
+    { titulo: "Compras registradas", ancho: 18, formato: FMT_PESOS }, { titulo: "Tratamientos (Sanidad)", ancho: 18, formato: FMT_PESOS }, { titulo: "Alimento de ceba", ancho: 18, formato: FMT_PESOS },
+    { titulo: "Animales comprados", ancho: 18, formato: FMT_PESOS },
     { titulo: "Total", ancho: 18, formato: FMT_PESOS }, { titulo: "% del total", ancho: 12, formato: FMT_PCT }, { titulo: "Por pagar", ancho: 16, formato: FMT_PESOS }, { titulo: "Movimientos", ancho: 13, formato: "0" },
   ];
   const inicio = encabezado(ws, d, titulo, cols);
-  const filas = [...(d.rubros ?? [])].sort((a, b) => GRUPOS.indexOf(GRUPO_DE[a.rubro]) - GRUPOS.indexOf(GRUPO_DE[b.rubro]) || b.total - a.total);
+  const filas = [...(d.rubros ?? [])].sort((a, b) => GRUPOS_COSTO.indexOf(grupoDe(a.rubro)) - GRUPOS_COSTO.indexOf(grupoDe(b.rubro)) || b.total - a.total);
   const ultima = inicio + filas.length - 1;
   const filaTotal = ultima + 1;
   filas.forEach((f, i) => {
     const fila = inicio + i;
-    filaDatos(ws, fila, cols, [ETIQUETA_GRUPO[GRUPO_DE[f.rubro]], ETIQUETA_RUBRO[f.rubro], f.de_gastos, f.de_sanidad, f.de_ceba, { formula: `C${fila}+D${fila}+E${fila}` }, { formula: `IF(F$${filaTotal}>0,F${fila}/F$${filaTotal},0)` }, f.por_pagar, f.movimientos]);
+    // Lo que no viene de compras, de sanidad ni de ceba es la compra de animales (o, más adelante, otros orígenes): sale de restar al total.
+    const animales = Math.max(0, f.total - f.de_gastos - f.de_sanidad - f.de_ceba);
+    filaDatos(ws, fila, cols, [ETIQUETA_GRUPO_COSTO[grupoDe(f.rubro)], ETIQUETA_RUBRO[f.rubro], f.de_gastos, f.de_sanidad, f.de_ceba, animales, { formula: `C${fila}+D${fila}+E${fila}+F${fila}` }, { formula: `IF(G$${filaTotal}>0,G${fila}/G$${filaTotal},0)` }, f.por_pagar, f.movimientos]);
   });
-  filaTotales(ws, filaTotal, inicio, ultima, cols, [2, 3, 4, 5, 7, 8]);
-  ws.getCell(filaTotal, 7).value = { formula: `IF(F${filaTotal}>0,SUM(G${inicio}:G${ultima}),0)` };
-  ws.getCell(filaTotal, 7).numFmt = FMT_PCT;
+  filaTotales(ws, filaTotal, inicio, ultima, cols, [2, 3, 4, 5, 6, 8, 9]);
+  ws.getCell(filaTotal, 8).value = { formula: `IF(G${filaTotal}>0,SUM(H${inicio}:H${ultima}),0)` };
+  ws.getCell(filaTotal, 8).numFmt = FMT_PCT;
   autofiltro(ws, inicio - 1, cols.length);
-  if (filas.length === 0) ws.getCell(inicio, 1).value = "No hay gastos en este periodo.";
+  if (filas.length === 0) ws.getCell(inicio, 1).value = "No hay costos en este periodo.";
 }
 
-function hojaMeses(wb: ExcelJS.Workbook, d: DatosReporte, nombre = "Por mes", titulo = "Costos e ingresos por mes") {
+function hojaMeses(wb: ExcelJS.Workbook, d: DatosReporte, nombre = "Por mes", titulo = "Costos y ventas por mes") {
   const ws = wb.addWorksheet(nombre);
   const cols: Col[] = [
-    { titulo: "Mes", ancho: 20 }, { titulo: "Costos", ancho: 18, formato: FMT_PESOS }, { titulo: "Ingresos por leche", ancho: 18, formato: FMT_PESOS }, { titulo: "Ingresos por animales", ancho: 20, formato: FMT_PESOS },
-    { titulo: "Total ingresos", ancho: 18, formato: FMT_PESOS }, { titulo: "Resultado", ancho: 18, formato: FMT_PESOS }, { titulo: "Litros producidos", ancho: 16, formato: FMT_LITROS }, { titulo: "Costo por litro", ancho: 16, formato: FMT_PESOS },
+    { titulo: "Mes", ancho: 20 }, { titulo: "Costos", ancho: 18, formato: FMT_PESOS }, { titulo: "Ventas de leche", ancho: 18, formato: FMT_PESOS }, { titulo: "Otras ventas", ancho: 20, formato: FMT_PESOS },
+    { titulo: "Total ventas", ancho: 18, formato: FMT_PESOS }, { titulo: "Resultado", ancho: 18, formato: FMT_PESOS }, { titulo: "Litros producidos", ancho: 16, formato: FMT_LITROS }, { titulo: "Costo por litro", ancho: 16, formato: FMT_PESOS },
   ];
   const inicio = encabezado(ws, d, titulo, cols);
   const filas = d.meses ?? [];
@@ -178,18 +186,18 @@ function hojaMeses(wb: ExcelJS.Workbook, d: DatosReporte, nombre = "Por mes", ti
 }
 
 function hojaDetalle(wb: ExcelJS.Workbook, d: DatosReporte) {
-  const ws = wb.addWorksheet("Detalle de costos");
+  const ws = wb.addWorksheet("Detalle de compras");
   const cols: Col[] = [
     { titulo: "Fecha", ancho: 12, formato: FMT_FECHA, alinear: "left" }, { titulo: "Origen", ancho: 11 }, { titulo: "Grupo", ancho: 24 }, { titulo: "Rubro", ancho: 28 },
     { titulo: "Descripción", ancho: 40 }, { titulo: "Proveedor", ancho: 26 }, { titulo: "Se cargó a", ancho: 28 }, { titulo: "Estado de pago", ancho: 14 }, { titulo: "Vence", ancho: 12, formato: FMT_FECHA, alinear: "left" }, { titulo: "Valor", ancho: 16, formato: FMT_PESOS },
   ];
-  const inicio = encabezado(ws, d, "Detalle de costos", cols);
+  const inicio = encabezado(ws, d, "Detalle de compras", cols);
   const filas = d.detalle ?? [];
-  filas.forEach((f, i) => filaDatos(ws, inicio + i, cols, [aFecha(f.fecha), ETIQUETA_ORIGEN[f.origen], ETIQUETA_GRUPO[GRUPO_DE[f.rubro]], ETIQUETA_RUBRO[f.rubro], f.descripcion, f.proveedor ?? "", f.cargado_a, f.estado, aFecha(f.vence), f.monto]));
+  filas.forEach((f, i) => filaDatos(ws, inicio + i, cols, [aFecha(f.fecha), ETIQUETA_ORIGEN[f.origen], ETIQUETA_GRUPO_COSTO[grupoDe(f.rubro)], ETIQUETA_RUBRO[f.rubro], f.descripcion, f.proveedor ?? "", f.cargado_a, f.estado, aFecha(f.vence), f.monto]));
   const ultima = inicio + filas.length - 1;
   filaTotales(ws, ultima + 1, inicio, ultima, cols, [9]);
   autofiltro(ws, inicio - 1, cols.length);
-  if (filas.length === 0) ws.getCell(inicio, 1).value = "No hay costos en este periodo.";
+  if (filas.length === 0) ws.getCell(inicio, 1).value = "No hay compras en este periodo.";
 }
 
 function hojaAnimales(wb: ExcelJS.Workbook, d: DatosReporte) {
@@ -232,11 +240,32 @@ function hojaPendientes(wb: ExcelJS.Workbook, d: DatosReporte) {
   if (filas.length === 0) ws.getCell(inicio, 1).value = "No hay gastos por pagar en este periodo.";
 }
 
+function hojaVentas(wb: ExcelJS.Workbook, d: DatosReporte) {
+  const ws = wb.addWorksheet("Ventas");
+  const cols: Col[] = [
+    { titulo: "Fecha", ancho: 12, formato: FMT_FECHA, alinear: "left" }, { titulo: "Origen", ancho: 18 }, { titulo: "Línea", ancho: 22 }, { titulo: "Producto", ancho: 32 },
+    { titulo: "Comprador", ancho: 28 }, { titulo: "Cantidad", ancho: 12, formato: "#,##0.##" }, { titulo: "Unidad", ancho: 10 }, { titulo: "Estado de cobro", ancho: 15 }, { titulo: "Se espera", ancho: 12, formato: FMT_FECHA, alinear: "left" }, { titulo: "Valor", ancho: 16, formato: FMT_PESOS },
+  ];
+  const inicio = encabezado(ws, d, "Ventas", cols);
+  const filas = d.ventas ?? [];
+  filas.forEach((f, i) =>
+    filaDatos(ws, inicio + i, cols, [aFecha(f.fecha), ETIQUETA_ORIGEN_VENTA[f.origen], ETIQUETA_LINEA[f.linea], f.producto, f.tercero ?? "", Number(f.cantidad), f.unidad ?? "", f.cobrado ? "Cobrado" : f.cobro_vence && f.cobro_vence < textoHoy(d) ? "Vencido" : "Por cobrar", aFecha(f.cobro_vence), Number(f.valor)]),
+  );
+  const ultima = inicio + filas.length - 1;
+  filaTotales(ws, ultima + 1, inicio, ultima, cols, [9]);
+  autofiltro(ws, inicio - 1, cols.length);
+  if (filas.length === 0) ws.getCell(inicio, 1).value = "No hay ventas en este periodo.";
+}
+
+/** La fecha de hoy en AAAA-MM-DD, la del momento en que se generó el reporte (para saber qué cobros están vencidos). */
+const textoHoy = (d: DatosReporte) => d.generado.toISOString().slice(0, 10);
+
 function hojaResultado(wb: ExcelJS.Workbook, d: DatosReporte) {
   const ws = wb.addWorksheet("Resultado");
   const cols: Col[] = [{ titulo: "Concepto", ancho: 46 }, { titulo: "Valor", ancho: 20, formato: FMT_PESOS }, { titulo: "Nota", ancho: 54 }];
   const inicio = encabezado(ws, d, "Resultado del periodo", cols);
   const i = d.indicadores;
+  const moneda = (n: number) => new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 }).format(n);
   const sec = (fila: number, texto: string) => {
     ws.mergeCells(fila, 1, fila, 3);
     const c = ws.getCell(fila, 1);
@@ -245,25 +274,40 @@ function hojaResultado(wb: ExcelJS.Workbook, d: DatosReporte) {
     c.border = { bottom: { style: "thin", color: { argb: MUSGO } } };
   };
   let f = inicio;
-  sec(f++, "Lo que entró");
-  filaDatos(ws, f++, cols, ["Ingresos por leche despachada", i?.ingresos_leche ?? 0, "Despachos de leche con precio por litro"]);
-  filaDatos(ws, f++, cols, ["Ingresos por animales vendidos", i?.ingresos_animales ?? 0, "Ventas y sacrificios registrados en Carne"]);
-  const filaIng = f++;
-  filaDatos(ws, filaIng, cols, ["Total ingresos", { formula: `B${filaIng - 2}+B${filaIng - 1}` }, ""]);
-  ws.getRow(filaIng).font = { bold: true };
+
+  // Lo que se vendió, por línea.
+  sec(f++, "Ventas");
+  const desdeVentas = f;
+  const porLinea = new Map((d.ventasLinea ?? []).map((l) => [l.linea, l]));
+  for (const l of LINEAS) filaDatos(ws, f++, cols, [ETIQUETA_LINEA[l], porLinea.get(l)?.total ?? 0, porLinea.get(l)?.por_cobrar ? `Por cobrar: ${moneda(porLinea.get(l)!.por_cobrar)}` : ""]);
+  const filaVentas = f++;
+  filaDatos(ws, filaVentas, cols, ["Total ventas", { formula: `SUM(B${desdeVentas}:B${filaVentas - 1})` }, "Leche despachada, animales vendidos y demás ventas"]);
+  ws.getRow(filaVentas).font = { bold: true };
   f++;
-  sec(f++, "Lo que costó");
-  const desdeCostos = f;
+
+  // Lo que costó: las compras por grupo, la mano de obra y el total.
   const porGrupo = new Map<string, number>();
-  for (const r of d.rubros ?? []) porGrupo.set(GRUPO_DE[r.rubro], (porGrupo.get(GRUPO_DE[r.rubro]) ?? 0) + r.total);
-  for (const g of GRUPOS) filaDatos(ws, f++, cols, [ETIQUETA_GRUPO[g], porGrupo.get(g) ?? 0, ""]);
+  for (const r of d.rubros ?? []) porGrupo.set(grupoDe(r.rubro), (porGrupo.get(grupoDe(r.rubro)) ?? 0) + r.total);
+  sec(f++, "Compras");
+  const desdeCompras = f;
+  for (const g of GRUPOS_COSTO.filter((x) => x !== "personal")) filaDatos(ws, f++, cols, [ETIQUETA_GRUPO_COSTO[g], porGrupo.get(g) ?? 0, ""]);
+  const filaCompras = f++;
+  filaDatos(ws, filaCompras, cols, ["Total compras", { formula: `SUM(B${desdeCompras}:B${filaCompras - 1})` }, "Compras registradas, tratamientos, alimento de ceba y animales comprados"]);
+  ws.getRow(filaCompras).font = { bold: true };
+  f++;
+  sec(f++, "Mano de obra");
+  const filaMano = f++;
+  filaDatos(ws, filaMano, cols, ["Total mano de obra", porGrupo.get("personal") ?? 0, "Jornales, salarios y honorarios"]);
+  ws.getRow(filaMano).font = { bold: true };
+  f++;
   const filaCostos = f++;
-  filaDatos(ws, filaCostos, cols, ["Total costos", { formula: `SUM(B${desdeCostos}:B${filaCostos - 1})` }, "Gastos registrados, tratamientos y alimento de ceba"]);
+  filaDatos(ws, filaCostos, cols, ["Total costos", { formula: `B${filaCompras}+B${filaMano}` }, "Compras más mano de obra"]);
   ws.getRow(filaCostos).font = { bold: true };
   f++;
+
   sec(f++, "Resultado");
   const filaRes = f++;
-  filaDatos(ws, filaRes, cols, ["Ingresos menos costos", { formula: `B${filaIng}-B${filaCostos}` }, "Positivo: el periodo dejó ganancia"]);
+  filaDatos(ws, filaRes, cols, ["Ventas menos costos", { formula: `B${filaVentas}-B${filaCostos}` }, "Positivo: el periodo dejó ganancia"]);
   ws.getRow(filaRes).font = { bold: true };
   const filaL = f++;
   filaDatos(ws, filaL, cols, ["Litros producidos", i?.litros ?? 0, "Suma de los ordeños registrados"]);
@@ -271,13 +315,16 @@ function hojaResultado(wb: ExcelJS.Workbook, d: DatosReporte) {
   const filaCL = f++;
   filaDatos(ws, filaCL, cols, ["Costo por litro", { formula: `IF(B${filaL}>0,B${filaCostos}/B${filaL},"")` }, "Costo total del periodo entre los litros producidos"]);
   filaDatos(ws, f++, cols, ["Costo por animal activo", { formula: `IF(${i?.animales_activos ?? 0}>0,B${filaCostos}/${i?.animales_activos ?? 0},"")` }, `Entre los ${i?.animales_activos ?? 0} animales activos de hoy`]);
-  filaDatos(ws, f++, cols, ["Gastos por pagar", i?.por_pagar ?? 0, `De ellos, ${new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 }).format(i?.vencido ?? 0)} ya vencieron`]);
+  filaDatos(ws, f++, cols, ["Compras por pagar", i?.por_pagar ?? 0, `De ellas, ${moneda(i?.vencido ?? 0)} ya vencieron`]);
+  const porCobrar = (d.ventasLinea ?? []).reduce((a, l) => a + l.por_cobrar, 0);
+  const cobroVencido = (d.ventasLinea ?? []).reduce((a, l) => a + l.vencido, 0);
+  filaDatos(ws, f++, cols, ["Ventas por cobrar", porCobrar, `De ellas, ${moneda(cobroVencido)} ya pasaron la fecha esperada`]);
   f++;
   sec(f++, "Pérdida por saca y mortalidad");
   for (const x of d.depreciacion ?? []) {
     filaDatos(ws, f++, cols, [x.tipo === "saca" ? "Saca (descarte vendido por debajo de su costo)" : "Mortalidad (animales muertos o perdidos)", x.perdida, `${x.animales} animales; ${x.con_valor} con valor de compra registrado${x.con_valor < x.animales ? ": la cifra está incompleta" : ""}`]);
   }
-  hojaMeses(wb, d, "Por mes", "Costos e ingresos por mes");
+  hojaMeses(wb, d, "Por mes", "Costos y ventas por mes");
 }
 
 /** El libro de Excel de un reporte: una hoja con el título (finca, reporte, periodo y filtros), la tabla y los totales como fórmulas. */
@@ -296,6 +343,9 @@ export async function construirLibro(reporte: ReporteId, d: DatosReporte): Promi
       break;
     case "detalle":
       hojaDetalle(wb, d);
+      break;
+    case "ventas":
+      hojaVentas(wb, d);
       break;
     case "animales":
       hojaAnimales(wb, d);

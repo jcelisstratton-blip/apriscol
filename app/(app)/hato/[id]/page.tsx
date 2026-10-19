@@ -777,7 +777,7 @@ export default async function FichaAnimal({ params, searchParams }: { params: Pr
                 <dd className="min-w-0 text-right font-semibold">{animal.valor_compra != null ? pesos(animal.valor_compra) : <span className="font-normal text-humo">Sin registrar</span>}</dd>
               </div>
               <div className="flex items-baseline justify-between gap-3 py-2.5">
-                <dt className="shrink-0 text-sm text-humo">Gastos cargados a él</dt>
+                <dt className="shrink-0 text-sm text-humo">Compras cargadas a él</dt>
                 <dd className="min-w-0 text-right font-semibold tabular-nums">{pesos(totalGastosAnimal)}</dd>
               </div>
             </dl>
@@ -803,7 +803,7 @@ export default async function FichaAnimal({ params, searchParams }: { params: Pr
                 ))}
               </ul>
             ) : null}
-            {gastosAnimal.length > 6 ? <p className="text-sm text-humo">Y {gastosAnimal.length - 6} más. Están todos en Hato → Gastos.</p> : null}
+            {gastosAnimal.length > 6 ? <p className="text-sm text-humo">Y {gastosAnimal.length - 6} más. Están todas en Hato → Compras.</p> : null}
             <p className="mt-2 text-[0.8125rem] text-humo">
               El costo completo del animal suma además su parte de los tratamientos y de lo cargado a su lote, su corral o su especie: está en{" "}
               <Link href="/costos?vista=animales" className="font-semibold text-musgo underline underline-offset-2">Costos → Por animal</Link>.
@@ -811,7 +811,7 @@ export default async function FichaAnimal({ params, searchParams }: { params: Pr
             {puedeEscribir(rol, "contabilidad", finca.plan) && animal.estado === "activo" ? (
               <div className="mt-3">
                 <Link href={`/hato/gastos/nuevo?animal=${id}`} className={clasesBoton("secundario")}>
-                  Registrar un gasto de este animal
+                  Registrar una compra para este animal
                 </Link>
               </div>
             ) : null}

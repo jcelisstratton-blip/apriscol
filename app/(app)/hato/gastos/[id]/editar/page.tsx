@@ -7,6 +7,7 @@ import { Encabezado } from "@/components/Encabezado";
 import { FormGasto } from "@/components/FormGasto";
 import { servicioEnPlan } from "@/lib/planes";
 import { obtenerContexto } from "@/lib/contexto";
+import { obtenerProductos, obtenerTerceros } from "@/lib/catalogos-servidor";
 import { crearClienteServidor } from "@/lib/supabase/server";
 import { puedeEscribir, puedeGestionar } from "@/lib/permisos";
 import { ETIQUETA_RUBRO } from "@/lib/costos";
@@ -14,7 +15,7 @@ import { formatoFecha, hoyBogota } from "@/lib/fechas";
 import { pesos } from "@/lib/ferias";
 import { eliminarGasto } from "@/app/(app)/hato/gastos/actions";
 
-export const metadata: Metadata = { title: "Editar gasto" };
+export const metadata: Metadata = { title: "Editar compra" };
 const ID_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export default async function PaginaGastoEditar({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ volver?: string }> }) {
@@ -27,6 +28,7 @@ export default async function PaginaGastoEditar({ params, searchParams }: { para
   if (!gasto) notFound();
   if (!puedeEscribir(rol, "contabilidad", finca.plan)) redirect("/hato?vista=gastos");
 
+  const [productos, terceros] = await Promise.all([obtenerProductos(), obtenerTerceros()]);
   const [animal, { data: ubicaciones }, { data: lotes }] = await Promise.all([
     gasto.animal_id ? supabase.from("animales").select("id, numero_arete, nombre").eq("id", gasto.animal_id).eq("finca_id", finca.id).maybeSingle().then((r) => r.data) : Promise.resolve(null),
     supabase.from("ubicaciones").select("id, nombre, activa").eq("finca_id", finca.id).order("nombre").limit(300),
@@ -42,7 +44,7 @@ export default async function PaginaGastoEditar({ params, searchParams }: { para
       <Link href={atrasAnimal ? `/hato/${atrasAnimal}#costos` : "/hato?vista=gastos"} className="-ml-2 mt-3 inline-flex min-h-11 items-center gap-1 rounded-full px-2 text-[0.9375rem] font-semibold text-musgo">
         <ChevronLeft className="size-5" strokeWidth={2} /> {atrasAnimal ? "Animal" : "Hato"}
       </Link>
-      <Encabezado titulo="Editar gasto" subtitulo={finca.nombre} />
+      <Encabezado titulo="Editar compra" subtitulo={finca.nombre} />
       <div className="space-y-8 lg:max-w-xl">
         <FormGasto
           conSoporte={servicioEnPlan(finca.plan, "soportes")}
@@ -54,14 +56,16 @@ export default async function PaginaGastoEditar({ params, searchParams }: { para
           gasto={gasto}
           animalInicial={animal}
           animalDe={atrasAnimal ?? undefined}
+          productos={productos.filter((p) => p.tipo === "compra" && (p.activo || p.id === gasto.producto_id))}
+          terceros={terceros}
         />
         {puedeGestionar(rol) ? (
           <EliminarRegistro
-            etiqueta="Eliminar este gasto"
+            etiqueta="Eliminar esta compra"
             resumen={`${gasto.descripcion} (${ETIQUETA_RUBRO[gasto.rubro]}, ${pesos(gasto.monto)}) del ${formatoFecha(gasto.fecha)}`}
             accion={eliminarGasto.bind(null, id)}
             destino={atrasAnimal ? `/hato/${atrasAnimal}#costos` : "/hato?vista=gastos"}
-            mensaje="Gasto eliminado"
+            mensaje="Compra eliminada"
           />
         ) : null}
       </div>

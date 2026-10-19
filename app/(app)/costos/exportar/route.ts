@@ -5,7 +5,7 @@ import { puedeVer } from "@/lib/permisos";
 import { servicioEnPlan } from "@/lib/planes";
 import { animalesPorIds } from "@/lib/animal-etiquetas";
 import { etiquetaAnimal } from "@/lib/animal";
-import { ETIQUETA_GRUPO, GRUPOS, type GrupoGasto } from "@/lib/costos";
+import { ETIQUETA_GRUPO_COSTO, GRUPOS_COSTO, type GrupoCosto } from "@/lib/costos";
 import { ES_REPORTE } from "@/lib/costos-reportes";
 import { diasHasta, hoyBogota } from "@/lib/fechas";
 import { esPeriodo, rangoPeriodo, type Periodo } from "@/lib/periodos";
@@ -33,7 +33,7 @@ export async function GET(req: NextRequest) {
   const hoy = hoyBogota();
   const periodo: Periodo = esPeriodo(q.get("periodo") ?? undefined) ? (q.get("periodo") as Periodo) : "todo";
   const rango = rangoPeriodo(periodo, hoy, q.get("desde") ?? undefined, q.get("hasta") ?? undefined);
-  const grupo = GRUPOS.includes(q.get("grupo") as GrupoGasto) ? (q.get("grupo") as GrupoGasto) : null;
+  const grupo = GRUPOS_COSTO.includes(q.get("grupo") as GrupoCosto) ? (q.get("grupo") as GrupoCosto) : null;
   const supabase = await crearClienteServidor();
   const p = { p_finca: finca.id, p_desde: rango.desde, p_hasta: rango.hasta };
 
@@ -78,10 +78,17 @@ export async function GET(req: NextRequest) {
       datos.meses = data ?? [];
     }
     if (reporte === "resultado") {
-      const [ind, dep] = await Promise.all([supabase.rpc("costos_indicadores", { ...p }), supabase.rpc("costos_depreciacion", { ...p })]);
+      const [ind, dep, lineas] = await Promise.all([supabase.rpc("costos_indicadores", { ...p }), supabase.rpc("costos_depreciacion", { ...p }), supabase.rpc("ventas_por_linea", { ...p })]);
       if (ind.error) throw new Error(ind.error.message);
+      if (lineas.error) throw new Error(lineas.error.message);
       datos.indicadores = ind.data?.[0];
       datos.depreciacion = dep.data ?? [];
+      datos.ventasLinea = (lineas.data ?? []).map((l) => ({ ...l, total: Number(l.total), por_cobrar: Number(l.por_cobrar), vencido: Number(l.vencido) }));
+    }
+    if (reporte === "ventas") {
+      const { data, error } = await supabase.rpc("ventas_detalle", { ...p, p_linea: null });
+      if (error) throw new Error(error.message);
+      datos.ventas = data ?? [];
     }
     if (reporte === "detalle" || reporte === "animales") {
       const lineas = await detalleCompleto(reporte === "detalle" && grupo ? `grupo:${grupo}` : null);
@@ -91,7 +98,7 @@ export async function GET(req: NextRequest) {
         if (error) throw new Error(error.message);
         datos.animales = data ?? [];
       } else {
-        if (grupo) datos.filtros.push(`Grupo: ${ETIQUETA_GRUPO[grupo]}`);
+        if (grupo) datos.filtros.push(`Grupo: ${ETIQUETA_GRUPO_COSTO[grupo]}`);
         const [{ data: ubicaciones }, { data: lotes }, animales] = await Promise.all([
           supabase.from("ubicaciones").select("id, nombre").eq("finca_id", finca.id).limit(1000),
           supabase.from("lotes_ceba").select("id, nombre").eq("finca_id", finca.id).limit(1000),

@@ -45,6 +45,8 @@ const esquema = z.object({
     (v) => (typeof v === "string" ? (leerNumero(v) ?? v) : v),
     opcional(z.number("El valor debe ser un número, en pesos.").min(0, "El valor no puede ser negativo.").max(99_999_999_999, "El valor es demasiado grande. Revísalo.")),
   ),
+  /** Cuándo se compró (solo animales comprados): la compra cuenta como costo en esa fecha. */
+  fecha_compra: opcional(z.iso.date("La fecha de compra no es válida.")),
   notas: opcional(z.string().trim().max(1000, "Las notas son muy largas.")),
   fecha_ultimo_parto: opcional(z.iso.date("La fecha del parto no es válida.")),
   foto_path: opcional(z.string().max(200)),
@@ -205,6 +207,7 @@ export async function editarAnimal(_: EstadoAnimal, form: FormData): Promise<Est
       origen: d.origen,
       peso_nacer_kg: d.origen === "nacido_en_finca" ? (d.peso_nacer_kg ?? null) : null,
       valor_compra: d.valor_compra != null ? Math.round(d.valor_compra) : null,
+      fecha_compra: d.origen === "comprado" ? (d.fecha_compra ?? null) : null,
       vocacion: d.sexo === "macho" ? "carne" : d.vocacion,
       uso_macho: d.sexo === "macho" && d.uso_macho && d.uso_macho !== "por_definir" ? d.uso_macho : null,
       padre_id: d.padre_id ?? null,
@@ -237,6 +240,10 @@ const esquemaBaja = z.object({
   fecha: z.iso.date("Indica la fecha."),
   motivo: z.preprocess(vacio, z.enum(["edad", "partos", "baja_produccion", "sanidad", "reproductivo", "accidente", "otro"]).optional()),
   comprador: z.preprocess(vacio, z.string().trim().max(160, "El nombre del comprador es muy largo.").optional()),
+  /** Comprador elegido de la lista y si ya se cobró (solo cuenta en una venta con valor). */
+  terceroId: z.preprocess(vacio, z.uuid().optional()),
+  cobro: z.preprocess(vacio, z.enum(["cobrado", "por_cobrar"]).optional()),
+  cobroVence: z.preprocess(vacio, z.iso.date("La fecha en que esperas el pago no es válida.").optional()),
   valor: z.preprocess(vacio, z.number().min(0, "El valor no puede ser negativo.").max(9_999_999_999, "Revisa el valor: es demasiado alto.").optional()),
   destinoConsumo: z.boolean(),
   detalle: z.preprocess(vacio, z.string().trim().max(1000, "Las notas son muy largas.").optional()),
@@ -245,6 +252,35 @@ const esquemaBaja = z.object({
   guiaMovilizacion: z.preprocess(vacio, z.string().trim().max(60, "La guía de movilización es muy larga.").optional()),
   destino: z.preprocess(vacio, z.string().trim().max(160, "El destino es muy largo.").optional()),
 });
+
+/**
+ * El comprador y el cobro de una venta: el comprador elegido de la lista (su nombre queda también como texto, para lo que lee lo anterior) y si ya se
+ * cobró. Solo una venta con valor es algo que se cobra; sin valor no hay cobro. Devuelve las columnas o un error en lenguaje llano.
+ */
+async function datosDeVenta(
+  supabase: Awaited<ReturnType<typeof crearClienteServidor>>,
+  fincaId: string,
+  d: { comprador?: string; terceroId?: string; valor?: number; cobro?: "cobrado" | "por_cobrar"; cobroVence?: string },
+  fecha: string,
+  cobradoAntes?: string | null,
+): Promise<{ comprador: string | null; tercero_id: string | null; cobrado_en: string | null; cobro_vence: string | null } | { error: string }> {
+  let comprador = d.comprador ?? null;
+  if (d.terceroId) {
+    const { data } = await supabase.from("finca_terceros").select("nombre").eq("id", d.terceroId).eq("finca_id", fincaId).maybeSingle();
+    if (!data) return { error: "No encontramos ese comprador. Elígelo de nuevo." };
+    comprador = data.nombre;
+  }
+  const hayValor = d.valor != null && d.valor > 0;
+  const porCobrar = hayValor && d.cobro === "por_cobrar";
+  if (porCobrar && d.cobroVence && d.cobroVence < fecha) return { error: "El pago no puede vencer antes de la fecha de la venta." };
+  return {
+    comprador,
+    tercero_id: d.terceroId ?? null,
+    // Una venta ya registrada que se corrige sin tocar el cobro conserva su fecha de cobro.
+    cobrado_en: hayValor && !porCobrar ? (cobradoAntes ?? fecha) : null,
+    cobro_vence: porCobrar ? (d.cobroVence ?? null) : null,
+  };
+}
 
 /** La trazabilidad solo aplica a una salida comercial: una muerte o una pérdida no tienen guía, peso ni destino. */
 const datosComerciales = (d: { tipo: string; pesoKg?: number; guiaMovilizacion?: string; destino?: string }) =>
@@ -277,13 +313,15 @@ export async function darDeBaja(entrada: z.input<typeof esquemaBaja>): Promise<R
   if (animal.fecha_nacimiento && d.fecha < animal.fecha_nacimiento) return { ok: false, error: "La fecha no puede ser anterior al nacimiento del animal." };
 
   const esVenta = d.tipo === "venta";
+  const venta = esVenta ? await datosDeVenta(supabase, finca.id, d, d.fecha) : { comprador: null, tercero_id: null, cobrado_en: null, cobro_vence: null };
+  if ("error" in venta) return { ok: false, error: venta.error };
   const { error } = await supabase.from("bajas").insert({
     finca_id: finca.id,
     animal_id: d.animalId,
     tipo: d.tipo,
     fecha: d.fecha,
     motivo: d.motivo ?? null,
-    comprador: esVenta ? (d.comprador ?? null) : null,
+    ...venta,
     valor: esVenta ? (d.valor ?? null) : null,
     destino_consumo: esVenta && d.destinoConsumo,
     detalle: d.detalle ?? null,
@@ -411,6 +449,9 @@ const esquemaSalida = z.object({
   animalId: z.uuid(),
   motivo: z.preprocess(vacio, z.enum(["edad", "partos", "baja_produccion", "sanidad", "reproductivo", "accidente", "otro"]).optional()),
   comprador: z.preprocess(vacio, z.string().trim().max(160, "El nombre del comprador es muy largo.").optional()),
+  terceroId: z.preprocess(vacio, z.uuid().optional()),
+  cobro: z.preprocess(vacio, z.enum(["cobrado", "por_cobrar"]).optional()),
+  cobroVence: z.preprocess(vacio, z.iso.date("La fecha en que esperas el pago no es válida.").optional()),
   valor: z.preprocess(vacio, z.number("El valor debe ser un número.").min(0, "El valor no puede ser negativo.").max(9_999_999_999, "Revisa el valor: es demasiado alto.").optional()),
   detalle: z.preprocess(vacio, z.string().trim().max(1000, "Las notas son muy largas.").optional()),
   pesoKg: z.preprocess(vacio, z.number("El peso debe ser un número.").positive("El peso debe ser mayor que cero.").max(250, "El peso no puede pasar de 250 kg.").optional()),
@@ -430,14 +471,16 @@ export async function corregirSalida(entrada: z.input<typeof esquemaSalida>): Pr
   if (!datos.success) return { ok: false, error: datos.error.issues[0]?.message ?? "Dato inválido." };
   const d = datos.data;
   const supabase = await crearClienteServidor();
-  const { data: baja } = await supabase.from("bajas").select("id, tipo").eq("animal_id", d.animalId).eq("finca_id", finca.id).maybeSingle();
+  const { data: baja } = await supabase.from("bajas").select("id, tipo, fecha, cobrado_en").eq("animal_id", d.animalId).eq("finca_id", finca.id).maybeSingle();
   if (!baja) return { ok: false, error: "No encontramos la salida de ese animal." };
+  const venta = baja.tipo === "venta" ? await datosDeVenta(supabase, finca.id, d, baja.fecha, baja.cobrado_en) : { comprador: null, tercero_id: null, cobrado_en: null, cobro_vence: null };
+  if ("error" in venta) return { ok: false, error: venta.error };
   const { error } = await supabase
     .from("bajas")
     .update({
       motivo: d.motivo ?? null,
       detalle: d.detalle ?? null,
-      comprador: baja.tipo === "venta" ? (d.comprador ?? null) : null,
+      ...venta,
       valor: baja.tipo === "venta" ? (d.valor ?? null) : null,
       ...datosComerciales({ tipo: baja.tipo, pesoKg: d.pesoKg, guiaMovilizacion: d.guiaMovilizacion, destino: d.destino }),
     })

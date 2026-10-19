@@ -1,4 +1,4 @@
-import type { DestinoGasto, OrigenCosto, RubroGasto } from "@/lib/tipos";
+import type { DestinoGasto, OrigenCosto, RubroCosto, RubroGasto } from "@/lib/tipos";
 
 /** Los grupos de gasto (el documento «Componentes de gastos del aprisco») y los rubros de cada uno. */
 export type GrupoGasto = "alimentacion" | "sanidad" | "reproduccion" | "logistica" | "operacion";
@@ -28,7 +28,19 @@ export const RUBROS_DE: Record<GrupoGasto, RubroGasto[]> = {
 export const RUBROS: RubroGasto[] = GRUPOS.flatMap((g) => RUBROS_DE[g]);
 export const GRUPO_DE: Record<RubroGasto, GrupoGasto> = Object.fromEntries(GRUPOS.flatMap((g) => RUBROS_DE[g].map((r) => [r, g]))) as Record<RubroGasto, GrupoGasto>;
 
-export const ETIQUETA_RUBRO: Record<RubroGasto, string> = {
+/**
+ * Los grupos con que se REPORTA el costo: los cinco de arriba (en los que se registra una compra) más la mano de obra y la compra de animales,
+ * que se separan porque no son compras de insumos: la mano de obra es de la nómina y la compra de un animal sale de su ficha.
+ */
+export type GrupoCosto = GrupoGasto | "personal" | "animales";
+export const GRUPOS_COSTO: GrupoCosto[] = [...GRUPOS, "personal", "animales"];
+export const ETIQUETA_GRUPO_COSTO: Record<GrupoCosto, string> = { ...ETIQUETA_GRUPO, personal: "Mano de obra", animales: "Compra de animales" };
+export const DETALLE_GRUPO_COSTO: Record<GrupoCosto, string> = { ...DETALLE_GRUPO, personal: "Jornales, salarios y honorarios", animales: "Lo que costaron los animales comprados" };
+/** El grupo de un rubro al reportar (misma regla que `private.grupo_rubro` en la base). */
+export const grupoDe = (rubro: RubroCosto): GrupoCosto => (rubro === "mano_obra" ? "personal" : rubro === "compra_animales" ? "animales" : GRUPO_DE[rubro]);
+
+export const ETIQUETA_RUBRO: Record<RubroCosto, string> = {
+  compra_animales: "Compra de animales",
   concentrado: "Concentrado",
   forraje: "Forrajes y heno",
   sales_suplementos: "Sales y suplementos",
@@ -60,7 +72,7 @@ export const UNIDAD_SUGERIDA: Partial<Record<RubroGasto, string>> = {
   identificacion: "aretes",
   combustible: "galones",
 };
-export const UNIDADES_GASTO = ["bultos", "kg", "toneladas", "pacas", "litros", "galones", "dosis", "pajillas", "aretes", "jornales", "horas", "unidades"];
+export const UNIDADES_GASTO = ["bultos", "kg", "toneladas", "pacas", "litros", "galones", "dosis", "pajillas", "aretes", "jornales", "horas", "visitas", "viajes", "meses", "animales", "unidades"];
 
 export const DESTINOS: DestinoGasto[] = ["finca", "especie", "ubicacion", "lote", "animal"];
 export const ETIQUETA_DESTINO: Record<DestinoGasto, string> = {
@@ -78,7 +90,7 @@ export const DETALLE_DESTINO: Record<DestinoGasto, string> = {
   animal: "Se suma a su costo",
 };
 
-export const ETIQUETA_ORIGEN: Record<OrigenCosto, string> = { gasto: "Gasto", sanidad: "Sanidad", ceba: "Ceba" };
+export const ETIQUETA_ORIGEN: Record<OrigenCosto, string> = { gasto: "Compra", sanidad: "Sanidad", ceba: "Ceba", compra: "Compra de animal" };
 
 /** Cómo se paga un gasto: ya se pagó, o queda por pagar con su fecha de vencimiento. */
 export type EstadoPago = "pagado" | "por_pagar";

@@ -29,9 +29,10 @@ export const DIRECCION_EMPADRONAMIENTO = "/hato?vista=empadronamiento";
 export const DIRECCION_SANIDAD = "/hato?vista=sanidad";
 export const DIRECCION_CORRALES = "/hato?vista=corrales";
 export const DIRECCION_GASTOS = "/hato?vista=gastos";
+export const DIRECCION_VENTAS = "/hato?vista=ventas";
 
 /** Las vistas de trabajo del Hato (chips junto a los filtros de animales): lo que se arma o se aplica sobre varios animales. */
-export type VistaHato = { id: "ordeno" | "ceba" | "empadronamiento" | "sanidad" | "corrales" | "gastos"; href: string; texto: string; detalle: string };
+export type VistaHato = { id: "ordeno" | "ceba" | "empadronamiento" | "sanidad" | "corrales" | "gastos" | "ventas"; href: string; texto: string; detalle: string };
 
 /** Qué vistas ofrece el Hato según lo que la persona puede ver, en el orden en que aparecen. */
 export function vistasHato(ver: { leche: boolean; carne: boolean; repro: boolean; sanidad: boolean; corrales: boolean; gastos: boolean }): VistaHato[] {
@@ -41,7 +42,8 @@ export function vistasHato(ver: { leche: boolean; carne: boolean; repro: boolean
     ...(ver.repro ? ([{ id: "empadronamiento", href: DIRECCION_EMPADRONAMIENTO, texto: "Empadronamiento", detalle: "Temporada de monta" }] as const) : []),
     ...(ver.sanidad ? ([{ id: "sanidad", href: DIRECCION_SANIDAD, texto: "Sanidad", detalle: "Vacunas y tratamientos" }] as const) : []),
     ...(ver.corrales ? ([{ id: "corrales", href: DIRECCION_CORRALES, texto: "Corrales", detalle: "Dónde está cada animal" }] as const) : []),
-    ...(ver.gastos ? ([{ id: "gastos", href: DIRECCION_GASTOS, texto: "Gastos", detalle: "Lo que cuesta el hato" }] as const) : []),
+    ...(ver.gastos ? ([{ id: "gastos", href: DIRECCION_GASTOS, texto: "Compras", detalle: "Lo que compras y pagas" }] as const) : []),
+    ...(ver.gastos ? ([{ id: "ventas", href: DIRECCION_VENTAS, texto: "Ventas", detalle: "Lo que vendes y cobras" }] as const) : []),
   ];
 }
 

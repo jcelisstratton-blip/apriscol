@@ -9,6 +9,7 @@ import { obtenerContexto } from "@/lib/contexto";
 import { crearClienteServidor } from "@/lib/supabase/server";
 import { puedeEscribir, puedeGestionar } from "@/lib/permisos";
 import { formatoFecha, hoyBogota } from "@/lib/fechas";
+import { obtenerTerceros } from "@/lib/catalogos-servidor";
 import { ETIQUETA_DESTINO } from "@/lib/leche-calidad";
 import { eliminarDespacho } from "@/app/(app)/leche/gestion";
 
@@ -35,7 +36,7 @@ export default async function PaginaEditar({ params }: { params: Promise<{ id: s
           <span className="font-semibold">Controles de calidad de este despacho</span>
           <ChevronRight className="size-5 shrink-0 text-humo" aria-hidden="true" />
         </Link>
-        <FormDespacho hoy={hoyBogota()} despacho={registro as never} />
+        <FormDespacho hoy={hoyBogota()} despacho={registro as never} terceros={await obtenerTerceros()} />
         {puedeGestionar(rol) ? (
           <EliminarRegistro
             etiqueta="Eliminar este despacho"

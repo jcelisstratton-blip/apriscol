@@ -5,6 +5,7 @@ import { ChevronLeft } from "lucide-react";
 import { Encabezado } from "@/components/Encabezado";
 import { FormBaja } from "@/components/FormBaja";
 import { obtenerContexto } from "@/lib/contexto";
+import { obtenerTerceros } from "@/lib/catalogos-servidor";
 import { crearClienteServidor } from "@/lib/supabase/server";
 import { puedeEscribir } from "@/lib/permisos";
 import { hoyBogota } from "@/lib/fechas";
@@ -43,7 +44,7 @@ export default async function PaginaBaja({ params }: { params: Promise<{ id: str
       </Link>
       <Encabezado titulo="Dar de baja" subtitulo={etiquetaAnimal(animal)} />
       <div className="lg:max-w-xl">
-        <FormBaja animalId={id} etiqueta={etiquetaAnimal(animal)} hoy={hoyBogota()} nacimiento={animal.fecha_nacimiento} enOrdeno={Boolean(lactancia)} />
+        <FormBaja animalId={id} etiqueta={etiquetaAnimal(animal)} hoy={hoyBogota()} nacimiento={animal.fecha_nacimiento} enOrdeno={Boolean(lactancia)} terceros={await obtenerTerceros()} />
       </div>
     </>
   );
