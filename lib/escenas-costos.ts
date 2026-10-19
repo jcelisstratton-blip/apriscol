@@ -5,6 +5,7 @@ import {
 import { escena, type EscenaDef } from "@/lib/escenas";
 import { ESCENA_ESPECIE } from "@/lib/escenas-forms-b-hato";
 import type { GrupoCosto, GrupoGasto } from "@/lib/costos";
+import type { ReporteId } from "@/lib/costos-reportes";
 import type { FormaPago, Vinculacion } from "@/lib/tipos";
 import type { DestinoGasto, LineaVenta, RubroGasto } from "@/lib/tipos";
 
@@ -88,10 +89,11 @@ export const ESCENA_PESTANA_COSTOS: Record<string, EscenaDef> = {
 };
 
 /** Cada reporte descargable. */
-export const ESCENA_REPORTE: Record<string, EscenaDef> = {
+export const ESCENA_REPORTE: Record<ReporteId, EscenaDef> = {
   rubros: escena(Coins, "ambar", Wheat),
   meses: escena(TrendingUp, "musgo", Banknote),
   detalle: escena(Receipt, "ocre", ClipboardList),
+  ventas: escena(Banknote, "oliva", TrendingUp),
   animales: escena(PawPrint, "ambar", Tags),
   pendientes: escena(CalendarClock, "arcilla", Wallet),
   resultado: escena(TrendingDown, "grafito", TrendingUp),
