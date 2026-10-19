@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { Baby, Beef, Droplets, Fence, GitFork, Home, KeyRound, LogOut, MapPin, PawPrint, Rocket, Settings, ShieldCheck, Syringe, Trophy, Users, Wallet, Zap } from "lucide-react";
+import { Baby, Beef, Droplets, Fence, GitFork, Home, KeyRound, LogOut, MapPin, PawPrint, Rocket, Settings, ShieldCheck, SlidersHorizontal, Syringe, Trophy, Users, Wallet, Zap } from "lucide-react";
 import { FincaSelector } from "@/components/FincaSelector";
 import { HojaAlGrano } from "@/components/HojaAlGrano";
 import { Marca } from "@/components/Marca";
@@ -75,7 +75,7 @@ export function NavLateral({
     ...(verPlan ? [{ href: "/mas/plan", etiqueta: planMejorable ? "Mejorar mi plan" : "Mi plan", Icono: Rocket }] : []),
   ];
 
-  const marcada = entradaMarcada(ruta, [...enlaces.map((e) => e.href), ...(verEquipo ? ["/mas/finca"] : []), "/mas"]);
+  const marcada = entradaMarcada(ruta, [...enlaces.map((e) => e.href), ...(verEquipo ? ["/mas/finca"] : []), "/mas/ajustes", "/mas"]);
   const activo = (href: string) => href === marcada;
   const clase = (esActivo: boolean) =>
     `flex min-h-11 items-center gap-3 rounded-xl px-3 text-[0.9375rem] font-semibold transition ${
@@ -127,6 +127,9 @@ export function NavLateral({
                 <MapPin className="size-5 shrink-0" strokeWidth={1.7} /> Datos de la finca
               </Link>
             ) : null}
+            <Link href="/mas/ajustes" aria-current={activo("/mas/ajustes") ? "page" : undefined} className={clase(activo("/mas/ajustes"))}>
+              <SlidersHorizontal className="size-5 shrink-0" strokeWidth={1.7} /> Ajustes de la finca
+            </Link>
             <Link href="/mas" aria-current={activo("/mas") ? "page" : undefined} className={clase(activo("/mas"))}>
               <Settings className="size-5 shrink-0" strokeWidth={1.7} /> Cuenta y ajustes
             </Link>

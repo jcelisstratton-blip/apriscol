@@ -1,6 +1,6 @@
 import {
   Activity, ArrowRightLeft, Baby, BarChart3, Beef, CalendarClock, ClipboardCheck, Droplets, FileText, FlaskConical, GitFork, HeartPulse, Home, KeyRound, Layers, MapPin,
-  Microscope, Package, PawPrint, Plus, Rocket, Scale, Shuffle, Snowflake, Syringe, Trophy, Truck, UserPlus, Users, Wallet, Wrench, Fence, Sheet, type LucideIcon,
+  Microscope, Package, PawPrint, Plus, Rocket, Scale, Shuffle, SlidersHorizontal, Snowflake, Syringe, Trophy, Truck, UserPlus, Users, Wallet, Wrench, Fence, Sheet, type LucideIcon,
 } from "lucide-react";
 import { puedeEscribir, puedeGestionar, puedeVer } from "@/lib/permisos";
 import { servicioEnPlan, type ServicioPlan } from "@/lib/planes";
@@ -104,6 +104,7 @@ export const ATAJOS: Atajo[] = [
   { grupo: "Cuenta", tipo: "registrar", titulo: "Invitar a alguien", detalle: "Ordeñador, veterinario o contador", href: "/mas/miembros", Icono: UserPlus, gestion: true, servicio: "equipo", clave: "equipo invitacion" },
   { grupo: "Cuenta", tipo: "ir", titulo: "Equipo", detalle: "Quién tiene acceso a la finca", href: "/mas/miembros", Icono: Users, gestion: true },
   { grupo: "Cuenta", tipo: "ir", titulo: "Datos de la finca", detalle: "Nombre, ubicación y umbral de endogamia", href: "/mas/finca", Icono: MapPin, gestion: true },
+  { grupo: "Cuenta", tipo: "ir", titulo: "Ajustes de la finca", detalle: "Tiempos, límites y criterios con los que avisa la finca", href: "/mas/ajustes", Icono: SlidersHorizontal, clave: "umbrales gestacion gdp celulas somaticas pediluvio nomina configuracion" },
   { grupo: "Cuenta", tipo: "ir", titulo: "Mi plan", detalle: "Tu plan y cómo mejorarlo", href: "/mas/plan", Icono: Rocket, propietario: true, clave: "mejorar plan precio" },
   { grupo: "Cuenta", tipo: "registrar", titulo: "Agregar otra finca", detalle: "Una finca más en tu cuenta", href: "/onboarding", Icono: Plus, propietario: true, servicio: "fincas" },
   { grupo: "Cuenta", tipo: "ir", titulo: "Cambiar contraseña", detalle: "Tu acceso a Apriscol", href: "/cambiar-clave", Icono: KeyRound, clave: "clave password" },
