@@ -104,6 +104,8 @@ export type Finca = {
   umbral_endogamia: number;
   zona_horaria: string;
   plan: PlanId;
+  /** Último día pagado del plan (null: sin vencimiento registrado). */
+  plan_vence_en: string | null;
   created_by: string | null;
   created_at: string;
   updated_at: string;
@@ -1391,6 +1393,10 @@ export type Database = {
       asegurar_ajustes_finca: { Args: { p_finca: string }; Returns: undefined };
       restablecer_ajustes_finca: { Args: { p_finca: string; p_grupo: string }; Returns: undefined };
       solicitar_mejora_plan: { Args: { p_finca: string; p_plan: PlanId; p_periodo?: "mensual" | "anual" }; Returns: undefined };
+      solicitar_renovacion_plan: { Args: { p_finca: string; p_periodo?: "mensual" | "anual" }; Returns: undefined };
+      admin_activar_plan_finca: { Args: { p_finca: string; p_plan: PlanId; p_periodo?: "mensual" | "anual" }; Returns: string };
+      admin_fijar_vigencia_finca: { Args: { p_finca: string; p_fecha: string | null }; Returns: undefined };
+      admin_vigencias: { Args: Record<string, never>; Returns: { finca_id: string; nombre: string; propietario_email: string; plan: PlanId; plan_vence_en: string | null; estado: "vigente" | "por_vencer" | "gracia" | "bloqueada" }[] };
       admin_asignar_plan: { Args: { p_correo: string; p_plan: PlanId }; Returns: number };
       admin_asignar_plan_finca: { Args: { p_finca: string; p_plan: PlanId }; Returns: number };
       admin_solicitudes_plan: { Args: Record<string, never>; Returns: (SolicitudPlan & { finca_id: string; numero_finca: number })[] };

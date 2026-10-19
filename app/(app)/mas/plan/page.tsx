@@ -8,9 +8,11 @@ import { Insignia } from "@/components/Insignia";
 import { MejorarPlan } from "@/components/MejorarPlan";
 import { Tarjeta } from "@/components/Tarjeta";
 import { obtenerContexto } from "@/lib/contexto";
-import { formatoFecha } from "@/lib/fechas";
+import { formatoFecha, hoyBogota } from "@/lib/fechas";
 import { nombrePlan, planPorId, planesSuperiores, precioMes, usd } from "@/lib/planes";
+import { numeroDeFinca } from "@/lib/planes-servidor";
 import { crearClienteServidor } from "@/lib/supabase/server";
+import { estadoPlan } from "@/lib/vigencia";
 import type { PlanId } from "@/lib/tipos";
 
 export const metadata: Metadata = { title: "Mejorar mi plan" };
@@ -19,14 +21,12 @@ export const metadata: Metadata = { title: "Mejorar mi plan" };
 export default async function PaginaPlan() {
   const { finca, fincas, rol } = await obtenerContexto();
   const actual = planPorId(finca.plan);
+  const vigencia = estadoPlan(finca.plan_vence_en, hoyBogota());
   const superiores = planesSuperiores(finca.plan);
 
   const supabase = await crearClienteServidor();
   // Cada finca tiene su plan. El lugar de esta finca entre las del propietario decide el descuento: la primera paga completo, desde la segunda 10 % menos.
-  const propias = fincas.filter((f) => f.rol === "propietario").map((f) => f.id);
-  const { data: fechas } = propias.length ? await supabase.from("fincas").select("id, created_at").in("id", propias) : { data: [] };
-  const ordenadas = [...(fechas ?? [])].sort((a, b) => a.created_at.localeCompare(b.created_at) || a.id.localeCompare(b.id));
-  const numeroFinca = Math.max(1, ordenadas.findIndex((f) => f.id === finca.id) + 1);
+  const numeroFinca = await numeroDeFinca(supabase, fincas, finca.id);
   const { data: pendiente } = await supabase
     .from("solicitudes_plan")
     .select("plan_nuevo, periodo, created_at")
@@ -49,11 +49,21 @@ export default async function PaginaPlan() {
               <p className="mt-0.5 text-sm text-humo">
                 {usd(precioMes(actual, false, numeroFinca))} al mes · {actual.para}
               </p>
+              {finca.plan_vence_en ? (
+                <p className="mt-0.5 text-sm text-humo">Pagado hasta el {formatoFecha(finca.plan_vence_en, { day: "numeric", month: "long", year: "numeric" })}</p>
+              ) : null}
             </div>
             <span className="shrink-0">
-              <Insignia tono="musgo">Activo</Insignia>
+              <Insignia tono={vigencia === "vigente" ? "musgo" : vigencia === "por_vencer" ? "aviso" : "alerta"}>
+                {vigencia === "vigente" ? "Activo" : vigencia === "por_vencer" ? "Vence pronto" : "Vencido"}
+              </Insignia>
             </span>
           </div>
+          {vigencia !== "vigente" && rol === "propietario" ? (
+            <Link href="/plan-vencido" className="mt-3 inline-flex min-h-11 items-center text-[0.9375rem] font-semibold text-musgo underline-offset-4 hover:underline">
+              Renovar el plan
+            </Link>
+          ) : null}
         </Tarjeta>
 
         {rol !== "propietario" ? (
