@@ -17,7 +17,7 @@ export const metadata: Metadata = { title: "Registrar un pago" };
 /** Registrar un pago al personal: se elige la persona y el valor viene de su contrato. */
 export default async function PaginaPagoNuevo({ searchParams }: { searchParams: Promise<{ persona?: string }> }) {
   const { finca, rol } = await obtenerContexto();
-  if (!puedeEscribir(rol, "contabilidad", finca.plan)) redirect("/personal");
+  if (!puedeEscribir(rol, "contabilidad", finca.plan)) redirect("/mas/miembros?vista=pagos");
   const sp = await searchParams;
   const supabase = await crearClienteServidor();
   const [{ data }, ajustes] = await Promise.all([
@@ -25,12 +25,12 @@ export default async function PaginaPagoNuevo({ searchParams }: { searchParams: 
     obtenerAjustes(),
   ]);
   const personal = (data ?? []) as Persona[];
-  if (personal.length === 0) redirect("/personal/nueva");
+  if (personal.length === 0) redirect("/mas/miembros");
 
   return (
     <>
-      <Link href="/personal" className="-ml-2 mt-3 inline-flex min-h-11 items-center gap-1 rounded-full px-2 text-[0.9375rem] font-semibold text-musgo">
-        <ChevronLeft className="size-5" strokeWidth={2} /> Personal
+      <Link href="/mas/miembros?vista=pagos" className="-ml-2 mt-3 inline-flex min-h-11 items-center gap-1 rounded-full px-2 text-[0.9375rem] font-semibold text-musgo">
+        <ChevronLeft className="size-5" strokeWidth={2} /> Equipo
       </Link>
       <Encabezado titulo="Registrar un pago" subtitulo={finca.nombre} />
       <div className="lg:max-w-xl">

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { Baby, Beef, Droplets, Fence, GitFork, HardHat, Home, KeyRound, LogOut, MapPin, PawPrint, Rocket, Settings, ShieldCheck, SlidersHorizontal, Syringe, Trophy, Users, Wallet, Zap } from "lucide-react";
+import { Baby, Beef, Droplets, Fence, GitFork, Home, KeyRound, LogOut, MapPin, PawPrint, Rocket, Settings, ShieldCheck, SlidersHorizontal, Syringe, Trophy, Users, Wallet, Zap } from "lucide-react";
 import { FincaSelector } from "@/components/FincaSelector";
 import { HojaAlGrano } from "@/components/HojaAlGrano";
 import { Marca } from "@/components/Marca";
@@ -67,7 +67,7 @@ export function NavLateral({
     ...(verCarne ? [{ href: "/carne", etiqueta: "Carne", Icono: Beef }] : []),
     ...(verSanidad ? [{ href: "/sanidad", etiqueta: "Sanidad", Icono: Syringe }] : []),
     ...(verCorrales ? [{ href: "/corrales", etiqueta: "Corrales", Icono: Fence }] : []),
-    ...(verCostos ? [{ href: "/costos", etiqueta: "Costos", Icono: Wallet }, { href: "/personal", etiqueta: "Personal", Icono: HardHat }] : []),
+    ...(verCostos ? [{ href: "/costos", etiqueta: "Costos", Icono: Wallet }] : []),
     // Lo que mira o hace sobre todo el hato va aquí; lo que es de un solo animal vive en su ficha.
     { href: "/hato/endogamia", etiqueta: "Endogamia", Icono: GitFork },
     ...(verPremios ? [{ href: "/ferias", etiqueta: "Premios", Icono: Trophy }] : []),

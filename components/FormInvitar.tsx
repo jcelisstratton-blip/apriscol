@@ -5,10 +5,12 @@ import { Check, Copy, Share2, X } from "lucide-react";
 import { Aviso } from "@/components/Aviso";
 import { Boton } from "@/components/Boton";
 import { Campo, CLASE_INPUT } from "@/components/Campo";
+import { CamposContrato } from "@/components/CamposContrato";
 import { SelectorTarjetas } from "@/components/SelectorTarjetas";
 import { useToast } from "@/components/Toast";
 import { invitar, revocarInvitacion } from "@/app/(app)/mas/miembros/actions";
 import { ESCENA_ROL } from "@/lib/escenas-forms-a-hato";
+import { ESCENA_ACTIVA } from "@/lib/escenas-costos";
 import { ETIQUETA_ROL } from "@/lib/permisos";
 import type { RolFinca } from "@/lib/tipos";
 
@@ -20,9 +22,16 @@ const DETALLE: Record<(typeof ROLES_INVITABLES)[number], string> = {
   contador: "Solo consulta leche y reportes",
 };
 
-export function FormInvitar() {
+type Perfil = Exclude<RolFinca, "propietario"> | "ninguno";
+
+/**
+ * Agregar a alguien al equipo en un solo paso: primero el perfil (qué puede hacer en la app, o «Sin acceso a la app» para quien solo trabaja y cobra) y,
+ * una vez elegido, su contrato (vinculación, forma de pago y valor). Con acceso se crea además la invitación y se entrega el enlace.
+ * Si el plan no incluye invitar personas, solo se ofrece «Sin acceso a la app».
+ */
+export function FormInvitar({ hoy, puedeInvitar }: { hoy: string; puedeInvitar: boolean }) {
   const [estado, enviar, pendiente] = useActionState(invitar, undefined);
-  const [rol, setRol] = useState<RolFinca | "">("ordenador");
+  const [rol, setRol] = useState<Perfil | "">(puedeInvitar ? "" : "ninguno");
   const toast = useToast();
 
   const copiar = async (enlace: string) => {
@@ -48,10 +57,7 @@ export function FormInvitar() {
 
   return (
     <form action={enviar} className="space-y-4">
-      <Campo etiqueta="Correo de la persona" ayuda="Debe registrarse con este mismo correo.">
-        {(id) => <input id={id} name="email" type="email" inputMode="email" autoCapitalize="none" required className={CLASE_INPUT} placeholder="nombre@correo.com" />}
-      </Campo>
-      <Campo etiqueta="Rol">
+      <Campo etiqueta="¿Qué perfil tendrá?">
         {(id) => (
           <SelectorTarjetas
             id={id}
@@ -59,17 +65,29 @@ export function FormInvitar() {
             valor={rol}
             onCambio={setRol}
             titulo="¿Qué puede hacer?"
-            opciones={ROLES_INVITABLES.map((r) => ({ valor: r, etiqueta: ETIQUETA_ROL[r], detalle: DETALLE[r], escena: ESCENA_ROL[r] }))}
+            opciones={[
+              ...(puedeInvitar ? ROLES_INVITABLES.map((r) => ({ valor: r as Perfil, etiqueta: ETIQUETA_ROL[r], detalle: DETALLE[r], escena: ESCENA_ROL[r] })) : []),
+              { valor: "ninguno" as Perfil, etiqueta: "Sin acceso a la app", detalle: "Trabaja en la finca y cobra, pero no entra", escena: ESCENA_ACTIVA.no },
+            ]}
           />
         )}
       </Campo>
+      {rol && rol !== "ninguno" ? (
+        <Campo etiqueta="Correo de la persona" ayuda="Debe registrarse con este mismo correo.">
+          {(id) => <input id={id} name="email" type="email" inputMode="email" autoCapitalize="none" required className={CLASE_INPUT} placeholder="nombre@correo.com" />}
+        </Campo>
+      ) : null}
+      {rol ? <CamposContrato key={rol === "ninguno" ? "sin" : "con"} hoy={hoy} /> : null}
       {estado?.error ? <Aviso tipo="error">{estado.error}</Aviso> : null}
-      <Boton type="submit" pendiente={pendiente} cargando="Creando invitación…">
-        Crear invitación
-      </Boton>
+      {rol ? (
+        <Boton type="submit" pendiente={pendiente} cargando={rol === "ninguno" ? "Guardando…" : "Creando invitación…"}>
+          {rol === "ninguno" ? "Guardar persona" : "Crear invitación"}
+        </Boton>
+      ) : null}
+      {estado?.persona ? <Aviso tipo="exito">{estado.persona} quedó en tu equipo. Ya puedes registrarle pagos.</Aviso> : null}
       {estado?.enlace ? (
         <div className="space-y-3 rounded-2xl bg-lana p-3.5">
-          <Aviso tipo="exito">Invitación lista para {estado.email}. Compártele este enlace.</Aviso>
+          <Aviso tipo="exito">Invitación lista para {estado.email}, con su contrato guardado. Compártele este enlace.</Aviso>
           <p className="rounded-xl bg-papel px-3 py-2 text-sm [overflow-wrap:anywhere]">{estado.enlace}</p>
           <div className="grid grid-cols-2 gap-2">
             <Boton type="button" variante="secundario" onClick={() => copiar(estado.enlace!)}>

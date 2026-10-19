@@ -105,7 +105,7 @@ export const AYUDA_VENTAS: Ayuda = {
 export const AYUDA_PERSONAL: Ayuda = {
   titulo: "Personal y pagos",
   puntos: [
-    { titulo: "Cada persona, una vez", texto: "Registras a quien trabaja en la finca con su vinculación (contrato de trabajo o prestación de servicios) y lo que se le paga: salario, jornal o valor por servicio." },
+    { titulo: "Cada persona, una vez", texto: "En Equipo agregas a alguien: eliges su perfil y, ahí mismo, su contrato (trabajo o prestación de servicios) y lo que se le paga: salario, jornal o valor por servicio. Quien no usa la app queda «sin acceso»." },
     { titulo: "El pago se calcula solo", texto: "Eliges a la persona y escribes cuántos meses, días o servicios se pagan: el valor viene de su contrato." },
     { titulo: "Lo que cuesta de verdad", texto: "Con contrato de trabajo, el costo suma las cargas de ley con el factor prestacional que defines en Ajustes. Por prestación de servicios cuesta lo que se le paga." },
     { titulo: "Seguridad social", texto: "A quien trabaja por prestación de servicios se le adjunta el comprobante de pago de su seguridad social (PILA) para registrar el pago como hecho." },

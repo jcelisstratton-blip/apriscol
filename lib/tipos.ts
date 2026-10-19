@@ -464,6 +464,9 @@ export type Persona = {
   fecha_retiro: string | null;
   activo: boolean;
   observaciones: string | null;
+  /** Con qué correo se invitó a la app y qué rol de acceso tiene; nulos si trabaja en la finca pero no usa la app. */
+  correo: string | null;
+  rol: Exclude<RolFinca, "propietario"> | null;
   created_at: string;
   updated_at: string;
 };

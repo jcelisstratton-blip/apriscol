@@ -20,11 +20,11 @@ const vacio = (v: unknown) => (typeof v === "string" && v.trim() === "" ? undefi
 const opcional = <T extends z.ZodType>(s: T) => z.preprocess(vacio, s.optional());
 const numero = (mensaje: string) => z.preprocess((v) => (typeof v === "string" ? (leerNumero(v) ?? v) : v), z.number(mensaje));
 const ID_UUID = z.uuid();
-const DIRECCION_PERSONAS = "/personal?vista=personas";
-const DIRECCION_PAGOS = "/personal";
+const DIRECCION_PERSONAS = "/mas/miembros?guardado=1";
+const DIRECCION_PAGOS = "/mas/miembros?vista=pagos&guardado=1";
 
 function refrescar() {
-  revalidatePath("/personal");
+  revalidatePath("/mas/miembros");
   revalidatePath("/costos");
   revalidatePath("/");
 }
@@ -78,7 +78,7 @@ export async function crearPersona(_: EstadoForm, form: FormData): Promise<Estad
   const { error } = await supabase.from("personal").insert({ finca_id: finca.id, ...filaPersona(datos.data) });
   if (error) return { error: errorPersona(error.message) };
   refrescar();
-  redirect(`${DIRECCION_PERSONAS}&guardado=1`);
+  redirect(DIRECCION_PERSONAS);
 }
 
 export async function editarPersona(_: EstadoForm, form: FormData): Promise<EstadoForm> {
@@ -95,7 +95,7 @@ export async function editarPersona(_: EstadoForm, form: FormData): Promise<Esta
   if (error) return { error: errorPersona(error.message) };
   if (!data || data.length === 0) return { error: "No encontramos a esa persona." };
   refrescar();
-  redirect(`${DIRECCION_PERSONAS}&guardado=1`);
+  redirect(DIRECCION_PERSONAS);
 }
 
 /** Elimina a una persona que no tiene pagos. Con pagos se da por retirada (se edita), para que su historial no se pierda. */
@@ -180,7 +180,7 @@ export async function crearPago(_: EstadoForm, form: FormData): Promise<EstadoFo
   // Doble toque: ya se guardó.
   if (error && !(error.code === "23505" && /client_req/.test(error.message))) return { error: mensajeAmigable(error.message) };
   refrescar();
-  redirect(`${DIRECCION_PAGOS}?guardado=1`);
+  redirect(DIRECCION_PAGOS);
 }
 
 export async function editarPago(_: EstadoForm, form: FormData): Promise<EstadoForm> {
@@ -200,7 +200,7 @@ export async function editarPago(_: EstadoForm, form: FormData): Promise<EstadoF
   if (error) return { error: mensajeAmigable(error.message) };
   if (!data || data.length === 0) return { error: "No encontramos ese pago." };
   refrescar();
-  redirect(`${DIRECCION_PAGOS}?guardado=1`);
+  redirect(DIRECCION_PAGOS);
 }
 
 /** Elimina un pago. Solo propietario o administrador (la base también lo exige). */

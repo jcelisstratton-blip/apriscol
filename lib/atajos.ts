@@ -93,7 +93,6 @@ export const ATAJOS: Atajo[] = [
   { grupo: "Costos", tipo: "registrar", titulo: "Registrar una venta", detalle: "Carne, queso, abono, lana…: eliges y pones la cantidad", href: "/hato/ventas/nueva", Icono: Banknote, modulo: "contabilidad", clave: "vender ingreso cobrar queso carne abono" },
   { grupo: "Costos", tipo: "ir", titulo: "Compras", detalle: "Lo que cuesta el hato, y lo que falta por pagar", href: "/hato?vista=gastos", Icono: Wallet, modulo: "contabilidad", clave: "gastos por pagar" },
   { grupo: "Costos", tipo: "registrar", titulo: "Registrar un pago al personal", detalle: "Salario, jornal u honorarios de quien trabaja en la finca", href: "/personal/pagos/nuevo", Icono: HardHat, modulo: "contabilidad", clave: "nomina mano de obra salario jornal pago personal empleado" },
-  { grupo: "Costos", tipo: "ir", titulo: "Personal", detalle: "Las personas que trabajan en la finca y sus pagos", href: "/personal", Icono: HardHat, modulo: "contabilidad", clave: "nomina mano de obra empleados trabajadores pila contratista" },
   { grupo: "Costos", tipo: "ir", titulo: "Ventas", detalle: "Lo que vendes, y lo que falta por cobrar", href: "/hato?vista=ventas", Icono: Banknote, modulo: "contabilidad", clave: "ingresos por cobrar leche animales" },
   { grupo: "Costos", tipo: "ir", titulo: "Costos y resultado", detalle: "Compras, mano de obra, ventas y resultado por fechas", href: "/costos", Icono: BarChart3, modulo: "contabilidad" },
   { grupo: "Costos", tipo: "ir", titulo: "Productos y terceros", detalle: "Tus listas de productos, proveedores y compradores", href: "/mas/productos", Icono: Package, modulo: "contabilidad", clave: "catalogo precios proveedores compradores" },
@@ -107,8 +106,8 @@ export const ATAJOS: Atajo[] = [
 
   // Cuenta
   { grupo: "Cuenta", tipo: "ir", titulo: "Hoy", detalle: "Lo que toca hacer hoy", href: "/", Icono: Home },
-  { grupo: "Cuenta", tipo: "registrar", titulo: "Invitar a alguien", detalle: "Ordeñador, veterinario o contador", href: "/mas/miembros", Icono: UserPlus, gestion: true, servicio: "equipo", clave: "equipo invitacion" },
-  { grupo: "Cuenta", tipo: "ir", titulo: "Equipo", detalle: "Quién tiene acceso a la finca", href: "/mas/miembros", Icono: Users, gestion: true },
+  { grupo: "Cuenta", tipo: "registrar", titulo: "Agregar a alguien al equipo", detalle: "Elige su perfil y su contrato: ordeñador, veterinario, jornalero…", href: "/mas/miembros", Icono: UserPlus, gestion: true, servicio: "equipo", clave: "equipo invitacion" },
+  { grupo: "Cuenta", tipo: "ir", titulo: "Equipo y pagos", detalle: "Quién tiene acceso, su contrato y lo que se les paga", href: "/mas/miembros", Icono: Users, gestion: true },
   { grupo: "Cuenta", tipo: "ir", titulo: "Datos de la finca", detalle: "Nombre, ubicación y umbral de endogamia", href: "/mas/finca", Icono: MapPin, gestion: true },
   { grupo: "Cuenta", tipo: "ir", titulo: "Ajustes de la finca", detalle: "Tiempos, límites y criterios con los que avisa la finca", href: "/mas/ajustes", Icono: SlidersHorizontal, clave: "umbrales gestacion gdp celulas somaticas pediluvio nomina configuracion" },
   { grupo: "Cuenta", tipo: "ir", titulo: "Mi plan", detalle: "Tu plan y cómo mejorarlo", href: "/mas/plan", Icono: Rocket, propietario: true, clave: "mejorar plan precio" },
