@@ -165,7 +165,7 @@ export function FormPagoPersonal({ hoy, personal, factor, pago, solicitud, perso
         <Boton type="submit" pendiente={pendiente} cargando="Guardando…" disabled={Boolean(falta) || subiendo}>
           {editando ? "Guardar cambios" : "Guardar pago"}
         </Boton>
-        <Link href="/personal" className={clasesBoton("fantasma")}>Cancelar</Link>
+        <Link href="/mas/miembros?vista=pagos" className={clasesBoton("fantasma")}>Cancelar</Link>
       </div>
     </form>
   );

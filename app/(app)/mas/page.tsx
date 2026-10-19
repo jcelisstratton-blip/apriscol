@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Baby, Beef, ChevronRight, Fence, FileText, GitFork, HardHat, KeyRound, LogOut, MapPin, Package, Pencil, Plus, Rocket, ShieldCheck, SlidersHorizontal, Syringe, Trophy, Users, Wallet } from "lucide-react";
+import { Baby, Beef, ChevronRight, Fence, FileText, GitFork, KeyRound, LogOut, MapPin, Package, Pencil, Plus, Rocket, ShieldCheck, SlidersHorizontal, Syringe, Trophy, Users, Wallet } from "lucide-react";
 import { Encabezado } from "@/components/Encabezado";
 import { AvisoGuardado } from "@/components/AvisoGuardado";
 import { FincaSelector } from "@/components/FincaSelector";
@@ -101,13 +101,6 @@ export default async function PaginaMas({ searchParams }: { searchParams: Promis
               <ChevronRight className="size-5 text-humo" strokeWidth={1.75} />
             </Link>
           ) : null}
-          {puedeVer(rol, "contabilidad", finca.plan) ? (
-            <Link href="/personal" className={FILA}>
-              <HardHat className="size-5 text-musgo" strokeWidth={1.75} />
-              <span className="flex-1 font-semibold">Personal</span>
-              <ChevronRight className="size-5 text-humo" strokeWidth={1.75} />
-            </Link>
-          ) : null}
           {puedeVer(rol, "corrales", finca.plan) ? (
             <Link href="/corrales" className={FILA}>
               <Fence className="size-5 text-musgo" strokeWidth={1.75} />
@@ -139,10 +132,10 @@ export default async function PaginaMas({ searchParams }: { searchParams: Promis
             <span className="flex-1 font-semibold">Ajustes de la finca</span>
             <ChevronRight className="size-5 text-humo" strokeWidth={1.75} />
           </Link>
-          {puedeGestionar(rol) ? (
+          {puedeGestionar(rol) || puedeVer(rol, "contabilidad", finca.plan) ? (
             <Link href="/mas/miembros" className={FILA}>
               <Users className="size-5 text-musgo" strokeWidth={1.75} />
-              <span className="flex-1 font-semibold">Equipo e invitaciones</span>
+              <span className="flex-1 font-semibold">Equipo</span>
               <ChevronRight className="size-5 text-humo" strokeWidth={1.75} />
             </Link>
           ) : null}

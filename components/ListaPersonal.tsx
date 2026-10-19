@@ -8,6 +8,7 @@ import { EstadoVacio } from "@/components/EstadoVacio";
 import { Insignia } from "@/components/Insignia";
 import { ListaPorTramos } from "@/components/ListaPorTramos";
 import { pesos } from "@/lib/ferias";
+import { ETIQUETA_ROL } from "@/lib/permisos";
 import { ETIQUETA_FORMA_PAGO, ETIQUETA_VINCULACION, UNIDAD_PAGO } from "@/lib/nomina";
 import type { Persona } from "@/lib/tipos";
 
@@ -22,7 +23,7 @@ export function ListaPersonal({ personal, puedeEditar }: { personal: Persona[]; 
   }, [personal, texto]);
 
   if (personal.length === 0) {
-    return <EstadoVacio icono={<Users strokeWidth={1.5} />} titulo="Todavía no hay personal" descripcion="Agrega a las personas que trabajan en tu finca: con su contrato, cada pago se calcula solo." />;
+    return <EstadoVacio icono={<Users strokeWidth={1.5} />} titulo="Todavía no hay personal" descripcion="Al invitar a alguien en esta misma pantalla, o agregarlo sin acceso a la app, queda aquí con su contrato: cada pago se calcula solo." />;
   }
   return (
     <div className="space-y-3">
@@ -46,6 +47,7 @@ export function ListaPersonal({ personal, puedeEditar }: { personal: Persona[]; 
               <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
                 <Insignia tono={p.activo ? "ok" : "neutro"}>{p.activo ? "Activa" : "Retirada"}</Insignia>
                 <Insignia tono="neutro">{ETIQUETA_VINCULACION[p.vinculacion]}</Insignia>
+                <Insignia tono={p.rol ? "musgo" : "neutro"}>{p.rol ? `App: ${ETIQUETA_ROL[p.rol]}` : "Sin acceso a la app"}</Insignia>
                 <span className="text-xs text-humo">
                   {ETIQUETA_FORMA_PAGO[p.forma_pago]} · {UNIDAD_PAGO[p.forma_pago].valor.toLowerCase()}
                 </span>

@@ -24,7 +24,7 @@ export default async function PaginaPagoEditar({ params }: { params: Promise<{ i
   const supabase = await crearClienteServidor();
   const { data } = await supabase.from("pagos_personal").select("*").eq("id", id).eq("finca_id", finca.id).maybeSingle();
   if (!data) notFound();
-  if (!puedeEscribir(rol, "contabilidad", finca.plan)) redirect("/personal");
+  if (!puedeEscribir(rol, "contabilidad", finca.plan)) redirect("/mas/miembros?vista=pagos");
   const pago = data as PagoPersonal;
   const [{ data: personas }, ajustes] = await Promise.all([supabase.from("personal").select("*").eq("finca_id", finca.id).order("nombre"), obtenerAjustes()]);
   // Las personas retiradas no se ofrecen, salvo la de este pago.
@@ -33,8 +33,8 @@ export default async function PaginaPagoEditar({ params }: { params: Promise<{ i
 
   return (
     <>
-      <Link href="/personal" className="-ml-2 mt-3 inline-flex min-h-11 items-center gap-1 rounded-full px-2 text-[0.9375rem] font-semibold text-musgo">
-        <ChevronLeft className="size-5" strokeWidth={2} /> Personal
+      <Link href="/mas/miembros?vista=pagos" className="-ml-2 mt-3 inline-flex min-h-11 items-center gap-1 rounded-full px-2 text-[0.9375rem] font-semibold text-musgo">
+        <ChevronLeft className="size-5" strokeWidth={2} /> Equipo
       </Link>
       <Encabezado titulo="Editar pago" subtitulo={finca.nombre} />
       <div className="space-y-8 lg:max-w-xl">
@@ -44,7 +44,7 @@ export default async function PaginaPagoEditar({ params }: { params: Promise<{ i
             etiqueta="Eliminar este pago"
             resumen={`Pago a ${persona?.nombre ?? "la persona"} (${pesos(pago.costo_total)}) del ${formatoFecha(pago.fecha)}`}
             accion={eliminarPago.bind(null, id)}
-            destino="/personal"
+            destino="/mas/miembros?vista=pagos"
             mensaje="Pago eliminado"
           />
         ) : null}
