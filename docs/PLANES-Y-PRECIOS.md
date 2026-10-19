@@ -42,7 +42,7 @@ es un aprisco pequeño y el plan de entrada tiene que ser muy accesible; como lo
 | **Profesional** | US$ 36 | US$ 28,80 | Todo Hato + reportes de costos en Excel por fechas, costo por animal, lote y especie, controles de calidad con constancia, soportes de gastos |
 | **Hacienda** | US$ 72 | US$ 57,60 | Todo Profesional + varias fincas en una sola cuenta, soporte prioritario, acompañamiento para cargar la información inicial |
 
-Los precios en US$ son los de la referencia inicial (8 / 15 / 30 / 60) **subidos 20 %**. La fuente es `lib/planes.ts`.
+Los precios en US$ son los de la referencia inicial (8 / 15 / 30 / 60) **subidos 20 %**, con Cría redondeado a US$ 10 para no usar fracciones. La fuente es `lib/planes.ts`.
 
 Todos: animales sin límite, cabras y ovejas, celular y computador.
 
