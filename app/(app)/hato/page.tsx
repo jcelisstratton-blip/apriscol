@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Plus } from "lucide-react";
+import { FileSpreadsheet, Plus } from "lucide-react";
 import { AyudaModulo } from "@/components/AyudaModulo";
 import { TarjetasHato } from "@/components/TarjetasHato";
 import { AYUDA_ORDENO } from "@/lib/ayuda";
@@ -56,12 +56,21 @@ export default async function PaginaHato({ searchParams }: { searchParams: Promi
         subtitulo={finca.nombre}
         acciones={
           puedeCrear ? (
-            <Link
-              href="/hato/nuevo"
-              className="inline-flex min-h-11 items-center gap-1.5 rounded-full bg-musgo px-4 text-sm font-semibold text-sobre-musgo"
-            >
-              <Plus className="size-4" strokeWidth={2.4} /> Nuevo
-            </Link>
+            <>
+              <Link
+                href="/hato/importar"
+                aria-label="Cargar animales desde Excel"
+                className="grid size-11 shrink-0 place-items-center rounded-full bg-arena text-musgo transition active:scale-95"
+              >
+                <FileSpreadsheet className="size-5" strokeWidth={1.75} aria-hidden="true" />
+              </Link>
+              <Link
+                href="/hato/nuevo"
+                className="inline-flex min-h-11 items-center gap-1.5 rounded-full bg-musgo px-4 text-sm font-semibold text-sobre-musgo"
+              >
+                <Plus className="size-4" strokeWidth={2.4} /> Nuevo
+              </Link>
+            </>
           ) : null
         }
       />
