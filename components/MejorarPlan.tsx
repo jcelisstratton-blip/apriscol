@@ -5,7 +5,7 @@ import { Check } from "lucide-react";
 import { Aviso } from "@/components/Aviso";
 import { Boton } from "@/components/Boton";
 import { solicitarMejora, type ResultadoMejora } from "@/app/(app)/mas/plan/actions";
-import { nombrePlan, PLANES, planesSuperiores, precioMes, rangoPlan, usd } from "@/lib/planes";
+import { DESCUENTO_FINCA_ADICIONAL, nombrePlan, PLANES, planesSuperiores, precioMes, rangoPlan, usd } from "@/lib/planes";
 import type { PlanId } from "@/lib/tipos";
 
 /** Lo que suma un plan frente al actual: los servicios de los planes intermedios y del propio plan. */
@@ -14,7 +14,7 @@ function loQueSumas(actual: PlanId, destino: PlanId): string[] {
 }
 
 /** Los planes a los que se puede pasar (solo hacia adelante) con el cambio mensual / anual y el botón para pedir la mejora. */
-export function MejorarPlan({ actual }: { actual: PlanId }) {
+export function MejorarPlan({ actual, numeroFinca = 1 }: { actual: PlanId; numeroFinca?: number }) {
   const [anual, setAnual] = useState(false);
   const [pendiente, iniciar] = useTransition();
   const [eligiendo, setEligiendo] = useState<PlanId | null>(null);
@@ -39,6 +39,12 @@ export function MejorarPlan({ actual }: { actual: PlanId }) {
         </button>
       </div>
 
+      {numeroFinca > 1 ? (
+        <Aviso tipo="info">
+          Esta es tu finca n.º {numeroFinca}: cada finca adicional tiene un {Math.round(DESCUENTO_FINCA_ADICIONAL * 100)} % menos en su plan. Los precios de abajo ya lo incluyen.
+        </Aviso>
+      ) : null}
+
       {resultado?.ok ? (
         <Aviso tipo="exito">
           Recibimos tu solicitud para pasar a {nombrePlan(resultado.plan)}. Te escribiremos al correo de tu cuenta para coordinar el pago y activarlo.
@@ -48,7 +54,7 @@ export function MejorarPlan({ actual }: { actual: PlanId }) {
 
       <ul className="grid grid-cols-1 gap-3 lg:grid-cols-2">
         {planesSuperiores(actual).map((p) => {
-          const mes = precioMes(p, anual);
+          const mes = precioMes(p, anual, numeroFinca);
           const suma = loQueSumas(actual, p.id);
           return (
             <li key={p.id} className={`flex min-w-0 flex-col rounded-3xl bg-papel p-5 ${p.recomendado ? "ring-2 ring-musgo" : "ring-1 ring-arena"}`}>

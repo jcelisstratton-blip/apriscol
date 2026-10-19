@@ -10,8 +10,8 @@ import { activarPlan } from "@/app/(admin)/admin/planes/actions";
 import { nombrePlan } from "@/lib/planes";
 import type { PlanId } from "@/lib/tipos";
 
-/** Superadmin: activa el plan pedido una vez confirmado el pago. */
-export function AccionActivarPlan({ correo, plan }: { correo: string; plan: PlanId }) {
+/** Superadmin: activa el plan pedido para esa finca una vez confirmado el pago. */
+export function AccionActivarPlan({ fincaId, plan }: { fincaId: string; plan: PlanId }) {
   const router = useRouter();
   const toast = useToast();
   const [pendiente, iniciar] = useTransition();
@@ -20,7 +20,7 @@ export function AccionActivarPlan({ correo, plan }: { correo: string; plan: Plan
   const activar = () =>
     iniciar(async () => {
       setError(null);
-      const r = await activarPlan(correo, plan);
+      const r = await activarPlan(fincaId, plan);
       if (!r.ok) return setError(r.error);
       toast.exito(r.detalle);
       router.refresh();

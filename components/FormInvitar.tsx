@@ -29,9 +29,10 @@ type Perfil = Exclude<RolFinca, "propietario"> | "ninguno";
  * una vez elegido, su contrato (vinculación, forma de pago y valor). Con acceso se crea además la invitación y se entrega el enlace.
  * Si el plan no incluye invitar personas, solo se ofrece «Sin acceso a la app».
  */
-export function FormInvitar({ hoy, puedeInvitar }: { hoy: string; puedeInvitar: boolean }) {
+export function FormInvitar({ hoy, puedeInvitar, conContrato = true }: { hoy: string; puedeInvitar: boolean; conContrato?: boolean }) {
   const [estado, enviar, pendiente] = useActionState(invitar, undefined);
   const [rol, setRol] = useState<Perfil | "">(puedeInvitar ? "" : "ninguno");
+  // Sin el módulo de personal (planes por debajo de Profesional) no hay contrato ni «Sin acceso»: solo se invita.
   const toast = useToast();
 
   const copiar = async (enlace: string) => {
@@ -67,7 +68,7 @@ export function FormInvitar({ hoy, puedeInvitar }: { hoy: string; puedeInvitar: 
             titulo="¿Qué puede hacer?"
             opciones={[
               ...(puedeInvitar ? ROLES_INVITABLES.map((r) => ({ valor: r as Perfil, etiqueta: ETIQUETA_ROL[r], detalle: DETALLE[r], escena: ESCENA_ROL[r] })) : []),
-              { valor: "ninguno" as Perfil, etiqueta: "Sin acceso a la app", detalle: "Trabaja en la finca y cobra, pero no entra", escena: ESCENA_ACTIVA.no },
+              ...(conContrato ? [{ valor: "ninguno" as Perfil, etiqueta: "Sin acceso a la app", detalle: "Trabaja en la finca y cobra, pero no entra", escena: ESCENA_ACTIVA.no }] : []),
             ]}
           />
         )}
@@ -77,7 +78,7 @@ export function FormInvitar({ hoy, puedeInvitar }: { hoy: string; puedeInvitar: 
           {(id) => <input id={id} name="email" type="email" inputMode="email" autoCapitalize="none" required className={CLASE_INPUT} placeholder="nombre@correo.com" />}
         </Campo>
       ) : null}
-      {rol ? <CamposContrato key={rol === "ninguno" ? "sin" : "con"} hoy={hoy} /> : null}
+      {rol && conContrato ? <CamposContrato key={rol === "ninguno" ? "sin" : "con"} hoy={hoy} /> : null}
       {estado?.error ? <Aviso tipo="error">{estado.error}</Aviso> : null}
       {rol ? (
         <Boton type="submit" pendiente={pendiente} cargando={rol === "ninguno" ? "Guardando…" : "Creando invitación…"}>
@@ -87,7 +88,7 @@ export function FormInvitar({ hoy, puedeInvitar }: { hoy: string; puedeInvitar: 
       {estado?.persona ? <Aviso tipo="exito">{estado.persona} quedó en tu equipo. Ya puedes registrarle pagos.</Aviso> : null}
       {estado?.enlace ? (
         <div className="space-y-3 rounded-2xl bg-lana p-3.5">
-          <Aviso tipo="exito">Invitación lista para {estado.email}, con su contrato guardado. Compártele este enlace.</Aviso>
+          <Aviso tipo="exito">Invitación lista para {estado.email}{conContrato ? ", con su contrato guardado" : ""}. Compártele este enlace.</Aviso>
           <p className="rounded-xl bg-papel px-3 py-2 text-sm [overflow-wrap:anywhere]">{estado.enlace}</p>
           <div className="grid grid-cols-2 gap-2">
             <Boton type="button" variante="secundario" onClick={() => copiar(estado.enlace!)}>

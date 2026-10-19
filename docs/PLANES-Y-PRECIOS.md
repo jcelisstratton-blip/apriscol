@@ -29,18 +29,28 @@ es un aprisco pequeño y el plan de entrada tiene que ser muy accesible; como lo
 **Valor de cada capacidad (de menor a mayor costo de servir y de valor para el criador):**
 1. Hato y ficha del animal, leche, sanidad básica → uso diario, poco peso técnico. *(Cría)*
 2. Endogamia y genealogía → cálculo recursivo, pero gran valor y diferenciador. *(Cría)*
-3. Corrales, monta, FAMACHA, ceba, premios, simulador de cruzas → más tablas, más usuarios activos. *(Hato)*
-4. Costos y reportes en Excel por cualquier fecha, costo por animal/lote → consultas pesadas y valor financiero alto. *(Profesional)*
-5. Varias fincas, equipos grandes, soportes (PDF/foto) y acompañamiento → más almacenamiento y más atención humana. *(Hacienda)*
+3. Equipo con roles, corrales, monta, FAMACHA, premios, simulador de cruzas → más tablas, más usuarios activos. *(Hato)*
+4. Cuentas (compras, ventas, por cobrar), personal y nómina, carne y ceba, costos y reportes en Excel, costo por animal/lote, controles de calidad, soportes (PDF/foto) → consultas pesadas y valor financiero alto. *(Profesional)*
+5. Soporte prioritario y acompañamiento → más atención humana. *(Hacienda)*
 
 ## 2. Planes
 
 | Plan | Mensual | Anual (por mes) | Servicios |
 |---|---|---|---|
 | **Cría** | US$ 10 | US$ 8 | Hato y ficha con foto y genealogía, endogamia, leche (ordeño y calidad), sanidad con periodos de retiro, servicios y partos, traer animales del libro |
-| **Hato** (recomendado) | US$ 18 | US$ 14,40 | Todo Cría + equipo con roles (ordeñador, veterinario, contador), corrales y potreros, temporada de monta, programas sanitarios con FAMACHA y pediluvio, carne y ceba, premios y ferias, simulador de cruzas, gastos y costo por litro |
-| **Profesional** | US$ 36 | US$ 28,80 | Todo Hato + reportes de costos en Excel por fechas, costo por animal, lote y especie, controles de calidad con constancia, soportes de gastos |
-| **Hacienda** | US$ 72 | US$ 57,60 | Todo Profesional + varias fincas en una sola cuenta, soporte prioritario, acompañamiento para cargar la información inicial |
+| **Hato** (recomendado) | US$ 18 | US$ 14 | Todo Cría + equipo con roles (ordeñador, veterinario, contador), corrales y potreros, temporada de monta, programas sanitarios con FAMACHA y pediluvio, premios y ferias, simulador de cruzas |
+| **Profesional** | US$ 36 | US$ 29 | Todo Hato + compras, ventas y por cobrar, personal y nómina, carne y ceba, costo por litro, por animal, lote y especie, reportes de costos en Excel por fechas, controles de calidad con constancia, soportes de gastos |
+| **Hacienda** | US$ 72 | US$ 58 | Todo Profesional + soporte prioritario y acompañamiento para cargar la información inicial |
+
+**Precios siempre en dólares enteros.** Anual: 20 % menos. **Cada finca tiene su plan** y paga por separado; desde la **segunda finca** de un propietario, su plan tiene **10 % menos**
+(la primera finca es la más antigua). Los descuentos se aplican uno tras otro y el resultado se redondea al dólar (`precioMes(plan, anual, numeroFinca)`):
+
+| Plan | Mensual, 2.ª finca en adelante | Anual, 2.ª finca en adelante |
+|---|---|---|
+| Cría | US$ 9 | US$ 7 |
+| Hato | US$ 16 | US$ 13 |
+| Profesional | US$ 32 | US$ 26 |
+| Hacienda | US$ 65 | US$ 52 |
 
 Los precios en US$ son los de la referencia inicial (8 / 15 / 30 / 60) **subidos 20 %**, con Cría redondeado a US$ 10 para no usar fracciones. La fuente es `lib/planes.ts`.
 
@@ -51,16 +61,17 @@ Una finca con equipo, corrales, ceba y gastos se mueve en el rango de Hato. Los 
 
 ## 3. Cómo se aplican (implementado)
 
-- **Plan de cada finca:** `fincas.plan` (`cria`, `hato`, `profesional`, `hacienda`). Las fincas que ya existían quedaron en Hacienda; una finca nueva empieza en **Cría**
-  (hasta que haya cobro automático, Cría se activa al registrarse). El plan **no se puede cambiar a mano**: un disparador lo impide.
+- **Plan de cada finca:** `fincas.plan` (`cria`, `hato`, `profesional`, `hacienda`). Las fincas que ya existían quedaron en Hacienda; **toda finca nueva empieza en Cría**, sin importar
+  el plan de las demás (hasta que haya cobro automático, Cría se activa al registrarse). El plan **no se puede cambiar a mano**: un disparador lo impide.
 - **Módulos (lo cierra la base):** `private.puede_ver` y `puede_escribir` exigen además que el plan incluya el módulo (`private.modulo_rango`): desde **Hato**, corrales,
-  carne, premios y ferias, y contabilidad (gastos). Cría tiene hato, genealogía, leche, sanidad y reproducción.
+  premios y ferias; desde **Profesional**, carne y contabilidad (compras, ventas, personal y costos). Cría tiene hato, genealogía, leche, sanidad y reproducción.
 - **Equipo con roles:** desde Hato (disparador sobre `invitaciones`; la pantalla de Equipo muestra el candado).
-- **Varias fincas:** solo con Hacienda (disparador sobre `fincas`; una finca nueva hereda el plan; «Agregar otra finca» lleva a mejorar si no aplica).
+- **Varias fincas:** sin tope y con cualquier plan: cada una paga el suyo («Agregar otra finca» lleva a crear una finca nueva, que empieza en Cría).
 - **Servicios dentro de un módulo (los cierra el servidor y la pantalla, `lib/planes.ts#SERVICIOS_PLAN`):** reportes y Excel de costos, costo por animal/lote/especie,
   controles de calidad con constancia y soportes de gastos desde **Profesional**. Quien pida uno sin plan ve `RequierePlan` con el botón de mejorar.
 - **Mejorar mi plan:** `/mas/plan` (menú lateral y «Más», solo propietario y solo si hay un plan superior). Muestra solo planes **hacia adelante** y lo que se suma;
   `solicitar_mejora_plan` guarda la solicitud (una pendiente por finca) y la base vuelve a comprobar que sea un plan superior.
-- **Activar (superadmin):** `/admin/planes` lista las solicitudes pendientes y «Activar» llama a `admin_asignar_plan(correo, plan)`, que cambia el plan de todas las
-  fincas de ese propietario y cierra la solicitud. También se puede con SQL: `select public.admin_asignar_plan('correo', 'hato');`.
+- **Activar (superadmin):** `/admin/planes` lista las solicitudes pendientes (con el número de finca y el precio que corresponde) y «Activar» llama a
+  `admin_asignar_plan_finca(finca, plan)`, que cambia el plan de **esa finca** y cierra su solicitud. Si es la primera finca de una persona referida, nace la comisión de referidos.
+  `admin_asignar_plan(correo, plan)` (todas las fincas del propietario) queda solo por compatibilidad y no la usa la app.
 - **Cuando haya pasarela de pago:** reemplazar el botón «Mejorar a …» por el pago y llamar a la misma activación al confirmarse (webhook).

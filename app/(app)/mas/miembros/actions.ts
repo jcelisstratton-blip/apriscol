@@ -28,6 +28,11 @@ const esquema = z.object({
   valor_base: numero("Escribe cuánto se le paga (solo números).").pipe(z.number().min(0, "El valor no puede ser negativo.").max(99_999_999_999, "El valor es demasiado alto. Revísalo.")),
   fecha_ingreso: opcional(z.iso.date("Indica la fecha de ingreso.")),
 });
+/** Sin el contrato (planes que no incluyen personal y nómina): solo el perfil y el correo de quien se invita. */
+const esquemaSoloInvitacion = z.object({
+  rol: z.enum(["administrador", "ordenador", "veterinario", "contador"], "Elige qué perfil tendrá."),
+  email: z.string().trim().toLowerCase().pipe(z.email("Escribe un correo válido.")),
+});
 
 /**
  * Agrega a alguien al equipo: guarda su contrato (Personal) y, si tendrá acceso a la app, crea la invitación. Primero la persona y después la invitación;
@@ -36,7 +41,16 @@ const esquema = z.object({
 export async function invitar(_: EstadoInvitar, form: FormData): Promise<EstadoInvitar> {
   const { finca, rol, user } = await obtenerContexto();
   if (!puedeGestionar(rol)) return { error: "Solo el propietario o un administrador pueden agregar personas." };
-  if (!puedeEscribir(rol, "contabilidad", finca.plan)) return { error: "No tienes permiso para registrar el contrato de una persona." };
+  // El contrato de la persona (Personal y nómina) es de Profesional en adelante; en los demás planes solo se invita.
+  if (!puedeEscribir(rol, "contabilidad", finca.plan)) {
+    const solo = esquemaSoloInvitacion.safeParse(Object.fromEntries(form));
+    if (!solo.success) return { error: solo.error.issues[0]?.message };
+    const supabase = await crearClienteServidor();
+    const { data, error } = await supabase.from("invitaciones").insert({ finca_id: finca.id, email: solo.data.email, rol: solo.data.rol, invitado_por: user.id }).select("token").single();
+    if (error || !data) return { error: error?.code === "23505" ? "Ya hay una invitación pendiente para ese correo." : mensajeAmigable(error?.message ?? "") };
+    revalidatePath("/mas/miembros");
+    return { enlace: `${await urlDelSitio()}/invitacion/${data.token}`, email: solo.data.email };
+  }
   const datos = esquema.safeParse(Object.fromEntries(form));
   if (!datos.success) return { error: datos.error.issues[0]?.message };
   const d = datos.data;

@@ -70,6 +70,7 @@ export function Planes({ hrefCrear }: { hrefCrear: string }) {
           );
         })}
       </ul>
+      <p className="mt-4 text-center text-sm text-humo">Cada finca tiene su propio plan. Desde la segunda finca, tienes 10 % menos en su plan.</p>
     </div>
   );
 }

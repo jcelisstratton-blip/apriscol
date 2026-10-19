@@ -15,7 +15,7 @@ export const metadata: Metadata = { title: "Solicitudes de plan" };
 /** Solicitudes de mejora de plan pendientes: quién la pidió, a qué plan y con qué periodo de pago. Se activa cuando el pago está confirmado. */
 export default async function PaginaSolicitudesPlan() {
   const supabase = await crearClienteServidor();
-  const { data, error } = await supabase.rpc("admin_listar_solicitudes_plan");
+  const { data, error } = await supabase.rpc("admin_solicitudes_plan");
   const filas = data ?? [];
   const { data: comisiones } = await supabase.rpc("admin_listar_comisiones");
 
@@ -33,7 +33,7 @@ export default async function PaginaSolicitudesPlan() {
           {filas.map((s) => {
             const plan = planPorId(s.plan_nuevo);
             const anual = s.periodo === "anual";
-            const mes = precioMes(plan, anual);
+            const mes = precioMes(plan, anual, s.numero_finca);
             return (
               <li key={s.id} className="min-w-0 space-y-3 rounded-3xl bg-papel p-4 ring-1 ring-arena">
                 <div className="flex items-start justify-between gap-3">
@@ -46,9 +46,10 @@ export default async function PaginaSolicitudesPlan() {
                 <p className="text-[0.9375rem]">
                   De <span className="font-semibold">{nombrePlan(s.plan_actual)}</span> a <span className="font-semibold">{nombrePlan(s.plan_nuevo)}</span> ·{" "}
                   {anual ? `anual, ${usd(mes * 12)} al año` : `mensual, ${usd(mes)} al mes`}
+                  {s.numero_finca > 1 ? ` · finca n.º ${s.numero_finca}, con 10 % menos` : ""}
                 </p>
                 <p className="text-xs text-humo">Pedida el {formatoFecha(s.creada_en.slice(0, 10), { day: "numeric", month: "short" })}</p>
-                <AccionActivarPlan correo={s.correo} plan={s.plan_nuevo} />
+                <AccionActivarPlan fincaId={s.finca_id} plan={s.plan_nuevo} />
               </li>
             );
           })}

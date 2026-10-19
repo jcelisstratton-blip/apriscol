@@ -1,4 +1,4 @@
-/** Planes de Apriscol: de menor a mayor. Se cobra por los servicios que incluye cada plan, nunca por número de animales. Precios en dólares (US$) por mes; el anual descuenta 20 %. */
+/** Planes de Apriscol: de menor a mayor. Se cobra por los servicios que incluye cada plan, nunca por número de animales. **Cada finca tiene su propio plan.** Precios en dólares (US$) por mes, siempre en dólares enteros; el anual descuenta 20 % y, desde la segunda finca, 10 % menos. */
 import type { ModuloApp, PlanId } from "@/lib/tipos";
 
 export type Plan = {
@@ -16,6 +16,8 @@ export type Plan = {
 };
 
 export const DESCUENTO_ANUAL = 0.2;
+/** Cada finca adicional (desde la segunda) paga su plan con este descuento. */
+export const DESCUENTO_FINCA_ADICIONAL = 0.1;
 
 export const PLANES: Plan[] = [
   {
@@ -36,7 +38,7 @@ export const PLANES: Plan[] = [
   {
     id: "hato",
     nombre: "Hato",
-    para: "Para el criador que trabaja con equipo, corrales, monta y cuentas.",
+    para: "Para el criador que trabaja con equipo, corrales y monta.",
     mensual: 18,
     recomendado: true,
     destacados: ["Animales sin límite", "Equipo con roles: ordeñador, veterinario y contador"],
@@ -45,21 +47,22 @@ export const PLANES: Plan[] = [
       "Corrales y potreros con rotación y cuarentena",
       "Temporada de monta (empadronamiento)",
       "Programas sanitarios, FAMACHA y pediluvio",
-      "Carne y ceba: pesos, lotes y alimento",
       "Premios y ferias, y simulador de cruzas",
-      "Gastos y costo por litro",
     ],
   },
   {
     id: "profesional",
     nombre: "Profesional",
-    para: "Para quien quiere reportes en Excel, costo por animal y control de calidad.",
+    para: "Para llevar tu aprisco como un negocio: cuentas, personal, carne y reportes.",
     mensual: 36,
-    destacados: ["Animales sin límite", "Reportes y costos al detalle"],
+    destacados: ["Animales sin límite", "Cuentas, personal y reportes al detalle"],
     incluyeDe: "Hato",
     funciones: [
+      "Compras, ventas y lo que te deben",
+      "Personal y nómina con el costo real de la mano de obra",
+      "Carne y ceba: pesos, lotes y alimento",
+      "Costo por litro, por animal, por lote y por especie",
       "Reportes de costos en Excel con las fechas que elijas",
-      "Costo por animal, por lote y por especie",
       "Controles de calidad con constancia (leche y carne)",
       "Soportes de gastos: facturas en PDF o foto",
     ],
@@ -67,16 +70,22 @@ export const PLANES: Plan[] = [
   {
     id: "hacienda",
     nombre: "Hacienda",
-    para: "Para quien maneja más de una finca y quiere acompañamiento.",
+    para: "Para quien quiere acompañamiento y atención prioritaria.",
     mensual: 72,
-    destacados: ["Animales sin límite", "Varias fincas en una sola cuenta"],
+    destacados: ["Animales sin límite", "Soporte prioritario"],
     incluyeDe: "Profesional",
-    funciones: ["Soporte prioritario", "Acompañamiento para cargar tu información inicial"],
+    funciones: ["Acompañamiento para cargar tu información inicial"],
   },
 ];
 
-/** Precio mensual que se muestra: con el descuento anual, al centavo. */
-export const precioMes = (p: Plan, anual: boolean) => (anual ? Math.round(p.mensual * (1 - DESCUENTO_ANUAL) * 100) / 100 : p.mensual);
+/**
+ * Precio mensual de un plan en dólares enteros. `numeroFinca` es el lugar de la finca entre las del propietario (1 = la primera, que paga el precio completo; desde la 2,
+ * 10 % menos). El 20 % del pago anual se aplica sobre ese resultado y el precio final se redondea al dólar.
+ */
+export function precioMes(p: Plan, anual: boolean, numeroFinca = 1): number {
+  const base = p.mensual * (anual ? 1 - DESCUENTO_ANUAL : 1) * (numeroFinca > 1 ? 1 - DESCUENTO_FINCA_ADICIONAL : 1);
+  return Math.round(base);
+}
 
 /** «US$ 8», «US$ 6,40»: sin centavos cuando el valor es entero. */
 export const usd = (n: number) => `US$ ${Number.isInteger(n) ? n : n.toFixed(2).replace(".", ",")}`;
@@ -93,7 +102,7 @@ export const planesSuperiores = (actual: PlanId): Plan[] => PLANES.filter((p) =>
 
 /** Desde qué plan se incluye cada módulo. Espejo de private.modulo_rango; la autoridad real es la base (RLS). */
 export function moduloEnPlan(plan: PlanId, modulo: ModuloApp): boolean {
-  const desde = ["corrales", "carne", "ferias", "contabilidad", "nutricion", "ambiente"].includes(modulo) ? 2 : 1;
+  const desde = ["carne", "contabilidad"].includes(modulo) ? 3 : ["corrales", "ferias", "nutricion", "ambiente"].includes(modulo) ? 2 : 1;
   return rangoPlan(plan) >= desde;
 }
 
@@ -104,7 +113,6 @@ export const SERVICIOS_PLAN = {
   costoAnimal: { desde: "profesional", nombre: "Costo por animal, lote y especie" },
   calidad: { desde: "profesional", nombre: "Controles de calidad con constancia" },
   soportes: { desde: "profesional", nombre: "Soportes de gastos (facturas)" },
-  fincas: { desde: "hacienda", nombre: "Varias fincas" },
 } as const satisfies Record<string, { desde: PlanId; nombre: string }>;
 export type ServicioPlan = keyof typeof SERVICIOS_PLAN;
 

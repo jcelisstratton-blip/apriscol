@@ -9,20 +9,24 @@ import { MejorarPlan } from "@/components/MejorarPlan";
 import { Tarjeta } from "@/components/Tarjeta";
 import { obtenerContexto } from "@/lib/contexto";
 import { formatoFecha } from "@/lib/fechas";
-import { nombrePlan, planPorId, planesSuperiores, usd } from "@/lib/planes";
+import { nombrePlan, planPorId, planesSuperiores, precioMes, usd } from "@/lib/planes";
 import { crearClienteServidor } from "@/lib/supabase/server";
 import type { PlanId } from "@/lib/tipos";
 
 export const metadata: Metadata = { title: "Mejorar mi plan" };
 
 /** Mejorar el plan de la finca: solo hacia adelante. Muestra lo que ya tienes y lo que sumas con cada plan superior. */
-export default async function PaginaPlan({ searchParams }: { searchParams: Promise<{ motivo?: string }> }) {
-  const { finca, rol } = await obtenerContexto();
-  const { motivo } = await searchParams;
+export default async function PaginaPlan() {
+  const { finca, fincas, rol } = await obtenerContexto();
   const actual = planPorId(finca.plan);
   const superiores = planesSuperiores(finca.plan);
 
   const supabase = await crearClienteServidor();
+  // Cada finca tiene su plan. El lugar de esta finca entre las del propietario decide el descuento: la primera paga completo, desde la segunda 10 % menos.
+  const propias = fincas.filter((f) => f.rol === "propietario").map((f) => f.id);
+  const { data: fechas } = propias.length ? await supabase.from("fincas").select("id, created_at").in("id", propias) : { data: [] };
+  const ordenadas = [...(fechas ?? [])].sort((a, b) => a.created_at.localeCompare(b.created_at) || a.id.localeCompare(b.id));
+  const numeroFinca = Math.max(1, ordenadas.findIndex((f) => f.id === finca.id) + 1);
   const { data: pendiente } = await supabase
     .from("solicitudes_plan")
     .select("plan_nuevo, periodo, created_at")
@@ -35,17 +39,15 @@ export default async function PaginaPlan({ searchParams }: { searchParams: Promi
       <Link href="/mas" className="-ml-2 mt-3 inline-flex min-h-11 items-center gap-1 rounded-full px-2 text-[0.9375rem] font-semibold text-musgo">
         <ChevronLeft className="size-5" strokeWidth={2} /> Más
       </Link>
-      <Encabezado titulo="Mejorar mi plan" subtitulo={finca.nombre} />
+      <Encabezado titulo="Plan de esta finca" subtitulo={finca.nombre} />
 
       <div className="space-y-3.5">
-        {motivo === "fincas" && finca.plan !== "hacienda" ? <Aviso tipo="atencion">Para manejar varias fincas necesitas el plan Hacienda.</Aviso> : null}
-
         <Tarjeta titulo="Tu plan">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <p className="font-display text-2xl font-semibold leading-tight">{actual.nombre}</p>
               <p className="mt-0.5 text-sm text-humo">
-                {usd(actual.mensual)} al mes · {actual.para}
+                {usd(precioMes(actual, false, numeroFinca))} al mes · {actual.para}
               </p>
             </div>
             <span className="shrink-0">
@@ -58,7 +60,7 @@ export default async function PaginaPlan({ searchParams }: { searchParams: Promi
           <Aviso tipo="info">Solo el propietario de la finca puede mejorar el plan. Pídele que lo haga desde «Más → Mejorar mi plan».</Aviso>
         ) : superiores.length === 0 ? (
           <Tarjeta>
-            <EstadoVacio icono={<Rocket strokeWidth={1.5} />} titulo="Ya tienes el plan más completo" descripcion="Hacienda incluye todos los servicios de Apriscol. No hay nada más que mejorar." />
+            <EstadoVacio icono={<Rocket strokeWidth={1.5} />} titulo="Ya tienes el plan más completo" descripcion="Esta finca ya tiene todos los servicios de Apriscol. Si tienes otra finca, mejora su plan desde ella." />
           </Tarjeta>
         ) : (
           <>
@@ -68,7 +70,7 @@ export default async function PaginaPlan({ searchParams }: { searchParams: Promi
                 {formatoFecha(pendiente.created_at.slice(0, 10), { day: "numeric", month: "short" })}. Si quieres otro plan, elígelo abajo y reemplaza esa solicitud.
               </Aviso>
             ) : null}
-            <MejorarPlan actual={finca.plan} />
+            <MejorarPlan actual={finca.plan} numeroFinca={numeroFinca} />
           </>
         )}
       </div>
