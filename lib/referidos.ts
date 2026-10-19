@@ -7,6 +7,7 @@ export const MESES_REFERIDO = 6;
 export const TEXTO_PROGRAMA = `Por cada persona que se registre con tu enlace y adquiera un plan, recibes el ${PORCENTAJE_REFERIDO} % del valor de ese plan cada mes durante ${MESES_REFERIDO} meses.`;
 
 /** La aclaración que acompaña al programa: la comisión nace solo con la compra de un plan, y no hay ningún otro pago por referir. */
+export const TEXTO_PRIMERA_FINCA = "La comisión se calcula sobre el plan de la primera finca de la persona referida; las demás fincas que agregue no generan comisión.";
 export const TEXTO_SOLO_CON_PLAN = "Solo se paga cuando la persona que recibió tu enlace adquiere un plan. Compartir el enlace o que alguien se registre sin comprar un plan no genera ningún pago: las comisiones son únicamente las de este programa.";
 
 /** Lo que se gana cada mes con un plan (precio mensual del plan × 5 %), y en total durante los 6 meses. */

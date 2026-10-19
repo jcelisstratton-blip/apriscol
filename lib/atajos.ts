@@ -112,7 +112,7 @@ export const ATAJOS: Atajo[] = [
   { grupo: "Cuenta", tipo: "ir", titulo: "Datos de la finca", detalle: "Nombre, ubicación y umbral de endogamia", href: "/mas/finca", Icono: MapPin, gestion: true },
   { grupo: "Cuenta", tipo: "ir", titulo: "Ajustes de la finca", detalle: "Tiempos, límites y criterios con los que avisa la finca", href: "/mas/ajustes", Icono: SlidersHorizontal, clave: "umbrales gestacion gdp celulas somaticas pediluvio nomina configuracion" },
   { grupo: "Cuenta", tipo: "ir", titulo: "Mi plan", detalle: "Tu plan y cómo mejorarlo", href: "/mas/plan", Icono: Rocket, propietario: true, clave: "mejorar plan precio" },
-  { grupo: "Cuenta", tipo: "registrar", titulo: "Agregar otra finca", detalle: "Una finca más en tu cuenta", href: "/onboarding", Icono: Plus, propietario: true, servicio: "fincas" },
+  { grupo: "Cuenta", tipo: "registrar", titulo: "Agregar otra finca", detalle: "Una finca más en tu cuenta", href: "/onboarding", Icono: Plus, propietario: true },
   { grupo: "Cuenta", tipo: "ir", titulo: "Cambiar contraseña", detalle: "Tu acceso a Apriscol", href: "/cambiar-clave", Icono: KeyRound, clave: "clave password" },
   { grupo: "Cuenta", tipo: "ir", titulo: "Términos y privacidad", detalle: "Cómo se protegen tus datos", href: "/terminos", Icono: FileText, clave: "legal datos supabase" },
 ];

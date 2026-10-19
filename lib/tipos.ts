@@ -1388,6 +1388,8 @@ export type Database = {
       restablecer_ajustes_finca: { Args: { p_finca: string; p_grupo: string }; Returns: undefined };
       solicitar_mejora_plan: { Args: { p_finca: string; p_plan: PlanId; p_periodo?: "mensual" | "anual" }; Returns: undefined };
       admin_asignar_plan: { Args: { p_correo: string; p_plan: PlanId }; Returns: number };
+      admin_asignar_plan_finca: { Args: { p_finca: string; p_plan: PlanId }; Returns: number };
+      admin_solicitudes_plan: { Args: Record<string, never>; Returns: (SolicitudPlan & { finca_id: string; numero_finca: number })[] };
       admin_listar_solicitudes_plan: { Args: Record<string, never>; Returns: SolicitudPlan[] };
       mis_referidos: { Args: Record<string, never>; Returns: { nombre: string; registrado_en: string; plan: string | null; porcentaje: number | null; meses: number | null; desde: string | null }[] };
       admin_listar_comisiones: { Args: Record<string, never>; Returns: { referidor: string; referido: string; plan: string; porcentaje: number; meses: number; desde: string }[] };

@@ -16,7 +16,7 @@ export default async function PaginaOnboarding() {
   return (
     <PantallaAuth
       titulo={tieneFincas ? "Agregar otra finca" : "Cuéntanos de tu finca"}
-      subtitulo={tieneFincas ? "Podrás cambiar entre tus fincas cuando quieras." : "Con esto armamos tu panel. Lo puedes cambiar después."}
+      subtitulo={tieneFincas ? "Cada finca tiene su propio plan: la nueva empieza en Cría y desde la segunda tienes 10 % menos. Podrás cambiar entre tus fincas cuando quieras." : "Con esto armamos tu panel. Lo puedes cambiar después."}
     >
       <FormFinca />
       {tieneFincas ? (

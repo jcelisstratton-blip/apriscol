@@ -50,7 +50,8 @@ const SECCIONES: SeccionLegal[] = [
           Apriscol se ofrece en cuatro planes (Cría, Hato, Profesional y Hacienda) que se diferencian por <strong>los servicios que incluyen</strong>, no por cuántos animales registres. Los precios están en dólares estadounidenses (US$) y se muestran en la página de entrada; puedes pagar cada mes o cada año (con 20 % de descuento).
         </P>
         <Lista>
-          <li>Puedes mejorar tu plan cuando quieras desde «Más → Mejorar mi plan». Solo se puede pasar a un plan superior al que tienes, y solo el propietario de la finca puede hacerlo.</li>
+          <li><strong>Cada finca tiene su propio plan</strong> y paga por separado. Puedes tener todas las fincas que quieras: una finca nueva empieza en el plan Cría y, desde la segunda finca, su plan tiene <strong>10 % menos</strong> sobre el precio de lista. Ese descuento se suma al 20 % del pago anual aplicándose uno después del otro, y los precios se redondean al dólar.</li>
+          <li>Puedes mejorar el plan de una finca cuando quieras desde «Más → Plan de esta finca». Solo se puede pasar a un plan superior al que tiene, y solo el propietario de la finca puede hacerlo.</li>
           <li>La mejora se activa cuando se confirma el pago. Pedirla no genera ningún cobro por sí sola.</li>
           <li>Los servicios que tu plan no incluye aparecen bloqueados, con el aviso del plan que los trae.</li>
           <li>Si cambiamos los precios, te avisaremos antes de que se apliquen a tu siguiente periodo de pago.</li>
@@ -68,7 +69,7 @@ const SECCIONES: SeccionLegal[] = [
         </P>
         <Lista>
           <li>{TEXTO_SOLO_CON_PLAN}</li>
-          <li>La comisión se calcula sobre el precio mensual del plan que adquiere la persona referida, en dólares estadounidenses (US$).</li>
+          <li>La comisión se calcula sobre el precio mensual de lista del plan de la <strong>primera finca</strong> de la persona referida, en dólares estadounidenses (US$). Las demás fincas que esa persona agregue después no generan comisión.</li>
           <li>Tú ves a tus referidos solo con su primer nombre, el plan que adquirieron y cuánto va causado; no ves sus datos ni los de su finca.</li>
           <li>Registrarse con tu propio enlace no genera comisión.</li>
         </Lista>

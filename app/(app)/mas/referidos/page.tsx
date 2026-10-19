@@ -9,7 +9,7 @@ import { Tarjeta } from "@/components/Tarjeta";
 import { obtenerContexto } from "@/lib/contexto";
 import { formatoFecha } from "@/lib/fechas";
 import { nombrePlan, planPorId, usd } from "@/lib/planes";
-import { comisionMensual, EJEMPLOS_REFERIDO, enlaceReferido, mesesCorridos, MESES_REFERIDO, PORCENTAJE_REFERIDO, TEXTO_PROGRAMA, TEXTO_SOLO_CON_PLAN } from "@/lib/referidos";
+import { comisionMensual, EJEMPLOS_REFERIDO, enlaceReferido, mesesCorridos, MESES_REFERIDO, PORCENTAJE_REFERIDO, TEXTO_PRIMERA_FINCA, TEXTO_PROGRAMA, TEXTO_SOLO_CON_PLAN } from "@/lib/referidos";
 import { urlDelSitio } from "@/lib/sitio";
 import { crearClienteServidor } from "@/lib/supabase/server";
 import type { PlanId } from "@/lib/tipos";
@@ -45,7 +45,7 @@ export default async function PaginaReferidos() {
 
         <Tarjeta titulo="Cómo funciona">
           <p className="text-[0.9375rem] leading-relaxed">{TEXTO_PROGRAMA}</p>
-          <p className="mt-2 text-[0.9375rem] leading-relaxed text-humo">{TEXTO_SOLO_CON_PLAN}</p>
+          <p className="mt-2 text-[0.9375rem] leading-relaxed text-humo">{TEXTO_SOLO_CON_PLAN} {TEXTO_PRIMERA_FINCA}</p>
           <div className="mt-3 overflow-hidden rounded-xl ring-1 ring-arena">
             <table className="w-full text-left text-sm">
               <caption className="sr-only">Lo que ganas según el plan de la persona que refieres</caption>

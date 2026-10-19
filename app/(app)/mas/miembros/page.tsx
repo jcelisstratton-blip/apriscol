@@ -11,6 +11,7 @@ import { Insignia } from "@/components/Insignia";
 import { ListaPagosPersonal } from "@/components/ListaPagosPersonal";
 import { ListaPersonal } from "@/components/ListaPersonal";
 import { PestanasTarjetas } from "@/components/TarjetaOpcion";
+import { RequierePlan } from "@/components/RequierePlan";
 import { Tarjeta } from "@/components/Tarjeta";
 import { obtenerContexto } from "@/lib/contexto";
 import { AYUDA_PERSONAL } from "@/lib/ayuda";
@@ -152,9 +153,13 @@ export default async function PaginaMiembros({ searchParams }: { searchParams: P
               </Tarjeta>
             ) : null}
 
-            {gestiona && puedeEditar ? (
+            {gestiona ? (
               <Tarjeta titulo="Agregar a alguien">
-                <FormInvitar hoy={hoy} puedeInvitar={servicioEnPlan(finca.plan, "equipo")} />
+                {servicioEnPlan(finca.plan, "equipo") || puedeEditar ? (
+                  <FormInvitar hoy={hoy} puedeInvitar={servicioEnPlan(finca.plan, "equipo")} conContrato={puedeEditar} />
+                ) : (
+                  <RequierePlan servicio="equipo" rol={rol} descripcion={rol === "propietario" ? "Con el plan Hato invitas al ordeñador, al veterinario y al contador, y cada uno ve solo lo suyo." : undefined} />
+                )}
               </Tarjeta>
             ) : null}
           </>

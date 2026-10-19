@@ -7,7 +7,7 @@ import { FincaSelector } from "@/components/FincaSelector";
 import { Insignia } from "@/components/Insignia";
 import { Tarjeta } from "@/components/Tarjeta";
 import { esAdminPlataforma, obtenerContexto } from "@/lib/contexto";
-import { nombrePlan, servicioEnPlan } from "@/lib/planes";
+import { nombrePlan } from "@/lib/planes";
 import { ETIQUETA_ROL, puedeGestionar, puedeVer } from "@/lib/permisos";
 import { cerrarSesion } from "@/app/login/actions";
 
@@ -147,11 +147,11 @@ export default async function PaginaMas({ searchParams }: { searchParams: Promis
           {rol === "propietario" ? (
             <Link href="/mas/plan" className={FILA}>
               <Rocket className="size-5 text-ocre" strokeWidth={1.75} />
-              <span className="flex-1 font-semibold">{finca.plan !== "hacienda" ? "Mejorar mi plan" : "Mi plan"}</span>
+              <span className="flex-1 font-semibold">{finca.plan !== "hacienda" ? "Mejorar el plan de esta finca" : "Plan de esta finca"}</span>
               <ChevronRight className="size-5 text-humo" strokeWidth={1.75} />
             </Link>
           ) : null}
-          <Link href={servicioEnPlan(finca.plan, "fincas") ? "/onboarding" : "/mas/plan?motivo=fincas"} className={FILA}>
+          <Link href="/onboarding" className={FILA}>
             <Plus className="size-5 text-musgo" strokeWidth={1.75} />
             <span className="flex-1 font-semibold">Agregar otra finca</span>
             <ChevronRight className="size-5 text-humo" strokeWidth={1.75} />
