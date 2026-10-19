@@ -76,8 +76,11 @@ export async function Detalle({
   const [machosDB, hembrasDB, paramDB] = await Promise.all([
     supabase.from("empadronamiento_machos").select("macho_id, num_hembras, externo").eq("empadronamiento_id", id).eq("finca_id", finca.id).order("created_at"),
     supabase.from("empadronamiento_hembras").select("*").eq("empadronamiento_id", id).eq("finca_id", finca.id).order("created_at").limit(2000),
-    supabase.from("parametros_especie").select("gestacion_dias").eq("especie", lote.especie).maybeSingle(),
+    supabase.from("finca_ajustes_especie").select("gestacion_dias").eq("finca_id", finca.id).eq("especie", lote.especie).maybeSingle(),
   ]);
+  // La gestación de la finca (ajuste del propietario); cada finca tiene siempre su fila.
+  const gestacionDias = paramDB.data?.gestacion_dias;
+  if (gestacionDias == null) throw new Error("No se pudieron leer los ajustes de la finca.");
   const numeros = new Map((machosDB.data ?? []).map((m) => [m.macho_id, m.num_hembras]));
   const machoIds = (machosDB.data ?? []).map((m) => m.macho_id);
   // Los sementales de otro hato (prestados) no están en `animales`: sus datos vienen de `sementales_externos`.
@@ -155,7 +158,7 @@ export async function Detalle({
           <dl className="divide-y divide-arena">
             <Dato etiqueta="Empezó">{formatoFecha(lote.fecha_inicio)}</Dato>
             {lote.cerrado_en ? <Dato etiqueta="Cerró">{formatoFecha(lote.cerrado_en)}</Dato> : <Dato etiqueta="Cierre previsto">{formatoFecha(lote.fecha_fin_prevista)}</Dato>}
-            {lote.fecha_base ? <Dato etiqueta="Gestación contada desde">{formatoFecha(lote.fecha_base)} ({paramDB.data?.gestacion_dias ?? 150} días)</Dato> : null}
+            {lote.fecha_base ? <Dato etiqueta="Gestación contada desde">{formatoFecha(lote.fecha_base)} ({gestacionDias} días)</Dato> : null}
             <Dato etiqueta="Criterios de las hembras">
               {lote.edad_min_meses}+ meses · {String(lote.peso_min_kg).replace(".", ",")}+ kg · CC {textoCC(lote.cc_min)}+
             </Dato>
@@ -222,7 +225,7 @@ export async function Detalle({
         </Tarjeta>
 
         {abierto && puedeEditar ? (
-          <CerrarEmpadronamiento loteId={id} inicio={lote.fecha_inicio} hoy={hoy} hembras={hembras.length} gestacionDias={paramDB.data?.gestacion_dias ?? 150} especie={lote.especie} />
+          <CerrarEmpadronamiento loteId={id} inicio={lote.fecha_inicio} hoy={hoy} hembras={hembras.length} gestacionDias={gestacionDias} especie={lote.especie} />
         ) : null}
       </div>
     </>

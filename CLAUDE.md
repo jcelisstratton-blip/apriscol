@@ -85,6 +85,25 @@ correspondiente en `node_modules/next/dist/docs/` (esta versión cambia APIs: `m
   `<Boton pendiente cargando="…">`.
 - Identidad: lana, musgo y ocre (`globals.css`), Fraunces para títulos y Figtree para interfaz. Nada genérico. **Logo:** el escudo con la oveja, la cabra y el mapa de Colombia (`public/logo.webp`; `Isotipo`/`Marca` en `components/Marca.tsx` lo pintan junto al nombre, y también es el cargador). Los íconos (`app/icon.png`, `app/apple-icon.png`, `public/icon-*.png` del manifiesto) salen de la misma imagen.
 
+## Ajustes de la finca (umbrales que define el propietario)
+
+Los tiempos, límites y criterios zootécnicos **no son constantes del código**: son ajustes de cada finca, en `finca_ajustes` (una fila por finca) y
+`finca_ajustes_especie` (una fila por finca y especie: gestación, peso de faena, rangos de grasa y proteína). **Todos los miembros los leen; solo el
+propietario los cambia** (RLS propia, no `crear_politicas_finca`: no son un módulo). Se ven y editan en `/mas/ajustes` (`FormAjustes`, un formulario por
+grupo con «Volver a los valores sugeridos»). Cada finca tiene **siempre** su fila: la crea un disparador al nacer la finca (`private.ajustes_crear`) y
+`asegurar_ajustes_finca` es la red de seguridad. Los valores de fábrica viven **solo en la base** (defaults de columna y `parametros_especie`) y
+«restablecer» es `restablecer_ajustes_finca`: nunca se repiten en TypeScript. El umbral de endogamia sigue en `fincas.umbral_endogamia` y las reglas de ceba en
+`reglas_ceba`; la pantalla de ajustes solo los enlaza.
+- **Ajuste nuevo ⇒** columna con default y `check` en `finca_ajustes` (o en la tabla por especie y su default en `parametros_especie`), la entrada en
+  `GRUPOS_AJUSTES` de `lib/ajustes.ts` (de ahí salen el formulario, la validación y la lectura), la función en `restablecer_ajustes_finca` y los tipos en `lib/tipos.ts`.
+  Para leerlos en el servidor, `obtenerAjustes()` (`lib/ajustes-servidor.ts`); un componente de cliente recibe lo que necesita por props.
+- **No se muestra un ajuste que no hace nada sin decirlo:** los de módulos que aún no existen (alimentación e inventarios, nómina, avisos de vacunas) quedan
+  guardados y su grupo lleva una nota («se usarán cuando llegue…»). Al construir el módulo, se quita la nota.
+- **No son ajustables a propósito:** el bloqueo por periodo de retiro (es una salvaguarda sanitaria) y todo lo que fija la ley (recargos, retenciones, SMMLV): eso se
+  define con su fuente oficial cuando se construya la nómina.
+- Conectados hoy: gestación (vistas `v_servicios`, `v_repro_hembras`, `candidatos_ceba`), criterios de la monta, diagnóstico de preñez, último tercio y secado
+  (Reproducción), ganancia mínima y peso de faena (Carne), límite de células somáticas y rangos de grasa y proteína (Leche), podología y pediluvio (Sanidad).
+
 ## Empadronamiento (temporada de monta)
 
 Se trabaja en **Hato → filtro «Empadronamiento»** (`/hato?vista=empadronamiento`: crear, agregar hembras, cerrar) y **Reproducción → Empadronamiento** (`/reproduccion?vista=empadronamiento`) es el resumen global con filtros de estado y fechas y con qué hembras se hizo cada temporada. Las hembras se eligen **ya al crear la temporada** (hoja con endogamia por pareja) o después con «Agregar hembras», y **solo entran hembras libres**: sin gestación, sin servicio esperando diagnóstico y fuera de otra temporada abierta (UI, acción y disparador lo exigen). El semental puede ser **del hato o de otro hato** (prestado: `sementales_externos` con chip, hato de origen, dueño, préstamo y sanidad; sin genealogía, así que no hay endogamia que calcular). **Cada semental tiene su número de hembras** (`empadronamiento_machos.num_hembras`, obligatorio): es un **tope exacto** y, al crear la temporada, las hembras elegidas deben ser justo ese número (UI, acción y disparador lo exigen). El máximo recomendado por especie y edad (`capacidadSemental`) solo avisa cuando el número lo supera. La endogamia de una pareja **se calcula y se bloquea antes de asignarla** (`empadronamiento_endogamia`, disparador `emp_hembras_validar`): «llega al umbral» = misma regla que el color «Alta» (`private.sobre_umbral`); solo entra como **excepción registrada**. Al cerrar, cada hembra queda **servida** (monta natural en la fecha base) y de ahí manda `v_repro_hembras`; nunca se guarda una fecha de parto aparte. Una temporada cerrada no se cambia.

@@ -1126,6 +1126,7 @@ export type Database = {
       v_cuarentena_alerta: { Row: CuarentenaAlerta; Relationships: [] };
       v_famacha_animal: { Row: FamachaAnimal; Relationships: [] };
       v_podologia_animal: { Row: { animal_id: string; finca_id: string; ultima_fecha: string | null }; Relationships: [] };
+      v_pediluvio_animal: { Row: { animal_id: string; finca_id: string; ultima_fecha: string | null }; Relationships: [] };
     };
     Functions: {
       mover_animales: {

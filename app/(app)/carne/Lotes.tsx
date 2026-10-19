@@ -1,6 +1,7 @@
 import { ListaLotes } from "@/components/ListaLotes";
 import { crearClienteServidor } from "@/lib/supabase/server";
 import { filasLotes } from "@/lib/carne";
+import { obtenerAjustes } from "@/lib/ajustes-servidor";
 
 /** Los lotes de ceba con lo que lleva cada uno. */
 export async function Lotes({
@@ -18,5 +19,6 @@ export async function Lotes({
     supabase.from("lotes_ceba").select("*").eq("finca_id", fincaId).order("fecha_inicio", { ascending: false }).limit(500),
     supabase.rpc("ceba_lotes", { p_finca: fincaId }),
   ]);
-  return <ListaLotes lotes={filasLotes(lotes.data ?? [], estadisticas.data ?? [])} puedeEditar={puedeEditar} />;
+  const { general } = await obtenerAjustes();
+  return <ListaLotes lotes={filasLotes(lotes.data ?? [], estadisticas.data ?? [])} puedeEditar={puedeEditar} gdpMinima={general.gdp_minima_g} />;
 }

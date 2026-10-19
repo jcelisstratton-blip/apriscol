@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { AyudaModulo } from "@/components/AyudaModulo";
+import type { Especie } from "@/lib/tipos";
 import { AYUDA_EMPADRONAMIENTO } from "@/lib/ayuda";
 import { CalendarRange, Plus } from "lucide-react";
 import { AsignarHembrasEmp } from "@/components/AsignarHembrasEmp";
@@ -34,10 +35,16 @@ export async function Monta({
   const hoy = hoyBogota();
   const [lotesDB, paramDB] = await Promise.all([
     supabase.from("v_empadronamientos").select("*").eq("finca_id", fincaId).is("cerrado_en", null).order("fecha_inicio", { ascending: false }).limit(50),
-    supabase.from("parametros_especie").select("especie, gestacion_dias"),
+    supabase.from("finca_ajustes_especie").select("especie, gestacion_dias").eq("finca_id", fincaId),
   ]);
   const lotes = lotesDB.data ?? [];
   const gestacion = new Map((paramDB.data ?? []).map((p) => [p.especie, p.gestacion_dias]));
+  // La gestación de la finca (ajuste del propietario); cada finca tiene siempre su fila.
+  const gestacionDe = (especie: Especie) => {
+    const dias = gestacion.get(especie);
+    if (dias == null) throw new Error("No se pudieron leer los ajustes de la finca.");
+    return dias;
+  };
   const ids = lotes.map((l) => l.id);
 
   const [machosDB, hembrasDB] = ids.length
@@ -121,7 +128,7 @@ export async function Monta({
                   {puedeEditar ? (
                     <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                       <AsignarHembrasEmp loteId={l.id} machos={susMachos} umbral={umbral} />
-                      <CerrarEmpadronamiento loteId={l.id} inicio={l.fecha_inicio} hoy={hoy} hembras={l.hembras} gestacionDias={gestacion.get(l.especie) ?? 150} especie={l.especie} />
+                      <CerrarEmpadronamiento loteId={l.id} inicio={l.fecha_inicio} hoy={hoy} hembras={l.hembras} gestacionDias={gestacionDe(l.especie)} especie={l.especie} />
                     </div>
                   ) : null}
                 </li>

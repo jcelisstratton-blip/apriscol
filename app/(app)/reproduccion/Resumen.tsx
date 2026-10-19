@@ -5,10 +5,12 @@ import { EstadoVacio } from "@/components/EstadoVacio";
 import { Insignia } from "@/components/Insignia";
 import { Tarjeta } from "@/components/Tarjeta";
 import { crearClienteServidor } from "@/lib/supabase/server";
+import { obtenerAjustes } from "@/lib/ajustes-servidor";
+import type { AjustesCompletos } from "@/lib/ajustes";
 import { animalesPorIds } from "@/lib/animal-etiquetas";
 import { etiquetaAnimal } from "@/lib/animal";
 import { diasHasta, formatoFecha, hoyBogota } from "@/lib/fechas";
-import { DIAS_PARA_DIAGNOSTICO, DIAS_PARTO_ATRASADO, plazoParto } from "@/lib/reproduccion";
+import { DIAS_PARTO_ATRASADO, plazoParto } from "@/lib/reproduccion";
 import type { ReproHembra } from "@/lib/tipos";
 
 /** Cuántos días hacia adelante cuenta como «parto próximo». */
@@ -18,12 +20,16 @@ const DIAS_PROXIMOS = 45;
 export async function Resumen({
   fincaId,
   cliente,
+  ajustes,
 }: {
   fincaId: string;
   /** Solo para pruebas: un cliente de base de datos en lugar del de la sesión. */
   cliente?: Awaited<ReturnType<typeof crearClienteServidor>>;
+  /** Solo para pruebas: los ajustes de la finca en lugar de leerlos de la sesión. */
+  ajustes?: AjustesCompletos;
 }) {
   const supabase = cliente ?? (await crearClienteServidor());
+  const { general } = ajustes ?? (await obtenerAjustes());
   const hoy = hoyBogota();
   const { data } = await supabase.from("v_repro_hembras").select("*").eq("finca_id", fincaId).limit(2000);
   const filas = (data ?? []) as ReproHembra[];
@@ -34,13 +40,21 @@ export async function Resumen({
     .sort((a, b) => a.fecha_prevista_parto!.localeCompare(b.fecha_prevista_parto!));
   const atrasados = enGestacion.filter((f) => f.fecha_prevista_parto && diasHasta(f.fecha_prevista_parto, hoy) < -DIAS_PARTO_ATRASADO);
   const porConfirmar = filas
-    .filter((f) => f.estado === "servida" && f.ultimo_servicio && diasHasta(hoy, f.ultimo_servicio) >= DIAS_PARA_DIAGNOSTICO)
+    .filter((f) => f.estado === "servida" && f.ultimo_servicio && diasHasta(hoy, f.ultimo_servicio) >= general.dx_prenez_dia_desde)
     .sort((a, b) => a.ultimo_servicio!.localeCompare(b.ultimo_servicio!));
+  // Gestantes confirmadas que ya entraron al último tercio (aún sin parir): conviene reforzar la alimentación.
+  const ultimoTercio = filas
+    .filter((f) => f.estado === "gestante" && f.ultimo_servicio && f.fecha_prevista_parto && diasHasta(hoy, f.ultimo_servicio) >= general.ultimo_tercio_dia && diasHasta(f.fecha_prevista_parto, hoy) >= 0)
+    .sort((a, b) => a.fecha_prevista_parto!.localeCompare(b.fecha_prevista_parto!));
+  // Hembras en lactancia con parto confirmado en camino: llegó el momento de secarlas.
+  const porSecar = filas
+    .filter((f) => f.estado === "gestante" && f.en_lactancia && f.fecha_prevista_parto && diasHasta(f.fecha_prevista_parto, hoy) <= general.secado_dias_antes_parto)
+    .sort((a, b) => a.fecha_prevista_parto!.localeCompare(b.fecha_prevista_parto!));
   const gestantes = filas.filter((f) => f.estado === "gestante").length;
   const sinDatos = filas.filter((f) => f.estado === "sin_datos").length;
   const enMonta = filas.filter((f) => f.empadronamiento_id).length;
 
-  const ids = [...proximos.slice(0, 10), ...atrasados.slice(0, 10), ...porConfirmar.slice(0, 10)].map((f) => f.animal_id);
+  const ids = [...proximos.slice(0, 10), ...atrasados.slice(0, 10), ...porConfirmar.slice(0, 10), ...ultimoTercio.slice(0, 15), ...porSecar.slice(0, 15)].map((f) => f.animal_id);
   const nombres = new Map((await animalesPorIds(supabase, fincaId, ids)).map((a) => [a.id, etiquetaAnimal(a)]));
   const etiqueta = (id: string) => nombres.get(id) ?? "Hembra";
 
@@ -109,18 +123,59 @@ export async function Resumen({
 
       {porConfirmar.length > 0 ? (
         <Tarjeta titulo="Servicios por confirmar">
-          <p className="mb-2 text-sm text-humo">Pasaron {DIAS_PARA_DIAGNOSTICO} días o más del servicio y no hay diagnóstico: conviene confirmar si quedaron gestantes.</p>
+          <p className="mb-2 text-sm text-humo">Pasaron {general.dx_prenez_dia_desde} días o más del servicio y no hay diagnóstico: conviene confirmar si quedaron gestantes.</p>
           <ul className="divide-y divide-arena">
             {porConfirmar.slice(0, 15).map((f) => (
               <li key={f.animal_id}>
                 <Link href={`/hato/${f.animal_id}/reproduccion/diagnostico/nuevo`} className="flex min-h-14 items-center justify-between gap-3 py-2">
                   <span className="min-w-0 [overflow-wrap:anywhere]">
                     <span className="block font-semibold">{etiqueta(f.animal_id)}</span>
-                    <span className="block text-sm text-humo">Servicio del {formatoFecha(f.ultimo_servicio, { day: "numeric", month: "short" })}</span>
+                    <span className="block text-sm text-humo">
+                      Servicio del {formatoFecha(f.ultimo_servicio, { day: "numeric", month: "short" })} · día {diasHasta(hoy, f.ultimo_servicio!)}
+                      {diasHasta(hoy, f.ultimo_servicio!) > general.dx_prenez_dia_hasta ? " · ya pasó la ventana de diagnóstico" : ""}
+                    </span>
                   </span>
                   <span className="flex shrink-0 items-center gap-1 text-sm font-semibold text-musgo">
                     Registrar diagnóstico <ChevronRight className="size-4 text-humo" aria-hidden="true" />
                   </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </Tarjeta>
+      ) : null}
+
+      {ultimoTercio.length > 0 ? (
+        <Tarjeta titulo="Último tercio de gestación">
+          <p className="mb-2 text-sm text-humo">Llevan {general.ultimo_tercio_dia} días de gestación o más: es el momento de reforzar su alimentación.</p>
+          <ul className="divide-y divide-arena">
+            {ultimoTercio.slice(0, 15).map((f) => (
+              <li key={f.animal_id}>
+                <Link href={`/hato/${f.animal_id}#reproduccion`} className="flex min-h-14 items-center justify-between gap-3 py-2">
+                  <span className="min-w-0 [overflow-wrap:anywhere]">
+                    <span className="block font-semibold">{etiqueta(f.animal_id)}</span>
+                    <span className="block text-sm text-humo">Día {diasHasta(hoy, f.ultimo_servicio!)} · parto previsto el {formatoFecha(f.fecha_prevista_parto, { day: "numeric", month: "short" })}</span>
+                  </span>
+                  <ChevronRight className="size-4 shrink-0 text-humo" aria-hidden="true" />
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </Tarjeta>
+      ) : null}
+
+      {porSecar.length > 0 ? (
+        <Tarjeta titulo="Para secar">
+          <p className="mb-2 text-sm text-humo">Les faltan {general.secado_dias_antes_parto} días o menos para parir y siguen en lactancia: toca dejar de ordeñarlas.</p>
+          <ul className="divide-y divide-arena">
+            {porSecar.slice(0, 15).map((f) => (
+              <li key={f.animal_id}>
+                <Link href={`/hato/${f.animal_id}#reproduccion`} className="flex min-h-14 items-center justify-between gap-3 py-2">
+                  <span className="min-w-0 [overflow-wrap:anywhere]">
+                    <span className="block font-semibold">{etiqueta(f.animal_id)}</span>
+                    <span className="block text-sm text-humo">Parto previsto el {formatoFecha(f.fecha_prevista_parto, { day: "numeric", month: "short" })}</span>
+                  </span>
+                  <ChevronRight className="size-4 shrink-0 text-humo" aria-hidden="true" />
                 </Link>
               </li>
             ))}

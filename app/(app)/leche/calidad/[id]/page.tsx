@@ -6,6 +6,7 @@ import { EliminarRegistro } from "@/components/EliminarRegistro";
 import { Encabezado } from "@/components/Encabezado";
 import { FormCalidad } from "@/components/FormCalidad";
 import { obtenerContexto } from "@/lib/contexto";
+import { obtenerAjustes } from "@/lib/ajustes-servidor";
 import { crearClienteServidor } from "@/lib/supabase/server";
 import { puedeEscribir, puedeGestionar } from "@/lib/permisos";
 import { formatoFecha, hoyBogota } from "@/lib/fechas";
@@ -37,7 +38,7 @@ export default async function PaginaEditar({ params }: { params: Promise<{ id: s
       </Link>
       <Encabezado titulo="Editar análisis" subtitulo={animal ? etiquetaAnimal(animal) : (registro.muestra ?? "Leche mezclada")} />
       <div className="space-y-8 lg:max-w-xl">
-        <FormCalidad hoy={hoyBogota()} analisis={registro as never} cancelar={volver} />
+        <FormCalidad hoy={hoyBogota()} analisis={registro as never} cancelar={volver} limiteRcs={(await obtenerAjustes()).general.ccs_limite_miles_ml} />
         {puedeGestionar(rol) ? (
           <EliminarRegistro
             etiqueta="Eliminar este análisis"

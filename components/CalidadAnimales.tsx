@@ -11,7 +11,7 @@ import { textoAnimales } from "@/lib/hato";
 import { Insignia } from "@/components/Insignia";
 import { ListaPorTramos } from "@/components/ListaPorTramos";
 import { formatoFecha } from "@/lib/fechas";
-import { estadoRcs, formatoMiles, RCS_ALTO } from "@/lib/leche-calidad";
+import { estadoRcs, formatoMiles } from "@/lib/leche-calidad";
 
 export type HembraCalidad = {
   id: string;
@@ -22,10 +22,10 @@ export type HembraCalidad = {
 type Filtro = "todas" | "sin" | "altas";
 const MIN_PARA_BUSCAR = 8;
 const sinTildes = (t: string) => t.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
-const esAlta = (h: HembraCalidad) => (h.ultimo?.rcs_miles_ml ?? 0) > RCS_ALTO;
 
 /** Hato → Ordeño → Calidad: cada hembra en leche con su último análisis, y el atajo para registrar uno desde su ficha. */
-export function CalidadAnimales({ hembras, puedeEditar }: { hembras: HembraCalidad[]; puedeEditar: boolean }) {
+export function CalidadAnimales({ hembras, puedeEditar, limiteRcs }: { hembras: HembraCalidad[]; puedeEditar: boolean; limiteRcs: number }) {
+  const esAlta = (h: HembraCalidad) => (h.ultimo?.rcs_miles_ml ?? 0) > limiteRcs;
   const [busqueda, setBusqueda] = useState("");
   const [filtro, setFiltro] = useState<Filtro>("todas");
   const alBuscar = useCallback((t: string) => setBusqueda(t), []);
@@ -64,7 +64,7 @@ export function CalidadAnimales({ hembras, puedeEditar }: { hembras: HembraCalid
           items={filtradas}
           clave={(h) => h.id}
           fila={(h) => {
-            const rcs = h.ultimo?.rcs_miles_ml != null ? estadoRcs(h.ultimo.rcs_miles_ml) : null;
+            const rcs = h.ultimo?.rcs_miles_ml != null ? estadoRcs(h.ultimo.rcs_miles_ml, limiteRcs) : null;
             return (
               <div className="flex items-start gap-3 rounded-2xl bg-papel px-3.5 py-3 ring-1 ring-arena">
                 <Link href={`/hato/${h.id}#calidad`} className="block min-w-0 flex-1">

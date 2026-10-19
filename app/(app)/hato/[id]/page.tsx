@@ -7,6 +7,7 @@ import { Aviso } from "@/components/Aviso";
 import { Insignia } from "@/components/Insignia";
 import { Tarjeta } from "@/components/Tarjeta";
 import { obtenerContexto } from "@/lib/contexto";
+import { obtenerAjustes } from "@/lib/ajustes-servidor";
 import { crearClienteServidor } from "@/lib/supabase/server";
 import { puedeEscribir, puedeGestionar, puedeVer } from "@/lib/permisos";
 import { urlsFotos, urlsFotosPremios } from "@/lib/fotos";
@@ -37,7 +38,7 @@ import { AplazadoCeba, CandidatoCeba as AvisoCandidatoCeba } from "@/components/
 import { textosAdvertencias, textosMotivos } from "@/lib/ceba-candidatos";
 import type { CandidatoCeba, ReglaCeba } from "@/lib/tipos";
 import { direccionSoporte } from "@/lib/soportes";
-import { DIAS_PARA_DIAGNOSTICO, ETIQUETA_ESTADO, ETIQUETA_METODO, ETIQUETA_PARTO, ETIQUETA_RESULTADO, ETIQUETA_SERVICIO, plazoParto, textoPartos, TONO_ESTADO } from "@/lib/reproduccion";
+import { ETIQUETA_ESTADO, ETIQUETA_METODO, ETIQUETA_PARTO, ETIQUETA_RESULTADO, ETIQUETA_SERVICIO, plazoParto, textoPartos, TONO_ESTADO } from "@/lib/reproduccion";
 import { PartosPrevios } from "@/components/PartosPrevios";
 import { controlesDeSalida, etiquetaResumen, resumenControles } from "@/lib/controles";
 import { describirParentesco, nivelEndogamia, pedigriTexto, porcentaje, primeraMayuscula, type AncestroEndogamia } from "@/lib/endogamia";
@@ -63,6 +64,7 @@ export default async function FichaAnimal({ params, searchParams }: { params: Pr
   if (!ID_UUID.test(id)) notFound();
 
   const { finca, rol } = await obtenerContexto();
+  const ajustes = await obtenerAjustes();
   const supabase = await crearClienteServidor();
   const { data: animal } = await supabase.from("animales").select("*").eq("id", id).eq("finca_id", finca.id).is("deleted_at", null).maybeSingle();
   if (!animal) notFound();
@@ -383,7 +385,7 @@ export default async function FichaAnimal({ params, searchParams }: { params: Pr
                   {repro.ultimo_parto ? <Dato etiqueta="Último parto">{formatoFecha(repro.ultimo_parto)}</Dato> : null}
                   <Dato etiqueta="Partos">{textoPartos(repro.partos_totales)}</Dato>
                 </dl>
-                {repro.estado === "servida" && repro.ultimo_servicio && diasHasta(hoyBogota(), repro.ultimo_servicio) >= DIAS_PARA_DIAGNOSTICO ? (
+                {repro.estado === "servida" && repro.ultimo_servicio && diasHasta(hoyBogota(), repro.ultimo_servicio) >= ajustes.general.dx_prenez_dia_desde ? (
                   <Aviso tipo="atencion">Ya pasaron {diasHasta(hoyBogota(), repro.ultimo_servicio)} días del servicio: conviene confirmar con un diagnóstico si quedó gestante.</Aviso>
                 ) : null}
                 {animal.estado === "activo" ? <PartosPrevios animalId={id} previos={animal.partos_previos} registrados={repro.partos_registrados} puedeEditar={puedeEscribir(rol, "hato", finca.plan)} /> : null}
@@ -440,7 +442,7 @@ export default async function FichaAnimal({ params, searchParams }: { params: Pr
             ) : (
               <ul className="divide-y divide-arena">
                 {analisisLeche.map((a) => {
-                  const rcs = a.rcs_miles_ml != null ? estadoRcs(a.rcs_miles_ml) : null;
+                  const rcs = a.rcs_miles_ml != null ? estadoRcs(a.rcs_miles_ml, ajustes.general.ccs_limite_miles_ml) : null;
                   return (
                     <li key={a.id} className="flex items-start justify-between gap-3 py-2.5">
                       <span className="min-w-0 [overflow-wrap:anywhere]">
@@ -509,8 +511,18 @@ export default async function FichaAnimal({ params, searchParams }: { params: Pr
               <Dato etiqueta="Último peso">
                 {miCeba?.peso_ultimo != null && miCeba.n_pesajes > 0 ? `${kg(miCeba.peso_ultimo)} · ${formatoFecha(miCeba.fecha_ultimo, { day: "numeric", month: "short", year: "numeric" })}` : "Sin pesos todavía"}
               </Dato>
-              {miCeba?.gdp_total_g != null ? <Dato etiqueta="Ganancia por día">{gdp(miCeba.gdp_total_g)}</Dato> : null}
-              {miCeba?.gdp_reciente_g != null && miCeba.gdp_reciente_g !== miCeba.gdp_total_g ? <Dato etiqueta="Entre los dos últimos pesos">{gdp(miCeba.gdp_reciente_g)}</Dato> : null}
+              {miCeba?.gdp_total_g != null ? (
+                <Dato etiqueta="Ganancia por día">
+                  {gdp(miCeba.gdp_total_g)}
+                  {miLote && !miLote.cerrado_en && miCeba.gdp_total_g < ajustes.general.gdp_minima_g ? <Insignia tono="aviso">{`Bajo el mínimo de ${ajustes.general.gdp_minima_g} g`}</Insignia> : null}
+                </Dato>
+              ) : null}
+              {miCeba?.gdp_reciente_g != null && miCeba.gdp_reciente_g !== miCeba.gdp_total_g ? (
+                <Dato etiqueta="Entre los dos últimos pesos">
+                  {gdp(miCeba.gdp_reciente_g)}
+                  {miLote && !miLote.cerrado_en && miCeba.gdp_reciente_g < ajustes.general.gdp_minima_g ? <Insignia tono="aviso">{`Bajo el mínimo de ${ajustes.general.gdp_minima_g} g`}</Insignia> : null}
+                </Dato>
+              ) : null}
               {miLote ? (
                 <Dato etiqueta="Lote de ceba">
                   <Link href={`/carne/lotes/${miLote.id}`} className="font-semibold text-musgo underline-offset-4 hover:underline [overflow-wrap:anywhere]">

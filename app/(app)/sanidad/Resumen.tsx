@@ -7,13 +7,15 @@ import { IconoEvento } from "@/components/IconoEvento";
 import { Insignia } from "@/components/Insignia";
 import { Tarjeta } from "@/components/Tarjeta";
 import { crearClienteServidor } from "@/lib/supabase/server";
+import { obtenerAjustes } from "@/lib/ajustes-servidor";
+import { diasEntrePediluvios, mesDeFecha, textoPlazo } from "@/lib/ajustes";
 import { ESCENA_EVENTO, ESCENA_TODOS_TIPOS } from "@/lib/escenas-sanidad";
 import { estadoFamacha } from "@/lib/famacha";
 import { animalesPorIds } from "@/lib/animal-etiquetas";
 import { etiquetaAnimal } from "@/lib/animal";
 import { formatoFecha, hoyBogota, sumarDias } from "@/lib/fechas";
 import { rangoPeriodo, type Periodo } from "@/lib/periodos";
-import { DIAS_PODOLOGIA, ETIQUETA_EVENTO, ETIQUETA_PRUEBA_CORTA, ETIQUETA_RESULTADO_PRUEBA, TIPOS_EVENTO, TONO_RESULTADO_PRUEBA, estadoDosis, estadoFechaPrograma, nombreEvento } from "@/lib/sanidad";
+import { ETIQUETA_EVENTO, ETIQUETA_PRUEBA_CORTA, ETIQUETA_RESULTADO_PRUEBA, TIPOS_EVENTO, TONO_RESULTADO_PRUEBA, estadoDosis, estadoFechaPrograma, nombreEvento } from "@/lib/sanidad";
 import type { EventoResumen, ProgramaSanitarioResumen, SanidadPendiente, TipoEvento } from "@/lib/tipos";
 
 export type FiltrosSanidad = { periodo: Periodo; desde?: string; hasta?: string; tipo: TipoEvento | "todos" };
@@ -78,13 +80,15 @@ export async function Resumen({
     qRefuerzos = qRefuerzos.lte("proxima_fecha", rango.hasta);
   }
 
-  const [retiro, eventosDB, programasDB, pruebasDB, refuerzosDB, podologiaDB, famachaDB] = await Promise.all([
+  const { general: ajustes } = await obtenerAjustes();
+  const [retiro, eventosDB, programasDB, pruebasDB, refuerzosDB, podologiaDB, pediluvioDB, famachaDB] = await Promise.all([
     supabase.rpc("animales_en_retiro", { p_finca: fincaId }),
     qEventos.order("fecha", { ascending: false }).limit(1000),
     qProgramas.order("fecha_programada").limit(500),
     qPruebas.order("fecha", { ascending: false }).limit(8),
     qRefuerzos.order("proxima_fecha").limit(1000),
     supabase.from("v_podologia_animal").select("animal_id, ultima_fecha").eq("finca_id", fincaId).limit(2000),
+    supabase.from("v_pediluvio_animal").select("animal_id, ultima_fecha").eq("finca_id", fincaId).limit(2000),
     supabase.from("v_famacha_animal").select("*").eq("finca_id", fincaId).gte("puntaje", 3).limit(2000),
   ]);
 
@@ -112,8 +116,11 @@ export async function Resumen({
   const estadosFamacha = (famachaDB.data ?? []).map((f) => estadoFamacha(f).clave);
   const famachaDesparasitar = estadosFamacha.filter((c) => c === "desparasitar").length;
   const famachaVigilar = estadosFamacha.filter((c) => c === "vigilar").length;
-  const limitePodologia = sumarDias(hoy, -DIAS_PODOLOGIA);
+  const limitePodologia = sumarDias(hoy, -ajustes.podologia_inspeccion_dias);
   const sinPodologia = (podologiaDB.data ?? []).filter((p) => !p.ultima_fecha || p.ultima_fecha < limitePodologia).length;
+  const diasPediluvio = diasEntrePediluvios(ajustes, mesDeFecha(hoy));
+  const limitePediluvio = sumarDias(hoy, -diasPediluvio);
+  const sinPediluvio = (pediluvioDB.data ?? []).filter((p) => !p.ultima_fecha || p.ultima_fecha < limitePediluvio).length;
 
   const nombres = new Map((await animalesPorIds(supabase, fincaId, [...enRetiro.map((r) => r.animal_id), ...pruebas.map((p) => p.animal_id), ...refuerzos.filter((g) => g.animales.length === 1).map((g) => g.animales[0])])).map((a) => [a.id, etiquetaAnimal(a)]));
 
@@ -306,10 +313,21 @@ export async function Resumen({
             {sinPodologia > 0 && (filtros.tipo === "todos" || filtros.tipo === "podologia") ? (
               <Tarjeta titulo="Podología">
                 <p className="text-[0.9375rem] text-humo">
-                  {sinPodologia} {sinPodologia === 1 ? "animal lleva" : "animales llevan"} más de 6 meses sin recorte de pezuñas registrado. La inspección semestral previene cojeras y gabatillo.
+                  {sinPodologia} {sinPodologia === 1 ? "animal lleva" : "animales llevan"} más de {textoPlazo(ajustes.podologia_inspeccion_dias)} sin recorte de pezuñas registrado. La inspección periódica previene cojeras y gabatillo.
                 </p>
                 <Link href="/hato/sanidad/programar?tipo=podologia&grupo=podologia" className="mt-1 inline-flex min-h-11 items-center gap-1.5 text-sm font-semibold text-musgo underline-offset-4 hover:underline">
                   <CalendarClock className="size-4" strokeWidth={2} aria-hidden="true" /> Programar podología
+                </Link>
+              </Tarjeta>
+            ) : null}
+
+            {sinPediluvio > 0 && (filtros.tipo === "todos" || filtros.tipo === "pediluvio") ? (
+              <Tarjeta titulo="Pediluvio">
+                <p className="text-[0.9375rem] text-humo">
+                  {sinPediluvio} {sinPediluvio === 1 ? "animal lleva" : "animales llevan"} más de {textoPlazo(diasPediluvio)} sin baño de patas registrado.
+                </p>
+                <Link href="/hato/sanidad/programar?tipo=pediluvio&grupo=pediluvio" className="mt-1 inline-flex min-h-11 items-center gap-1.5 text-sm font-semibold text-musgo underline-offset-4 hover:underline">
+                  <CalendarClock className="size-4" strokeWidth={2} aria-hidden="true" /> Programar pediluvio
                 </Link>
               </Tarjeta>
             ) : null}

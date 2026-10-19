@@ -209,25 +209,34 @@ export function mensajeRango(campo: CampoAjuste<string>, min = campo.min, max = 
 /** Valores de referencia del peso mínimo de servicio cuando la finca no definió el peso de su hembra adulta. */
 export const PESO_MIN_SERVICIO_REFERENCIA: Record<Especie, number> = { caprino: 30, ovino: 35 };
 
+/** Lo que se propone al armar una temporada de monta, por especie: edad, peso y condición corporal mínimos del primer servicio de la finca. */
+export function criteriosServicio(a: AjustesCompletos): Record<Especie, { edadMeses: number; pesoKg: number; cc: number }> {
+  const de = (e: Especie) => ({ edadMeses: a.general.servicio_edad_min_meses, pesoKg: pesoMinimoServicio(e, a), cc: a.general.servicio_cc_min });
+  return { caprino: de("caprino"), ovino: de("ovino") };
+}
+
 /** Peso mínimo (kg) para el primer servicio: el porcentaje del peso adulto de la finca o, si no lo definió, el de referencia. */
 export function pesoMinimoServicio(especie: Especie, a: AjustesCompletos): number {
   const adulto = a.especie[especie].peso_adulto_hembra_kg;
   return adulto == null ? PESO_MIN_SERVICIO_REFERENCIA[especie] : Math.round(((adulto * a.general.servicio_peso_adulto_pct) / 100) * 10) / 10;
 }
 
+/** Un plazo en días, dicho como lo diría una persona: 182 → «6 meses», 45 → «45 días». */
+export function textoPlazo(dias: number): string {
+  if (dias < 60) return `${dias} ${dias === 1 ? "día" : "días"}`;
+  return `${Math.round(dias / 30.4)} meses`;
+}
+
+/** El mes (1 a 12) de una fecha «AAAA-MM-DD». */
+export const mesDeFecha = (iso: string) => Number(iso.slice(5, 7));
+
 /** Cada cuántos días toca el baño de patas en este mes (1 a 12): en meses de lluvia, el intervalo corto. */
 export function diasEntrePediluvios(a: AjustesFinca, mes: number): number {
   return a.meses_lluvia.includes(mes) ? a.pediluvio_dias_lluvia : a.pediluvio_dias;
 }
 
-export type TonoRcs = "ok" | "aviso" | "alerta";
-
-/** Recuento de células somáticas contra el límite de la finca: hasta el 80 % del límite está bien, después se vigila y por encima se avisa. */
-export function estadoRcsFinca(miles: number, limite: number): { tono: TonoRcs; texto: string } {
-  if (miles > limite) return { tono: "alerta", texto: "Sobre el límite" };
-  if (miles > limite * 0.8) return { tono: "aviso", texto: "Cerca del límite" };
-  return { tono: "ok", texto: "Bajo" };
-}
+/** La especie de una finca que tiene una sola; con las dos no se puede decir de quién es una muestra del tanque. */
+export const especieUnica = (especies: Especie[]): Especie | null => (especies.length === 1 ? especies[0] : null);
 
 /** Un valor contra su rango (grasa, proteína): fuera del rango se avisa; sin rango definido no se juzga. */
 export function estadoEnRango(valor: number, min: number | null, max: number | null): "bajo" | "alto" | "ok" | null {

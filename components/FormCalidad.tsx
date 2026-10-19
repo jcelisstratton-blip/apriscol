@@ -10,7 +10,7 @@ import { PorQueAnalizar } from "@/components/PorQueAnalizar";
 import { SelectorTarjetas } from "@/components/SelectorTarjetas";
 import { SubirSoporte } from "@/components/SubirSoporte";
 import { crearAnalisis, editarAnalisis } from "@/app/(app)/leche/gestion";
-import { CRIOSCOPIA_MAX, CRIOSCOPIA_MIN, estadoCrioscopia, ETIQUETA_RESIDUOS, RCS_BUENO, RESIDUOS } from "@/lib/leche-calidad";
+import { CRIOSCOPIA_MAX, CRIOSCOPIA_MIN, estadoCrioscopia, ETIQUETA_RESIDUOS, RESIDUOS } from "@/lib/leche-calidad";
 import { ESCENA_RESIDUOS } from "@/lib/escenas-forms-a-leche";
 import { leerNumero } from "@/lib/numeros";
 import type { AnalisisLeche, ResiduosAntibioticos } from "@/lib/tipos";
@@ -30,8 +30,11 @@ export function FormCalidad({
   solicitud,
   cancelar,
   volver,
+  limiteRcs,
 }: {
   hoy: string;
+  /** El límite de células somáticas de la finca (miles por ml). */
+  limiteRcs: number;
   animalId?: string;
   analisis?: AnalisisLeche;
   solicitud?: string;
@@ -95,7 +98,7 @@ export function FormCalidad({
 
       <fieldset className="space-y-4 rounded-2xl bg-papel p-4 ring-1 ring-arena">
         <legend className="px-1 text-sm font-bold">Sanidad de la ubre</legend>
-        <Campo etiqueta="Células somáticas (miles por ml)" ayuda={`Se mide en laboratorio. Hasta ${RCS_BUENO.toLocaleString("es-CO")} se considera bajo; tu comprador puede pedir otro límite.`}>
+        <Campo etiqueta="Células somáticas (miles por ml)" ayuda={`Se mide en laboratorio. El límite de tu finca es ${limiteRcs.toLocaleString("es-CO")}; lo puedes cambiar en Ajustes de la finca.`}>
           {(id) => <input id={id} name="rcs_miles_ml" defaultValue={coma(analisis?.rcs_miles_ml)} inputMode="numeric" autoComplete="off" placeholder="Ej. 850" className={CLASE_INPUT} />}
         </Campo>
       </fieldset>

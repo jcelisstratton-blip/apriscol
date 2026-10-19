@@ -2,15 +2,6 @@ import { leerNumero } from "@/lib/numeros";
 import { diasHasta, hoyBogota } from "@/lib/fechas";
 import type { CandidataEmp, CriterioEmp, Empadronamiento, Especie } from "@/lib/tipos";
 
-/**
- * Criterios orientativos para elegir las hembras de una temporada de monta. No son una norma: cada empadronamiento guarda los suyos y se
- * ajustan según la raza y el sistema de la finca.
- */
-export const CRITERIOS_POR_DEFECTO: Record<Especie, { edadMeses: number; pesoKg: number; cc: number }> = {
-  caprino: { edadMeses: 8, pesoKg: 30, cc: 3 },
-  ovino: { edadMeses: 8, pesoKg: 35, cc: 3 },
-};
-
 /** Duración típica de una temporada de monta (45 a 60 días). */
 export const DURACION_DEFECTO_DIAS = 60;
 export const DURACION_MAX_DIAS = 120;
