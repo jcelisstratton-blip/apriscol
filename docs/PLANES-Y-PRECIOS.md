@@ -80,7 +80,7 @@ Una finca con equipo, corrales, ceba y gastos se mueve en el rango de Hato. Los 
 
 - **Regla:** `fincas.plan_vence_en` es el último día pagado. Faltando 7 días o menos, aviso. Pasada la fecha, **7 días en solo lectura** (se consulta y se descarga, no se registra). Después, **bloqueo**: la app solo muestra
   `/plan-vencido` con el valor del plan, «Renovar un mes / un año» y la descarga de los datos. **Descargar los datos nunca se bloquea y se puede hacer todas las veces que se quiera.**
-- **Sin fecha = sin vencimiento:** las fincas que ya existían quedan así hasta que el superadmin les fije la fecha (`/admin/planes` → «Vigencia de los planes»). Una finca nueva nace sin fecha (periodo de prueba: por decidir).
+- **Sin fecha = sin vencimiento:** las fincas que ya existían quedan así hasta que el superadmin les fije la fecha (`/admin/planes` → «Vigencia de los planes»). Una finca nueva nace sin fecha: **no hay periodo de prueba** (decisión por ahora); el superadmin le fija la fecha o confirma su primer pago.
 - **Renovar:** el propietario pide la renovación (`solicitar_renovacion_plan`) y el superadmin confirma el pago con `admin_activar_plan_finca(finca, plan, periodo)`: activa el plan y corre la fecha un mes o un año
   **desde el vencimiento actual si todavía no pasó, o desde hoy si ya pasó** (renovar a tiempo no pierde días). La fecha la cambia solo el equipo (disparador sobre `plan_vence_en`).
 - **Cuando haya pasarela de pago:** el webhook llama a la misma `admin_activar_plan_finca` al confirmarse el pago.
