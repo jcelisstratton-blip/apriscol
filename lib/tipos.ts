@@ -384,7 +384,7 @@ export type Gasto = {
   updated_at: string;
 };
 /** De dónde viene una línea de costo: un gasto registrado, el costo de un tratamiento (Sanidad), el del alimento de un lote (Ceba) o la compra de un animal. */
-export type OrigenCosto = "gasto" | "sanidad" | "ceba" | "compra";
+export type OrigenCosto = "gasto" | "sanidad" | "ceba" | "compra" | "nomina";
 export type CostoLinea = {
   origen: OrigenCosto;
   origen_id: string;
@@ -441,6 +441,47 @@ export type Venta = {
   tercero_id: string | null;
   cobrado_en: string | null;
   cobro_vence: string | null;
+  observaciones: string | null;
+  client_request_id: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+};
+/** Cómo está vinculada una persona: contrato de trabajo (lleva factor prestacional) o prestación de servicios (se exige el PILA). */
+export type Vinculacion = "laboral" | "servicios";
+export type FormaPago = "mensual" | "jornal" | "por_servicio";
+/** Una persona que trabaja en la finca. */
+export type Persona = {
+  id: string;
+  finca_id: string;
+  nombre: string;
+  cargo: string | null;
+  vinculacion: Vinculacion;
+  forma_pago: FormaPago;
+  /** Salario mensual, valor del jornal u honorario por servicio, según la forma de pago. */
+  valor_base: number;
+  fecha_ingreso: string | null;
+  fecha_retiro: string | null;
+  activo: boolean;
+  observaciones: string | null;
+  created_at: string;
+  updated_at: string;
+};
+/** Un pago al personal. `valor_pago` y `costo_total` los genera la base; `factor` lo fija un disparador al registrarlo. */
+export type PagoPersonal = {
+  id: string;
+  finca_id: string;
+  personal_id: string;
+  fecha: string;
+  periodo_desde: string | null;
+  periodo_hasta: string | null;
+  cantidad: number;
+  valor_base: number;
+  factor: number;
+  valor_pago: number;
+  costo_total: number;
+  pagado_en: string | null;
+  soporte_pila: string | null;
   observaciones: string | null;
   client_request_id: string | null;
   created_by: string | null;
@@ -1169,6 +1210,8 @@ export type Database = {
       finca_terceros: Tabla<Tercero, "finca_id" | "nombre">;
       finca_productos: Tabla<Producto, "finca_id" | "tipo" | "nombre">;
       ventas: Tabla<Venta, "finca_id" | "fecha" | "producto_id" | "cantidad" | "precio_unitario">;
+      personal: Tabla<Persona, "finca_id" | "nombre" | "vinculacion" | "forma_pago" | "valor_base">;
+      pagos_personal: Tabla<PagoPersonal, "finca_id" | "personal_id" | "fecha" | "cantidad" | "valor_base">;
       evaluaciones_famacha: Tabla<EvaluacionFamacha, "finca_id" | "animal_id" | "fecha" | "puntaje">;
       analisis_leche: Tabla<AnalisisLeche, "finca_id">;
       controles_frio: Tabla<ControlFrio, "finca_id" | "momento" | "temperatura_c">;
@@ -1243,7 +1286,7 @@ export type Database = {
       recordar_precio_producto: { Args: { p_finca: string; p_producto: string; p_precio: number }; Returns: undefined };
       costos_posible_doble_conteo: {
         Args: { p_finca: string; p_desde: string | null; p_hasta: string | null };
-        Returns: { rubro: RubroCosto; compras: number; consumo: number; origen_consumo: "sanidad" | "ceba" }[];
+        Returns: { rubro: RubroCosto; compras: number; consumo: number; origen_consumo: "sanidad" | "ceba" | "nomina" }[];
       };
       costos_por_rubro: {
         Args: { p_finca: string; p_desde: string | null; p_hasta: string | null };

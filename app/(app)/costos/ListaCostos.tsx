@@ -16,9 +16,9 @@ import type { CostoLinea } from "@/lib/tipos";
 
 type Fila = CostoLinea;
 
-/** A dónde lleva cada línea de costo: la compra se corrige en Hato → Compras; el tratamiento, en su evento de Sanidad; el alimento, en los lotes de Carne; la compra de un animal, en su ficha. */
+/** A dónde lleva cada línea de costo: la compra se corrige en Hato → Compras; el tratamiento, en su evento de Sanidad; el alimento, en los lotes de Carne; la compra de un animal, en su ficha; el pago al personal, en Personal. */
 const destino = (l: Fila, puedeEditar: boolean) =>
-  l.origen === "gasto" ? (puedeEditar ? `/hato/gastos/${l.origen_id}/editar` : null) : l.origen === "sanidad" ? `/sanidad/evento/${l.origen_id}` : l.origen === "compra" ? `/hato/${l.origen_id}` : "/carne?vista=lotes";
+  l.origen === "gasto" ? (puedeEditar ? `/hato/gastos/${l.origen_id}/editar` : null) : l.origen === "sanidad" ? `/sanidad/evento/${l.origen_id}` : l.origen === "compra" ? `/hato/${l.origen_id}` : l.origen === "nomina" ? (puedeEditar ? `/personal/pagos/${l.origen_id}/editar` : null) : "/carne?vista=lotes";
 
 /**
  * Todo lo que costó en el periodo (compras, tratamientos, alimento de ceba y animales comprados), lo más reciente primero, con filtro por grupo. Pagina en el servidor.
@@ -89,8 +89,8 @@ export function ListaCostos({ fincaId, hoy, puedeEditar, rango }: { fincaId: str
         vacio={
           <EstadoVacio
             icono={<Receipt strokeWidth={1.5} />}
-            titulo={grupo !== "todos" || rango.desde || rango.hasta ? "Nada con ese filtro" : "Todavía no hay compras"}
-            descripcion={grupo !== "todos" || rango.desde || rango.hasta ? "Prueba con otro grupo u otras fechas." : "Cuando registres compras, tratamientos con costo o alimento de ceba, aparecerán aquí."}
+            titulo={grupo !== "todos" || rango.desde || rango.hasta ? "Nada con ese filtro" : "Todavía no hay costos"}
+            descripcion={grupo !== "todos" || rango.desde || rango.hasta ? "Prueba con otro grupo u otras fechas." : "Cuando registres compras, pagos al personal, tratamientos con costo o alimento de ceba, aparecerán aquí."}
           />
         }
       />

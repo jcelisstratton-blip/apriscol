@@ -198,7 +198,7 @@ export function FormGasto({
         <>
           <Campo etiqueta={`Rubro de ${ETIQUETA_GRUPO[grupo].toLowerCase()}`}>
             {(id) => (
-              <SelectorTarjetas id={id} nombre="rubro" valor={rubro} onCambio={elegirRubro} titulo="Rubro" opciones={RUBROS_DE[grupo].map((r) => ({ valor: r, etiqueta: ETIQUETA_RUBRO[r], escena: ESCENA_RUBRO[r] }))} />
+              <SelectorTarjetas id={id} nombre="rubro" valor={rubro} onCambio={elegirRubro} titulo="Rubro" opciones={RUBROS_DE[grupo].filter((r) => r !== "mano_obra" || gasto?.rubro === "mano_obra").map((r) => ({ valor: r, etiqueta: ETIQUETA_RUBRO[r], escena: ESCENA_RUBRO[r] }))} />
             )}
           </Campo>
           <Campo etiqueta="¿Qué se compró o se pagó?" ayuda="Una frase corta: «Reparación del cerco», «Jornal de ordeño»…">

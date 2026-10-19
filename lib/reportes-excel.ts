@@ -144,7 +144,7 @@ function hojaRubros(wb: ExcelJS.Workbook, d: DatosReporte, nombre = "Costos por 
   const cols: Col[] = [
     { titulo: "Grupo", ancho: 26 }, { titulo: "Rubro", ancho: 30 },
     { titulo: "Compras registradas", ancho: 18, formato: FMT_PESOS }, { titulo: "Tratamientos (Sanidad)", ancho: 18, formato: FMT_PESOS }, { titulo: "Alimento de ceba", ancho: 18, formato: FMT_PESOS },
-    { titulo: "Animales comprados", ancho: 18, formato: FMT_PESOS },
+    { titulo: "Animales comprados y personal", ancho: 18, formato: FMT_PESOS },
     { titulo: "Total", ancho: 18, formato: FMT_PESOS }, { titulo: "% del total", ancho: 12, formato: FMT_PCT }, { titulo: "Por pagar", ancho: 16, formato: FMT_PESOS }, { titulo: "Movimientos", ancho: 13, formato: "0" },
   ];
   const inicio = encabezado(ws, d, titulo, cols);
@@ -153,7 +153,7 @@ function hojaRubros(wb: ExcelJS.Workbook, d: DatosReporte, nombre = "Costos por 
   const filaTotal = ultima + 1;
   filas.forEach((f, i) => {
     const fila = inicio + i;
-    // Lo que no viene de compras, de sanidad ni de ceba es la compra de animales (o, más adelante, otros orígenes): sale de restar al total.
+    // Lo que no viene de compras, de sanidad ni de ceba es la compra de animales o los pagos al personal (nómina): sale de restar al total.
     const animales = Math.max(0, f.total - f.de_gastos - f.de_sanidad - f.de_ceba);
     filaDatos(ws, fila, cols, [ETIQUETA_GRUPO_COSTO[grupoDe(f.rubro)], ETIQUETA_RUBRO[f.rubro], f.de_gastos, f.de_sanidad, f.de_ceba, animales, { formula: `C${fila}+D${fila}+E${fila}+F${fila}` }, { formula: `IF(G$${filaTotal}>0,G${fila}/G$${filaTotal},0)` }, f.por_pagar, f.movimientos]);
   });

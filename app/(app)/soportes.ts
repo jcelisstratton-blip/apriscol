@@ -11,7 +11,7 @@ import type { ModuloApp } from "@/lib/tipos";
 
 /** Carpetas cuyo respaldo es un servicio de un plan superior. */
 const SERVICIO: Partial<Record<CarpetaSoporte, ServicioPlan>> = { carne: "calidad", gastos: "soportes" };
-const MODULO: Record<CarpetaSoporte, ModuloApp> = { calidad: "leche", carne: "carne", sanidad: "sanidad", gastos: "contabilidad" };
+const MODULO: Record<CarpetaSoporte, ModuloApp> = { calidad: "leche", carne: "carne", sanidad: "sanidad", gastos: "contabilidad", nomina: "contabilidad" };
 
 /**
  * El servidor arma la ruta (<finca>/<carpeta>/<uuid>.<ext>) y emite un permiso de subida de un solo uso para un documento de respaldo.

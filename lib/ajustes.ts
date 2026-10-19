@@ -165,8 +165,7 @@ export const GRUPOS_AJUSTES: GrupoDefinicion[] = [
   {
     id: "personal",
     titulo: "Personal y nómina",
-    detalle: "Cuánto cuesta de verdad una persona contratada, contando las cargas de ley.",
-    nota: "Este valor queda guardado y se usará cuando llegue el módulo de nómina.",
+    detalle: "Cuánto cuesta de verdad una persona con contrato de trabajo, contando las cargas de ley. Se usa en cada pago de Personal.",
     general: [
       { clave: "factor_prestacional", etiqueta: "Factor prestacional", unidad: "veces el salario", ayuda: "Multiplica el salario o el jornal para incluir prestaciones y seguridad social. En Colombia suele estar cerca de 1,63. No aplica a contratos de prestación de servicios.", min: 1, max: 3, decimales: 2 },
     ],
