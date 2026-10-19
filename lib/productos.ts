@@ -25,4 +25,4 @@ export const ventasManuales = (productos: Producto[]): ProductoVenta[] =>
   productos.filter(esVenta).filter((p) => !p.automatico).sort((a, b) => a.orden - b.orden || a.nombre.localeCompare(b.nombre, "es"));
 
 /** El precio con que se propone un producto, escrito a la colombiana («2.500», «30,5»), o vacío si todavía no tiene. */
-export const textoPrecio = (n: number | null | undefined) => (n == null ? "" : String(Math.round(n * 100) / 100).replace(".", ","));
+export const textoPrecio = (n: number | null | undefined) => (n == null ? "" : (Math.round(n * 100) / 100).toLocaleString("es-CO", { maximumFractionDigits: 2, useGrouping: true }));

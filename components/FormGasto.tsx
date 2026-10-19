@@ -335,7 +335,7 @@ export function FormGasto({
       {estado?.error ? <Aviso tipo="error">{estado.error}</Aviso> : null}
       <div className="space-y-2">
         <Boton type="submit" pendiente={pendiente} cargando="Guardando…" disabled={Boolean(falta) || subiendo}>
-          {editando ? "Guardar cambios" : "Guardar gasto"}
+          {editando ? "Guardar cambios" : "Guardar compra"}
         </Boton>
         <Link href={volver} className={clasesBoton("fantasma")}>Cancelar</Link>
       </div>
