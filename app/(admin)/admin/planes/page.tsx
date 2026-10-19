@@ -9,6 +9,7 @@ import { Insignia } from "@/components/Insignia";
 import { formatoFecha } from "@/lib/fechas";
 import { nombrePlan, planPorId, precioMes, usd } from "@/lib/planes";
 import { crearClienteServidor } from "@/lib/supabase/server";
+import type { PlanId } from "@/lib/tipos";
 
 export const metadata: Metadata = { title: "Solicitudes de plan" };
 /** Solicitudes de mejora de plan pendientes: quién la pidió, a qué plan y con qué periodo de pago. Se activa cuando el pago está confirmado. */
@@ -16,6 +17,7 @@ export default async function PaginaSolicitudesPlan() {
   const supabase = await crearClienteServidor();
   const { data, error } = await supabase.rpc("admin_listar_solicitudes_plan");
   const filas = data ?? [];
+  const { data: comisiones } = await supabase.rpc("admin_listar_comisiones");
 
   return (
     <>
@@ -52,6 +54,23 @@ export default async function PaginaSolicitudesPlan() {
           })}
         </ul>
       )}
+    {(comisiones ?? []).length > 0 ? (
+        <section className="mt-8 space-y-3 lg:max-w-2xl" aria-label="Comisiones por referidos">
+          <h2 className="font-display text-xl font-semibold">Comisiones por referidos</h2>
+          <p className="text-sm text-humo">Quién refirió a quién, el plan que se adquirió y desde cuándo corre la comisión.</p>
+          <ul className="grid grid-cols-1 gap-2.5">
+            {(comisiones ?? []).map((c) => (
+              <li key={`${c.referido}-${c.desde}`} className="min-w-0 rounded-2xl bg-papel p-3.5 ring-1 ring-arena">
+                <p className="font-semibold [overflow-wrap:anywhere]">{c.referidor}</p>
+                <p className="text-sm text-humo [overflow-wrap:anywhere]">refirió a {c.referido}</p>
+                <p className="mt-1 text-[0.9375rem]">
+                  Plan {nombrePlan(c.plan as PlanId)} · {String(c.porcentaje).replace(".00", "")} % durante {c.meses} meses desde el {formatoFecha(c.desde.slice(0, 10), { day: "numeric", month: "short", year: "numeric" })}
+                </p>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
     </>
   );
 }
