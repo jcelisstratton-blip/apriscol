@@ -69,6 +69,9 @@ async function procesar(form: FormData): Promise<{ error: string } | { resultado
     hoy: hoyBogota(),
     aptitudDefecto: finca.proposito,
   });
+  if (resultado.errores.length === 0 && resultado.filas.length === 0) {
+    return { error: resultado.resumen.omitidos > 0 ? "Todas las filas son de animales dados de baja (vendidos, muertos…): el cargue solo crea animales activos." : "No encontré animales para cargar en el archivo." };
+  }
   return { resultado, filas: resultado.filas, fincaId: finca.id };
 }
 

@@ -48,7 +48,8 @@ export const COLUMNAS_REPRODUCCION = ["fecha_servicio", "tipo_servicio", "sement
 export const COLUMNA_UBICACION = "ubicacion" as const;
 export const LISTA_TIPO_SERVICIO = ["Monta natural", "Inseminación", "Transferencia de embrión"] as const;
 
-export type ColumnaId = (typeof COLUMNAS)[number]["id"];
+/** «estado» no está en la plantilla: solo se lee si el archivo viene de la exportación de una finca (trae vendidos, muertos…). */
+export type ColumnaId = (typeof COLUMNAS)[number]["id"] | "estado";
 export type CeldaCruda = string | number | boolean | Date | null | undefined;
 export type FilaCruda = { fila: number; valores: Partial<Record<ColumnaId, CeldaCruda>> };
 
@@ -126,7 +127,7 @@ export type ResultadoValidacion = {
   filas: FilaParaGuardar[];
   vista: FilaVista[];
   errores: ErrorFila[];
-  resumen: { total: number; hembras: number; machos: number; con_padres_en_archivo: number; con_padres_en_hato: number; con_padres_externos: number; con_servicio: number; con_ubicacion: number };
+  resumen: { total: number; hembras: number; machos: number; con_padres_en_archivo: number; con_padres_en_hato: number; con_padres_externos: number; con_servicio: number; con_ubicacion: number; omitidos: number };
 };
 
 // ───────────────────────── Lectura de celdas ─────────────────────────
@@ -167,6 +168,7 @@ export function mapearEncabezados(textos: string[]): { columnas: (ColumnaId | nu
     porClave.set(claveEncabezado(c.titulo), c.id);
     for (const a of ALIAS_ENCABEZADO[c.id] ?? []) porClave.set(claveEncabezado(a), c.id);
   }
+  porClave.set("estado", "estado");
   const columnas = textos.map((t) => porClave.get(claveEncabezado(t)) ?? null);
   const faltan = COLUMNAS.filter((c) => c.requerida && !columnas.includes(c.id)).map((c) => c.titulo);
   return { columnas, faltan };
@@ -238,8 +240,17 @@ type Parcial = {
   razaNombre?: string;
 };
 
-export function validarFilas(crudas: FilaCruda[], ctx: ContextoImportar): ResultadoValidacion {
-  const vacio = { total: 0, hembras: 0, machos: 0, con_padres_en_archivo: 0, con_padres_en_hato: 0, con_padres_externos: 0, con_servicio: 0, con_ubicacion: 0 };
+/** Un animal que ya no está en el hato (vendido, muerto, perdido…) no se carga: el cargue solo crea animales activos. */
+const estaDeBaja = (f: FilaCruda) => {
+  const e = normalizar(texto(f.valores.estado));
+  return e !== "" && e !== "activo" && e !== "activa";
+};
+
+export function validarFilas(todasLasFilas: FilaCruda[], ctx: ContextoImportar): ResultadoValidacion {
+  const crudas = todasLasFilas.filter((f) => !estaDeBaja(f));
+  const dadosDeBaja = new Set(todasLasFilas.filter(estaDeBaja).map((f) => normalizar(texto(f.valores.numero_arete))));
+  const omitidos = todasLasFilas.length - crudas.length;
+  const vacio = { total: 0, hembras: 0, machos: 0, con_padres_en_archivo: 0, con_padres_en_hato: 0, con_padres_externos: 0, con_servicio: 0, con_ubicacion: 0, omitidos: 0 };
   const parciales: Parcial[] = crudas.map((cruda) => interpretarFila(cruda, ctx));
 
   const existentes = new Map(ctx.existentes.map((a) => [normalizar(a.numero_arete), a]));
@@ -274,6 +285,10 @@ export function validarFilas(crudas: FilaCruda[], ctx: ContextoImportar): Result
           ? { sexo: enHato.sexo, especie: enHato.especie, nacimiento: enHato.fecha_nacimiento ?? undefined }
           : null;
       if (!ref) {
+        if (dadosDeBaja.has(clave)) {
+          p.errores.push(`${etiqueta} es un animal dado de baja (vendido, muerto…) y no se carga. Escríbelo en «${rol === "padre" ? "Padre" : "Madre"} (si no está en tu hato)» o quita su arete.`);
+          continue;
+        }
         p.errores.push(`${etiqueta} no está en este archivo ni en tu hato. Agrégalo al archivo (en una fila) o escríbelo en «${rol === "padre" ? "Padre" : "Madre"} (si no está en tu hato)».`);
         continue;
       }
@@ -333,7 +348,7 @@ export function validarFilas(crudas: FilaCruda[], ctx: ContextoImportar): Result
   const errores: ErrorFila[] = parciales
     .filter((p) => p.errores.length > 0)
     .map((p) => ({ fila: p.cruda.fila, arete: p.arete, mensajes: p.errores }));
-  if (errores.length > 0) return { filas: [], vista: [], errores, resumen: { ...vacio, total: parciales.length } };
+  if (errores.length > 0) return { filas: [], vista: [], errores, resumen: { ...vacio, total: parciales.length, omitidos } };
 
   const filas = orden.map((p) => p.fila!);
   const nombreDe = (clave: string | undefined, externo: string | undefined, visto: string | undefined) => {
@@ -363,6 +378,7 @@ export function validarFilas(crudas: FilaCruda[], ctx: ContextoImportar): Result
     con_padres_externos: filas.filter((f) => f.padre_externo || f.madre_externa).length,
     con_servicio: filas.filter((f) => f.fecha_servicio).length,
     con_ubicacion: filas.filter((f) => f.ubicacion_id).length,
+    omitidos,
   };
   return { filas, vista, errores: [], resumen };
 }

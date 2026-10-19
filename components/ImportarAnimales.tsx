@@ -237,6 +237,7 @@ export function ImportarAnimales({
                 ? `${revision.resumen.con_padres_en_archivo + revision.resumen.con_padres_en_hato} con padre o madre enlazados${revision.resumen.con_padres_en_hato > 0 ? ` (${revision.resumen.con_padres_en_hato} con animales que ya están en tu hato)` : ""}. `
                 : ""}
               Todo está correcto. Se guardan todos juntos al confirmar.
+              {revision.resumen.omitidos > 0 ? ` Se omitieron ${revision.resumen.omitidos} ${revision.resumen.omitidos === 1 ? "fila" : "filas"} de animales dados de baja (vendidos, muertos…): solo se cargan los activos.` : ""}
               {revision.resumen.con_servicio > 0 ? ` ${revision.resumen.con_servicio} hembras con servicio.` : ""}
               {revision.resumen.con_ubicacion > 0 ? ` ${revision.resumen.con_ubicacion} con corral o potrero.` : ""}
             </Aviso>
