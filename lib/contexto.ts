@@ -2,7 +2,9 @@ import "server-only";
 import { cache } from "react";
 import { redirect } from "next/navigation";
 import { crearClienteServidor } from "@/lib/supabase/server";
+import { hoyBogota } from "@/lib/fechas";
 import type { Finca, Perfil, RolFinca } from "@/lib/tipos";
+import { estadoPlan, type EstadoPlan } from "@/lib/vigencia";
 
 export type FincaConRol = Finca & { rol: RolFinca };
 
@@ -12,7 +14,11 @@ export type Contexto = {
   fincas: FincaConRol[];
   finca: FincaConRol;
   rol: RolFinca;
+  /** Estado del plan de la finca activa (avisa, deja en solo lectura o bloquea). Lo decide la base: las cuentas de pruebas nunca se bloquean. */
+  vigencia: EstadoPlan;
 };
+
+const ESTADOS: EstadoPlan[] = ["vigente", "por_vencer", "gracia", "bloqueada"];
 
 /** Usuario autenticado (o redirige a /login). Una consulta por petición. */
 export const obtenerUsuario = cache(async () => {
@@ -41,7 +47,10 @@ export const obtenerContexto = cache(async (): Promise<Contexto> => {
   if (fincas.length === 0) redirect("/onboarding");
 
   const finca = fincas.find((f) => f.id === perfil?.finca_activa_id) ?? fincas[0];
-  return { user, perfil: perfil ?? null, fincas, finca, rol: finca.rol };
+  // La base es la única fuente de verdad (incluye la exención de las cuentas de pruebas); si no responde, se calcula con la fecha de la finca.
+  const { data: estado } = await supabase.rpc("estado_vigencia_finca", { p_finca: finca.id });
+  const vigencia: EstadoPlan = ESTADOS.includes(estado as EstadoPlan) ? (estado as EstadoPlan) : estadoPlan(finca.plan_vence_en, hoyBogota());
+  return { user, perfil: perfil ?? null, fincas, finca, rol: finca.rol, vigencia };
 });
 
 /** ¿La persona es administradora de la plataforma? (superadmin: vista global e importaciones del libro genealógico). */

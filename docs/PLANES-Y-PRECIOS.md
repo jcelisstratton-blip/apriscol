@@ -75,3 +75,13 @@ Una finca con equipo, corrales, ceba y gastos se mueve en el rango de Hato. Los 
   `admin_asignar_plan_finca(finca, plan)`, que cambia el plan de **esa finca** y cierra su solicitud. Si es la primera finca de una persona referida, nace la comisión de referidos.
   `admin_asignar_plan(correo, plan)` (todas las fincas del propietario) queda solo por compatibilidad y no la usa la app.
 - **Cuando haya pasarela de pago:** reemplazar el botón «Mejorar a …» por el pago y llamar a la misma activación al confirmarse (webhook).
+
+## 4. Vigencia: qué pasa cuando el plan vence (implementado)
+
+- **Regla:** `fincas.plan_vence_en` es el último día pagado. Faltando 7 días o menos, aviso. Pasada la fecha, **7 días en solo lectura** (se consulta y se descarga, no se registra). Después, **bloqueo**: la app solo muestra
+  `/plan-vencido` con el valor del plan, «Renovar un mes / un año» y la descarga de los datos. **Descargar los datos nunca se bloquea y se puede hacer todas las veces que se quiera.**
+- **Sin fecha = sin vencimiento:** las fincas que ya existían quedan así hasta que el superadmin les fije la fecha (`/admin/planes` → «Vigencia de los planes»). Una finca nueva nace sin fecha (periodo de prueba: por decidir).
+- **Renovar:** el propietario pide la renovación (`solicitar_renovacion_plan`) y el superadmin confirma el pago con `admin_activar_plan_finca(finca, plan, periodo)`: activa el plan y corre la fecha un mes o un año
+  **desde el vencimiento actual si todavía no pasó, o desde hoy si ya pasó** (renovar a tiempo no pierde días). La fecha la cambia solo el equipo (disparador sobre `plan_vence_en`).
+- **Cuando haya pasarela de pago:** el webhook llama a la misma `admin_activar_plan_finca` al confirmarse el pago.
+- **Cuenta de pruebas (temporal):** una cuenta marcada por el superadmin no se bloquea nunca ni sus fincas (tampoco las que cree después); las demás cuentas se rigen por todo lo anterior. Hoy: ramicelis@gmail.com.

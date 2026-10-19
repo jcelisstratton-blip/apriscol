@@ -6,6 +6,7 @@ import { Aviso } from "@/components/Aviso";
 import { Encabezado } from "@/components/Encabezado";
 import { EstadoVacio } from "@/components/EstadoVacio";
 import { Insignia } from "@/components/Insignia";
+import { ListaVigencias } from "@/components/ListaVigencias";
 import { formatoFecha } from "@/lib/fechas";
 import { nombrePlan, planPorId, precioMes, usd } from "@/lib/planes";
 import { crearClienteServidor } from "@/lib/supabase/server";
@@ -18,6 +19,7 @@ export default async function PaginaSolicitudesPlan() {
   const { data, error } = await supabase.rpc("admin_solicitudes_plan");
   const filas = data ?? [];
   const { data: comisiones } = await supabase.rpc("admin_listar_comisiones");
+  const { data: vigencias } = await supabase.rpc("admin_vigencias");
 
   return (
     <>
@@ -44,18 +46,33 @@ export default async function PaginaSolicitudesPlan() {
                   <Insignia tono="aviso">Pendiente</Insignia>
                 </div>
                 <p className="text-[0.9375rem]">
-                  De <span className="font-semibold">{nombrePlan(s.plan_actual)}</span> a <span className="font-semibold">{nombrePlan(s.plan_nuevo)}</span> ·{" "}
+                  {s.plan_actual === s.plan_nuevo ? (
+                    <>
+                      Renovación de <span className="font-semibold">{nombrePlan(s.plan_nuevo)}</span> ·{" "}
+                    </>
+                  ) : (
+                    <>
+                      De <span className="font-semibold">{nombrePlan(s.plan_actual)}</span> a <span className="font-semibold">{nombrePlan(s.plan_nuevo)}</span> ·{" "}
+                    </>
+                  )}
                   {anual ? `anual, ${usd(mes * 12)} al año` : `mensual, ${usd(mes)} al mes`}
                   {s.numero_finca > 1 ? ` · finca n.º ${s.numero_finca}, con 10 % menos` : ""}
                 </p>
                 <p className="text-xs text-humo">Pedida el {formatoFecha(s.creada_en.slice(0, 10), { day: "numeric", month: "short" })}</p>
-                <AccionActivarPlan fincaId={s.finca_id} plan={s.plan_nuevo} />
+                <AccionActivarPlan fincaId={s.finca_id} plan={s.plan_nuevo} periodo={s.periodo} />
               </li>
             );
           })}
         </ul>
       )}
-    {(comisiones ?? []).length > 0 ? (
+      {(vigencias ?? []).length > 0 ? (
+        <section className="mt-8 space-y-3 lg:max-w-2xl" aria-label="Vigencia de los planes">
+          <h2 className="font-display text-xl font-semibold">Vigencia de los planes</h2>
+          <p className="text-sm text-humo">Hasta qué día está pagada cada finca. Al vencer tiene 7 días en solo lectura y después se bloquea (solo puede descargar sus datos y pedir la renovación).</p>
+          <ListaVigencias filas={vigencias ?? []} />
+        </section>
+      ) : null}
+      {(comisiones ?? []).length > 0 ? (
         <section className="mt-8 space-y-3 lg:max-w-2xl" aria-label="Comisiones por referidos">
           <h2 className="font-display text-xl font-semibold">Comisiones por referidos</h2>
           <p className="text-sm text-humo">Quién refirió a quién, el plan que se adquirió y desde cuándo corre la comisión.</p>
