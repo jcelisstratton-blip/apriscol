@@ -1,5 +1,5 @@
 import {
-  Activity, ArrowRightLeft, Baby, Banknote, BarChart3, Beef, CalendarClock, ClipboardCheck, Droplets, FileText, FlaskConical, GitFork, HeartPulse, FileSpreadsheet, Home, KeyRound, Layers, MapPin,
+  Activity, ArrowRightLeft, Baby, Banknote, BarChart3, Beef, CalendarClock, ClipboardCheck, Droplets, FileText, FlaskConical, GitFork, HeartPulse, Download, FileSpreadsheet, Home, KeyRound, Layers, MapPin,
   Microscope, Package, PawPrint, Plus, Rocket, Scale, Shuffle, SlidersHorizontal, Snowflake, Syringe, Trophy, Truck, UserPlus, Users, Wallet, Wrench, Fence, Sheet, type LucideIcon,
   HardHat, Gift,
 } from "lucide-react";
@@ -108,6 +108,7 @@ export const ATAJOS: Atajo[] = [
   // Cuenta
   { grupo: "Cuenta", tipo: "ir", titulo: "Hoy", detalle: "Lo que toca hacer hoy", href: "/", Icono: Home },
   { grupo: "Cuenta", tipo: "registrar", titulo: "Agregar a alguien al equipo", detalle: "Elige su perfil y su contrato: ordeñador, veterinario, jornalero…", href: "/mas/miembros", Icono: UserPlus, gestion: true, servicio: "equipo", clave: "equipo invitacion" },
+  { grupo: "Cuenta", tipo: "ir", titulo: "Exportar los datos de la finca", detalle: "Todo en un Excel: animales, leche, sanidad, compras, ventas…", href: "/mas/exportar", Icono: Download, propietario: true, clave: "descargar respaldo copia backup salir cancelar sacar informacion" },
   { grupo: "Cuenta", tipo: "ir", titulo: "Referidos", detalle: "Tu enlace: 5 % del plan de quien refieras durante 6 meses", href: "/mas/referidos", Icono: Gift, clave: "referir invitar enlace comision ganar" },
   { grupo: "Cuenta", tipo: "ir", titulo: "Equipo y pagos", detalle: "Quién tiene acceso, su contrato y lo que se les paga", href: "/mas/miembros", Icono: Users, gestion: true },
   { grupo: "Cuenta", tipo: "ir", titulo: "Datos de la finca", detalle: "Nombre, ubicación y umbral de endogamia", href: "/mas/finca", Icono: MapPin, gestion: true },
