@@ -1,5 +1,6 @@
 import { CUARENTENA_MIN_DIAS, CUARENTENA_RECOMENDADA_DIAS, DIAS_DESCANSO_DEFECTO, DIAS_OCUPACION_DEFECTO } from "@/lib/corrales";
 import { DIAS_EDAD_FAMACHA } from "@/lib/famacha";
+import { MAX_FILAS_IMPORTAR } from "@/lib/importar-animales";
 import { textoPlazo, type AjustesFinca } from "@/lib/ajustes";
 
 /** Una idea de la hoja «¿Cómo funciona?»: un título corto y una sola frase. */
@@ -25,6 +26,19 @@ export const AYUDA_CORRALES: Ayuda = {
     { titulo: "Cuarentena", texto: `Todo animal que llega pasa ${CUARENTENA_MIN_DIAS} a ${CUARENTENA_RECOMENDADA_DIAS} días aislado antes de unirse al lote. La app avisa a los que no la hicieron.` },
   ],
   enlace: { href: "/corrales", texto: "Ver el resumen de toda la finca" },
+};
+
+/** Cargar animales desde Excel: el tope sale de la misma constante que usa la validación. */
+export const AYUDA_IMPORTAR: Ayuda = {
+  titulo: "Cargar animales desde Excel",
+  puntos: [
+    { titulo: "La plantilla", texto: `Descárgala, escribe un animal por fila (hasta ${MAX_FILAS_IMPORTAR} por archivo) y súbela. Los desplegables te ayudan con la especie, el sexo y la raza.` },
+    { titulo: "Genealogía", texto: "Escribe el arete del padre y de la madre. Pueden ser animales del mismo archivo (el orden de las filas no importa) o animales que ya están en tu hato." },
+    { titulo: "Padres de fuera", texto: "Si el padre o la madre no son tuyos, escribe su nombre o registro en las columnas «si no está en tu hato»." },
+    { titulo: "Revisión", texto: "Antes de guardar ves cada fila. Si algo está mal, la app dice la fila y qué corregir; mientras haya errores no se guarda nada." },
+    { titulo: "Solo animales nuevos", texto: "Un arete que ya existe en tu finca se rechaza: este cargue crea animales, no cambia los que ya tienes." },
+  ],
+  enlace: { href: "/hato", texto: "Volver al hato" },
 };
 
 /** La ayuda de Sanidad: los tiempos de pezuñas y pediluvio son los que definió el propietario en los ajustes de la finca. */

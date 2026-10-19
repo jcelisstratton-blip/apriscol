@@ -1,5 +1,5 @@
 import {
-  Activity, ArrowRightLeft, Baby, Banknote, BarChart3, Beef, CalendarClock, ClipboardCheck, Droplets, FileText, FlaskConical, GitFork, HeartPulse, Home, KeyRound, Layers, MapPin,
+  Activity, ArrowRightLeft, Baby, Banknote, BarChart3, Beef, CalendarClock, ClipboardCheck, Droplets, FileText, FlaskConical, GitFork, HeartPulse, FileSpreadsheet, Home, KeyRound, Layers, MapPin,
   Microscope, Package, PawPrint, Plus, Rocket, Scale, Shuffle, SlidersHorizontal, Snowflake, Syringe, Trophy, Truck, UserPlus, Users, Wallet, Wrench, Fence, Sheet, type LucideIcon,
   HardHat, Gift,
 } from "lucide-react";
@@ -38,6 +38,7 @@ export type Atajo = {
 export const ATAJOS: Atajo[] = [
   // Hato
   { grupo: "Hato", tipo: "registrar", titulo: "Animal nuevo", detalle: "Cabra, cabro, oveja o carnero", href: "/hato/nuevo", Icono: PawPrint, modulo: "hato", clave: "registrar cabra oveja arete" },
+  { grupo: "Hato", tipo: "registrar", titulo: "Cargar animales desde Excel", detalle: "Muchos animales a la vez, con su genealogía", href: "/hato/importar", Icono: FileSpreadsheet, modulo: "hato", clave: "importar masivo plantilla excel subir cargar archivo xlsx" },
   { grupo: "Hato", tipo: "ir", titulo: "Mi hato", detalle: "Todos los animales y sus filtros", href: "/hato", Icono: PawPrint, modulo: "hato", clave: "animales lista buscar arete" },
   { grupo: "Hato", tipo: "ir", titulo: "Hembras del hato", detalle: "Elige una y registra servicio, diagnóstico o parto", href: "/hato?filtro=hembras", Icono: Baby, modulo: "reproduccion", clave: "parto servicio monta diagnostico gestacion cria" },
   { grupo: "Hato", tipo: "ir", titulo: "Endogamia", detalle: "Parentesco de todo el hato", href: "/hato/endogamia", Icono: GitFork, modulo: "hato", clave: "genealogia parentesco consanguinidad" },

@@ -97,6 +97,9 @@ export function ListaHato({
                       Traer mis animales registrados
                     </Link>
                   ) : null}
+                  <Link href="/hato/importar" className={clasesBoton("secundario")}>
+                    Cargarlos desde Excel
+                  </Link>
                 </div>
               ) : null}
             </EstadoVacio>
