@@ -7,6 +7,7 @@ import { urlDelSitio } from "@/lib/sitio";
 import { destinoSeguro } from "@/lib/redireccion";
 import { mensajeAmigable } from "@/lib/mensaje-amigable";
 import { obtenerUsuario } from "@/lib/contexto";
+import { codigoValido } from "@/lib/referidos";
 
 export type EstadoAuth = { error?: string; aviso?: string } | undefined;
 
@@ -45,7 +46,8 @@ export async function registrarse(_: EstadoAuth, form: FormData): Promise<Estado
     email: datos.data.email,
     password: datos.data.password,
     options: {
-      data: { nombre: datos.data.nombre },
+      // `ref`: el código de quien lo invitó con su enlace; la base lo convierte en referido (un código que no existe no cuenta).
+      data: { nombre: datos.data.nombre, ref: codigoValido(form.get("ref")) },
       emailRedirectTo: `${await urlDelSitio()}/auth/confirm?next=${encodeURIComponent(next)}`,
     },
   });

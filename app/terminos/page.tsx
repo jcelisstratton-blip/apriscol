@@ -58,6 +58,22 @@ const SECCIONES: SeccionLegal[] = [
     ),
   },
   {
+    id: "referidos",
+    titulo: "Programa de referidos",
+    contenido: (
+      <>
+        <P>
+          Cada persona con cuenta tiene un enlace personal de referidos («Más → Referidos»). <strong>Por cada persona que se registre con tu enlace y adquiera un plan, recibes el 5 % del valor de ese plan cada mes durante 6 meses</strong>, contados desde que la persona adquiere su plan.
+        </P>
+        <Lista>
+          <li>La comisión se calcula sobre el precio mensual del plan que adquiere la persona referida, en dólares estadounidenses (US$).</li>
+          <li>Tú ves a tus referidos solo con su primer nombre, el plan que adquirieron y cuánto va causado; no ves sus datos ni los de su finca.</li>
+          <li>Registrarse con tu propio enlace no genera comisión.</li>
+        </Lista>
+      </>
+    ),
+  },
+  {
     id: "datos-tuyos",
     titulo: "Tus datos son tuyos",
     contenido: (

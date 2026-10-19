@@ -124,6 +124,9 @@ export type Perfil = {
   telefono: string | null;
   finca_activa_id: string | null;
   libro_resuelto_en: string | null;
+  /** Su código de referidos y, si llegó por el enlace de alguien, quién lo refirió. */
+  codigo_referido: string | null;
+  referido_por: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -1386,6 +1389,8 @@ export type Database = {
       solicitar_mejora_plan: { Args: { p_finca: string; p_plan: PlanId; p_periodo?: "mensual" | "anual" }; Returns: undefined };
       admin_asignar_plan: { Args: { p_correo: string; p_plan: PlanId }; Returns: number };
       admin_listar_solicitudes_plan: { Args: Record<string, never>; Returns: SolicitudPlan[] };
+      mis_referidos: { Args: Record<string, never>; Returns: { nombre: string; registrado_en: string; plan: string | null; porcentaje: number | null; meses: number | null; desde: string | null }[] };
+      admin_listar_comisiones: { Args: Record<string, never>; Returns: { referidor: string; referido: string; plan: string; porcentaje: number; meses: number; desde: string }[] };
       admin_listar_fincas: {
         Args: Record<string, never>;
         Returns: {

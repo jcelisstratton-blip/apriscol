@@ -12,11 +12,14 @@ export function FormAuth({
   accion,
   modo,
   next,
+  referido,
   errorInicial,
 }: {
   accion: (estado: EstadoAuth, form: FormData) => Promise<EstadoAuth>;
   modo: "login" | "registro";
   next?: string;
+  /** Código de quien invitó con su enlace de referidos (solo en el registro). */
+  referido?: string;
   errorInicial?: string;
 }) {
   const [estado, enviar, pendiente] = useActionState(accion, undefined);
@@ -26,6 +29,7 @@ export function FormAuth({
   return (
     <form action={enviar} className="space-y-4">
       {next ? <input type="hidden" name="next" value={next} /> : null}
+      {esRegistro && referido ? <input type="hidden" name="ref" value={referido} /> : null}
       {esRegistro ? (
         <Campo etiqueta="Tu nombre">
           {(id) => (
