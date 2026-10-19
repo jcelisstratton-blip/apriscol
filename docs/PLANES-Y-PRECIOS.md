@@ -37,7 +37,7 @@ es un aprisco pequeño y el plan de entrada tiene que ser muy accesible; como lo
 
 | Plan | Mensual | Anual (por mes) | Servicios |
 |---|---|---|---|
-| **Cría** | US$ 9,60 | US$ 7,68 | Hato y ficha con foto y genealogía, endogamia, leche (ordeño y calidad), sanidad con periodos de retiro, servicios y partos, traer animales del libro |
+| **Cría** | US$ 10 | US$ 8 | Hato y ficha con foto y genealogía, endogamia, leche (ordeño y calidad), sanidad con periodos de retiro, servicios y partos, traer animales del libro |
 | **Hato** (recomendado) | US$ 18 | US$ 14,40 | Todo Cría + equipo con roles (ordeñador, veterinario, contador), corrales y potreros, temporada de monta, programas sanitarios con FAMACHA y pediluvio, carne y ceba, premios y ferias, simulador de cruzas, gastos y costo por litro |
 | **Profesional** | US$ 36 | US$ 28,80 | Todo Hato + reportes de costos en Excel por fechas, costo por animal, lote y especie, controles de calidad con constancia, soportes de gastos |
 | **Hacienda** | US$ 72 | US$ 57,60 | Todo Profesional + varias fincas en una sola cuenta, soporte prioritario, acompañamiento para cargar la información inicial |

@@ -22,7 +22,7 @@ export const PLANES: Plan[] = [
     id: "cria",
     nombre: "Cría",
     para: "Para empezar ordenado: el manejo diario de tu aprisco.",
-    mensual: 9.6,
+    mensual: 10,
     destacados: ["Animales sin límite", "Cabras y ovejas", "Tú, como propietario"],
     funciones: [
       "Ficha de cada animal con foto y genealogía",
