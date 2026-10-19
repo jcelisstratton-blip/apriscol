@@ -1396,7 +1396,9 @@ export type Database = {
       solicitar_renovacion_plan: { Args: { p_finca: string; p_periodo?: "mensual" | "anual" }; Returns: undefined };
       admin_activar_plan_finca: { Args: { p_finca: string; p_plan: PlanId; p_periodo?: "mensual" | "anual" }; Returns: string };
       admin_fijar_vigencia_finca: { Args: { p_finca: string; p_fecha: string | null }; Returns: undefined };
-      admin_vigencias: { Args: Record<string, never>; Returns: { finca_id: string; nombre: string; propietario_email: string; plan: PlanId; plan_vence_en: string | null; estado: "vigente" | "por_vencer" | "gracia" | "bloqueada" }[] };
+      admin_vigencias: { Args: Record<string, never>; Returns: { finca_id: string; nombre: string; propietario_email: string; plan: PlanId; plan_vence_en: string | null; estado: "vigente" | "por_vencer" | "gracia" | "bloqueada"; cuenta_pruebas: boolean }[] };
+      admin_marcar_cuenta_pruebas: { Args: { p_correo: string; p_exenta: boolean }; Returns: number };
+      estado_vigencia_finca: { Args: { p_finca: string }; Returns: string | null };
       admin_asignar_plan: { Args: { p_correo: string; p_plan: PlanId }; Returns: number };
       admin_asignar_plan_finca: { Args: { p_finca: string; p_plan: PlanId }; Returns: number };
       admin_solicitudes_plan: { Args: Record<string, never>; Returns: (SolicitudPlan & { finca_id: string; numero_finca: number })[] };

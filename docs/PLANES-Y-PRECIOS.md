@@ -84,3 +84,4 @@ Una finca con equipo, corrales, ceba y gastos se mueve en el rango de Hato. Los 
 - **Renovar:** el propietario pide la renovación (`solicitar_renovacion_plan`) y el superadmin confirma el pago con `admin_activar_plan_finca(finca, plan, periodo)`: activa el plan y corre la fecha un mes o un año
   **desde el vencimiento actual si todavía no pasó, o desde hoy si ya pasó** (renovar a tiempo no pierde días). La fecha la cambia solo el equipo (disparador sobre `plan_vence_en`).
 - **Cuando haya pasarela de pago:** el webhook llama a la misma `admin_activar_plan_finca` al confirmarse el pago.
+- **Cuenta de pruebas (temporal):** una cuenta marcada por el superadmin no se bloquea nunca ni sus fincas (tampoco las que cree después); las demás cuentas se rigen por todo lo anterior. Hoy: ramicelis@gmail.com.

@@ -5,11 +5,11 @@ import { useRouter } from "next/navigation";
 import { Aviso } from "@/components/Aviso";
 import { Boton } from "@/components/Boton";
 import { useToast } from "@/components/Toast";
-import { activarPlan, fijarVigencia } from "@/app/(admin)/admin/planes/actions";
+import { activarPlan, fijarVigencia, marcarCuentaPruebas } from "@/app/(admin)/admin/planes/actions";
 import type { PlanId } from "@/lib/tipos";
 
 /** Superadmin: renovar el plan que ya tiene (confirmado el pago), fijar la fecha a mano o dejarla sin vencimiento. */
-export function AccionVigencia({ fincaId, plan, venceEn }: { fincaId: string; plan: PlanId; venceEn: string | null }) {
+export function AccionVigencia({ fincaId, plan, venceEn, correo, cuentaPruebas }: { fincaId: string; plan: PlanId; venceEn: string | null; correo: string; cuentaPruebas: boolean }) {
   const router = useRouter();
   const toast = useToast();
   const [pendiente, iniciar] = useTransition();
@@ -53,6 +53,11 @@ export function AccionVigencia({ fincaId, plan, venceEn }: { fincaId: string; pl
           Sin vencimiento
         </Boton>
       </div>
+      {correo ? (
+        <Boton type="button" ancho={false} variante="fantasma" disabled={pendiente} onClick={() => correr(() => marcarCuentaPruebas(correo, !cuentaPruebas))}>
+          {cuentaPruebas ? "Quitar marca de cuenta de pruebas" : "Marcar como cuenta de pruebas"}
+        </Boton>
+      ) : null}
       {error ? <Aviso tipo="error">{error}</Aviso> : null}
     </div>
   );

@@ -23,6 +23,17 @@ export async function activarPlan(fincaId: string, plan: string, periodo: string
   return { ok: true, detalle: `Plan ${nombrePlan(plan as PlanId)} activo hasta el ${formatoFecha(data, { day: "numeric", month: "long", year: "numeric" })}.` };
 }
 
+/** Marca (o desmarca) una cuenta como de pruebas: no se bloquea por vigencia, ni ella ni sus fincas. */
+export async function marcarCuentaPruebas(correo: string, marcada: boolean): Promise<ResultadoPlan> {
+  if (!(await esAdminPlataforma())) return { ok: false, error: "No tienes permiso para esto." };
+  const supabase = await crearClienteServidor();
+  const { data, error } = await supabase.rpc("admin_marcar_cuenta_pruebas", { p_correo: correo, p_exenta: marcada });
+  if (error) return { ok: false, error: mensajeAmigable(error.message) };
+  if (data === 0) return { ok: false, error: "No encontramos una cuenta con ese correo." };
+  revalidatePath("/admin/planes");
+  return { ok: true, detalle: marcada ? "Cuenta de pruebas: no se bloquea." : "La cuenta vuelve a regirse por la vigencia de su plan." };
+}
+
 /** Fija a mano el último día pagado de una finca (las que ya existían) o lo quita: sin fecha, el plan no vence. */
 export async function fijarVigencia(fincaId: string, fecha: string | null): Promise<ResultadoPlan> {
   if (!(await esAdminPlataforma())) return { ok: false, error: "No tienes permiso para esto." };

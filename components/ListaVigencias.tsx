@@ -9,7 +9,7 @@ import { formatoFecha } from "@/lib/fechas";
 import { nombrePlan } from "@/lib/planes";
 import type { PlanId } from "@/lib/tipos";
 
-export type FilaVigencia = { finca_id: string; nombre: string; propietario_email: string; plan: PlanId; plan_vence_en: string | null; estado: "vigente" | "por_vencer" | "gracia" | "bloqueada" };
+export type FilaVigencia = { finca_id: string; nombre: string; propietario_email: string; plan: PlanId; plan_vence_en: string | null; estado: "vigente" | "por_vencer" | "gracia" | "bloqueada"; cuenta_pruebas: boolean };
 
 const ETIQUETA = { vigente: "Al día", por_vencer: "Por vencer", gracia: "Solo lectura", bloqueada: "Bloqueada" } as const;
 const TONO = { vigente: "musgo", por_vencer: "aviso", gracia: "aviso", bloqueada: "alerta" } as const;
@@ -32,12 +32,15 @@ export function ListaVigencias({ filas }: { filas: FilaVigencia[] }) {
                 <p className="font-semibold [overflow-wrap:anywhere]">{f.nombre}</p>
                 <p className="text-sm text-humo [overflow-wrap:anywhere]">{f.propietario_email}</p>
               </div>
-              <Insignia tono={TONO[f.estado]}>{ETIQUETA[f.estado]}</Insignia>
+              <div className="flex shrink-0 flex-col items-end gap-1">
+                <Insignia tono={TONO[f.estado]}>{ETIQUETA[f.estado]}</Insignia>
+                {f.cuenta_pruebas ? <Insignia tono="neutro">Cuenta de pruebas</Insignia> : null}
+              </div>
             </div>
             <p className="text-[0.9375rem]">
               Plan {nombrePlan(f.plan)} · {f.plan_vence_en ? `pagado hasta el ${formatoFecha(f.plan_vence_en, { day: "numeric", month: "short", year: "numeric" })}` : "sin vencimiento"}
             </p>
-            <AccionVigencia fincaId={f.finca_id} plan={f.plan} venceEn={f.plan_vence_en} />
+            <AccionVigencia fincaId={f.finca_id} plan={f.plan} venceEn={f.plan_vence_en} correo={f.propietario_email} cuentaPruebas={f.cuenta_pruebas} />
           </div>
         )}
         clave={(f) => f.finca_id}

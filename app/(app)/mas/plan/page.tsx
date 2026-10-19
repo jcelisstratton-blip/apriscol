@@ -8,20 +8,18 @@ import { Insignia } from "@/components/Insignia";
 import { MejorarPlan } from "@/components/MejorarPlan";
 import { Tarjeta } from "@/components/Tarjeta";
 import { obtenerContexto } from "@/lib/contexto";
-import { formatoFecha, hoyBogota } from "@/lib/fechas";
+import { formatoFecha } from "@/lib/fechas";
 import { nombrePlan, planPorId, planesSuperiores, precioMes, usd } from "@/lib/planes";
 import { numeroDeFinca } from "@/lib/planes-servidor";
 import { crearClienteServidor } from "@/lib/supabase/server";
-import { estadoPlan } from "@/lib/vigencia";
 import type { PlanId } from "@/lib/tipos";
 
 export const metadata: Metadata = { title: "Mejorar mi plan" };
 
 /** Mejorar el plan de la finca: solo hacia adelante. Muestra lo que ya tienes y lo que sumas con cada plan superior. */
 export default async function PaginaPlan() {
-  const { finca, fincas, rol } = await obtenerContexto();
+  const { finca, fincas, rol, vigencia } = await obtenerContexto();
   const actual = planPorId(finca.plan);
-  const vigencia = estadoPlan(finca.plan_vence_en, hoyBogota());
   const superiores = planesSuperiores(finca.plan);
 
   const supabase = await crearClienteServidor();

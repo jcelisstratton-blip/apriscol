@@ -2,18 +2,15 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { PlanVencidoVista } from "@/components/PlanVencidoVista";
 import { obtenerContexto } from "@/lib/contexto";
-import { hoyBogota } from "@/lib/fechas";
 import { planPorId, precioMes, usd } from "@/lib/planes";
 import { numeroDeFinca } from "@/lib/planes-servidor";
 import { crearClienteServidor } from "@/lib/supabase/server";
-import { estadoPlan } from "@/lib/vigencia";
 
 export const metadata: Metadata = { title: "Plan vencido" };
 
 /** Fuera del grupo (app): no pasa por el bloqueo del layout. Con el plan al día no hay nada que mostrar aquí. */
 export default async function PaginaPlanVencido() {
-  const { finca, fincas, rol } = await obtenerContexto();
-  const estado = estadoPlan(finca.plan_vence_en, hoyBogota());
+  const { finca, fincas, rol, vigencia: estado } = await obtenerContexto();
   if (estado === "vigente" || !finca.plan_vence_en) redirect("/");
 
   const supabase = await crearClienteServidor();

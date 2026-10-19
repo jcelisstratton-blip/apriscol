@@ -3,18 +3,15 @@ import { AvisoVigencia } from "@/components/AvisoVigencia";
 import { BottomNav } from "@/components/BottomNav";
 import { NavLateral } from "@/components/NavLateral";
 import { esAdminPlataforma, obtenerContexto } from "@/lib/contexto";
-import { hoyBogota } from "@/lib/fechas";
 import { puedeGestionar, puedeVer } from "@/lib/permisos";
-import { estadoPlan } from "@/lib/vigencia";
 
 /**
  * Celular: una columna con la barra inferior. Computador (desde `lg`): menú lateral fijo y contenido más ancho.
  * Cada pantalla decide cómo aprovechar el ancho (columnas, rejillas); si no hace nada, se ve como en el celular.
  */
 export default async function LayoutApp({ children }: { children: React.ReactNode }) {
-  const { user, perfil, finca, fincas, rol } = await obtenerContexto();
+  const { user, perfil, finca, fincas, rol, vigencia: estado } = await obtenerContexto();
   // Plan vencido hace más de la semana de gracia: no se usa la app, solo se descargan los datos y se pide la renovación (/plan-vencido).
-  const estado = estadoPlan(finca.plan_vence_en, hoyBogota());
   if (estado === "bloqueada") redirect("/plan-vencido");
   const esSuperadmin = await esAdminPlataforma();
 

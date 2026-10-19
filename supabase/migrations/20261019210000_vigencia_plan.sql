@@ -5,9 +5,26 @@
 --    pero el propietario puede descargar sus datos todas las veces que quiera y pedir la renovación.
 --  · El estado no se guarda: sale de la fecha y del día de hoy en Colombia (`private.estado_plan`). La lectura nunca se cierra en la base (la exportación
 --    corre con la sesión de la persona y necesita leer); lo que se cierra es la ESCRITURA (`puede_escribir`), y la app bloquea las pantallas.
+--  · CUENTA DE PRUEBAS: una cuenta marcada (`perfiles.exenta_vigencia`, solo la cambia el superadmin) no se bloquea nunca, ni ella ni sus fincas (las que ya tiene y las que cree
+--    después); un socio de una finca de esa cuenta tampoco. Es temporal y se quita con `admin_marcar_cuenta_pruebas(correo, false)`.
 -- Retrocompatible: columna nueva nula, funciones nuevas; `puede_escribir` solo suma una condición que hoy se cumple para todas las fincas.
 
 alter table public.fincas add column plan_vence_en date;
+
+-- Cuenta de pruebas: exenta de toda regla de vigencia. Cada quien edita su perfil, pero no esto (igual que el código de referidos).
+alter table public.perfiles add column exenta_vigencia boolean not null default false;
+create or replace function private.perfiles_proteger_referidos() returns trigger
+language plpgsql set search_path = ''
+as $$
+begin
+  if current_user in ('authenticated', 'anon') then
+    new.codigo_referido := old.codigo_referido;
+    new.referido_por := old.referido_por;
+    new.exenta_vigencia := old.exenta_vigencia;
+  end if;
+  return new;
+end;
+$$;
 
 -- La vigencia, como el plan, solo la cambia el equipo al confirmar el pago (nunca el propietario desde su sesión).
 create or replace function private.fincas_plan() returns trigger
@@ -41,6 +58,10 @@ language sql stable security definer set search_path = ''
 as $$
   select case
     when f.plan_vence_en is null then 'vigente'
+    when exists (
+      select 1 from public.finca_miembros m join public.perfiles p on p.id = m.user_id
+       where m.finca_id = f.id and m.rol = 'propietario' and p.exenta_vigencia
+    ) then 'vigente'
     when (now() at time zone 'America/Bogota')::date > f.plan_vence_en + 7 then 'bloqueada'
     when (now() at time zone 'America/Bogota')::date > f.plan_vence_en then 'gracia'
     when f.plan_vence_en - (now() at time zone 'America/Bogota')::date <= 7 then 'por_vencer'
@@ -48,6 +69,16 @@ as $$
   end
   from public.fincas f where f.id = p_finca;
 $$;
+
+-- Lo que la app consulta para decidir si avisa, deja en solo lectura o bloquea (una sola fuente de verdad, con la exención de las cuentas de pruebas).
+-- Solo responde a quien es miembro de la finca.
+create function public.estado_vigencia_finca(p_finca uuid) returns text
+language sql stable security definer set search_path = ''
+as $$
+  select case when private.es_miembro(p_finca) then private.estado_plan(p_finca) end;
+$$;
+revoke execute on function public.estado_vigencia_finca(uuid) from public, anon;
+grant execute on function public.estado_vigencia_finca(uuid) to authenticated;
 
 -- Escribir exige que el plan esté al día (vigente o por vencer). En gracia y bloqueada solo se lee.
 create or replace function private.puede_escribir(p_finca uuid, p_modulo public.modulo_app) returns boolean
@@ -148,9 +179,29 @@ $$;
 revoke execute on function public.admin_fijar_vigencia_finca(uuid, date) from public, anon;
 grant execute on function public.admin_fijar_vigencia_finca(uuid, date) to authenticated;
 
--- Superadmin: vigencia de todas las fincas, las que vencen primero arriba.
+-- Superadmin: marca o desmarca una cuenta como de pruebas (no se bloquea). Devuelve cuántas cuentas cambió (0 si el correo no existe).
+create function public.admin_marcar_cuenta_pruebas(p_correo text, p_exenta boolean)
+returns integer
+language plpgsql security definer set search_path = ''
+as $$
+declare
+  v_n integer;
+begin
+  if not private.es_admin_plataforma() then
+    raise exception 'Solo el administrador de la plataforma puede hacer esto.' using errcode = 'insufficient_privilege';
+  end if;
+  update public.perfiles p set exenta_vigencia = coalesce(p_exenta, false)
+   where p.id = (select u.id from auth.users u where lower(u.email) = lower(btrim(p_correo)));
+  get diagnostics v_n = row_count;
+  return v_n;
+end;
+$$;
+revoke execute on function public.admin_marcar_cuenta_pruebas(text, boolean) from public, anon;
+grant execute on function public.admin_marcar_cuenta_pruebas(text, boolean) to authenticated;
+
+-- Superadmin: vigencia de todas las fincas, las que vencen primero arriba (y si el propietario es una cuenta de pruebas).
 create function public.admin_vigencias()
-returns table (finca_id uuid, nombre text, propietario_email text, plan text, plan_vence_en date, estado text)
+returns table (finca_id uuid, nombre text, propietario_email text, plan text, plan_vence_en date, estado text, cuenta_pruebas boolean)
 language plpgsql stable security definer set search_path = ''
 as $$
 begin
@@ -158,10 +209,11 @@ begin
     raise exception 'Solo el administrador de la plataforma puede ver esto.' using errcode = 'insufficient_privilege';
   end if;
   return query
-  select f.id, f.nombre::text, coalesce(u.email::text, ''), f.plan::text, f.plan_vence_en, private.estado_plan(f.id)
+  select f.id, f.nombre::text, coalesce(u.email::text, ''), f.plan::text, f.plan_vence_en, private.estado_plan(f.id), coalesce(p.exenta_vigencia, false)
     from public.fincas f
     left join lateral (select m.user_id from public.finca_miembros m where m.finca_id = f.id and m.rol = 'propietario' order by m.created_at limit 1) o on true
     left join auth.users u on u.id = o.user_id
+    left join public.perfiles p on p.id = o.user_id
    order by f.plan_vence_en nulls last, f.created_at
    limit 1000;
 end;
