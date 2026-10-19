@@ -27,14 +27,26 @@ export const COLUMNAS = [
   { id: "aptitud", titulo: "Aptitud (hembras)", requerida: false, ancho: 14, ayuda: "Leche, Carne o Doble. Solo para hembras; si la dejas vacía queda en Leche." },
   { id: "uso_macho", titulo: "Uso del macho", requerida: false, ancho: 16, ayuda: "Reproductor, Carne o Por definir. Solo para machos." },
   { id: "fecha_ultimo_parto", titulo: "Fecha del último parto", requerida: false, ancho: 18, ayuda: "Solo hembras que ya parieron: abre su lactancia. Debe ser posterior a su nacimiento." },
+  { id: "partos_total", titulo: "Número de partos", requerida: false, ancho: 12, ayuda: "Cuántos partos lleva la hembra en total (contando el último). Si pones fecha del último parto y lo dejas vacío, se toma 1." },
+  { id: "fecha_servicio", titulo: "Fecha del último servicio", requerida: false, ancho: 18, ayuda: "Solo hembras servidas que aún no han parido: la fecha de la monta o inseminación. De ahí sale la fecha prevista de parto." },
+  { id: "tipo_servicio", titulo: "Tipo de servicio", requerida: false, ancho: 18, ayuda: "Monta natural (por defecto), Inseminación o Transferencia de embrión." },
+  { id: "semental_arete", titulo: "Arete del semental", requerida: false, ancho: 16, ayuda: "El macho que la sirvió, si está en este archivo o en tu hato." },
+  { id: "semental_externo", titulo: "Semental (si no está en tu hato)", requerida: false, ancho: 22, ayuda: "Nombre o registro del macho cuando no es tuyo (semental prestado, pajilla de semen)." },
+  { id: "prenez_confirmada", titulo: "Preñez confirmada", requerida: false, ancho: 14, ayuda: "Sí si ya se confirmó (ecografía, palpación…). Queda registrada con la fecha de hoy; sin confirmar queda como «servida»." },
   { id: "peso_nacer_kg", titulo: "Peso al nacer (kg)", requerida: false, ancho: 14, ayuda: "Entre 0,1 y 15 kg. Solo para animales que nacieron en la finca." },
   { id: "chip", titulo: "Microchip", requerida: false, ancho: 18, ayuda: "Opcional." },
   { id: "color", titulo: "Color", requerida: false, ancho: 14, ayuda: "Opcional." },
   { id: "marcas", titulo: "Marcas", requerida: false, ancho: 18, ayuda: "Opcional." },
   { id: "valor_compra", titulo: "Valor de compra ($)", requerida: false, ancho: 16, ayuda: "En pesos. Solo para animales comprados: cuenta como costo en la fecha de compra." },
   { id: "fecha_compra", titulo: "Fecha de compra", requerida: false, ancho: 16, ayuda: "Solo para animales comprados." },
+  { id: "ubicacion", titulo: "Corral o potrero", requerida: false, ancho: 20, ayuda: "Dónde está hoy el animal. Elige de la lista (los corrales y potreros que ya creaste en Hato → Corrales); respeta el cupo de cada uno." },
   { id: "notas", titulo: "Notas", requerida: false, ancho: 28, ayuda: "Opcional." },
 ] as const;
+
+/** Columnas que solo se ofrecen si la finca puede registrar reproducción o ubicaciones (plan y rol). */
+export const COLUMNAS_REPRODUCCION = ["fecha_servicio", "tipo_servicio", "semental_arete", "semental_externo", "prenez_confirmada"] as const;
+export const COLUMNA_UBICACION = "ubicacion" as const;
+export const LISTA_TIPO_SERVICIO = ["Monta natural", "Inseminación", "Transferencia de embrión"] as const;
 
 export type ColumnaId = (typeof COLUMNAS)[number]["id"];
 export type CeldaCruda = string | number | boolean | Date | null | undefined;
@@ -42,6 +54,7 @@ export type FilaCruda = { fila: number; valores: Partial<Record<ColumnaId, Celda
 
 export type RazaRef = { id: number; especie: Especie; nombre: string };
 export type AnimalExistente = { numero_arete: string; sexo: "hembra" | "macho"; especie: Especie; fecha_nacimiento: string | null };
+export type UbicacionRef = { id: string; nombre: string; capacidad: number | null; ocupantes: number };
 export type ContextoImportar = {
   /** Especies activas de la finca. */
   especies: Especie[];
@@ -51,6 +64,10 @@ export type ContextoImportar = {
   hoy: string;
   /** Aptitud de las hembras cuando la plantilla no la trae. */
   aptitudDefecto?: "leche" | "carne" | "doble";
+  /** Puede registrar servicios y preñez (módulo de reproducción en su plan y rol). */
+  reproduccion?: boolean;
+  /** Corrales y potreros activos. `undefined`: no puede asignar ubicaciones (plan o rol); `[]`: puede, pero aún no creó ninguno. */
+  ubicaciones?: UbicacionRef[];
 };
 
 /** Lo que recibe `importar_animales_lote` por animal. */
@@ -71,6 +88,13 @@ export type FilaParaGuardar = {
   vocacion: "leche" | "carne" | "doble";
   uso_macho?: "reproductor" | "carne";
   fecha_ultimo_parto?: string;
+  partos_total?: number;
+  fecha_servicio?: string;
+  tipo_servicio?: "monta_natural" | "inseminacion" | "transferencia_embrionaria";
+  semental_arete?: string;
+  semental_externo?: string;
+  prenez_confirmada?: boolean;
+  ubicacion_id?: string;
   peso_nacer_kg?: number;
   chip?: string;
   color?: string;
@@ -91,6 +115,9 @@ export type FilaVista = {
   padre: string | null;
   madre: string | null;
   origen: "nacido_en_finca" | "comprado";
+  /** Partos, servicio y preñez en una línea; null si no trae nada de eso. */
+  repro: string | null;
+  ubicacion: string | null;
 };
 
 export type ErrorFila = { fila: number; arete: string; mensajes: string[] };
@@ -99,7 +126,7 @@ export type ResultadoValidacion = {
   filas: FilaParaGuardar[];
   vista: FilaVista[];
   errores: ErrorFila[];
-  resumen: { total: number; hembras: number; machos: number; con_padres_en_archivo: number; con_padres_en_hato: number; con_padres_externos: number };
+  resumen: { total: number; hembras: number; machos: number; con_padres_en_archivo: number; con_padres_en_hato: number; con_padres_externos: number; con_servicio: number; con_ubicacion: number };
 };
 
 // ───────────────────────── Lectura de celdas ─────────────────────────
@@ -120,6 +147,12 @@ const ALIAS_ENCABEZADO: Partial<Record<ColumnaId, string[]>> = {
   padre_arete: ["arete padre", "arete del padre", "padre arete"],
   madre_arete: ["arete madre", "arete de la madre", "madre arete"],
   padre_externo: ["padre", "padre si no esta en tu hato", "padre externo"],
+  semental_externo: ["semental", "semental si no esta en tu hato", "semental externo"],
+  semental_arete: ["arete semental", "arete del semental"],
+  fecha_servicio: ["ultimo servicio", "fecha del ultimo servicio", "fecha servicio"],
+  prenez_confirmada: ["prenez", "prenez confirmada", "gestante"],
+  partos_total: ["partos", "numero de partos", "n de partos"],
+  ubicacion: ["corral", "potrero", "corral o potrero", "ubicacion"],
   madre_externa: ["madre", "madre si no esta en tu hato", "madre externa"],
   aptitud: ["aptitud", "aptitud hembras", "vocacion"],
   fecha_ultimo_parto: ["ultimo parto", "fecha del ultimo parto", "fecha ultimo parto"],
@@ -198,13 +231,15 @@ type Parcial = {
   nacimiento?: string;
   padreClave?: string;
   madreClave?: string;
+  sementalClave?: string;
+  ubicacion?: UbicacionRef;
   errores: string[];
   fila?: FilaParaGuardar;
   razaNombre?: string;
 };
 
 export function validarFilas(crudas: FilaCruda[], ctx: ContextoImportar): ResultadoValidacion {
-  const vacio = { total: 0, hembras: 0, machos: 0, con_padres_en_archivo: 0, con_padres_en_hato: 0, con_padres_externos: 0 };
+  const vacio = { total: 0, hembras: 0, machos: 0, con_padres_en_archivo: 0, con_padres_en_hato: 0, con_padres_externos: 0, con_servicio: 0, con_ubicacion: 0 };
   const parciales: Parcial[] = crudas.map((cruda) => interpretarFila(cruda, ctx));
 
   const existentes = new Map(ctx.existentes.map((a) => [normalizar(a.numero_arete), a]));
@@ -251,6 +286,33 @@ export function validarFilas(crudas: FilaCruda[], ctx: ContextoImportar): Result
     dependeDe.set(p, deps);
   }
 
+  // Semental del servicio: debe ser un macho de la misma especie, del archivo o del hato.
+  for (const p of parciales) {
+    if (!p.sementalClave) continue;
+    const enFila = enArchivo.get(p.sementalClave);
+    const enHato = existentes.get(p.sementalClave);
+    const ref = enFila ? { sexo: enFila.sexo, especie: enFila.especie } : enHato ? { sexo: enHato.sexo, especie: enHato.especie } : null;
+    const etiqueta = `El semental con arete «${texto(p.cruda.valores.semental_arete)}»`;
+    if (!ref) p.errores.push(`${etiqueta} no está en este archivo ni en tu hato. Agrégalo o escríbelo en «Semental (si no está en tu hato)».`);
+    else {
+      if (ref.sexo && ref.sexo !== "macho") p.errores.push(`${etiqueta} debe ser un macho.`);
+      if (ref.especie && p.especie && ref.especie !== p.especie) p.errores.push(`${etiqueta} debe ser de la misma especie.`);
+    }
+  }
+
+  // Cupo de cada corral: lo que ya hay más lo que pone el archivo no puede pasar de su capacidad (la base también lo exige).
+  const puestos = new Map<string, number>();
+  for (const p of parciales) {
+    const u = p.ubicacion;
+    if (!u) continue;
+    const n = (puestos.get(u.id) ?? 0) + 1;
+    puestos.set(u.id, n);
+    if (u.capacidad !== null && u.ocupantes + n > u.capacidad) {
+      const libres = Math.max(0, u.capacidad - u.ocupantes);
+      p.errores.push(`«${u.nombre}» no tiene cupo: caben ${u.capacidad} y ya tiene ${u.ocupantes}${libres > 0 ? ` (el archivo solo puede poner ${libres})` : ""}.`);
+    }
+  }
+
   // Orden de inserción: padres antes que crías (Kahn, estable respecto al orden del archivo).
   const orden: Parcial[] = [];
   const hechos = new Set<Parcial>();
@@ -289,6 +351,8 @@ export function validarFilas(crudas: FilaCruda[], ctx: ContextoImportar): Result
     padre: nombreDe(p.padreClave, p.fila!.padre_externo, p.fila!.padre_arete),
     madre: nombreDe(p.madreClave, p.fila!.madre_externa, p.fila!.madre_arete),
     origen: p.fila!.origen,
+    repro: resumenRepro(p.fila!, p.sementalClave ? `${p.fila!.semental_arete} · ${enArchivo.has(p.sementalClave) ? "en este archivo" : "en tu hato"}` : p.fila!.semental_externo ? `${p.fila!.semental_externo} · de fuera` : null),
+    ubicacion: p.ubicacion?.nombre ?? null,
   }));
   const resumen = {
     total: filas.length,
@@ -297,8 +361,22 @@ export function validarFilas(crudas: FilaCruda[], ctx: ContextoImportar): Result
     con_padres_en_archivo: orden.filter((p) => [p.padreClave, p.madreClave].some((c) => c && enArchivo.has(c))).length,
     con_padres_en_hato: orden.filter((p) => [p.padreClave, p.madreClave].some((c) => c && !enArchivo.has(c) && existentes.has(c))).length,
     con_padres_externos: filas.filter((f) => f.padre_externo || f.madre_externa).length,
+    con_servicio: filas.filter((f) => f.fecha_servicio).length,
+    con_ubicacion: filas.filter((f) => f.ubicacion_id).length,
   };
   return { filas, vista, errores: [], resumen };
+}
+
+const ETIQUETA_TIPO_SERVICIO = { monta_natural: "Monta natural", inseminacion: "Inseminación", transferencia_embrionaria: "Transferencia de embrión" } as const;
+const fechaLarga = (iso: string) => iso.split("-").reverse().join("/");
+
+function resumenRepro(f: FilaParaGuardar, semental: string | null): string | null {
+  const partes: string[] = [];
+  if (f.partos_total !== undefined) partes.push(`${f.partos_total} ${f.partos_total === 1 ? "parto" : "partos"}`);
+  if (f.fecha_servicio) {
+    partes.push(`${f.prenez_confirmada ? "Preñada" : "Servida"} el ${fechaLarga(f.fecha_servicio)} · ${ETIQUETA_TIPO_SERVICIO[f.tipo_servicio ?? "monta_natural"]}${semental ? ` · ${semental}` : ""}`);
+  }
+  return partes.length > 0 ? partes.join(" · ") : null;
 }
 
 /** Lee una fila sola (sin mirar a las demás): tipos, listas, fechas, rangos y reglas propias del animal. */
@@ -380,6 +458,60 @@ function interpretarFila(cruda: FilaCruda, ctx: ContextoImportar): Parcial {
     else if (nac.valor && parto.valor <= nac.valor) errores.push("El parto debe ser posterior al nacimiento de la hembra.");
   }
 
+  // Partos y reproducción (partos totales, servicio, semental y preñez)
+  const crudoPartos = texto(v.partos_total);
+  let partosTotal: number | undefined;
+  if (crudoPartos) {
+    const n = leerNumero(crudoPartos);
+    if (n === null || !Number.isInteger(n) || n < 0 || n > 30) errores.push("El número de partos debe ser un entero entre 0 y 30.");
+    else if (sexo === "macho") errores.push("Solo una hembra tiene partos.");
+    else partosTotal = n;
+  }
+  if (parto.valor && sexo === "hembra") {
+    if (partosTotal === 0) errores.push("Si tiene fecha del último parto, el número de partos no puede ser 0.");
+    else if (partosTotal === undefined && !errores.some((e) => e.startsWith("El número de partos"))) partosTotal = 1;
+  }
+
+  const serv = leerFecha(v.fecha_servicio);
+  const crudoTipoServ = normalizar(texto(v.tipo_servicio));
+  const sementalArete = texto(v.semental_arete);
+  const sementalExterno = texto(v.semental_externo);
+  const prenez = leerSiNo(v.prenez_confirmada);
+  const traeServicio = !!(serv.valor || serv.error || crudoTipoServ || sementalArete || sementalExterno || prenez === true);
+  let tipoServicio: FilaParaGuardar["tipo_servicio"];
+  if (prenez === null) errores.push("«Preñez confirmada» debe ser Sí o No.");
+  if (traeServicio) {
+    if (!ctx.reproduccion) errores.push("Tu plan o tu rol no permite registrar servicios desde este archivo: deja vacías las columnas de servicio y preñez.");
+    else if (sexo === "macho") errores.push("Solo una hembra tiene servicios.");
+    else {
+      if (serv.error) errores.push("La fecha del servicio no es válida (usa día/mes/año).");
+      else if (!serv.valor) errores.push("Falta la fecha del último servicio (hay datos de servicio o preñez sin ella).");
+      else if (serv.valor > hoy || serv.valor < "1990-01-01") errores.push("La fecha del servicio debe estar entre 1990 y hoy.");
+      else if (nac.valor && serv.valor <= nac.valor) errores.push("El servicio debe ser posterior al nacimiento de la hembra.");
+      else if (parto.valor && serv.valor <= parto.valor) errores.push("El servicio debe ser posterior a la fecha del último parto (si ya parió, el servicio es el siguiente).");
+      if (!crudoTipoServ) tipoServicio = "monta_natural";
+      else if (["monta natural", "monta", "natural"].includes(crudoTipoServ)) tipoServicio = "monta_natural";
+      else if (["inseminacion", "inseminacion artificial", "ia"].includes(crudoTipoServ)) tipoServicio = "inseminacion";
+      else if (["transferencia de embrion", "transferencia embrionaria", "transferencia", "te"].includes(crudoTipoServ)) tipoServicio = "transferencia_embrionaria";
+      else errores.push(`El tipo de servicio «${texto(v.tipo_servicio)}» no es válido (usa Monta natural, Inseminación o Transferencia de embrión).`);
+      if (sementalArete && sementalExterno) errores.push("Pon el semental por arete o por nombre, no los dos.");
+      largo(sementalExterno, 80, "El semental", errores);
+      if (sementalArete) p.sementalClave = normalizar(sementalArete);
+    }
+  }
+
+  // Corral o potrero (de los que ya creó la finca)
+  const crudaUbicacion = texto(v.ubicacion);
+  if (crudaUbicacion) {
+    if (ctx.ubicaciones === undefined) errores.push("Tu plan o tu rol no permite asignar corrales desde este archivo: deja vacía la columna «Corral o potrero».");
+    else if (ctx.ubicaciones.length === 0) errores.push("Aún no tienes corrales ni potreros: créalos en Hato → Corrales y descarga la plantilla otra vez.");
+    else {
+      const u = ctx.ubicaciones.find((x) => normalizar(x.nombre) === normalizar(crudaUbicacion));
+      if (!u) errores.push(`«${crudaUbicacion}» no es un corral ni un potrero de tu finca (elige de la lista de la hoja «Listas»).`);
+      else p.ubicacion = u;
+    }
+  }
+
   // Origen y compra
   const crudoOrigen = normalizar(texto(v.origen));
   let origen: "nacido_en_finca" | "comprado" = "nacido_en_finca";
@@ -455,6 +587,15 @@ function interpretarFila(cruda: FilaCruda, ctx: ContextoImportar): Parcial {
       ...(madreExterna && { madre_externa: madreExterna }),
       ...(usoMacho && { uso_macho: usoMacho }),
       ...(parto.valor && { fecha_ultimo_parto: parto.valor }),
+      ...(partosTotal !== undefined && { partos_total: partosTotal }),
+      ...(serv.valor && ctx.reproduccion && sexo === "hembra" && {
+        fecha_servicio: serv.valor,
+        tipo_servicio: tipoServicio ?? "monta_natural",
+        ...(prenez === true && { prenez_confirmada: true }),
+        ...(sementalArete && { semental_arete: sementalArete }),
+        ...(sementalExterno && !sementalArete && { semental_externo: sementalExterno }),
+      }),
+      ...(p.ubicacion && { ubicacion_id: p.ubicacion.id }),
       ...(peso !== undefined && { peso_nacer_kg: peso }),
       ...(chip && { chip }),
       ...(color && { color }),

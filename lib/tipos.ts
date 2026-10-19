@@ -1262,7 +1262,7 @@ export type Database = {
     Functions: {
       importar_animales_lote: {
         Args: { p_finca: string; p_filas: unknown };
-        Returns: { animales: number; con_padres: number; con_parto: number };
+        Returns: { animales: number; con_padres: number; con_parto: number; con_servicio: number; con_ubicacion: number };
       };
       mover_animales: {
         Args: { p_finca: string; p_ubicacion: string | null; p_animales: string[]; p_fecha: string; p_motivo: string; p_observaciones: string };

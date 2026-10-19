@@ -7,6 +7,7 @@ import { puedeEscribir } from "@/lib/permisos";
 import { mensajeAmigable } from "@/lib/mensaje-amigable";
 import { hoyBogota } from "@/lib/fechas";
 import { leerArchivoAnimales } from "@/lib/importar-animales-excel";
+import { opcionesImportar } from "@/lib/importar-animales-servidor";
 import {
   MAX_BYTES_IMPORTAR,
   validarFilas,
@@ -22,7 +23,7 @@ export type RevisionImportacion =
   | { error: string }
   | { errores: ErrorFila[]; resumen: ResultadoValidacion["resumen"]; vista: FilaVista[] };
 
-export type ResultadoGuardado = { error: string } | { animales: number; con_padres: number; con_parto: number };
+export type ResultadoGuardado = { error: string } | { animales: number; con_padres: number; con_parto: number; con_servicio: number; con_ubicacion: number };
 
 /** Lee el archivo subido y aplica todas las reglas contra el hato de la finca activa. Nada se escribe aquí. */
 async function procesar(form: FormData): Promise<{ error: string } | { resultado: ResultadoValidacion; filas: FilaParaGuardar[]; fincaId: string }> {
@@ -56,7 +57,12 @@ async function procesar(form: FormData): Promise<{ error: string } | { resultado
     if (data.length < 1000) break;
   }
 
+  const opciones = await opcionesImportar(supabase, finca, rol);
+  if (opciones.error) return { error: mensajeAmigable(opciones.error) };
+
   const resultado = validarFilas(lectura.filas, {
+    reproduccion: opciones.reproduccion,
+    ubicaciones: opciones.ubicaciones,
     especies: finca.especies,
     razas: (razas ?? []) as RazaRef[],
     existentes,

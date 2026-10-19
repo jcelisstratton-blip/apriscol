@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState, useTransition } from "react";
-import { ArrowRight, Download, FileSpreadsheet, GitFork, RefreshCw } from "lucide-react";
+import { ArrowRight, Download, FileSpreadsheet, GitFork, MapPin, RefreshCw, Stethoscope } from "lucide-react";
 import { Aviso } from "@/components/Aviso";
 import { Boton, EnlaceBoton } from "@/components/Boton";
 import { Cargando } from "@/components/Cargando";
@@ -51,6 +51,18 @@ function FilaAnimalVista({ f }: { f: FilaVista }) {
         {f.nombre ? <span className="font-normal text-humo"> · {f.nombre}</span> : null}
       </p>
       <p className="text-sm text-humo [overflow-wrap:anywhere]">{detalle}</p>
+      {f.repro ? (
+        <p className="mt-1 flex items-start gap-1.5 text-sm [overflow-wrap:anywhere]">
+          <Stethoscope className="mt-0.5 size-4 shrink-0 text-musgo" strokeWidth={1.75} aria-hidden="true" />
+          <span className="min-w-0">{f.repro}</span>
+        </p>
+      ) : null}
+      {f.ubicacion ? (
+        <p className="mt-1 flex items-start gap-1.5 text-sm [overflow-wrap:anywhere]">
+          <MapPin className="mt-0.5 size-4 shrink-0 text-musgo" strokeWidth={1.75} aria-hidden="true" />
+          <span className="min-w-0">{f.ubicacion}</span>
+        </p>
+      ) : null}
       {f.padre || f.madre ? (
         <p className="mt-1 flex items-start gap-1.5 text-sm [overflow-wrap:anywhere]">
           <GitFork className="mt-0.5 size-4 shrink-0 text-musgo" strokeWidth={1.75} aria-hidden="true" />
@@ -78,7 +90,7 @@ export function ImportarAnimales({
   const [archivo, setArchivo] = useState<File | null>(null);
   const [revision, setRevision] = useState<Revision | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [creados, setCreados] = useState<{ animales: number; con_padres: number } | null>(null);
+  const [creados, setCreados] = useState<{ animales: number; con_padres: number; con_servicio: number; con_ubicacion: number } | null>(null);
   const [revisando, iniciarRevision] = useTransition();
   const [guardando, iniciarGuardado] = useTransition();
   const toast = useToast();
@@ -114,7 +126,7 @@ export function ImportarAnimales({
           setError(r.error);
           return;
         }
-        setCreados({ animales: r.animales, con_padres: r.con_padres });
+        setCreados({ animales: r.animales, con_padres: r.con_padres, con_servicio: r.con_servicio, con_ubicacion: r.con_ubicacion });
         toast.exito(`${r.animales} animales cargados`);
       } catch (e) {
         setError(e instanceof Error ? e.message : "No se pudieron guardar los animales.");
@@ -128,7 +140,14 @@ export function ImportarAnimales({
         <div className="space-y-4">
           <Aviso tipo="exito">
             Se cargaron {creados.animales} {creados.animales === 1 ? "animal" : "animales"}
-            {creados.con_padres > 0 ? `, ${creados.con_padres} con su genealogía enlazada` : ""}.
+            {[
+              creados.con_padres > 0 ? `${creados.con_padres} con su genealogía enlazada` : null,
+              creados.con_servicio > 0 ? `${creados.con_servicio} con su servicio registrado` : null,
+              creados.con_ubicacion > 0 ? `${creados.con_ubicacion} ya en su corral o potrero` : null,
+            ]
+              .filter(Boolean)
+              .map((t) => `, ${t}`)
+              .join("")}.
           </Aviso>
           <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
             <EnlaceBoton href={rutaHato}>
@@ -218,6 +237,8 @@ export function ImportarAnimales({
                 ? `${revision.resumen.con_padres_en_archivo + revision.resumen.con_padres_en_hato} con padre o madre enlazados${revision.resumen.con_padres_en_hato > 0 ? ` (${revision.resumen.con_padres_en_hato} con animales que ya están en tu hato)` : ""}. `
                 : ""}
               Todo está correcto. Se guardan todos juntos al confirmar.
+              {revision.resumen.con_servicio > 0 ? ` ${revision.resumen.con_servicio} hembras con servicio.` : ""}
+              {revision.resumen.con_ubicacion > 0 ? ` ${revision.resumen.con_ubicacion} con corral o potrero.` : ""}
             </Aviso>
             <ListaEscalable<FilaVista>
               key={`ok-${revision.resumen.total}-${archivo?.name}`}
