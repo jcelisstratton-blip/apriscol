@@ -20,8 +20,6 @@ export const ETIQUETA_PARTO: Record<TipoParto, string> = { normal: "Parto normal
 export const ETIQUETA_ESTADO: Record<EstadoRepro, string> = { sin_datos: "Sin datos", vacia: "Vacía", servida: "Servida", gestante: "Gestante" };
 export const TONO_ESTADO: Record<EstadoRepro, "neutro" | "aviso" | "ok" | "musgo"> = { sin_datos: "neutro", vacia: "neutro", servida: "aviso", gestante: "musgo" };
 
-/** Desde cuántos días de un servicio sin diagnóstico conviene confirmar si quedó gestante (ecografía desde ~30–45 días). */
-export const DIAS_PARA_DIAGNOSTICO = 45;
 /** Cuántos días pasada la fecha prevista sin parto se marca como atrasada. */
 export const DIAS_PARTO_ATRASADO = 7;
 

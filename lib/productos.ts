@@ -1,4 +1,4 @@
-import { GRUPOS, GRUPO_DE, RUBROS_DE, type GrupoGasto } from "@/lib/costos";
+import { RUBROS_DE, type GrupoGasto } from "@/lib/costos";
 import type { Producto, RubroGasto } from "@/lib/tipos";
 
 /** El producto de un grupo de compras, para elegirlo de una lista corta. */
@@ -11,14 +11,6 @@ export const esVenta = (p: Producto): p is ProductoVenta => p.tipo === "venta" &
 /** Los productos de compra de un grupo de gasto, en el orden del catálogo. */
 export const comprasDeGrupo = (productos: Producto[], grupo: GrupoGasto): ProductoCompra[] =>
   productos.filter(esCompra).filter((p) => (RUBROS_DE[grupo] as RubroGasto[]).includes(p.rubro)).sort((a, b) => a.orden - b.orden || a.nombre.localeCompare(b.nombre, "es"));
-
-/** Los productos de compra agrupados por grupo de gasto. */
-export function comprasPorGrupo(productos: Producto[]): Record<GrupoGasto, ProductoCompra[]> {
-  const r = Object.fromEntries(GRUPOS.map((g) => [g, [] as ProductoCompra[]])) as Record<GrupoGasto, ProductoCompra[]>;
-  for (const p of productos.filter(esCompra)) r[GRUPO_DE[p.rubro]]?.push(p);
-  for (const g of GRUPOS) r[g].sort((a, b) => a.orden - b.orden || a.nombre.localeCompare(b.nombre, "es"));
-  return r;
-}
 
 /** Las ventas que se registran a mano: las que no entran solas desde Leche o desde la baja de un animal. */
 export const ventasManuales = (productos: Producto[]): ProductoVenta[] =>

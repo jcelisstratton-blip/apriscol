@@ -10,11 +10,10 @@ import { formasDe } from "@/lib/nomina";
 import type { FormaPago, Vinculacion } from "@/lib/tipos";
 import { mensajeAmigable } from "@/lib/mensaje-amigable";
 import { urlDelSitio } from "@/lib/sitio";
+import { opcional } from "@/lib/validacion";
 
 export type EstadoInvitar = { error?: string; enlace?: string; email?: string; persona?: string } | undefined;
 
-const vacio = (v: unknown) => (typeof v === "string" && v.trim() === "" ? undefined : v);
-const opcional = <T extends z.ZodType>(s: T) => z.preprocess(vacio, s.optional());
 const numero = (mensaje: string) => z.preprocess((v) => (typeof v === "string" ? (leerNumero(v) ?? v) : v), z.number(mensaje));
 
 /** Perfil elegido + contrato. «ninguno» = trabaja en la finca pero no usa la app (no lleva correo ni invitación). */

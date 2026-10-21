@@ -1,3 +1,5 @@
+import { FMT } from "@/lib/excel-estilo";
+
 /**
  * Exportación completa de una finca a Excel: qué hojas lleva, cómo se llaman las columnas y cómo se escribe cada valor. Sin dependencias de
  * Excel ni de la base: lo que se puede probar solo vive aquí; `lib/exportar-finca-excel.ts` lo usa para armar el libro.
@@ -163,11 +165,11 @@ export function aCelda(columna: string, valor: unknown): ValorCelda {
   if (Array.isArray(valor)) return { valor: valor.map((v) => (typeof v === "string" && COLUMNAS_OPCION.has(columna) ? humanizarOpcion(v) : String(v))).join(", ") || null };
   if (typeof valor === "number") return { valor };
   if (typeof valor === "string") {
-    if (RE_FECHA.test(valor)) return { valor: new Date(`${valor}T00:00:00Z`), formato: "dd/mm/yyyy" };
+    if (RE_FECHA.test(valor)) return { valor: new Date(`${valor}T00:00:00Z`), formato: FMT.fecha };
     if (RE_MARCA.test(valor)) {
       // Colombia no cambia de hora: se guarda la hora local de Bogotá (UTC-5) como si fuera la del libro.
       const f = new Date(new Date(valor).getTime() - CINCO_HORAS);
-      return Number.isNaN(f.getTime()) ? { valor } : { valor: f, formato: "dd/mm/yyyy hh:mm" };
+      return Number.isNaN(f.getTime()) ? { valor } : { valor: f, formato: FMT.fechaHora };
     }
     if (COLUMNAS_OPCION.has(columna) && /^[a-z][a-z0-9]*(_[a-z0-9]+)+$|^[a-z]+$/.test(valor)) return { valor: humanizarOpcion(valor) };
     return { valor };

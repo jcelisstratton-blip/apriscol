@@ -1,4 +1,4 @@
-import type { FormaPago, PagoPersonal, Persona, Vinculacion } from "@/lib/tipos";
+import type { FormaPago, Persona, Vinculacion } from "@/lib/tipos";
 
 export const VINCULACIONES: Vinculacion[] = ["laboral", "servicios"];
 export const ETIQUETA_VINCULACION: Record<Vinculacion, string> = { laboral: "Contrato de trabajo", servicios: "Prestación de servicios" };
@@ -32,6 +32,5 @@ export function calcularPago(cantidad: number, valorBase: number, factor: number
   return { pago, costo };
 }
 
-export const estaPorPagar = (p: Pick<PagoPersonal, "pagado_en">) => p.pagado_en === null;
 /** ¿Hace falta el comprobante de seguridad social para marcar este pago como hecho? */
 export const exigePila = (v: Persona["vinculacion"]) => v === "servicios";

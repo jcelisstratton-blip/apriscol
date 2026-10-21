@@ -6,26 +6,22 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { crearClienteServidor } from "@/lib/supabase/server";
 import { obtenerContexto } from "@/lib/contexto";
-import { puedeEscribir, puedeGestionar } from "@/lib/permisos";
+import { puedeGestionar } from "@/lib/permisos";
 import { mensajeAmigable } from "@/lib/mensaje-amigable";
 import { hoyBogota, sumarDias } from "@/lib/fechas";
 import { CONFORMACIONES, GRASAS_VISCERALES, TIPOS_PESAJE } from "@/lib/carne";
 import { decimal, opcional, texto } from "@/lib/validacion";
+import { esRepetido, noFutura } from "@/lib/validacion";
+import { permisoPara } from "@/lib/permiso-servidor";
 
 export type EstadoForm = { error?: string } | undefined;
 type Resultado = { ok: true; destino?: string } | { ok: false; error: string };
 
 const ID_UUID = z.uuid();
-const esRepetido = (e: { code?: string; message: string }) => e.code === "23505" && /client_req/.test(e.message);
 const NOMBRE_REPETIDO = "Ya tienes un lote con ese nombre. Elige otro.";
 const esNombreRepetido = (e: { code?: string; message: string }) => e.code === "23505" && /lotes_ceba_nombre/.test(e.message);
-const noFutura = (fecha: string) => (fecha > hoyBogota() ? "La fecha no puede ser futura: registra lo que ya pasó." : null);
 
-async function permiso(verbo: string) {
-  const { finca, rol } = await obtenerContexto();
-  if (!puedeEscribir(rol, "carne", finca.plan)) return { ok: false, error: `No tienes permiso para ${verbo} en esta finca.` } as const;
-  return { ok: true, finca, rol } as const;
-}
+const permiso = permisoPara("carne");
 
 // ───────────────────────── Lotes de ceba ─────────────────────────
 const esquemaLote = z.object({

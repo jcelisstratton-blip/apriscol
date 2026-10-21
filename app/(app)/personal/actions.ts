@@ -12,12 +12,11 @@ import { leerNumero } from "@/lib/numeros";
 import { soporteValido } from "@/lib/soportes";
 import { formasDe } from "@/lib/nomina";
 import type { FormaPago, Vinculacion } from "@/lib/tipos";
+import { opcional } from "@/lib/validacion";
 
 export type EstadoForm = { error?: string } | undefined;
 type Resultado = { ok: true } | { ok: false; error: string };
 
-const vacio = (v: unknown) => (typeof v === "string" && v.trim() === "" ? undefined : v);
-const opcional = <T extends z.ZodType>(s: T) => z.preprocess(vacio, s.optional());
 const numero = (mensaje: string) => z.preprocess((v) => (typeof v === "string" ? (leerNumero(v) ?? v) : v), z.number(mensaje));
 const ID_UUID = z.uuid();
 const DIRECCION_PERSONAS = "/mas/miembros?guardado=1";

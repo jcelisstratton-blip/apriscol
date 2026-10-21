@@ -1399,10 +1399,8 @@ export type Database = {
       admin_vigencias: { Args: Record<string, never>; Returns: { finca_id: string; nombre: string; propietario_email: string; plan: PlanId; plan_vence_en: string | null; estado: "vigente" | "por_vencer" | "gracia" | "bloqueada"; cuenta_pruebas: boolean }[] };
       admin_marcar_cuenta_pruebas: { Args: { p_correo: string; p_exenta: boolean }; Returns: number };
       estado_vigencia_finca: { Args: { p_finca: string }; Returns: string | null };
-      admin_asignar_plan: { Args: { p_correo: string; p_plan: PlanId }; Returns: number };
       admin_asignar_plan_finca: { Args: { p_finca: string; p_plan: PlanId }; Returns: number };
       admin_solicitudes_plan: { Args: Record<string, never>; Returns: (SolicitudPlan & { finca_id: string; numero_finca: number })[] };
-      admin_listar_solicitudes_plan: { Args: Record<string, never>; Returns: SolicitudPlan[] };
       mis_referidos: { Args: Record<string, never>; Returns: { nombre: string; registrado_en: string; plan: string | null; porcentaje: number | null; meses: number | null; desde: string | null }[] };
       admin_listar_comisiones: { Args: Record<string, never>; Returns: { referidor: string; referido: string; plan: string; porcentaje: number; meses: number; desde: string }[] };
       admin_listar_fincas: {

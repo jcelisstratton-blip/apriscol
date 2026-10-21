@@ -23,7 +23,7 @@ export default async function PanelGlobal() {
     );
   }
   const r = data as Record<string, number>;
-  const { data: solicitudes } = await supabase.rpc("admin_listar_solicitudes_plan");
+  const { data: solicitudes } = await supabase.rpc("admin_solicitudes_plan");
   const pendientesPlan = (solicitudes ?? []).length;
   const enFincas = r.libro_total > 0 ? Math.round((r.libro_en_fincas / r.libro_total) * 100) : 0;
 

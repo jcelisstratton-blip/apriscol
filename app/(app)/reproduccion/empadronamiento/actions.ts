@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { crearClienteServidor } from "@/lib/supabase/server";
 import { obtenerContexto } from "@/lib/contexto";
-import { puedeEscribir, puedeGestionar } from "@/lib/permisos";
+import { puedeGestionar } from "@/lib/permisos";
 import { mensajeAmigable } from "@/lib/mensaje-amigable";
 import { diasHasta, hoyBogota, sumarDias } from "@/lib/fechas";
 import { PRESTAMO_MAX_DIAS } from "@/lib/semental-externo";
@@ -13,21 +13,18 @@ import { aptitud, DURACION_MAX_DIAS, VALORES_CC } from "@/lib/empadronamiento";
 import { decimal, opcional, texto } from "@/lib/validacion";
 import { porcentaje } from "@/lib/endogamia";
 import type { Empadronamiento, Especie } from "@/lib/tipos";
+import { esRepetido } from "@/lib/validacion";
+import { permisoPara } from "@/lib/permiso-servidor";
 
 export type EstadoForm = { error?: string } | undefined;
 type Resultado = { ok: true; destino?: string } | { ok: false; error: string };
 type Cliente = Awaited<ReturnType<typeof crearClienteServidor>>;
 
 const ID_UUID = z.uuid();
-const esRepetido = (e: { code?: string; message: string }) => e.code === "23505" && /client_req/.test(e.message);
 const destinoLote = (id: string) => `/reproduccion/empadronamiento/${id}`;
 const REPETIDO_NOMBRE = "Ya tienes un empadronamiento con ese nombre. Ponle otro (por ejemplo, con el año).";
 
-async function permiso(verbo: string) {
-  const { finca, rol } = await obtenerContexto();
-  if (!puedeEscribir(rol, "reproduccion", finca.plan)) return { ok: false, error: `No tienes permiso para ${verbo} en esta finca.` } as const;
-  return { ok: true, finca, rol } as const;
-}
+const permiso = permisoPara("reproduccion");
 
 /** El empadronamiento existe, es de la finca y sigue abierto (o se acepta cerrado si `abierto` es falso). */
 async function cargarLote(supabase: Cliente, fincaId: string, id: string, abierto = true): Promise<{ ok: false; error: string } | { ok: true; lote: Empadronamiento }> {

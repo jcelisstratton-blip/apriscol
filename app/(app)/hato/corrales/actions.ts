@@ -11,12 +11,11 @@ import { hoyBogota } from "@/lib/fechas";
 import { leerNumero } from "@/lib/numeros";
 import { DIAS_DESCANSO_DEFECTO, DIAS_OCUPACION_DEFECTO, MOTIVOS, PISOS, TIPOS_UBICACION, USOS } from "@/lib/corrales";
 import { DIRECCION_CORRALES } from "@/lib/hato";
+import { opcional } from "@/lib/validacion";
 
 export type EstadoForm = { error?: string } | undefined;
 type Resultado = { ok: true } | { ok: false; error: string };
 
-const vacio = (v: unknown) => (typeof v === "string" && v.trim() === "" ? undefined : v);
-const opcional = <T extends z.ZodType>(s: T) => z.preprocess(vacio, s.optional());
 const entero = (mensaje: string, min: number, max: number) =>
   z.preprocess((v) => (typeof v === "string" ? (leerNumero(v) ?? v) : v), z.number(mensaje).int(mensaje).min(min, mensaje).max(max, mensaje));
 const ID_UUID = z.uuid();

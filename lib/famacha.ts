@@ -1,7 +1,5 @@
 import { diasHasta } from "@/lib/fechas";
 
-/** Cada cuántos días conviene evaluar de nuevo en épocas de riesgo (la guía FAMACHA: cada 2 a 4 semanas). */
-export const DIAS_FAMACHA = 30;
 /** Desde qué edad se evalúa: antes de los 3 meses la cría aún mama y la anemia por parásitos no es el problema. */
 export const DIAS_EDAD_FAMACHA = 90;
 
