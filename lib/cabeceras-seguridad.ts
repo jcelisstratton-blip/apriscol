@@ -42,7 +42,8 @@ export function politicaDeContenido(supabaseUrl: string): string {
     "base-uri 'self'",
     "form-action 'self'",
     "frame-ancestors 'none'",
-    "upgrade-insecure-requests",
+    // El navegador ignora esta directiva (y avisa en la consola) cuando la política solo reporta.
+    ...(CSP_ENFORZAR ? ["upgrade-insecure-requests"] : []),
     `report-uri ${RUTA_REPORTE_CSP}`,
   ];
   return directivas.join("; ");

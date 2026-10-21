@@ -110,6 +110,10 @@ Una acción que debe dejar **varias tablas coherentes** (animal + lactancia, par
 
 `lib/cabeceras-seguridad.ts` define las cabeceras de **toda** respuesta y `next.config.ts` las aplica. Siempre activas: `X-Content-Type-Options`, `Referrer-Policy`, `X-Frame-Options: DENY` y `Permissions-Policy` (sin cámara, micrófono ni ubicación: la app no los usa). La **política de contenido (CSP)** va en modo **solo reportar** mientras `CSP_ENFORZAR = false`: no bloquea nada y cada violación llega a `/api/csp`, que la deja en los registros de Vercel como `[apriscol:csp]` (sin parámetros ni tramos largos de la ruta). Pasar a bloquear de verdad (`CSP_ENFORZAR = true`) solo después de varios días de uso real sin violaciones en esos registros. La política permite lo propio, Supabase (datos y fotos firmadas) y `data:`/`blob:` para la vista previa de una foto; `script-src` y `style-src` llevan `'unsafe-inline'` porque Next incrusta scripts en cada página (quitarlo exigiría nonces por petición). **Un recurso externo nuevo** (otra fuente, un mapa, un script de terceros) se agrega a la política en el mismo cambio. En desarrollo no se manda la política.
 
+## Dependencias
+
+Next, React y `eslint-config-next` van **fijados sin `^`** (suben a propósito, uno por PR, con `tsc`, `lint`, `npm test`, build y una prueba en Chromium de las páginas públicas). Las versiones mayores (TypeScript 7, ESLint 10, `@types/node` 26) no se suben sin un cambio propio. `npm audit` deja **dos hallazgos conocidos y aceptados**: `exceljs` → `uuid` (afecta solo a `uuid` v3/v5/v6 con búfer propio; `exceljs` usa v4, y la «corrección» que propone npm es bajar a `exceljs@3`, que rompe la exportación) y las herramientas de `eslint-config-next` (`micromatch`, `braces`; solo corren al revisar el código, no en producción). Se vuelven a mirar cuando `exceljs` o `eslint-config-next` publiquen una versión corregida.
+
 ## Un servidor no puede llamar a un archivo de cliente
 
 Un archivo con `"use client"` solo puede exportar **componentes**: una función normal exportada desde él (por ejemplo, un armador de direcciones)
