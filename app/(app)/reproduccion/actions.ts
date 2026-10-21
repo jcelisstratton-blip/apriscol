@@ -262,48 +262,25 @@ export async function crearParto(_: EstadoForm, form: FormData): Promise<EstadoF
   if (c.crias.some((x) => x.arete && !x.vivo)) return { error: "Una cría que nació muerta no se crea como animal: quita su arete." };
   if (c.crias.some((x) => x.arete && !x.sexo)) return { error: "Indica el sexo de la cría que vas a crear como animal." };
 
-  const { data: parto, error } = await supabase
-    .from("partos")
-    .insert({ finca_id: p.finca.id, madre_id: d.madre_id, servicio_id: servicio?.id ?? null, fecha: d.fecha, tipo: d.tipo as never, numero_crias: c.crias.length, complicaciones: d.complicaciones ?? null, client_request_id: d.client_request_id ?? null })
-    .select("id")
-    .maybeSingle();
+  // Un solo paso en la base: el parto, sus crías y los animales de las crías con arete (todo o nada; la lactancia la abre un disparador).
+  const { data: r, error } = await supabase.rpc("registrar_parto", {
+    p_finca: p.finca.id,
+    p_parto: {
+      madre_id: d.madre_id,
+      servicio_id: servicio?.id ?? null,
+      fecha: d.fecha,
+      tipo: d.tipo,
+      complicaciones: d.complicaciones ?? null,
+      client_request_id: d.client_request_id ?? null,
+      padre_id: servicio?.macho_id ?? null,
+      padre_externo: servicio?.macho_externo ?? null,
+    },
+    p_crias: c.crias.map((x) => ({ arete: x.arete ?? null, nombre: x.nombre || null, sexo: x.sexo ?? null, peso: x.peso ?? null, vivo: x.vivo })),
+  });
+  if (error || !r) return { error: mensajeAmigable(error?.message ?? "No se pudo guardar el parto.") };
+  const { repetido, sin_crear: fallos } = r as { repetido: boolean; sin_crear: string[] };
   // Doble toque: este parto ya se guardó con sus crías; no se repite.
-  if (error && esRepetido(error)) redirect(destinoFicha(d.madre_id));
-  if (error || !parto) return { error: mensajeAmigable(error?.message ?? "No se pudo guardar el parto.") };
-
-  const filasCrias: { finca_id: string; parto_id: string; animal_id: string | null; sexo: "hembra" | "macho" | null; peso_nacer_kg: number | null; vivo: boolean }[] = [];
-  const fallos: string[] = [];
-  for (const x of c.crias) {
-    let animalId: string | null = null;
-    if (x.arete) {
-      const { data: nuevo, error: e } = await supabase
-        .from("animales")
-        .insert({
-          finca_id: p.finca.id,
-          especie: h.hembra.especie,
-          numero_arete: x.arete,
-          nombre: x.nombre || null,
-          sexo: x.sexo!,
-          origen: "nacido_en_finca",
-          fecha_nacimiento: d.fecha,
-          fecha_nacimiento_aprox: false,
-          madre_id: d.madre_id,
-          padre_id: servicio?.macho_id ?? null,
-          padre_externo: servicio?.macho_externo ?? null,
-          vocacion: x.sexo === "macho" ? "carne" : h.hembra.vocacion,
-          peso_nacer_kg: x.peso ?? null,
-        })
-        .select("id")
-        .maybeSingle();
-      if (e || !nuevo) fallos.push(x.arete);
-      else animalId = nuevo.id;
-    }
-    filasCrias.push({ finca_id: p.finca.id, parto_id: parto.id, animal_id: animalId, sexo: x.sexo ?? null, peso_nacer_kg: x.peso ?? null, vivo: x.vivo });
-  }
-  if (filasCrias.length) {
-    const { error: eCrias } = await supabase.from("crias").insert(filasCrias);
-    if (eCrias) return { error: `El parto quedó registrado, pero no se pudieron guardar las crías: ${mensajeAmigable(eCrias.message)}` };
-  }
+  if (repetido) redirect(destinoFicha(d.madre_id));
 
   revalidatePath("/reproduccion");
   revalidatePath("/hato");

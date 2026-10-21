@@ -98,6 +98,10 @@ El detalle de cada módulo vive en `docs/modulos/`. Léelo antes de cambiar su c
 - [`docs/modulos/referidos.md`](docs/modulos/referidos.md) — Referidos: Referidos
 - [`docs/modulos/presentacion-planes.md`](docs/modulos/presentacion-planes.md) — Pantalla de entrada, legales y planes: Pantalla de entrada
 
+## Escribir en varias tablas = una sola transacción
+
+Una acción que debe dejar **varias tablas coherentes** (animal + lactancia, parto + crías + animales de las crías) no encadena llamadas desde el servidor: llama a **una función SQL** (`registrar_animal`, `registrar_parto`, `importar_animales_lote`, `mover_animales`…) que corre con los permisos de quien llama (RLS aplica), comprueba `private.puede_escribir`, es idempotente por `client_request_id` (se mira **antes** de insertar: el índice del arete se revisa primero y escondería el doble toque) y es todo o nada. Un efecto que siempre acompaña a un hecho (la baja cierra la lactancia) va en un **disparador**, no en un segundo paso de la app. Se prueba con una transacción que falla a la mitad y se verifica que no queda nada.
+
 ## Un servidor no puede llamar a un archivo de cliente
 
 Un archivo con `"use client"` solo puede exportar **componentes**: una función normal exportada desde él (por ejemplo, un armador de direcciones)

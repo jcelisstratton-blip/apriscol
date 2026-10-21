@@ -1285,6 +1285,8 @@ export type Database = {
       v_pediluvio_animal: { Row: { animal_id: string; finca_id: string; ultima_fecha: string | null }; Relationships: [] };
     };
     Functions: {
+      registrar_animal: { Args: { p_finca: string; p_animal: unknown; p_fecha_ultimo_parto?: string | null }; Returns: string };
+      registrar_parto: { Args: { p_finca: string; p_parto: unknown; p_crias: unknown }; Returns: unknown };
       importar_animales_lote: {
         Args: { p_finca: string; p_filas: unknown };
         Returns: { animales: number; con_padres: number; con_parto: number; con_servicio: number; con_ubicacion: number };

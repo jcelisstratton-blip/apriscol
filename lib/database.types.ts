@@ -5753,6 +5753,14 @@ export type Database = {
         Args: { p_finca: string; p_precio: number; p_producto: string }
         Returns: undefined
       }
+      registrar_animal: {
+        Args: { p_animal: Json; p_fecha_ultimo_parto?: string; p_finca: string }
+        Returns: string
+      }
+      registrar_parto: {
+        Args: { p_crias: Json; p_finca: string; p_parto: Json }
+        Returns: Json
+      }
       reglas_ceba_efectivas: {
         Args: { p_finca: string }
         Returns: {
