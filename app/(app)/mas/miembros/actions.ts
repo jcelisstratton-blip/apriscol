@@ -58,44 +58,36 @@ export async function invitar(_: EstadoInvitar, form: FormData): Promise<EstadoI
   if (!formasDe(d.vinculacion as Vinculacion).includes(d.forma_pago as FormaPago)) return { error: "Con contrato de trabajo se paga por mes o por jornal." };
 
   const supabase = await crearClienteServidor();
-  const { data: persona, error: errPersona } = await supabase
-    .from("personal")
-    .insert({
-      finca_id: finca.id,
+  // Un solo paso en la base: la persona y, si va a tener acceso, su invitación se guardan juntas (si la invitación falla, la persona no queda).
+  const { data: r, error } = await supabase.rpc("registrar_persona", {
+    p_finca: finca.id,
+    p_persona: {
       nombre: d.nombre,
       cargo: d.cargo ?? null,
-      vinculacion: d.vinculacion as Vinculacion,
-      forma_pago: d.forma_pago as FormaPago,
+      vinculacion: d.vinculacion,
+      forma_pago: d.forma_pago,
       valor_base: d.valor_base,
       fecha_ingreso: d.fecha_ingreso ?? null,
-      correo: conAcceso ? (d.email ?? null) : null,
-      rol: conAcceso ? (d.rol as Exclude<typeof d.rol, "ninguno">) : null,
-    })
-    .select("id")
-    .single();
-  if (errPersona || !persona) {
-    const repetida = /personal_nombre_uk/.test(errPersona?.message ?? "");
-    return { error: repetida ? "Ya tienes a una persona con ese nombre. Usa otro o ábrela para editarla." : mensajeAmigable(errPersona?.message ?? "") };
+    },
+    p_email: conAcceso ? (d.email ?? null) : null,
+    p_rol: conAcceso ? d.rol : null,
+  });
+  if (error || !r) {
+    if (/personal_nombre_uk/.test(error?.message ?? "")) return { error: "Ya tienes a una persona con ese nombre. Usa otro o ábrela para editarla." };
+    if (error?.code === "23505") return { error: "Ya hay una invitación pendiente para ese correo." };
+    return { error: mensajeAmigable(error?.message ?? "") };
   }
+  const { token } = r as { persona_id: string; token: string | null };
 
-  if (!conAcceso) {
+  if (!conAcceso || !token) {
     revalidatePath("/mas/miembros");
     revalidatePath("/costos");
     return { persona: d.nombre };
   }
 
-  const { data, error } = await supabase
-    .from("invitaciones")
-    .insert({ finca_id: finca.id, email: d.email!, rol: d.rol as Exclude<typeof d.rol, "ninguno">, invitado_por: user.id })
-    .select("token")
-    .single();
-  if (error || !data) {
-    await supabase.from("personal").delete().eq("id", persona.id).eq("finca_id", finca.id);
-    const duplicada = error?.code === "23505";
-    return { error: duplicada ? "Ya hay una invitación pendiente para ese correo." : mensajeAmigable(error?.message ?? "") };
-  }
   revalidatePath("/mas/miembros");
-  return { enlace: `${await urlDelSitio()}/invitacion/${data.token}`, email: d.email! };
+  revalidatePath("/costos");
+  return { enlace: `${await urlDelSitio()}/invitacion/${token}`, email: d.email! };
 }
 
 export async function revocarInvitacion(id: string): Promise<{ error?: string }> {

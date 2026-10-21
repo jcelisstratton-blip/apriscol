@@ -261,15 +261,11 @@ export async function editarEmpadronamiento(_: EstadoForm, form: FormData): Prom
 export async function eliminarEmpadronamiento(id: string): Promise<Resultado> {
   const { finca, rol } = await obtenerContexto();
   if (!puedeGestionar(rol)) return { ok: false, error: "Solo el propietario o un administrador puede eliminar empadronamientos." };
+  if (!ID_UUID.safeParse(id).success) return { ok: false, error: "Empadronamiento no válido." };
   const supabase = await crearClienteServidor();
-  const c = await cargarLote(supabase, finca.id, id, false);
-  if (!c.ok) return { ok: false, error: c.error };
-  if (c.lote.cerrado_en) return { ok: false, error: "Un empadronamiento cerrado queda como historia: ya generó los servicios de sus hembras y no se elimina." };
-  const { data: ext } = await supabase.from("empadronamiento_machos").select("macho_id").eq("empadronamiento_id", id).eq("externo", true).eq("finca_id", finca.id);
-  const { error } = await supabase.from("empadronamientos").delete().eq("id", id).eq("finca_id", finca.id);
+  // Un solo paso en la base: borra la temporada y los datos de los sementales de otro hato que solo vivían en ella.
+  const { error } = await supabase.rpc("eliminar_empadronamiento", { p_finca: finca.id, p_lote: id });
   if (error) return { ok: false, error: mensajeAmigable(error.message) };
-  const externos = (ext ?? []).map((e) => e.macho_id);
-  if (externos.length > 0) await supabase.from("sementales_externos").delete().in("id", externos).eq("finca_id", finca.id);
   revalidatePath("/reproduccion");
   return { ok: true, destino: "/hato?vista=empadronamiento" };
 }
@@ -291,13 +287,9 @@ export async function agregarSemental(entrada: { loteId: string; numHembras: num
     if (!e.ok) return { ok: false, error: e.error };
     const malaRaza = await razaValida(supabase, c.lote.especie, e.datos.razaId);
     if (malaRaza) return { ok: false, error: malaRaza };
-    const { data: ext, error: eExt } = await supabase.from("sementales_externos").insert(filaExterno(p.finca.id, c.lote.especie, e.datos)).select("id").single();
-    if (eExt || !ext) return { ok: false, error: mensajeAmigable(eExt?.message ?? "") };
-    const { error } = await supabase.from("empadronamiento_machos").insert({ finca_id: p.finca.id, empadronamiento_id: loteId, macho_id: ext.id, num_hembras: n.data, externo: true });
-    if (error) {
-      await supabase.from("sementales_externos").delete().eq("id", ext.id).eq("finca_id", p.finca.id);
-      return { ok: false, error: mensajeAmigable(error.message) };
-    }
+    // Un solo paso en la base: el semental de otro hato y su lugar en la temporada se guardan juntos (todo o nada).
+    const { error } = await supabase.rpc("agregar_semental_externo", { p_finca: p.finca.id, p_lote: loteId, p_externo: e.datos, p_num_hembras: n.data });
+    if (error) return { ok: false, error: mensajeAmigable(error.message) };
     revalidatePath(destinoLote(loteId));
     return { ok: true };
   }
@@ -360,15 +352,11 @@ export async function quitarSemental(loteId: string, machoId: string): Promise<R
   const p = await permiso("quitar sementales");
   if (!p.ok) return { ok: false, error: p.error };
   if (!puedeGestionar(p.rol)) return { ok: false, error: "Solo el propietario o un administrador puede quitar sementales." };
+  if (!ID_UUID.safeParse(loteId).success || !ID_UUID.safeParse(machoId).success) return { ok: false, error: "Semental no válido." };
   const supabase = await crearClienteServidor();
-  const c = await cargarLote(supabase, p.finca.id, loteId);
-  if (!c.ok) return { ok: false, error: c.error };
-  const { count } = await supabase.from("empadronamiento_hembras").select("id", { count: "exact", head: true }).eq("empadronamiento_id", loteId).eq("macho_id", machoId);
-  if ((count ?? 0) > 0) return { ok: false, error: `Ese semental tiene ${count} ${count === 1 ? "hembra asignada" : "hembras asignadas"}. Quítalas primero.` };
-  const { data: borrado, error } = await supabase.from("empadronamiento_machos").delete().eq("empadronamiento_id", loteId).eq("macho_id", machoId).eq("finca_id", p.finca.id).select("externo");
+  // Un solo paso en la base: quita al semental (si no tiene hembras asignadas) y, si era de otro hato, también sus datos.
+  const { error } = await supabase.rpc("quitar_semental", { p_finca: p.finca.id, p_lote: loteId, p_macho: machoId });
   if (error) return { ok: false, error: mensajeAmigable(error.message) };
-  // Un semental de otro hato no tiene más vida que su temporada: al quitarlo se borran también sus datos.
-  if (borrado?.some((b) => b.externo)) await supabase.from("sementales_externos").delete().eq("id", machoId).eq("finca_id", p.finca.id);
   revalidatePath(destinoLote(loteId));
   return { ok: true };
 }

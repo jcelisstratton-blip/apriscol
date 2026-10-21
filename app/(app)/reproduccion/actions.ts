@@ -327,23 +327,13 @@ export async function eliminarParto(id: string): Promise<Resultado> {
   if (!puedeGestionar(rol)) return { ok: false, error: "Solo el propietario o un administrador puede eliminar partos." };
   if (!ID_UUID.safeParse(id).success) return { ok: false, error: "Parto no válido." };
   const supabase = await crearClienteServidor();
-  const { data: parto } = await supabase.from("partos").select("id, madre_id").eq("id", id).eq("finca_id", finca.id).maybeSingle();
-  if (!parto) return { ok: false, error: "No encontramos ese parto." };
-  const { data: lactancias } = await supabase.from("lactancias").select("id").eq("parto_id", id).eq("finca_id", finca.id);
-  for (const l of lactancias ?? []) {
-    const { count } = await supabase.from("ordenos").select("id", { count: "exact", head: true }).eq("lactancia_id", l.id).eq("finca_id", finca.id);
-    if ((count ?? 0) > 0) return { ok: false, error: "Este parto abrió una lactancia que ya tiene ordeños registrados, así que no se puede eliminar." };
-  }
-  if ((lactancias ?? []).length > 0) {
-    const { error: eLac } = await supabase.from("lactancias").delete().eq("parto_id", id).eq("finca_id", finca.id);
-    if (eLac) return { ok: false, error: mensajeAmigable(eLac.message) };
-  }
-  const { error } = await supabase.from("partos").delete().eq("id", id).eq("finca_id", finca.id);
-  if (error) return { ok: false, error: mensajeAmigable(error.message) };
+  // Un solo paso en la base: comprueba que la lactancia que abrió no tiene ordeños y borra la lactancia y el parto (todo o nada).
+  const { data: madreId, error } = await supabase.rpc("eliminar_parto", { p_finca: finca.id, p_parto: id });
+  if (error || !madreId) return { ok: false, error: mensajeAmigable(error?.message ?? "No encontramos ese parto.") };
   revalidatePath("/reproduccion");
   revalidatePath("/leche");
-  revalidatePath(`/hato/${parto.madre_id}`);
-  return { ok: true, destino: `/hato/${parto.madre_id}#reproduccion` };
+  revalidatePath(`/hato/${madreId}`);
+  return { ok: true, destino: `/hato/${madreId}#reproduccion` };
 }
 
 // ───────────────────────── Partos que ya había tenido ─────────────────────────

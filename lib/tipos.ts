@@ -1287,6 +1287,11 @@ export type Database = {
     Functions: {
       registrar_animal: { Args: { p_finca: string; p_animal: unknown; p_fecha_ultimo_parto?: string | null }; Returns: string };
       registrar_parto: { Args: { p_finca: string; p_parto: unknown; p_crias: unknown }; Returns: unknown };
+      eliminar_parto: { Args: { p_finca: string; p_parto: string }; Returns: string };
+      eliminar_empadronamiento: { Args: { p_finca: string; p_lote: string }; Returns: undefined };
+      agregar_semental_externo: { Args: { p_finca: string; p_lote: string; p_externo: unknown; p_num_hembras: number }; Returns: string };
+      quitar_semental: { Args: { p_finca: string; p_lote: string; p_macho: string }; Returns: undefined };
+      registrar_persona: { Args: { p_finca: string; p_persona: unknown; p_email?: string | null; p_rol?: string | null }; Returns: unknown };
       importar_animales_lote: {
         Args: { p_finca: string; p_filas: unknown };
         Returns: { animales: number; con_padres: number; con_parto: number; con_servicio: number; con_ubicacion: number };
