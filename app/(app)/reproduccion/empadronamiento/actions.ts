@@ -27,7 +27,7 @@ const REPETIDO_NOMBRE = "Ya tienes un empadronamiento con ese nombre. Ponle otro
 const permiso = permisoPara("reproduccion");
 
 /** El empadronamiento existe, es de la finca y sigue abierto (o se acepta cerrado si `abierto` es falso). */
-async function cargarLote(supabase: Cliente, fincaId: string, id: string, abierto = true): Promise<{ ok: false; error: string } | { ok: true; lote: Empadronamiento }> {
+async function cargarLote(supabase: Cliente, fincaId: string, id: string, abierto = true): Promise<{ ok: false; error: string } | { ok: true; lote: Omit<Empadronamiento, "machos" | "hembras" | "excepciones"> }> {
   if (!ID_UUID.safeParse(id).success) return { ok: false, error: "Empadronamiento no válido." };
   const { data } = await supabase.from("empadronamientos").select("*").eq("id", id).eq("finca_id", fincaId).maybeSingle();
   if (!data) return { ok: false, error: "No encontramos ese empadronamiento." };
