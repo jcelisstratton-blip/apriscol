@@ -1954,6 +1954,7 @@ export type Database = {
       }
       fincas: {
         Row: {
+          activada_en: string | null
           created_at: string
           created_by: string | null
           departamento: string | null
@@ -1973,6 +1974,7 @@ export type Database = {
           zona_horaria: string
         }
         Insert: {
+          activada_en?: string | null
           created_at?: string
           created_by?: string | null
           departamento?: string | null
@@ -1992,6 +1994,7 @@ export type Database = {
           zona_horaria?: string
         }
         Update: {
+          activada_en?: string | null
           created_at?: string
           created_by?: string | null
           departamento?: string | null
@@ -5223,6 +5226,18 @@ export type Database = {
       admin_fijar_vigencia_finca: {
         Args: { p_fecha: string; p_finca: string }
         Returns: undefined
+      }
+      admin_fincas_por_activar: {
+        Args: never
+        Returns: {
+          aviso_pago_en: string
+          correo: string
+          creada_en: string
+          finca_id: string
+          nombre: string
+          numero_finca: number
+          periodo: string
+        }[]
       }
       admin_listar_comisiones: {
         Args: never
