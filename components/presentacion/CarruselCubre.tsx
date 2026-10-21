@@ -1,8 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { ChevronLeft, ChevronRight, Crown, GitFork, Sprout, Trophy } from "lucide-react";
 import { Escena } from "@/components/TarjetaOpcion";
+import { useArrastrarParaDesplazar } from "@/lib/arrastrar-para-desplazar";
 import { escena, ESCENA_HATO, type EscenaDef } from "@/lib/escenas";
 
 const TARJETAS: { titulo: string; detalle: string; escena: EscenaDef }[] = [
@@ -23,16 +24,14 @@ const TARJETAS: { titulo: string; detalle: string; escena: EscenaDef }[] = [
  * el mouse. El ajuste de cada tarjeta (`snap`) se suspende mientras se arrastra para que el movimiento sea suave.
  */
 export function CarruselCubre() {
-  const pista = useRef<HTMLUListElement>(null);
-  const arrastre = useRef<{ x: number; inicio: number; movido: boolean } | null>(null);
-  const [arrastrando, setArrastrando] = useState(false);
+  const { ref: pista, arrastrando, props: arrastre } = useArrastrarParaDesplazar<HTMLUListElement>();
   const [limites, setLimites] = useState({ inicio: true, fin: false });
 
   const medir = useCallback(() => {
     const el = pista.current;
     if (!el) return;
     setLimites({ inicio: el.scrollLeft <= 4, fin: el.scrollLeft + el.clientWidth >= el.scrollWidth - 4 });
-  }, []);
+  }, [pista]);
 
   useEffect(() => {
     medir();
@@ -46,29 +45,6 @@ export function CarruselCubre() {
     el.scrollBy({ left: direccion * Math.max(el.clientWidth * 0.8, 240), behavior: "smooth" });
   };
 
-  const alBajar = (e: React.PointerEvent<HTMLUListElement>) => {
-    if (e.pointerType !== "mouse" || e.button !== 0) return;
-    const el = pista.current;
-    if (!el || el.scrollWidth <= el.clientWidth) return;
-    arrastre.current = { x: e.clientX, inicio: el.scrollLeft, movido: false };
-  };
-  const alMover = (e: React.PointerEvent<HTMLUListElement>) => {
-    const a = arrastre.current;
-    const el = pista.current;
-    if (!a || !el) return;
-    const dx = e.clientX - a.x;
-    if (!a.movido && Math.abs(dx) < 5) return;
-    if (!a.movido) {
-      a.movido = true;
-      setArrastrando(true);
-    }
-    el.scrollLeft = a.inicio - dx;
-  };
-  const alSoltar = () => {
-    if (!arrastre.current) return;
-    arrastre.current = null;
-    setArrastrando(false);
-  };
   const alTeclear = (e: React.KeyboardEvent) => {
     if (e.key === "ArrowRight") mover(1);
     if (e.key === "ArrowLeft") mover(-1);
@@ -96,12 +72,7 @@ export function CarruselCubre() {
         tabIndex={0}
         onScroll={medir}
         onKeyDown={alTeclear}
-        onPointerDown={alBajar}
-        onPointerMove={alMover}
-        onPointerUp={alSoltar}
-        onPointerLeave={alSoltar}
-        onPointerCancel={alSoltar}
-        onDragStart={(e) => e.preventDefault()}
+        {...arrastre}
         className={`no-scrollbar -mx-4 flex gap-3 overflow-x-auto px-4 pb-1 scroll-px-4 sm:-mx-6 sm:scroll-px-6 sm:px-6 ${arrastrando ? "cursor-grabbing select-none" : "cursor-grab snap-x snap-mandatory scroll-smooth"} [mask-image:linear-gradient(to_right,transparent,#000_16px,#000_calc(100%-24px),transparent)] focus-visible:outline-2 focus-visible:outline-musgo`}
       >
         {TARJETAS.map((t, i) => (
