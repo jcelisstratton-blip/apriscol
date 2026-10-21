@@ -1,0 +1,486 @@
+{
+ "_origen": "Respuesta de la base (private.*) generada con tests/fixtures/generar-espejos.sql el 2026-10-21. Regenerar si cambia una función.",
+ "grupo_rubro": {
+  "otros": "operacion",
+  "fletes": "logistica",
+  "forraje": "alimentacion",
+  "arriendo": "operacion",
+  "mano_obra": "personal",
+  "podologia": "sanidad",
+  "combustible": "operacion",
+  "concentrado": "alimentacion",
+  "bioseguridad": "sanidad",
+  "tratamientos": "sanidad",
+  "mantenimiento": "operacion",
+  "identificacion": "logistica",
+  "compra_animales": "animales",
+  "leche_maternizada": "alimentacion",
+  "sales_suplementos": "alimentacion",
+  "servicios_publicos": "operacion",
+  "pruebas_laboratorio": "sanidad",
+  "material_reproductivo": "reproduccion",
+  "asistencia_veterinaria": "reproduccion",
+  "vacunas_desparasitantes": "sanidad"
+ },
+ "modulo_rango": {
+  "hato": 1,
+  "carne": 3,
+  "leche": 1,
+  "ferias": 2,
+  "sanidad": 1,
+  "ambiente": 2,
+  "corrales": 2,
+  "nutricion": 2,
+  "genealogia": 1,
+  "contabilidad": 3,
+  "reproduccion": 1
+ },
+ "estado_plan": [
+  {
+   "dias": -20,
+   "estado": "bloqueada"
+  },
+  {
+   "dias": -19,
+   "estado": "bloqueada"
+  },
+  {
+   "dias": -18,
+   "estado": "bloqueada"
+  },
+  {
+   "dias": -17,
+   "estado": "bloqueada"
+  },
+  {
+   "dias": -16,
+   "estado": "bloqueada"
+  },
+  {
+   "dias": -15,
+   "estado": "bloqueada"
+  },
+  {
+   "dias": -14,
+   "estado": "bloqueada"
+  },
+  {
+   "dias": -13,
+   "estado": "bloqueada"
+  },
+  {
+   "dias": -12,
+   "estado": "bloqueada"
+  },
+  {
+   "dias": -11,
+   "estado": "bloqueada"
+  },
+  {
+   "dias": -10,
+   "estado": "bloqueada"
+  },
+  {
+   "dias": -9,
+   "estado": "bloqueada"
+  },
+  {
+   "dias": -8,
+   "estado": "bloqueada"
+  },
+  {
+   "dias": -7,
+   "estado": "gracia"
+  },
+  {
+   "dias": -6,
+   "estado": "gracia"
+  },
+  {
+   "dias": -5,
+   "estado": "gracia"
+  },
+  {
+   "dias": -4,
+   "estado": "gracia"
+  },
+  {
+   "dias": -3,
+   "estado": "gracia"
+  },
+  {
+   "dias": -2,
+   "estado": "gracia"
+  },
+  {
+   "dias": -1,
+   "estado": "gracia"
+  },
+  {
+   "dias": 0,
+   "estado": "por_vencer"
+  },
+  {
+   "dias": 1,
+   "estado": "por_vencer"
+  },
+  {
+   "dias": 2,
+   "estado": "por_vencer"
+  },
+  {
+   "dias": 3,
+   "estado": "por_vencer"
+  },
+  {
+   "dias": 4,
+   "estado": "por_vencer"
+  },
+  {
+   "dias": 5,
+   "estado": "por_vencer"
+  },
+  {
+   "dias": 6,
+   "estado": "por_vencer"
+  },
+  {
+   "dias": 7,
+   "estado": "por_vencer"
+  },
+  {
+   "dias": 8,
+   "estado": "vigente"
+  },
+  {
+   "dias": 9,
+   "estado": "vigente"
+  },
+  {
+   "dias": 10,
+   "estado": "vigente"
+  },
+  {
+   "dias": 11,
+   "estado": "vigente"
+  },
+  {
+   "dias": 12,
+   "estado": "vigente"
+  },
+  {
+   "dias": 13,
+   "estado": "vigente"
+  },
+  {
+   "dias": 14,
+   "estado": "vigente"
+  },
+  {
+   "dias": 15,
+   "estado": "vigente"
+  },
+  {
+   "dias": 16,
+   "estado": "vigente"
+  },
+  {
+   "dias": 17,
+   "estado": "vigente"
+  },
+  {
+   "dias": 18,
+   "estado": "vigente"
+  },
+  {
+   "dias": 19,
+   "estado": "vigente"
+  },
+  {
+   "dias": 20,
+   "estado": "vigente"
+  }
+ ],
+ "sobre_umbral": [
+  {
+   "f": 0,
+   "umbral": 0.03125,
+   "sobre": false
+  },
+  {
+   "f": 0.001,
+   "umbral": 0.03125,
+   "sobre": false
+  },
+  {
+   "f": 0.0156,
+   "umbral": 0.03125,
+   "sobre": false
+  },
+  {
+   "f": 0.015625,
+   "umbral": 0.03125,
+   "sobre": false
+  },
+  {
+   "f": 0.0312,
+   "umbral": 0.03125,
+   "sobre": false
+  },
+  {
+   "f": 0.03125,
+   "umbral": 0.03125,
+   "sobre": true
+  },
+  {
+   "f": 0.0313,
+   "umbral": 0.03125,
+   "sobre": true
+  },
+  {
+   "f": 0.0624,
+   "umbral": 0.03125,
+   "sobre": true
+  },
+  {
+   "f": 0.0625,
+   "umbral": 0.03125,
+   "sobre": true
+  },
+  {
+   "f": 0.0626,
+   "umbral": 0.03125,
+   "sobre": true
+  },
+  {
+   "f": 0.125,
+   "umbral": 0.03125,
+   "sobre": true
+  },
+  {
+   "f": 0.25,
+   "umbral": 0.03125,
+   "sobre": true
+  },
+  {
+   "f": 0.3,
+   "umbral": 0.03125,
+   "sobre": true
+  },
+  {
+   "f": 0.5,
+   "umbral": 0.03125,
+   "sobre": true
+  },
+  {
+   "f": 0,
+   "umbral": 0.0625,
+   "sobre": false
+  },
+  {
+   "f": 0.001,
+   "umbral": 0.0625,
+   "sobre": false
+  },
+  {
+   "f": 0.0156,
+   "umbral": 0.0625,
+   "sobre": false
+  },
+  {
+   "f": 0.015625,
+   "umbral": 0.0625,
+   "sobre": false
+  },
+  {
+   "f": 0.0312,
+   "umbral": 0.0625,
+   "sobre": false
+  },
+  {
+   "f": 0.03125,
+   "umbral": 0.0625,
+   "sobre": false
+  },
+  {
+   "f": 0.0313,
+   "umbral": 0.0625,
+   "sobre": false
+  },
+  {
+   "f": 0.0624,
+   "umbral": 0.0625,
+   "sobre": false
+  },
+  {
+   "f": 0.0625,
+   "umbral": 0.0625,
+   "sobre": true
+  },
+  {
+   "f": 0.0626,
+   "umbral": 0.0625,
+   "sobre": true
+  },
+  {
+   "f": 0.125,
+   "umbral": 0.0625,
+   "sobre": true
+  },
+  {
+   "f": 0.25,
+   "umbral": 0.0625,
+   "sobre": true
+  },
+  {
+   "f": 0.3,
+   "umbral": 0.0625,
+   "sobre": true
+  },
+  {
+   "f": 0.5,
+   "umbral": 0.0625,
+   "sobre": true
+  },
+  {
+   "f": 0,
+   "umbral": 0.125,
+   "sobre": false
+  },
+  {
+   "f": 0.001,
+   "umbral": 0.125,
+   "sobre": false
+  },
+  {
+   "f": 0.0156,
+   "umbral": 0.125,
+   "sobre": false
+  },
+  {
+   "f": 0.015625,
+   "umbral": 0.125,
+   "sobre": false
+  },
+  {
+   "f": 0.0312,
+   "umbral": 0.125,
+   "sobre": false
+  },
+  {
+   "f": 0.03125,
+   "umbral": 0.125,
+   "sobre": false
+  },
+  {
+   "f": 0.0313,
+   "umbral": 0.125,
+   "sobre": false
+  },
+  {
+   "f": 0.0624,
+   "umbral": 0.125,
+   "sobre": false
+  },
+  {
+   "f": 0.0625,
+   "umbral": 0.125,
+   "sobre": false
+  },
+  {
+   "f": 0.0626,
+   "umbral": 0.125,
+   "sobre": false
+  },
+  {
+   "f": 0.125,
+   "umbral": 0.125,
+   "sobre": true
+  },
+  {
+   "f": 0.25,
+   "umbral": 0.125,
+   "sobre": true
+  },
+  {
+   "f": 0.3,
+   "umbral": 0.125,
+   "sobre": true
+  },
+  {
+   "f": 0.5,
+   "umbral": 0.125,
+   "sobre": true
+  },
+  {
+   "f": 0,
+   "umbral": 0.25,
+   "sobre": false
+  },
+  {
+   "f": 0.001,
+   "umbral": 0.25,
+   "sobre": false
+  },
+  {
+   "f": 0.0156,
+   "umbral": 0.25,
+   "sobre": false
+  },
+  {
+   "f": 0.015625,
+   "umbral": 0.25,
+   "sobre": false
+  },
+  {
+   "f": 0.0312,
+   "umbral": 0.25,
+   "sobre": false
+  },
+  {
+   "f": 0.03125,
+   "umbral": 0.25,
+   "sobre": false
+  },
+  {
+   "f": 0.0313,
+   "umbral": 0.25,
+   "sobre": false
+  },
+  {
+   "f": 0.0624,
+   "umbral": 0.25,
+   "sobre": false
+  },
+  {
+   "f": 0.0625,
+   "umbral": 0.25,
+   "sobre": false
+  },
+  {
+   "f": 0.0626,
+   "umbral": 0.25,
+   "sobre": false
+  },
+  {
+   "f": 0.125,
+   "umbral": 0.25,
+   "sobre": false
+  },
+  {
+   "f": 0.25,
+   "umbral": 0.25,
+   "sobre": true
+  },
+  {
+   "f": 0.3,
+   "umbral": 0.25,
+   "sobre": true
+  },
+  {
+   "f": 0.5,
+   "umbral": 0.25,
+   "sobre": true
+  }
+ ]
+}

@@ -129,6 +129,8 @@ export type Perfil = {
   /** Su código de referidos y, si llegó por el enlace de alguien, quién lo refirió. */
   codigo_referido: string | null;
   referido_por: string | null;
+  /** Cuenta de pruebas: nunca se bloquea por vigencia (solo la cambia el superadmin). */
+  exenta_vigencia: boolean;
   created_at: string;
   updated_at: string;
 };
@@ -217,6 +219,16 @@ export type ServicioConParto = {
   fecha: string | null;
   tipo: string | null;
   fecha_prevista_parto: string | null;
+  gestacion_dias: number | null;
+  macho_id: string | null;
+  macho_externo: string | null;
+  semen_lote: string | null;
+  responsable: string | null;
+  observaciones: string | null;
+  client_request_id: string | null;
+  created_by: string | null;
+  created_at: string | null;
+  updated_at: string | null;
 };
 
 export type Parto = {
@@ -592,6 +604,7 @@ export type Ubicacion = {
   dias_descanso_min: number;
   activa: boolean;
   observaciones: string | null;
+  created_by: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -614,6 +627,7 @@ export type MovimientoAnimal = {
   hasta: string | null;
   motivo: MotivoMovimiento;
   observaciones: string | null;
+  created_by: string | null;
   created_at: string;
 };
 export type CuarentenaAlerta = { finca_id: string; animal_id: string; situacion: "en_cuarentena" | "falta_cuarentena"; desde: string; dias: number; ubicacion_id: string | null };
@@ -634,6 +648,7 @@ export type ProgramaSanitario = {
   observaciones: string | null;
   cancelado_en: string | null;
   client_request_id: string | null;
+  created_by: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -762,6 +777,9 @@ export type AnalisisLeche = {
   created_at: string;
   updated_at: string;
 };
+
+/** Lo que exponen las vistas «último análisis» (sin cristoscopia, residuos, sólidos, lactosa ni soporte). */
+export type AnalisisLecheTanque = Omit<AnalisisLeche, "solidos_totales_pct" | "lactosa_pct" | "crioscopia_c" | "residuos_antibioticos" | "soporte_path">;
 
 export type ControlFrio = {
   id: string;
@@ -1108,6 +1126,7 @@ export type EmpadronamientoMacho = {
   macho_id: string;
   num_hembras: number | null;
   externo: boolean;
+  created_by: string | null;
   created_at: string;
 };
 
@@ -1124,11 +1143,14 @@ export type SementalExterno = {
   telefono: string | null;
   /** La raza sale de `razas` y va ligada a la especie del semental. */
   raza_id: number;
+  /** Texto libre antiguo; la raza vigente es `raza_id`. */
+  raza: string | null;
   fecha_nacimiento: string | null;
   prestamo_desde: string;
   prestamo_hasta: string;
   sanidad: string | null;
   condiciones: string | null;
+  created_by: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -1143,6 +1165,7 @@ export type EmpadronamientoHembra = {
   endogamia: number;
   /** Se asignó aunque la pareja llegaba al umbral. */
   excepcion: boolean;
+  created_by: string | null;
   created_at: string;
 };
 
@@ -1228,7 +1251,7 @@ export type Database = {
       lotes_ceba: Tabla<LoteCeba, "finca_id" | "nombre">;
       reglas_ceba: Tabla<Omit<ReglaCeba, "personalizada"> & { finca_id: string; created_by: string | null; created_at: string; updated_at: string }, "finca_id" | "especie">;
       pesajes: Tabla<Pesaje, "finca_id" | "animal_id" | "peso_kg">;
-      empadronamientos: Tabla<Empadronamiento, "finca_id" | "especie" | "nombre" | "fecha_fin_prevista" | "edad_min_meses" | "peso_min_kg">;
+      empadronamientos: Tabla<Omit<Empadronamiento, "machos" | "hembras" | "excepciones">, "finca_id" | "especie" | "nombre" | "fecha_fin_prevista" | "edad_min_meses" | "peso_min_kg">;
       ubicaciones: Tabla<Ubicacion, "finca_id" | "tipo" | "nombre">;
       movimientos_animales: Tabla<MovimientoAnimal, "finca_id" | "animal_id" | "ubicacion_id" | "desde">;
       programas_sanitarios: Tabla<ProgramaSanitario, "finca_id" | "tipo" | "fecha_programada">;
@@ -1249,8 +1272,8 @@ export type Database = {
       v_eventos_sanitarios: { Row: EventoResumen; Relationships: [] };
       v_eventos_animal: { Row: EventoDeAnimal; Relationships: [] };
       v_sanidad_pendiente: { Row: SanidadPendiente; Relationships: [] };
-      v_analisis_leche_ultimo: { Row: AnalisisLeche; Relationships: [] };
-      v_rcs_leche_ultimo: { Row: AnalisisLeche; Relationships: [] };
+      v_analisis_leche_ultimo: { Row: AnalisisLecheTanque; Relationships: [] };
+      v_rcs_leche_ultimo: { Row: AnalisisLecheTanque; Relationships: [] };
       v_canales: { Row: CanalVista; Relationships: [] };
       v_repro_hembras: { Row: ReproHembra; Relationships: [] };
       v_empadronamientos: { Row: Empadronamiento; Relationships: [] };

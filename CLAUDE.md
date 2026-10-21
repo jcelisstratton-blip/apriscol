@@ -108,6 +108,10 @@ verdad por todas sus ramas** (con datos, vacía, con un animal, con otro periodo
 
 ## Verificación antes de dar algo por hecho
 
-`npx tsc --noEmit` · `npm run lint` · `npm run build` · auditoría de celular de arriba · pruebas de RLS con usuarios
+`npx tsc --noEmit` · `npm run lint` · `npm test` · `npm run tipos:verificar` · `npm run build` · auditoría de celular de arriba · pruebas de RLS con usuarios
 simulados (propietario / ordeñador / ajeno) cuando se toque una política.
 
+## Tipos y espejos TypeScript ↔ SQL
+
+- `lib/tipos.ts` se escribe a mano (más estricto que lo generado: enums y nulos). **`lib/database.types.ts` es lo que genera Supabase** (MCP `generate_typescript_types` o CLI) y `npm run tipos:verificar` compara los dos: falla si una tabla o vista de la app tiene columnas que la base no tiene (o al revés) o un tipo incompatible. Tras una migración que toca columnas: regenerar `database.types.ts`, correr el verificador y alinear `tipos.ts`. Las excepciones deliberadas están en `scripts/verificar-tipos.mjs` con su razón.
+- Las reglas que existen en TypeScript **y** en SQL (`estado_plan`, `modulo_rango`, `grupo_rubro`, `sobre_umbral`) tienen su prueba en `tests/espejos-sql.test.mjs` contra `tests/fixtures/espejos-sql.json`, que sale de la base con `tests/fixtures/generar-espejos.sql`. **Si cambia una de esas funciones o su espejo, se regenera el fixture y `npm test` debe pasar.**
