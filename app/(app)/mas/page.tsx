@@ -64,7 +64,7 @@ export default async function PaginaMas({ searchParams }: { searchParams: Promis
                 )}
               </div>
             </div>
-            <FincaSelector fincas={fincas.map((f) => ({ id: f.id, nombre: f.nombre, rol: f.rol }))} activa={finca.id} />
+            <FincaSelector fincas={fincas.map((f) => ({ id: f.id, nombre: f.nombre, rol: f.rol, logo_path: f.logo_path }))} activa={finca.id} />
             {puedeGestionar(rol) ? (
               <Link href="/mas/finca" className="inline-flex min-h-11 items-center gap-1.5 text-[0.9375rem] font-semibold text-musgo underline-offset-4 hover:underline">
                 <Pencil className="size-4" strokeWidth={2} aria-hidden="true" /> Editar datos de la finca

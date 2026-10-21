@@ -129,3 +129,23 @@ test("reporte de la política: no deja rutas con tokens ni parámetros", () => {
   assert.equal(lineaDeViolacionCsp({ otra: 1 }), null);
   assert.equal(lineaDeViolacionCsp("texto"), null);
 });
+
+import { rutaLogoValida, urlLogo } from "../lib/logo-finca.ts";
+
+test("logo de la finca: solo rutas de la propia finca, con nombre uuid y formato permitido", () => {
+  const f = "e294e989-af7c-4cd8-9f5c-49cc3b53bffc";
+  const otra = "21efbc38-ece0-4a5e-b2e5-52dd5e181b5a";
+  const a = "11111111-1111-1111-1111-111111111111";
+  assert.equal(rutaLogoValida(`${f}/${a}.png`, f), true);
+  assert.equal(rutaLogoValida(`${f}/${a}.jpg`, f), true);
+  assert.equal(rutaLogoValida(`${f}/${a}.webp`, f), true);
+  assert.equal(rutaLogoValida(`${otra}/${a}.png`, f), false, "carpeta de otra finca");
+  assert.equal(rutaLogoValida(`${f}/${a}.svg`, f), false, "nunca SVG");
+  assert.equal(rutaLogoValida(`${f}/${a}.gif`, f), false);
+  assert.equal(rutaLogoValida(`${f}/../${otra}/${a}.png`, f), false, "sin subir de carpeta");
+  assert.equal(rutaLogoValida(`${f}/sub/${a}.png`, f), false, "sin subcarpetas");
+  assert.equal(rutaLogoValida(`${a}.png`, f), false, "sin carpeta");
+  assert.equal(rutaLogoValida(`${f}/${a}.png`, "no-es-uuid"), false);
+  assert.equal(urlLogo({ id: f, logo_path: null }), null);
+  assert.equal(urlLogo({ id: f, logo_path: `${f}/${a}.png` }), `/api/logo?f=${f}&v=${a}.png`);
+});

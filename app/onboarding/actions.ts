@@ -1,5 +1,6 @@
 "use server";
 
+import { randomUUID } from "node:crypto";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
@@ -7,6 +8,7 @@ import { crearClienteServidor } from "@/lib/supabase/server";
 import { obtenerContexto, obtenerUsuario } from "@/lib/contexto";
 import { puedeGestionar } from "@/lib/permisos";
 import { mensajeAmigable } from "@/lib/mensaje-amigable";
+import { BUCKET_LOGOS, TIPOS_LOGO, rutaLogoValida } from "@/lib/logo-finca";
 
 export type EstadoFinca = { error?: string } | undefined;
 
@@ -47,6 +49,22 @@ export async function crearFinca(_: EstadoFinca, form: FormData): Promise<Estado
   redirect(perfil?.libro_resuelto_en ? "/" : "/onboarding/animales");
 }
 
+/**
+ * El servidor arma la ruta del logo (<finca>/<uuid>.<ext>) y emite un permiso de subida de un solo uso. Además, la política de Storage solo deja
+ * escribir en la carpeta de una finca que la persona gestiona (propietario o administrador).
+ */
+export async function prepararSubidaLogo(tipoMime: string): Promise<{ path: string; token: string } | { error: string }> {
+  const { finca, rol } = await obtenerContexto();
+  if (!puedeGestionar(rol)) return { error: "Solo el propietario o un administrador puede cambiar el logo de la finca." };
+  const ext = TIPOS_LOGO[tipoMime];
+  if (!ext) return { error: "Usa una imagen en formato JPG, PNG o WebP." };
+  const path = `${finca.id}/${randomUUID()}.${ext}`;
+  const supabase = await crearClienteServidor();
+  const { data, error } = await supabase.storage.from(BUCKET_LOGOS).createSignedUploadUrl(path);
+  if (error || !data) return { error: mensajeAmigable(error?.message ?? "No se pudo preparar la subida del logo.") };
+  return { path: data.path, token: data.token };
+}
+
 /** Corrige los datos de la finca activa. Solo propietario o administrador. */
 export async function editarFinca(_: EstadoFinca, form: FormData): Promise<EstadoFinca> {
   const { finca, rol } = await obtenerContexto();
@@ -61,6 +79,10 @@ export async function editarFinca(_: EstadoFinca, form: FormData): Promise<Estad
   });
   if (!datos.success) return { error: datos.error.issues[0]?.message };
   const d = datos.data;
+
+  // Logo (opcional): vacío = sin logo. Una ruta nueva debe ser un archivo de ESTA finca (la base también lo exige).
+  const logoNuevo = String(form.get("logo_path") ?? "").trim() || null;
+  if (logoNuevo && !rutaLogoValida(logoNuevo, finca.id)) return { error: "El logo no es válido. Súbelo de nuevo." };
 
   // No se puede quitar una especie de la que todavía hay animales registrados (activos o dados de baja).
   const supabase = await crearClienteServidor();
@@ -79,9 +101,12 @@ export async function editarFinca(_: EstadoFinca, form: FormData): Promise<Estad
 
   const { error } = await supabase
     .from("fincas")
-    .update({ nombre: d.nombre, departamento: d.departamento ?? null, municipio: d.municipio ?? null, vereda: d.vereda ?? null, proposito: d.proposito, especies: d.especies })
+    .update({ nombre: d.nombre, departamento: d.departamento ?? null, municipio: d.municipio ?? null, vereda: d.vereda ?? null, proposito: d.proposito, especies: d.especies, logo_path: logoNuevo })
     .eq("id", finca.id);
   if (error) return { error: mensajeAmigable(error.message) };
+
+  // El logo anterior ya no se usa: se borra su archivo (si falla, queda un archivo suelto sin efecto).
+  if (finca.logo_path && finca.logo_path !== logoNuevo) await supabase.storage.from(BUCKET_LOGOS).remove([finca.logo_path]);
 
   revalidatePath("/", "layout");
   redirect("/mas?guardado=1");

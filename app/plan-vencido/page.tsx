@@ -31,7 +31,7 @@ export default async function PaginaPlanVencido() {
         precioMes: `${usd(mes)} al mes`,
         precioAnio: `${usd(mesAnual * 12)} al año (${usd(mesAnual)} al mes)`,
         pendiente: pendiente?.periodo === "anual" ? "anual" : pendiente?.periodo === "mensual" ? "mensual" : null,
-        fincas: fincas.map((f) => ({ id: f.id, nombre: f.nombre, rol: f.rol })),
+        fincas: fincas.map((f) => ({ id: f.id, nombre: f.nombre, rol: f.rol, logo_path: f.logo_path })),
         fincaActiva: finca.id,
       }}
     />

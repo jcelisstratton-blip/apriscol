@@ -136,7 +136,7 @@ export default async function PaginaHoy({ searchParams }: { searchParams: Promis
       />
       {clave === "cambiada" ? <Aviso tipo="exito" className="mb-3">Tu contraseña quedó actualizada.</Aviso> : null}
       <div className="mb-4 lg:hidden">
-        <FincaSelector fincas={fincas.map((f) => ({ id: f.id, nombre: f.nombre, rol: f.rol }))} activa={finca.id} />
+        <FincaSelector fincas={fincas.map((f) => ({ id: f.id, nombre: f.nombre, rol: f.rol, logo_path: f.logo_path }))} activa={finca.id} />
       </div>
 
       {hato === 0 ? (
