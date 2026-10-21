@@ -61,3 +61,25 @@ test("cargue: las filas de animales dados de baja se omiten", () => {
   assert.equal(r.filas.length, 1);
   assert.equal(r.resumen.omitidos, 1);
 });
+
+import { lineaDeError } from "../lib/registro-errores.ts";
+
+test("registro de errores: solo lleva el patrón de la ruta, nunca la dirección real ni datos de la petición", () => {
+  const err = Object.assign(new Error("duplicate key value violates unique constraint ".padEnd(400, "x")), { digest: "abc123" });
+  const linea = lineaDeError(err, "POST", { routePath: "/invitacion/[token]", routeType: "action", renderSource: undefined });
+  const o = JSON.parse(linea);
+  assert.equal(o.marca, "[apriscol:error]");
+  assert.equal(o.ruta, "/invitacion/[token]");
+  assert.equal(o.tipo, "action");
+  assert.equal(o.digest, "abc123");
+  assert.equal(o.mensaje.length, 300, "el mensaje se recorta");
+  assert.deepEqual(Object.keys(o).sort(), ["digest", "marca", "metodo", "mensaje", "nombre", "origen", "ruta", "tipo"].sort());
+  // Un valor que no es Error tampoco rompe el registro.
+  assert.equal(JSON.parse(lineaDeError("texto suelto", undefined, {})).mensaje, "texto suelto");
+});
+
+test("registro de errores: no escribe secretos", () => {
+  const jwt = "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjMifQ.firmaabc";
+  const m = JSON.parse(lineaDeError(new Error(`falló con ${jwt} y token=ABC123 y password: hunter2`), "GET", {})).mensaje;
+  for (const secreto of [jwt, "ABC123", "hunter2"]) assert.ok(!m.includes(secreto), `se coló ${secreto}: ${m}`);
+});
