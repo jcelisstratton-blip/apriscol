@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import { Aviso } from "@/components/Aviso";
 import { Boton } from "@/components/Boton";
 import { useToast } from "@/components/Toast";
-import { activarPlan, fijarVigencia, marcarCuentaPruebas } from "@/app/(admin)/admin/planes/actions";
+import { ConfirmarPago } from "@/components/ConfirmarPago";
+import { fijarVigencia, marcarCuentaPruebas } from "@/app/(admin)/admin/planes/actions";
 import type { PlanId } from "@/lib/tipos";
 
 /** Superadmin: renovar el plan que ya tiene (confirmado el pago), fijar la fecha a mano o dejarla sin vencimiento. */
@@ -28,12 +29,12 @@ export function AccionVigencia({ fincaId, plan, venceEn, correo, cuentaPruebas }
   return (
     <div className="space-y-2.5">
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-        <Boton type="button" variante="secundario" disabled={pendiente} onClick={() => correr(() => activarPlan(fincaId, plan, "mensual"))}>
+        <ConfirmarPago fincaId={fincaId} plan={plan} periodo="mensual" variante="secundario">
           Pago recibido · 1 mes
-        </Boton>
-        <Boton type="button" variante="secundario" disabled={pendiente} onClick={() => correr(() => activarPlan(fincaId, plan, "anual"))}>
+        </ConfirmarPago>
+        <ConfirmarPago fincaId={fincaId} plan={plan} periodo="anual" variante="secundario">
           Pago recibido · 1 año
-        </Boton>
+        </ConfirmarPago>
       </div>
       <div className="flex flex-wrap items-center gap-2">
         <label className="sr-only" htmlFor={`vence-${fincaId}`}>

@@ -7,7 +7,10 @@ import { FilaDesplazable } from "@/components/FilaDesplazable";
 const SECCIONES = [
   { href: "/admin", etiqueta: "Resumen" },
   { href: "/admin/fincas", etiqueta: "Fincas" },
+  { href: "/admin/planes", etiqueta: "Planes" },
+  { href: "/admin/pagos", etiqueta: "Pagos" },
   { href: "/admin/importaciones", etiqueta: "Importaciones" },
+  { href: "/admin/auditoria", etiqueta: "Bitácora" },
 ] as const;
 
 /** Pestañas del espacio del superadmin. «Mi finca» solo aparece si además tiene una finca propia. */
