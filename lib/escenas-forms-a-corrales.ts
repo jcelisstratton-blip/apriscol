@@ -1,12 +1,12 @@
-import { ArrowUpFromLine, Baby, Beef, BrickWall, Droplets, Fence, Grid3x3, Heart, Layers, Milk, Moon, Mountain, PawPrint, Repeat, Scale, ShieldAlert, Sprout, Syringe, TrendingUp, Venus, Warehouse } from "lucide-react";
-import { escena, type EscenaDef } from "@/lib/escenas";
+import { ArrowUpFromLine, Beef, BrickWall, Droplets, Fence, Grid3x3, Heart, Layers, Milk, Moon, Mountain, PawPrint, Repeat, Scale, ShieldAlert, Sprout, Syringe, TrendingUp, Venus, Warehouse } from "lucide-react";
+import { ESC, escena, type EscenaDef } from "@/lib/escenas";
 import type { PisoUbicacion, UsoUbicacion } from "@/lib/tipos";
 
 /** Para qué se usa un corral o potrero. */
 export const ESCENA_USO_UBICACION: Record<UsoUbicacion, EscenaDef> = {
   general: escena(Warehouse, "grafito", Fence),
-  ordeno: escena(Milk, "oliva", Droplets),
-  maternidad: escena(Baby, "ocre", Heart),
+  ordeno: ESC.leche,
+  maternidad: ESC.partos,
   crias: escena(Sprout, "musgo", PawPrint),
   cuarentena: escena(ShieldAlert, "arcilla", Syringe),
   alta_produccion: escena(TrendingUp, "ambar", Milk),

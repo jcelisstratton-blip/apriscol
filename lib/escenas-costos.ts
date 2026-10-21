@@ -1,8 +1,5 @@
-import {
-  Archive, Banknote, Beef, Bug, CalendarClock, CircleCheck, ClipboardList, Coins, Fence, FileSpreadsheet, FlaskConical, Footprints, Fuel, Hammer, Heart, Leaf, LayoutDashboard,
-  Milk, Package, PawPrint, UserCheck, UserRound, Pill, Receipt, ScanBarcode, Scissors, ShieldPlus, Sprout, Stethoscope, Syringe, Tags, TrendingDown, TrendingUp, Truck, Users, Wallet, Warehouse, Wheat, Zap, Dna,
-} from "lucide-react";
-import { escena, type EscenaDef } from "@/lib/escenas";
+import { Archive, Banknote, Beef, Bug, CalendarClock, CircleCheck, ClipboardList, Coins, Fence, FileSpreadsheet, FlaskConical, Footprints, Fuel, Hammer, Heart, Leaf, LayoutDashboard, Milk, Package, PawPrint, UserCheck, UserRound, Pill, Receipt, ScanBarcode, Scissors, ShieldPlus, Sprout, Stethoscope, Syringe, Tags, TrendingDown, TrendingUp, Truck, Wallet, Warehouse, Wheat, Zap, Dna } from "lucide-react";
+import { ESC, escena, type EscenaDef } from "@/lib/escenas";
 import { ESCENA_ESPECIE } from "@/lib/escenas-forms-b-hato";
 import type { GrupoCosto, GrupoGasto } from "@/lib/costos";
 import type { ReporteId } from "@/lib/costos-reportes";
@@ -11,7 +8,7 @@ import type { DestinoGasto, LineaVenta, RubroGasto } from "@/lib/tipos";
 
 export const ESCENA_GRUPO_GASTO: Record<GrupoGasto, EscenaDef> = {
   alimentacion: escena(Wheat, "ambar", Leaf),
-  sanidad: escena(Syringe, "musgo", ShieldPlus),
+  sanidad: ESC.sanidad,
   reproduccion: escena(Heart, "arcilla", Dna),
   logistica: escena(Truck, "ocre", Tags),
   operacion: escena(Hammer, "grafito", Zap),
@@ -32,7 +29,7 @@ export const ESCENA_RUBRO: Record<RubroGasto, EscenaDef> = {
   asistencia_veterinaria: escena(Stethoscope, "musgo", Heart),
   identificacion: escena(ScanBarcode, "ocre", Tags),
   fletes: escena(Truck, "grafito", Package),
-  mano_obra: escena(Users, "ocre", Hammer),
+  mano_obra: ESC.equipo,
   arriendo: escena(Warehouse, "grafito", Banknote),
   servicios_publicos: escena(Zap, "ambar", Wallet),
   combustible: escena(Fuel, "arcilla", Truck),
@@ -45,7 +42,7 @@ export const ESCENA_DESTINO_GASTO: Record<DestinoGasto, EscenaDef> = {
   especie: escena(PawPrint, "oliva", ESCENA_ESPECIE.caprino.icono),
   ubicacion: escena(Fence, "ocre", Warehouse),
   lote: escena(Beef, "arcilla", Package),
-  animal: escena(PawPrint, "ambar", Tags),
+  animal: ESC.animales,
 };
 
 export const ESCENA_PAGO = {
@@ -56,14 +53,14 @@ export const ESCENA_PAGO = {
 /** Los grupos con que se reporta el costo: los cinco de compra más la mano de obra y la compra de animales. */
 export const ESCENA_GRUPO_COSTO: Record<GrupoCosto, EscenaDef> = {
   ...ESCENA_GRUPO_GASTO,
-  personal: escena(Users, "ocre", Hammer),
+  personal: ESC.equipo,
   animales: escena(PawPrint, "ambar", Banknote),
 };
 
 /** Las líneas de ingreso (lo que se vende). */
 export const ESCENA_LINEA_VENTA: Record<LineaVenta, EscenaDef> = {
   leche: escena(Milk, "oliva", Package),
-  animales: escena(PawPrint, "ambar", Tags),
+  animales: ESC.animales,
   carne: escena(Beef, "arcilla", Package),
   derivados: escena(Milk, "ocre", Heart),
   subproductos: escena(Sprout, "oliva", Leaf),
@@ -81,11 +78,11 @@ export const ESCENA_COBRO = {
 export const ESCENA_PESTANA_COSTOS: Record<string, EscenaDef> = {
   resumen: escena(LayoutDashboard, "musgo", TrendingUp),
   compras: escena(Receipt, "ocre", Coins),
-  ventas: escena(Banknote, "oliva", TrendingUp),
+  ventas: ESC.ventas,
   costos: escena(Receipt, "ocre", Coins),
-  animales: escena(PawPrint, "ambar", Tags),
+  animales: ESC.animales,
   reportes: escena(FileSpreadsheet, "oliva", Archive),
-  personal: escena(Users, "ocre", Hammer),
+  personal: ESC.equipo,
 };
 
 /** Cada reporte descargable. */
@@ -93,8 +90,8 @@ export const ESCENA_REPORTE: Record<ReporteId, EscenaDef> = {
   rubros: escena(Coins, "ambar", Wheat),
   meses: escena(TrendingUp, "musgo", Banknote),
   detalle: escena(Receipt, "ocre", ClipboardList),
-  ventas: escena(Banknote, "oliva", TrendingUp),
-  animales: escena(PawPrint, "ambar", Tags),
+  ventas: ESC.ventas,
+  animales: ESC.animales,
   pendientes: escena(CalendarClock, "arcilla", Wallet),
   resultado: escena(TrendingDown, "grafito", TrendingUp),
 };

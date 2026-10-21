@@ -1,5 +1,5 @@
-import { Baby, Bandage, Beef, Calculator, CircleDollarSign, ClipboardList, Crown, Flower2, Handshake, Hourglass, MapPinOff, Milk, Droplets, PawPrint, ReceiptText, Settings2, ShieldCheck, Stethoscope, Syringe, TrendingDown, Calendar, Utensils, HeartCrack } from "lucide-react";
-import { escena, type EscenaDef } from "@/lib/escenas";
+import { Baby, Bandage, Beef, Calculator, CircleDollarSign, Crown, Flower2, Handshake, Hourglass, MapPinOff, Milk, PawPrint, ReceiptText, Settings2, ShieldCheck, Stethoscope, Syringe, TrendingDown, Calendar, Utensils, HeartCrack } from "lucide-react";
+import { ESC, escena, type EscenaDef } from "@/lib/escenas";
 import type { MotivoBaja, RolFinca, TipoBaja } from "@/lib/tipos";
 
 /** Qué le pasó a un animal que sale del hato. */
@@ -18,14 +18,14 @@ export const ESCENA_MOTIVO_BAJA: Record<MotivoBaja, EscenaDef> = {
   sanidad: escena(Stethoscope, "arcilla", Syringe),
   reproductivo: escena(HeartCrack, "oliva"),
   accidente: escena(Bandage, "ocre"),
-  otro: escena(ClipboardList, "grafito"),
+  otro: ESC.registro,
 };
 
 /** El rol de una persona del equipo de la finca. */
 export const ESCENA_ROL: Record<RolFinca, EscenaDef> = {
   propietario: escena(Crown, "ambar", ShieldCheck),
   administrador: escena(ShieldCheck, "musgo", Settings2),
-  ordenador: escena(Milk, "oliva", Droplets),
+  ordenador: ESC.leche,
   veterinario: escena(Stethoscope, "arcilla", Syringe),
   contador: escena(Calculator, "ocre", ReceiptText),
 };
