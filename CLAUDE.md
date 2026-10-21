@@ -106,6 +106,10 @@ funciones compartidas viven en `lib/`. Los componentes de servidor con consultas
 `cliente` opcional para ejecutarse en pruebas con una base de mentira en memoria: **una pantalla de servidor se da por buena solo si se ejecutó de
 verdad por todas sus ramas** (con datos, vacía, con un animal, con otro periodo), no solo sus piezas de cliente con datos inventados.
 
+## La ficha del animal (`app/(app)/hato/[id]`)
+
+`page.tsx` arma la cabecera, el aviso de retiro, «Datos» y las notas; cada tarjeta restante es un componente de servidor en `fichas/` (`TarjetaLactancia`, `TarjetaReproduccion`, `TarjetaCalidadLeche`, `TarjetaCrecimiento`, `TarjetasGenealogia`, `TarjetaSanidad`, `TarjetaUbicacion`, `TarjetaCostos`, `TarjetaPremios`, `TarjetaSalida`) que **carga sus propios datos** y devuelve `null` si no aplica al rol, plan o estado del animal. Tarjeta nueva ⇒ archivo nuevo en `fichas/` que recibe `c: CtxFicha`, y una línea en `page.tsx`; nunca más consultas apiladas en la página.
+
 ## Verificación antes de dar algo por hecho
 
 `npx tsc --noEmit` · `npm run lint` · `npm test` · `npm run tipos:verificar` · `npm run build` · auditoría de celular de arriba · pruebas de RLS con usuarios
