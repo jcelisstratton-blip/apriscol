@@ -334,6 +334,39 @@ export type Database = {
           },
         ]
       }
+      auditoria_admin: {
+        Row: {
+          accion: string
+          actor_email: string
+          actor_id: string | null
+          created_at: string
+          detalle: Json
+          finca_id: string | null
+          finca_nombre: string | null
+          id: number
+        }
+        Insert: {
+          accion: string
+          actor_email?: string
+          actor_id?: string | null
+          created_at?: string
+          detalle?: Json
+          finca_id?: string | null
+          finca_nombre?: string | null
+          id?: never
+        }
+        Update: {
+          accion?: string
+          actor_email?: string
+          actor_id?: string | null
+          created_at?: string
+          detalle?: Json
+          finca_id?: string | null
+          finca_nombre?: string | null
+          id?: never
+        }
+        Relationships: []
+      }
       bajas: {
         Row: {
           animal_id: string
@@ -2854,6 +2887,80 @@ export type Database = {
           },
         ]
       }
+      pagos: {
+        Row: {
+          activada_antes: string | null
+          anulado_en: string | null
+          anulado_por_email: string | null
+          confirmado_por: string | null
+          confirmado_por_email: string
+          created_at: string
+          finca_id: string | null
+          finca_nombre: string
+          id: string
+          monto_cop: number | null
+          monto_usd: number | null
+          motivo_anulacion: string | null
+          periodo: string
+          plan: string
+          plan_antes: string
+          propietario_email: string
+          referencia: string | null
+          vence_antes: string | null
+          vence_despues: string
+        }
+        Insert: {
+          activada_antes?: string | null
+          anulado_en?: string | null
+          anulado_por_email?: string | null
+          confirmado_por?: string | null
+          confirmado_por_email?: string
+          created_at?: string
+          finca_id?: string | null
+          finca_nombre: string
+          id?: string
+          monto_cop?: number | null
+          monto_usd?: number | null
+          motivo_anulacion?: string | null
+          periodo: string
+          plan: string
+          plan_antes: string
+          propietario_email?: string
+          referencia?: string | null
+          vence_antes?: string | null
+          vence_despues: string
+        }
+        Update: {
+          activada_antes?: string | null
+          anulado_en?: string | null
+          anulado_por_email?: string | null
+          confirmado_por?: string | null
+          confirmado_por_email?: string
+          created_at?: string
+          finca_id?: string | null
+          finca_nombre?: string
+          id?: string
+          monto_cop?: number | null
+          monto_usd?: number | null
+          motivo_anulacion?: string | null
+          periodo?: string
+          plan?: string
+          plan_antes?: string
+          propietario_email?: string
+          referencia?: string | null
+          vence_antes?: string | null
+          vence_despues?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pagos_finca_id_fkey"
+            columns: ["finca_id"]
+            isOneToOne: false
+            referencedRelation: "fincas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pagos_personal: {
         Row: {
           cantidad: number
@@ -5219,9 +5326,24 @@ export type Database = {
         Args: { p_finca: string; p_periodo?: string; p_plan: string }
         Returns: string
       }
+      admin_anular_pago: {
+        Args: { p_motivo: string; p_pago: string }
+        Returns: undefined
+      }
       admin_asignar_plan_finca: {
         Args: { p_finca: string; p_plan: string }
         Returns: number
+      }
+      admin_confirmar_pago: {
+        Args: {
+          p_finca: string
+          p_monto_cop?: number
+          p_monto_usd?: number
+          p_periodo?: string
+          p_plan: string
+          p_referencia?: string
+        }
+        Returns: string
       }
       admin_fijar_vigencia_finca: {
         Args: { p_fecha: string; p_finca: string }
@@ -5237,6 +5359,19 @@ export type Database = {
           nombre: string
           numero_finca: number
           periodo: string
+        }[]
+      }
+      admin_listar_auditoria: {
+        Args: { p_cantidad?: number; p_desde?: number }
+        Returns: {
+          accion: string
+          actor_email: string
+          created_at: string
+          detalle: Json
+          finca_id: string
+          finca_nombre: string
+          id: number
+          total: number
         }[]
       }
       admin_listar_comisiones: {
@@ -5264,6 +5399,29 @@ export type Database = {
           propietario_nombre: string
         }[]
       }
+      admin_listar_pagos: {
+        Args: { p_buscar?: string; p_cantidad?: number; p_desde?: number }
+        Returns: {
+          anulado_en: string
+          anulado_por_email: string
+          confirmado_por_email: string
+          created_at: string
+          finca_id: string
+          finca_nombre: string
+          id: string
+          monto_cop: number
+          monto_usd: number
+          motivo_anulacion: string
+          periodo: string
+          plan: string
+          plan_antes: string
+          propietario_email: string
+          referencia: string
+          se_puede_anular: boolean
+          total: number
+          vence_despues: string
+        }[]
+      }
       admin_listar_reclamos: {
         Args: { p_estado?: string }
         Returns: {
@@ -5287,6 +5445,19 @@ export type Database = {
       admin_marcar_cuenta_pruebas: {
         Args: { p_correo: string; p_exenta: boolean }
         Returns: number
+      }
+      admin_previsualizar_activacion: {
+        Args: { p_finca: string; p_periodo: string; p_plan: string }
+        Returns: {
+          correo: string
+          estado: string
+          finca_nombre: string
+          numero_finca: number
+          plan_actual: string
+          ultimo_pago_en: string
+          vence_actual: string
+          vence_nueva: string
+        }[]
       }
       admin_reabrir_traer_animales: {
         Args: { p_email: string }
