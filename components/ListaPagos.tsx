@@ -32,7 +32,7 @@ export function ListaPagos() {
 }
 
 /** Una fila de pago: finca, valor, referencia, quién y cuándo; si se puede, el botón para anularlo. */
-export function FilaPago({ p }: { p: FilaPagoAdmin }) {
+export function FilaPago({ p }: { p: Omit<FilaPagoAdmin, "total"> }) {
   return (
     <div className="min-w-0 space-y-2.5 rounded-2xl bg-papel p-3.5 ring-1 ring-arena">
       <div className="flex items-start justify-between gap-3">

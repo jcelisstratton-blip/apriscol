@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
+import Link from "next/link";
 import { SearchX, Sprout } from "lucide-react";
 import { CampoBusqueda } from "@/components/CampoBusqueda";
 import { EstadoVacio } from "@/components/EstadoVacio";
@@ -44,7 +45,11 @@ export function ListaFincasAdmin({ filas }: { filas: FilaFinca[] }) {
         clave={(f) => f.id}
         fila={(f) => (
           <article className="min-w-0 rounded-2xl bg-papel p-4 ring-1 ring-arena">
-            <h2 className="font-bold [overflow-wrap:anywhere]">{f.nombre}</h2>
+            <h2 className="font-bold [overflow-wrap:anywhere]">
+              <Link href={`/admin/fincas/${f.id}`} className="underline-offset-4 hover:underline">
+                {f.nombre}
+              </Link>
+            </h2>
             <p className="text-sm text-humo [overflow-wrap:anywhere]">
               {[f.municipio, f.departamento].filter(Boolean).join(", ") || "Sin ubicación"}
             </p>
