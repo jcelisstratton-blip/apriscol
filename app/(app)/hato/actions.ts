@@ -92,34 +92,14 @@ export async function crearAnimal(_: EstadoAnimal, form: FormData): Promise<Esta
     return { error: "El parto debe ser posterior al nacimiento de la hembra." };
   }
 
+  // Un solo paso en la base: el animal y, si trae «último parto», su primera lactancia (todo o nada). El doble toque devuelve el mismo animal.
   const supabase = await crearClienteServidor();
-  const { data, error } = await supabase
-    .from("animales")
-    .insert({ ...animal, uso_macho: usoMacho, finca_id: finca.id })
-    .select("id")
-    .single();
-
-  let id = data?.id;
-  if (error) {
-    // Doble toque: la misma solicitud ya se guardó (client_request_id único) → seguimos a la ficha.
-    if (error.code === "23505" && animal.client_request_id && /client_req/.test(error.message)) {
-      const previo = await supabase
-        .from("animales")
-        .select("id")
-        .eq("finca_id", finca.id)
-        .eq("client_request_id", animal.client_request_id)
-        .maybeSingle();
-      id = previo.data?.id;
-    }
-    if (!id) return { error: mensajeAmigable(error.message) };
-  }
-
-  if (id && fecha_ultimo_parto) {
-    const { error: eLac } = await supabase
-      .from("lactancias")
-      .insert({ finca_id: finca.id, animal_id: id, numero: 1, fecha_parto: fecha_ultimo_parto });
-    if (eLac) return { error: `El animal quedó registrado, pero no se pudo abrir su lactancia: ${mensajeAmigable(eLac.message)}` };
-  }
+  const { data: id, error } = await supabase.rpc("registrar_animal", {
+    p_finca: finca.id,
+    p_animal: { ...animal, uso_macho: usoMacho },
+    p_fecha_ultimo_parto: fecha_ultimo_parto ?? null,
+  });
+  if (error || !id) return { error: mensajeAmigable(error?.message ?? "No se pudo registrar el animal.") };
 
   revalidatePath("/hato");
   revalidatePath("/");
@@ -331,28 +311,12 @@ export async function darDeBaja(entrada: z.input<typeof esquemaBaja>): Promise<R
     return { ok: false, error: mensajeAmigable(error.message) };
   }
 
-  // Una hembra que sale del hato sale también del ordeño: se cierra su lactancia abierta.
-  let aviso: string | undefined;
-  const { data: lactancia } = await supabase
-    .from("lactancias")
-    .select("id, fecha_parto")
-    .eq("animal_id", d.animalId)
-    .eq("finca_id", finca.id)
-    .is("fecha_secado", null)
-    .maybeSingle();
-  if (lactancia) {
-    const { error: e } = await supabase
-      .from("lactancias")
-      .update({ fecha_secado: d.fecha > lactancia.fecha_parto ? d.fecha : lactancia.fecha_parto })
-      .eq("id", lactancia.id);
-    if (e) aviso = "La baja quedó registrada, pero no pudimos sacarla del ordeño. Hazlo desde Leche.";
-  }
-
+  // Una hembra que sale del hato sale también del ordeño: lo hace el disparador de la baja, en la misma transacción.
   revalidatePath("/hato");
   revalidatePath(`/hato/${d.animalId}`);
   revalidatePath("/leche");
   revalidatePath("/");
-  return { ok: true, aviso };
+  return { ok: true };
 }
 
 /** Deshace una baja: el animal vuelve al hato como activo. Solo propietario o administrador. */
