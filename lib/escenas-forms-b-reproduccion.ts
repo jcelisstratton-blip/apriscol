@@ -1,5 +1,5 @@
-import { Baby, CircleHelp, CircleOff, ClipboardList, Hand, HandHelping, Handshake, Heart, HeartCrack, House, Microscope, ScanLine, Scissors, Snowflake, Stethoscope, Syringe, Truck } from "lucide-react";
-import { escena, type EscenaDef } from "@/lib/escenas";
+import { Baby, CircleHelp, CircleOff, Hand, HandHelping, Handshake, Heart, HeartCrack, House, Microscope, ScanLine, Scissors, Snowflake, Stethoscope, Syringe, Truck } from "lucide-react";
+import { ESC, escena, type EscenaDef } from "@/lib/escenas";
 import type { MetodoDiagnostico, ResultadoDiagnostico, TipoParto, TipoServicio } from "@/lib/tipos";
 
 /** Cómo se hizo el servicio a una hembra. */
@@ -21,7 +21,7 @@ export const ESCENA_TIPO_PARTO: Record<TipoParto, EscenaDef> = {
 export const ESCENA_METODO_DIAGNOSTICO: Record<MetodoDiagnostico, EscenaDef> = {
   ecografia: escena(ScanLine, "musgo", Stethoscope),
   palpacion: escena(Hand, "ocre", Stethoscope),
-  otro: escena(ClipboardList, "grafito"),
+  otro: ESC.registro,
 };
 
 /** Qué resultó del diagnóstico. */

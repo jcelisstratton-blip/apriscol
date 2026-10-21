@@ -1,5 +1,5 @@
-import { Activity, ClipboardCheck, Droplet, Factory, FlaskConical, Gauge, Handshake, Milk, Package, Pill, Search, ShieldAlert, ShieldCheck, SprayCan, Droplets, Snowflake, Store, Thermometer, Truck, TriangleAlert, Warehouse, Wind, Wrench, Zap, Beef } from "lucide-react";
-import { escena, type EscenaDef } from "@/lib/escenas";
+import { Activity, ClipboardCheck, Droplet, Factory, FlaskConical, Gauge, Handshake, Milk, Pill, Search, ShieldAlert, ShieldCheck, SprayCan, Droplets, Snowflake, Store, Thermometer, Truck, TriangleAlert, Warehouse, Wind, Wrench, Zap, Beef } from "lucide-react";
+import { ESC, escena, type EscenaDef } from "@/lib/escenas";
 import type { DestinoLeche, MomentoFrio, ResiduosAntibioticos, ResultadoControl, TipoMantenimiento } from "@/lib/tipos";
 
 /** Qué tarea se hizo en el equipo de ordeño. */
@@ -24,7 +24,7 @@ export const ESCENA_DESTINO_LECHE: Record<DestinoLeche, EscenaDef> = {
   industria: escena(Factory, "ocre", Truck),
   queseria: escena(Milk, "ambar", Store),
   venta_directa: escena(Handshake, "oliva", Store),
-  otro: escena(Package, "grafito"),
+  otro: ESC.producto,
 };
 
 /** Residuos de antibióticos en la leche. */

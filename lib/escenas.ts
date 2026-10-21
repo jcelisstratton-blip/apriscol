@@ -1,4 +1,4 @@
-import { Activity, ArchiveX, ArrowRightLeft, Baby, Banknote, Beef, Calendar, ClipboardList, Cloud, Crown, Droplets, Fence, FlaskConical, Heart, HeartHandshake, Layers, LayoutDashboard, ListChecks, LogOut, Mars, Microscope, Milk, Mountain, Package, PawPrint, Pill, Scale, ShieldPlus, SlidersHorizontal, Snowflake, Sprout, Syringe, TrendingUp, Trophy, Truck, Venus, Wallet, Receipt, Warehouse, Wheat } from "lucide-react";
+import { Activity, ArchiveX, Bug, Hammer, Tags, Users, ArrowRightLeft, Baby, Banknote, Beef, Calendar, ClipboardList, Cloud, Crown, Droplets, Fence, FlaskConical, Heart, HeartHandshake, Layers, LayoutDashboard, ListChecks, LogOut, Mars, Microscope, Milk, Mountain, Package, PawPrint, Pill, Scale, ShieldPlus, SlidersHorizontal, Snowflake, Sprout, Syringe, TrendingUp, Trophy, Truck, Venus, Wallet, Receipt, Warehouse, Wheat } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 /** El color de una tarjeta de opción. Salen de la paleta de la app (musgo, ocre, arcilla…) y se adaptan solos al modo oscuro. */
@@ -9,6 +9,23 @@ export type EscenaDef = { icono: LucideIcon; extra?: LucideIcon; tono: Tono };
 
 export const escena = (icono: LucideIcon, tono: Tono, extra?: LucideIcon): EscenaDef => ({ icono, tono, extra });
 
+/**
+ * Vocabulario compartido: un concepto que aparece en varias pantallas se ve igual en todas (mismo icono, mismo color).
+ * Se usa en los mapas de `escenas-*.ts`; un concepto nuevo que se repita por tercera vez entra aquí.
+ */
+export const ESC = {
+  leche: escena(Milk, "oliva", Droplets),
+  registro: escena(ClipboardList, "grafito"),
+  sanidad: escena(Syringe, "musgo", ShieldPlus),
+  animales: escena(PawPrint, "ambar", Tags),
+  producto: escena(Package, "grafito"),
+  equipo: escena(Users, "ocre", Hammer),
+  ventas: escena(Banknote, "oliva", TrendingUp),
+  partos: escena(Baby, "ocre", Heart),
+  desparasitacion: escena(Bug, "arcilla", Pill),
+  laboratorio: escena(FlaskConical, "arcilla", Microscope),
+} as const satisfies Record<string, EscenaDef>;
+
 /** Los filtros de la lista de animales y las vistas de trabajo del Hato. */
 export const ESCENA_HATO: Record<string, EscenaDef> = {
   todos: escena(PawPrint, "musgo", Sprout),
@@ -17,13 +34,13 @@ export const ESCENA_HATO: Record<string, EscenaDef> = {
   caprino: escena(Mountain, "oliva", Sprout),
   ovino: escena(Cloud, "ambar", Wheat),
   bajas: escena(ArchiveX, "grafito", LogOut),
-  ordeno: escena(Milk, "oliva", Droplets),
+  ordeno: ESC.leche,
   ceba: escena(Beef, "arcilla", Scale),
   empadronamiento: escena(Heart, "arcilla", Calendar),
-  sanidad: escena(Syringe, "musgo", ShieldPlus),
+  sanidad: ESC.sanidad,
   corrales: escena(Fence, "ocre", Warehouse),
   gastos: escena(Wallet, "ambar", Receipt),
-  ventas: escena(Banknote, "oliva", TrendingUp),
+  ventas: ESC.ventas,
 };
 
 /** Las pestañas de cada módulo del menú. */
@@ -31,10 +48,10 @@ export const ESCENA_PESTANA: Record<string, EscenaDef> = {
   resumen: escena(LayoutDashboard, "musgo", Activity),
   historial: escena(ClipboardList, "ocre"),
   productos: escena(Package, "ocre", Pill),
-  pruebas: escena(FlaskConical, "arcilla", Microscope),
+  pruebas: ESC.laboratorio,
   movimientos: escena(ArrowRightLeft, "ocre", Fence),
-  produccion: escena(Milk, "oliva", Droplets),
-  calidad: escena(FlaskConical, "arcilla", Microscope),
+  produccion: ESC.leche,
+  calidad: ESC.laboratorio,
   despachos: escena(Truck, "ocre", Package),
   frio: escena(Snowflake, "musgo", Milk),
   candidatos: escena(ListChecks, "musgo", Beef),
@@ -47,7 +64,7 @@ export const ESCENA_PESTANA: Record<string, EscenaDef> = {
   ferias: escena(Calendar, "ocre", Trophy),
   empadronamiento: escena(Heart, "arcilla", Calendar),
   servicios: escena(HeartHandshake, "arcilla", Heart),
-  partos: escena(Baby, "ocre", Heart),
+  partos: ESC.partos,
 };
 
 export type PestanaTarjeta = { valor: string; etiqueta: string; href: string; escena: EscenaDef; detalle?: string; dato?: string };
@@ -59,7 +76,7 @@ export function armarPestanas(ruta: string, primera: string, lista: readonly { v
 
 /** Las tres formas de trabajar el ordeño (Hato → Ordeño). */
 export const ESCENA_ORDENO: Record<string, EscenaDef> = {
-  registrar: escena(Milk, "oliva", Droplets),
+  registrar: ESC.leche,
   programar: escena(Calendar, "ocre", Milk),
-  calidad: escena(FlaskConical, "arcilla", Microscope),
+  calidad: ESC.laboratorio,
 };

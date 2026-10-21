@@ -1,5 +1,5 @@
-import { Activity, Baby, Bandage, Beaker, Bone, Bug, ClipboardList, CircleHelp, CircleCheck, Droplet, Droplets, Dumbbell, Flame, FlaskConical, GlassWater, Hand, HeartPulse, Hourglass, Layers, Leaf, Microscope, Milk, Package, Pill, ShieldAlert, ShieldPlus, Sparkles, Syringe, TestTube, Thermometer, TriangleAlert } from "lucide-react";
-import { escena, type EscenaDef } from "@/lib/escenas";
+import { Activity, Baby, Bandage, Beaker, Bone, CircleHelp, CircleCheck, Droplet, Droplets, Dumbbell, Flame, FlaskConical, GlassWater, Hand, HeartPulse, Hourglass, Layers, Leaf, Microscope, Milk, Pill, ShieldAlert, ShieldPlus, Sparkles, Syringe, TestTube, Thermometer, TriangleAlert } from "lucide-react";
+import { ESC, escena, type EscenaDef } from "@/lib/escenas";
 import type { ResultadoPrueba, TipoProducto, TipoPrueba, ViaAplicacion } from "@/lib/tipos";
 
 /** Por dónde se aplica un tratamiento. */
@@ -10,17 +10,17 @@ export const ESCENA_VIA: Record<ViaAplicacion, EscenaDef> = {
   intravenosa: escena(Droplets, "musgo", HeartPulse),
   topica: escena(Hand, "ambar", Droplet),
   intramamaria: escena(Milk, "ocre", Syringe),
-  otra: escena(ClipboardList, "grafito"),
+  otra: ESC.registro,
 };
 
 /** Cada tipo de producto del catálogo veterinario. */
 export const ESCENA_TIPO_PRODUCTO: Record<TipoProducto, EscenaDef> = {
-  vacuna: escena(Syringe, "musgo", ShieldPlus),
-  desparasitante: escena(Bug, "arcilla", Pill),
+  vacuna: ESC.sanidad,
+  desparasitante: ESC.desparasitacion,
   antibiotico: escena(Pill, "ocre", Microscope),
   antiinflamatorio: escena(Flame, "ambar", Thermometer),
   vitamina: escena(Leaf, "oliva", Sparkles),
-  otro: escena(Package, "grafito"),
+  otro: ESC.producto,
 };
 
 /** Cada prueba diagnóstica. */

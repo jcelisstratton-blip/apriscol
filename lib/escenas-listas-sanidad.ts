@@ -1,15 +1,15 @@
-import { Bug, Carrot, CircleHelp, Flame, FlaskConical, Hourglass, LayoutDashboard, Microscope, Package, Pill, ShieldAlert, ShieldCheck, ShieldPlus, Syringe, TestTube } from "lucide-react";
-import { escena, type EscenaDef } from "@/lib/escenas";
+import { Carrot, CircleHelp, Flame, FlaskConical, Hourglass, LayoutDashboard, Microscope, Package, Pill, ShieldAlert, ShieldCheck, TestTube } from "lucide-react";
+import { ESC, escena, type EscenaDef } from "@/lib/escenas";
 import type { ResultadoPrueba, TipoProducto } from "@/lib/tipos";
 
 /** Cada tipo de producto veterinario del catálogo, con su escena. */
 export const ESCENA_PRODUCTO: Record<TipoProducto, EscenaDef> = {
-  vacuna: escena(Syringe, "musgo", ShieldPlus),
-  desparasitante: escena(Bug, "arcilla", Pill),
+  vacuna: ESC.sanidad,
+  desparasitante: ESC.desparasitacion,
   antibiotico: escena(Pill, "ocre", FlaskConical),
   antiinflamatorio: escena(Flame, "ambar", Pill),
   vitamina: escena(Carrot, "oliva", Pill),
-  otro: escena(Package, "grafito"),
+  otro: ESC.producto,
 };
 /** «Todos» en el filtro del catálogo de productos. */
 export const ESCENA_TODOS_PRODUCTOS: EscenaDef = escena(LayoutDashboard, "musgo", Package);

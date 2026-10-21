@@ -1,5 +1,5 @@
-import { ClipboardCheck, Clock, Container, CookingPot, Droplets, Factory, FlaskConical, Handshake, LayoutDashboard, Microscope, Milk, Package, PawPrint, Truck, TriangleAlert, Venus } from "lucide-react";
-import { escena, type EscenaDef } from "@/lib/escenas";
+import { ClipboardCheck, Clock, Container, CookingPot, Droplets, Factory, FlaskConical, Handshake, LayoutDashboard, Microscope, Milk, PawPrint, Truck, TriangleAlert, Venus } from "lucide-react";
+import { ESC, escena, type EscenaDef } from "@/lib/escenas";
 import type { DestinoLeche } from "@/lib/tipos";
 
 /** A quién se despacha la leche, con su escena. */
@@ -7,7 +7,7 @@ export const ESCENA_DESTINO_LECHE: Record<DestinoLeche, EscenaDef> = {
   industria: escena(Factory, "ocre", Truck),
   queseria: escena(CookingPot, "ambar", Milk),
   venta_directa: escena(Handshake, "oliva", Droplets),
-  otro: escena(Package, "grafito"),
+  otro: ESC.producto,
 };
 /** «Todos» en el filtro de despachos. */
 export const ESCENA_TODOS_DESTINOS: EscenaDef = escena(LayoutDashboard, "musgo", Truck);

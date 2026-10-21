@@ -1,5 +1,5 @@
-import { Beef, Cloud, Crown, Droplets, CircleHelp, House, Layers, Mars, Milk, Mountain, ShoppingCart, Sprout, Venus, Wheat } from "lucide-react";
-import { escena, type EscenaDef } from "@/lib/escenas";
+import { Beef, Cloud, Crown, CircleHelp, House, Layers, Mars, Milk, Mountain, ShoppingCart, Sprout, Venus, Wheat } from "lucide-react";
+import { ESC, escena, type EscenaDef } from "@/lib/escenas";
 import type { Especie, SexoAnimal, Vocacion } from "@/lib/tipos";
 
 /** Especie del animal (y de la temporada de monta). */
@@ -22,7 +22,7 @@ export const ESCENA_ORIGEN_ANIMAL: Record<"nacido_en_finca" | "comprado", Escena
 
 /** Aptitud de una hembra. */
 export const ESCENA_VOCACION: Record<Vocacion, EscenaDef> = {
-  leche: escena(Milk, "oliva", Droplets),
+  leche: ESC.leche,
   carne: escena(Beef, "arcilla"),
   doble: escena(Layers, "ocre", Milk),
 };
