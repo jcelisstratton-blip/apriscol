@@ -106,6 +106,8 @@ export type Finca = {
   plan: PlanId;
   /** Último día pagado del plan (null: sin vencimiento registrado). */
   plan_vence_en: string | null;
+  /** Cuándo se activó la finca. null = pendiente: una finca adicional espera la confirmación del pago y no deja registrar nada. */
+  activada_en: string | null;
   /** Logo opcional (ruta en el bucket `logos-fincas`); se ve con `urlLogo`. */
   logo_path: string | null;
   created_by: string | null;
@@ -1428,7 +1430,8 @@ export type Database = {
       solicitar_renovacion_plan: { Args: { p_finca: string; p_periodo?: "mensual" | "anual" }; Returns: undefined };
       admin_activar_plan_finca: { Args: { p_finca: string; p_plan: PlanId; p_periodo?: "mensual" | "anual" }; Returns: string };
       admin_fijar_vigencia_finca: { Args: { p_finca: string; p_fecha: string | null }; Returns: undefined };
-      admin_vigencias: { Args: Record<string, never>; Returns: { finca_id: string; nombre: string; propietario_email: string; plan: PlanId; plan_vence_en: string | null; estado: "vigente" | "por_vencer" | "gracia" | "bloqueada"; cuenta_pruebas: boolean }[] };
+      admin_vigencias: { Args: Record<string, never>; Returns: { finca_id: string; nombre: string; propietario_email: string; plan: PlanId; plan_vence_en: string | null; estado: "vigente" | "por_vencer" | "gracia" | "bloqueada" | "pendiente"; cuenta_pruebas: boolean }[] };
+      admin_fincas_por_activar: { Args: Record<string, never>; Returns: { finca_id: string; nombre: string; correo: string; numero_finca: number; creada_en: string; periodo: string | null; aviso_pago_en: string | null }[] };
       admin_marcar_cuenta_pruebas: { Args: { p_correo: string; p_exenta: boolean }; Returns: number };
       estado_vigencia_finca: { Args: { p_finca: string }; Returns: string | null };
       admin_asignar_plan_finca: { Args: { p_finca: string; p_plan: PlanId }; Returns: number };

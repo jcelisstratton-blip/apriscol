@@ -9,8 +9,10 @@ import { diasHasta, sumarDias } from "@/lib/fechas";
 export const DIAS_AVISO = 7;
 export const DIAS_GRACIA = 7;
 
-export type EstadoPlan = "vigente" | "por_vencer" | "gracia" | "bloqueada";
+/** «pendiente»: finca adicional creada que espera la confirmación del pago (no depende de ninguna fecha: la base lo decide con `activada_en`). */
+export type EstadoPlan = "vigente" | "por_vencer" | "gracia" | "bloqueada" | "pendiente";
 
+/** Solo la parte de fechas; «pendiente» lo decide la base. */
 export function estadoPlan(venceEn: string | null | undefined, hoy: string): EstadoPlan {
   if (!venceEn) return "vigente";
   const faltan = diasHasta(venceEn, hoy);

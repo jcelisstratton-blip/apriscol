@@ -24,7 +24,10 @@ export default async function PanelGlobal() {
   }
   const r = data as Record<string, number>;
   const { data: solicitudes } = await supabase.rpc("admin_solicitudes_plan");
-  const pendientesPlan = (solicitudes ?? []).length;
+  const { data: porActivar } = await supabase.rpc("admin_fincas_por_activar");
+  // Una finca por activar que ya avisó el pago aparece también como solicitud: se cuenta una sola vez.
+  const idsPorActivar = new Set((porActivar ?? []).map((f) => f.finca_id));
+  const pendientesPlan = (porActivar ?? []).length + (solicitudes ?? []).filter((s) => !idsPorActivar.has(s.finca_id)).length;
   const enFincas = r.libro_total > 0 ? Math.round((r.libro_en_fincas / r.libro_total) * 100) : 0;
 
   const tiles: { etiqueta: string; valor: string; detalle?: string; href?: string }[] = [

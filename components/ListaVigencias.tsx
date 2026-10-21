@@ -9,10 +9,10 @@ import { formatoFecha } from "@/lib/fechas";
 import { nombrePlan } from "@/lib/planes";
 import type { PlanId } from "@/lib/tipos";
 
-export type FilaVigencia = { finca_id: string; nombre: string; propietario_email: string; plan: PlanId; plan_vence_en: string | null; estado: "vigente" | "por_vencer" | "gracia" | "bloqueada"; cuenta_pruebas: boolean };
+export type FilaVigencia = { finca_id: string; nombre: string; propietario_email: string; plan: PlanId; plan_vence_en: string | null; estado: "vigente" | "por_vencer" | "gracia" | "bloqueada" | "pendiente"; cuenta_pruebas: boolean };
 
-const ETIQUETA = { vigente: "Al día", por_vencer: "Por vencer", gracia: "Solo lectura", bloqueada: "Bloqueada" } as const;
-const TONO = { vigente: "musgo", por_vencer: "aviso", gracia: "aviso", bloqueada: "alerta" } as const;
+const ETIQUETA = { vigente: "Al día", por_vencer: "Por vencer", gracia: "Solo lectura", bloqueada: "Bloqueada", pendiente: "Pendiente de pago" } as const;
+const TONO = { vigente: "musgo", por_vencer: "aviso", gracia: "aviso", bloqueada: "alerta", pendiente: "aviso" } as const;
 
 /** Superadmin: la vigencia de cada finca, con las que vencen primero arriba y un buscador por finca o correo. */
 export function ListaVigencias({ filas }: { filas: FilaVigencia[] }) {

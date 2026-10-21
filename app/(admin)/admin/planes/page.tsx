@@ -17,7 +17,11 @@ export const metadata: Metadata = { title: "Solicitudes de plan" };
 export default async function PaginaSolicitudesPlan() {
   const supabase = await crearClienteServidor();
   const { data, error } = await supabase.rpc("admin_solicitudes_plan");
-  const filas = data ?? [];
+  const { data: porActivar } = await supabase.rpc("admin_fincas_por_activar");
+  const pendientes = porActivar ?? [];
+  const idsPendientes = new Set(pendientes.map((f) => f.finca_id));
+  // Las fincas por activar tienen su propia sección: aquí quedan las renovaciones y mejoras.
+  const filas = (data ?? []).filter((s) => !idsPendientes.has(s.finca_id));
   const { data: comisiones } = await supabase.rpc("admin_listar_comisiones");
   const { data: vigencias } = await supabase.rpc("admin_vigencias");
 
@@ -28,9 +32,54 @@ export default async function PaginaSolicitudesPlan() {
       </Link>
       <Encabezado titulo="Solicitudes de plan" subtitulo="Mejoras pedidas por los propietarios" />
       {error ? <Aviso tipo="error">{error.message}</Aviso> : null}
-      {!error && filas.length === 0 ? (
+      {pendientes.length > 0 ? (
+        <section className="mb-8 space-y-3 lg:max-w-2xl" aria-label="Fincas por activar">
+          <h2 className="font-display text-xl font-semibold">Fincas por activar</h2>
+          <p className="text-sm text-humo">Fincas adicionales creadas que esperan el pago (Nequi). Actívalas al confirmarlo; mientras tanto el propietario no puede registrar nada en ellas.</p>
+          <ul className="grid grid-cols-1 gap-3">
+            {pendientes.map((f) => {
+              const plan = planPorId("cria");
+              const periodo = f.periodo === "anual" ? "anual" : f.periodo === "mensual" ? "mensual" : null;
+              return (
+                <li key={f.finca_id} className="min-w-0 space-y-3 rounded-3xl bg-papel p-4 ring-1 ring-arena">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="font-semibold [overflow-wrap:anywhere]">{f.nombre}</p>
+                      <p className="text-sm text-humo [overflow-wrap:anywhere]">{f.correo}</p>
+                    </div>
+                    <Insignia tono="aviso">{periodo ? "Dice que ya pagó" : "Sin pago aún"}</Insignia>
+                  </div>
+                  <p className="text-[0.9375rem]">
+                    Finca n.º {f.numero_finca} · {nombrePlan("cria")} ·{" "}
+                    {periodo === "anual"
+                      ? `anual, ${usd(precioMes(plan, true, f.numero_finca) * 12)} al año`
+                      : periodo === "mensual"
+                        ? `mensual, ${usd(precioMes(plan, false, f.numero_finca))} al mes`
+                        : `${usd(precioMes(plan, false, f.numero_finca))} al mes o ${usd(precioMes(plan, true, f.numero_finca) * 12)} al año`}
+                  </p>
+                  <p className="text-xs text-humo">
+                    Creada el {formatoFecha(f.creada_en.slice(0, 10), { day: "numeric", month: "short" })}
+                    {f.aviso_pago_en ? ` · avisó el ${formatoFecha(f.aviso_pago_en.slice(0, 10), { day: "numeric", month: "short" })}` : ""}
+                  </p>
+                  <div className="space-y-2">
+                    {periodo ? (
+                      <AccionActivarPlan fincaId={f.finca_id} plan="cria" periodo={periodo} />
+                    ) : (
+                      <>
+                        <AccionActivarPlan fincaId={f.finca_id} plan="cria" periodo="mensual" />
+                        <AccionActivarPlan fincaId={f.finca_id} plan="cria" periodo="anual" />
+                      </>
+                    )}
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      ) : null}
+      {!error && filas.length === 0 && pendientes.length === 0 ? (
         <EstadoVacio icono={<Rocket strokeWidth={1.5} />} titulo="No hay solicitudes pendientes" descripcion="Cuando un propietario pida mejorar su plan, aparecerá aquí para que lo actives al confirmar el pago." />
-      ) : (
+      ) : filas.length === 0 ? null : (
         <ul className="grid grid-cols-1 gap-3 lg:max-w-2xl">
           {filas.map((s) => {
             const plan = planPorId(s.plan_nuevo);
