@@ -124,6 +124,18 @@ export type FilaSolicitudPlan = {
   estado: "pendiente" | "activada" | "cancelada"; created_at: string; atendida_en: string | null;
 };
 
+/** Un pago confirmado por el superadmin (`admin_listar_pagos`). `se_puede_anular`: es el último pago vigente de su finca. */
+export type FilaPagoAdmin = {
+  id: string; finca_id: string | null; finca_nombre: string; propietario_email: string; plan: PlanId; plan_antes: PlanId; periodo: "mensual" | "anual";
+  monto_usd: number | null; monto_cop: number | null; referencia: string | null; vence_despues: string; confirmado_por_email: string; created_at: string;
+  anulado_en: string | null; anulado_por_email: string | null; motivo_anulacion: string | null; se_puede_anular: boolean; total: number;
+};
+
+/** Una línea de la bitácora del superadmin (`admin_listar_auditoria`). */
+export type FilaAuditoriaAdmin = {
+  id: number; actor_email: string; accion: string; finca_id: string | null; finca_nombre: string | null; detalle: Record<string, unknown>; created_at: string; total: number;
+};
+
 export type Perfil = {
   id: string;
   nombre: string | null;
@@ -1432,6 +1444,11 @@ export type Database = {
       admin_fijar_vigencia_finca: { Args: { p_finca: string; p_fecha: string | null }; Returns: undefined };
       admin_vigencias: { Args: Record<string, never>; Returns: { finca_id: string; nombre: string; propietario_email: string; plan: PlanId; plan_vence_en: string | null; estado: "vigente" | "por_vencer" | "gracia" | "bloqueada" | "pendiente"; cuenta_pruebas: boolean }[] };
       admin_fincas_por_activar: { Args: Record<string, never>; Returns: { finca_id: string; nombre: string; correo: string; numero_finca: number; creada_en: string; periodo: string | null; aviso_pago_en: string | null }[] };
+      admin_previsualizar_activacion: { Args: { p_finca: string; p_plan: PlanId; p_periodo: "mensual" | "anual" }; Returns: { finca_nombre: string; correo: string; numero_finca: number; plan_actual: PlanId; estado: string; vence_actual: string | null; vence_nueva: string; ultimo_pago_en: string | null }[] };
+      admin_confirmar_pago: { Args: { p_finca: string; p_plan: PlanId; p_periodo?: "mensual" | "anual"; p_monto_usd?: number | null; p_monto_cop?: number | null; p_referencia?: string | null }; Returns: string };
+      admin_anular_pago: { Args: { p_pago: string; p_motivo: string }; Returns: undefined };
+      admin_listar_pagos: { Args: { p_buscar?: string | null; p_desde?: number; p_cantidad?: number }; Returns: FilaPagoAdmin[] };
+      admin_listar_auditoria: { Args: { p_desde?: number; p_cantidad?: number }; Returns: FilaAuditoriaAdmin[] };
       admin_marcar_cuenta_pruebas: { Args: { p_correo: string; p_exenta: boolean }; Returns: number };
       estado_vigencia_finca: { Args: { p_finca: string }; Returns: string | null };
       admin_asignar_plan_finca: { Args: { p_finca: string; p_plan: PlanId }; Returns: number };

@@ -16,6 +16,11 @@ export function formatoFecha(iso: string | null, opciones: Intl.DateTimeFormatOp
   return new Intl.DateTimeFormat("es-CO", { ...opciones, timeZone: "UTC" }).format(new Date(`${iso}T12:00:00Z`));
 }
 
+/** «21 oct 2026, 2:38 p. m.» en la hora de Colombia, para un instante guardado como timestamptz. */
+export function fechaHoraBogota(instante: string): string {
+  return new Intl.DateTimeFormat("es-CO", { day: "numeric", month: "short", year: "numeric", hour: "numeric", minute: "2-digit", timeZone: "America/Bogota" }).format(new Date(instante));
+}
+
 export function edadTexto(nacimiento: string | null, hoy = hoyBogota()): string {
   if (!nacimiento) return "Edad sin registrar";
   const a = new Date(`${nacimiento}T12:00:00Z`);
