@@ -5213,10 +5213,6 @@ export type Database = {
         Args: { p_finca: string; p_periodo?: string; p_plan: string }
         Returns: string
       }
-      admin_asignar_plan: {
-        Args: { p_correo: string; p_plan: string }
-        Returns: number
-      }
       admin_asignar_plan_finca: {
         Args: { p_finca: string; p_plan: string }
         Returns: number
@@ -5270,19 +5266,6 @@ export type Database = {
           solicitante_nombre: string
         }[]
       }
-      admin_listar_solicitudes_plan: {
-        Args: never
-        Returns: {
-          correo: string
-          creada_en: string
-          finca: string
-          id: string
-          nombre: string
-          periodo: string
-          plan_actual: string
-          plan_nuevo: string
-        }[]
-      }
       admin_marcar_cuenta_pruebas: {
         Args: { p_correo: string; p_exenta: boolean }
         Returns: number
@@ -5322,6 +5305,15 @@ export type Database = {
           plan_vence_en: string
           propietario_email: string
         }[]
+      }
+      agregar_semental_externo: {
+        Args: {
+          p_externo: Json
+          p_finca: string
+          p_lote: string
+          p_num_hembras: number
+        }
+        Returns: string
       }
       ancestros_comunes: {
         Args: { p_hembra: string; p_macho: string; p_max_gen?: number }
@@ -5554,6 +5546,14 @@ export type Database = {
         }
         Returns: undefined
       }
+      eliminar_empadronamiento: {
+        Args: { p_finca: string; p_lote: string }
+        Returns: undefined
+      }
+      eliminar_parto: {
+        Args: { p_finca: string; p_parto: string }
+        Returns: string
+      }
       empadronamiento_candidatas: {
         Args: { p_lote: string }
         Returns: {
@@ -5749,6 +5749,10 @@ export type Database = {
           variacion: number
         }[]
       }
+      quitar_semental: {
+        Args: { p_finca: string; p_lote: string; p_macho: string }
+        Returns: undefined
+      }
       recordar_precio_producto: {
         Args: { p_finca: string; p_precio: number; p_producto: string }
         Returns: undefined
@@ -5759,6 +5763,15 @@ export type Database = {
       }
       registrar_parto: {
         Args: { p_crias: Json; p_finca: string; p_parto: Json }
+        Returns: Json
+      }
+      registrar_persona: {
+        Args: {
+          p_email?: string
+          p_finca: string
+          p_persona: Json
+          p_rol?: string
+        }
         Returns: Json
       }
       reglas_ceba_efectivas: {
