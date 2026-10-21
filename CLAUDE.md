@@ -106,6 +106,10 @@ Una acción que debe dejar **varias tablas coherentes** (animal + lactancia, par
 
 `instrumentation.ts` registra todo error no controlado del servidor (pantalla, acción o ruta) como **una línea JSON con la marca `[apriscol:error]`** en los registros de Vercel (Runtime Logs: buscar esa marca). `lib/registro-errores.ts` decide qué se escribe: el patrón de la ruta (`/invitacion/[token]`, nunca la dirección real), el tipo, el digest y el mensaje recortado y sin secretos; **nunca** cabeceras, cookies ni datos de formularios. Los errores de base de datos que `mensajeAmigable` traduce para la persona quedan además como `[apriscol]` en `console.warn`. Un error nuevo que haya que seguir de cerca se busca por esas marcas; no se agrega otro registro paralelo.
 
+## Cabeceras de seguridad
+
+`lib/cabeceras-seguridad.ts` define las cabeceras de **toda** respuesta y `next.config.ts` las aplica. Siempre activas: `X-Content-Type-Options`, `Referrer-Policy`, `X-Frame-Options: DENY` y `Permissions-Policy` (sin cámara, micrófono ni ubicación: la app no los usa). La **política de contenido (CSP)** va en modo **solo reportar** mientras `CSP_ENFORZAR = false`: no bloquea nada y cada violación llega a `/api/csp`, que la deja en los registros de Vercel como `[apriscol:csp]` (sin parámetros ni tramos largos de la ruta). Pasar a bloquear de verdad (`CSP_ENFORZAR = true`) solo después de varios días de uso real sin violaciones en esos registros. La política permite lo propio, Supabase (datos y fotos firmadas) y `data:`/`blob:` para la vista previa de una foto; `script-src` y `style-src` llevan `'unsafe-inline'` porque Next incrusta scripts en cada página (quitarlo exigiría nonces por petición). **Un recurso externo nuevo** (otra fuente, un mapa, un script de terceros) se agrega a la política en el mismo cambio. En desarrollo no se manda la política.
+
 ## Un servidor no puede llamar a un archivo de cliente
 
 Un archivo con `"use client"` solo puede exportar **componentes**: una función normal exportada desde él (por ejemplo, un armador de direcciones)

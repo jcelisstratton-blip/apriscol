@@ -92,3 +92,40 @@ test("mensajes: la contraseña filtrada de Supabase sale en español y sin jerga
   assert.doesNotMatch(m, /weak|guess/i);
   assert.equal(mensajeAmigable("Invalid login credentials"), "El correo o la contraseña no coinciden.");
 });
+
+import { cabecerasDeSeguridad, lineaDeViolacionCsp, origenDe, politicaDeContenido } from "../lib/cabeceras-seguridad.ts";
+
+test("cabeceras de seguridad: siempre las simples; la política solo en producción y apuntando a Supabase", () => {
+  const dev = cabecerasDeSeguridad("https://abc.supabase.co", false).map((c) => c.key);
+  assert.deepEqual(dev, ["X-Content-Type-Options", "Referrer-Policy", "X-Frame-Options", "Permissions-Policy"]);
+  const prod = cabecerasDeSeguridad("https://abc.supabase.co", true);
+  const csp = prod.find((c) => /^Content-Security-Policy/.test(c.key));
+  assert.ok(csp, "en producción hay política");
+  assert.match(csp.value, /img-src 'self' data: blob: https:\/\/abc\.supabase\.co/);
+  assert.match(csp.value, /connect-src 'self' https:\/\/abc\.supabase\.co wss:\/\/abc\.supabase\.co/);
+  assert.match(csp.value, /frame-ancestors 'none'/);
+  assert.match(csp.value, /object-src 'none'/);
+  assert.doesNotMatch(csp.value, /unsafe-eval/);
+  assert.equal(origenDe("no es una dirección"), null);
+  // Sin dirección de Supabase la política sigue siendo válida (solo lo propio).
+  assert.doesNotMatch(politicaDeContenido(""), /undefined|null/);
+});
+
+test("reporte de la política: no deja rutas con tokens ni parámetros", () => {
+  const linea = lineaDeViolacionCsp({
+    "csp-report": {
+      "document-uri": "https://apriscol.shop/invitacion/0123456789abcdef0123456789abcdef?x=secreto#f",
+      "effective-directive": "img-src",
+      "blocked-uri": "https://otro.com/foto.png?token=SECRETO",
+      "disposition": "report",
+    },
+  });
+  const o = JSON.parse(linea);
+  assert.equal(o.marca, "[apriscol:csp]");
+  assert.equal(o.directiva, "img-src");
+  assert.equal(o.pagina, "https://apriscol.shop/invitacion/:id");
+  assert.equal(o.bloqueado, "https://otro.com/foto.png");
+  assert.ok(!linea.includes("SECRETO") && !linea.includes("secreto"));
+  assert.equal(lineaDeViolacionCsp({ otra: 1 }), null);
+  assert.equal(lineaDeViolacionCsp("texto"), null);
+});
