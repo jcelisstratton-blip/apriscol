@@ -1,16 +1,24 @@
 const LADO_MAX = 1600;
 
+type Opciones = {
+  /** Lado más largo en píxeles (por defecto 1600, para fotos). */
+  ladoMax?: number;
+  /** Un PNG o WebP se guarda como PNG para no perder la transparencia (un logo sin fondo no debe quedar con fondo negro). */
+  conservarTransparencia?: boolean;
+};
+
 /** Reduce una foto antes de subirla: ahorra datos en el campo y evita el límite de tamaño. Solo se llama desde el navegador. */
-export async function comprimirImagen(archivo: File): Promise<Blob> {
+export async function comprimirImagen(archivo: File, { ladoMax = LADO_MAX, conservarTransparencia = false }: Opciones = {}): Promise<Blob> {
   try {
     const bitmap = await createImageBitmap(archivo, { imageOrientation: "from-image" });
-    const escala = Math.min(1, LADO_MAX / Math.max(bitmap.width, bitmap.height));
+    const escala = Math.min(1, ladoMax / Math.max(bitmap.width, bitmap.height));
     const lienzo = document.createElement("canvas");
     lienzo.width = Math.round(bitmap.width * escala);
     lienzo.height = Math.round(bitmap.height * escala);
     lienzo.getContext("2d")?.drawImage(bitmap, 0, 0, lienzo.width, lienzo.height);
     bitmap.close();
-    const blob = await new Promise<Blob | null>((ok) => lienzo.toBlob(ok, "image/jpeg", 0.85));
+    const conAlfa = conservarTransparencia && (archivo.type === "image/png" || archivo.type === "image/webp");
+    const blob = await new Promise<Blob | null>((ok) => (conAlfa ? lienzo.toBlob(ok, "image/png") : lienzo.toBlob(ok, "image/jpeg", 0.85)));
     return blob && blob.size < archivo.size ? blob : archivo;
   } catch {
     return archivo;

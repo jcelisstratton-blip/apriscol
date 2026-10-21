@@ -31,7 +31,7 @@ export default async function PaginaEditarFinca() {
       <Encabezado titulo="Datos de la finca" subtitulo={finca.nombre} />
       <div className="lg:max-w-xl">
         <FormFinca
-          finca={{ nombre: finca.nombre, departamento: finca.departamento, municipio: finca.municipio, vereda: finca.vereda, proposito: finca.proposito, especies: finca.especies }}
+          finca={{ id: finca.id, nombre: finca.nombre, departamento: finca.departamento, municipio: finca.municipio, vereda: finca.vereda, proposito: finca.proposito, especies: finca.especies, logo_path: finca.logo_path }}
           especiesEnUso={enUso}
         />
       </div>

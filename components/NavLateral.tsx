@@ -38,7 +38,7 @@ export function NavLateral({
 }: {
   nombre: string;
   correo: string;
-  fincas: { id: string; nombre: string; rol: RolFinca }[];
+  fincas: { id: string; nombre: string; rol: RolFinca; logo_path?: string | null }[];
   fincaActiva: string;
   rol: RolFinca;
   plan: PlanId;

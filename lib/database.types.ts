@@ -1960,6 +1960,7 @@ export type Database = {
           especies: Database["public"]["Enums"]["especie"][]
           id: string
           latitud: number | null
+          logo_path: string | null
           longitud: number | null
           municipio: string | null
           nombre: string
@@ -1978,6 +1979,7 @@ export type Database = {
           especies?: Database["public"]["Enums"]["especie"][]
           id?: string
           latitud?: number | null
+          logo_path?: string | null
           longitud?: number | null
           municipio?: string | null
           nombre: string
@@ -1996,6 +1998,7 @@ export type Database = {
           especies?: Database["public"]["Enums"]["especie"][]
           id?: string
           latitud?: number | null
+          logo_path?: string | null
           longitud?: number | null
           municipio?: string | null
           nombre?: string

@@ -20,3 +20,13 @@ grupo con «Volver a los valores sugeridos»). Cada finca tiene **siempre** su f
   define con su fuente oficial cuando se construya la nómina.
 - Conectados hoy: gestación (vistas `v_servicios`, `v_repro_hembras`, `candidatos_ceba`), criterios de la monta, diagnóstico de preñez, último tercio y secado
   (Reproducción), ganancia mínima y peso de faena (Carne), límite de células somáticas y rangos de grasa y proteína (Leche), podología y pediluvio (Sanidad).
+
+## Logo de la finca
+
+**Más → Datos de la finca** (`/mas/finca`, solo propietario y administradores) permite subir un **logo opcional** (`fincas.logo_path`). Es identidad, no un ajuste: no cambia colores ni el tema de la app (decisión del dueño del producto: sin colores de marca por ahora).
+- **Archivo:** JPG, PNG o WebP; **nunca SVG** (puede llevar código). El navegador lo reduce a 512 px y un PNG conserva su transparencia (`comprimirImagen` con `conservarTransparencia`); el bucket `logos-fincas` es privado y limita a 1 MB.
+- **Ruta y permisos:** `<finca_id>/<uuid>.<ext>`, armada siempre por el servidor (`prepararSubidaLogo`) y subida con URL firmada; el CHECK `fincas_logo_path_ck` impide apuntar a la carpeta de otra finca. Ver: cualquier miembro; subir y borrar: quien gestiona (`private.puede_gestionar`). Sin política de listado ni de actualización.
+- **Cómo se ve:** `LogoFinca` (circular, completo; sin logo, la inicial) en el chip de `FincaSelector`, en su hoja «Tus fincas» y, por ahí, en el menú lateral y las pantallas que lo usan. Se pide a **`/api/logo?f=<finca>&v=<archivo>`**, una ruta con sesión que toma la ruta real de la base (nunca de la dirección) y la entrega con caché de un año: el nombre del archivo es la versión, así que un logo nuevo es otra dirección.
+- **Al cambiar o quitar:** `editarFinca` guarda la ruta nueva y borra el archivo anterior. Si la persona sube un logo y cancela sin guardar, queda un archivo suelto sin efecto.
+- **No está en los Excel todavía** (encabezado de reportes y exportación): se agrega cuando se pida.
+

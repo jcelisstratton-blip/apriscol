@@ -7,16 +7,20 @@ import { Boton, clasesBoton } from "@/components/Boton";
 import { Campo, CLASE_INPUT } from "@/components/Campo";
 import { CamposUbicacion } from "@/components/CamposUbicacion";
 import { Segmentado } from "@/components/Segmentado";
+import { SubirFoto } from "@/components/SubirFoto";
+import { urlLogo } from "@/lib/logo-finca";
 import type { Especie, Vocacion } from "@/lib/tipos";
-import { crearFinca, editarFinca } from "@/app/onboarding/actions";
+import { crearFinca, editarFinca, prepararSubidaLogo } from "@/app/onboarding/actions";
 
 export type FincaEditable = {
+  id: string;
   nombre: string;
   departamento: string | null;
   municipio: string | null;
   vereda: string | null;
   proposito: Vocacion;
   especies: Especie[];
+  logo_path: string | null;
 };
 
 /** Crear una finca (al registrarse o al agregar otra) o corregir los datos de la finca activa. */
@@ -26,6 +30,8 @@ export function FormFinca({ finca, especiesEnUso = [] }: { finca?: FincaEditable
   const [, iniciar] = useTransition();
   const [proposito, setProposito] = useState<Vocacion>(finca?.proposito ?? "leche");
   const [especies, setEspecies] = useState<Especie[]>(finca?.especies ?? ["caprino"]);
+  const [subiendoLogo, setSubiendoLogo] = useState(false);
+  const logoActual = finca ? urlLogo(finca) : null;
 
   const alternar = (e: Especie) =>
     setEspecies((previas) => (previas.includes(e) ? previas.filter((x) => x !== e) : [...previas, e]));
@@ -42,6 +48,23 @@ export function FormFinca({ finca, especiesEnUso = [] }: { finca?: FincaEditable
       <Campo etiqueta="Nombre de la finca">
         {(id) => <input id={id} name="nombre" defaultValue={finca?.nombre} required minLength={2} maxLength={120} autoComplete="off" className={CLASE_INPUT} placeholder="Ej. El Mirador" />}
       </Campo>
+
+      {editando && finca ? (
+        <div className="space-y-2">
+          <span className="block text-sm font-semibold">Logo de la finca</span>
+          <SubirFoto
+            nombre="logo_path"
+            bucket="logos-fincas"
+            preparar={prepararSubidaLogo}
+            forma="logo"
+            etiqueta="Logo de la finca"
+            textoAgregar="Agregar el logo"
+            onEstado={setSubiendoLogo}
+            inicial={finca.logo_path && logoActual ? { path: finca.logo_path, url: logoActual } : null}
+          />
+          <p className="text-[0.8125rem] text-humo">Opcional. Se ve junto al nombre de tu finca en el menú y al cambiar de finca.</p>
+        </div>
+      ) : null}
 
       <CamposUbicacion departamentoInicial={finca ? (finca.departamento ?? "") : "Antioquia"} municipioInicial={finca?.municipio ?? ""} />
 
@@ -97,7 +120,7 @@ export function FormFinca({ finca, especiesEnUso = [] }: { finca?: FincaEditable
       {estado?.error ? <Aviso tipo="error">{estado.error}</Aviso> : null}
 
       <div className="space-y-2">
-        <Boton type="submit" pendiente={pendiente} cargando={editando ? "Guardando cambios…" : "Creando tu finca…"} disabled={especies.length === 0}>
+        <Boton type="submit" pendiente={pendiente} cargando={editando ? "Guardando cambios…" : "Creando tu finca…"} disabled={especies.length === 0 || subiendoLogo}>
           {editando ? "Guardar cambios" : "Crear finca"}
         </Boton>
         {editando ? (

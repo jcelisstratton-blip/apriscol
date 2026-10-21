@@ -8,6 +8,8 @@ const REGLAS: [RegExp, string][] = [
   [/User already registered/i, "Ese correo ya tiene una cuenta. Prueba iniciar sesión."],
   [/Password should be at least/i, "La contraseña debe tener al menos 8 caracteres."],
   [/weak_password|known to be weak|easy to guess|pwned/i, "Esa contraseña es muy común o ya apareció en filtraciones de datos. Elige otra distinta."],
+  [/exceeded the maximum allowed size|payload too large/i, "El archivo pesa demasiado. Usa una imagen más liviana."],
+  [/mime type .* is not supported|invalid_mime_type/i, "Usa una imagen en formato JPG, PNG o WebP."],
   [/rate limit|too many requests|over_email_send_rate_limit/i, "Demasiados intentos. Espera un momento y vuelve a probar."],
   [/row-level security|permission denied|42501|insufficient_privilege/i, "No tienes permiso para hacer esto en esta finca."],
   [/violates check constraint|23514/i, "Alguno de los datos está fuera del rango permitido."],

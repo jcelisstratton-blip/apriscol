@@ -20,7 +20,7 @@ export default async function LayoutApp({ children }: { children: React.ReactNod
       <NavLateral
         nombre={perfil?.nombre || user.email || "Mi cuenta"}
         correo={user.email ?? ""}
-        fincas={fincas.map((f) => ({ id: f.id, nombre: f.nombre, rol: f.rol }))}
+        fincas={fincas.map((f) => ({ id: f.id, nombre: f.nombre, rol: f.rol, logo_path: f.logo_path }))}
         fincaActiva={finca.id}
         rol={rol}
         plan={finca.plan}

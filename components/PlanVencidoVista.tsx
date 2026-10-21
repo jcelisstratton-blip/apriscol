@@ -20,7 +20,7 @@ export type DatosPlanVencido = {
   precioMes: string;
   precioAnio: string;
   pendiente: "mensual" | "anual" | null;
-  fincas: { id: string; nombre: string; rol: RolFinca }[];
+  fincas: { id: string; nombre: string; rol: RolFinca; logo_path?: string | null }[];
   fincaActiva: string;
 };
 

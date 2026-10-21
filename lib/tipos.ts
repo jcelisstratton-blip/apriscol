@@ -106,6 +106,8 @@ export type Finca = {
   plan: PlanId;
   /** Último día pagado del plan (null: sin vencimiento registrado). */
   plan_vence_en: string | null;
+  /** Logo opcional (ruta en el bucket `logos-fincas`); se ve con `urlLogo`. */
+  logo_path: string | null;
   created_by: string | null;
   created_at: string;
   updated_at: string;
