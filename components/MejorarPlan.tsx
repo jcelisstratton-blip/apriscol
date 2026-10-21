@@ -47,7 +47,7 @@ export function MejorarPlan({ actual, numeroFinca = 1 }: { actual: PlanId; numer
 
       {resultado?.ok ? (
         <Aviso tipo="exito">
-          Recibimos tu solicitud para pasar a {nombrePlan(resultado.plan)}. Te escribiremos al correo de tu cuenta para coordinar el pago y activarlo.
+          Recibimos tu solicitud para pasar a {nombrePlan(resultado.plan)}. Paga por Nequi con los datos que aparecen arriba y el equipo lo activa cuando confirme el pago.
         </Aviso>
       ) : null}
       {resultado && !resultado.ok ? <Aviso tipo="error">{resultado.error}</Aviso> : null}
@@ -88,7 +88,7 @@ export function MejorarPlan({ actual, numeroFinca = 1 }: { actual: PlanId; numer
           );
         })}
       </ul>
-      <p className="text-sm text-humo">Solo se puede mejorar hacia un plan superior. Al enviar la solicitud no se cobra nada: te contactamos para coordinar el pago.</p>
+      <p className="text-sm text-humo">Solo se puede mejorar hacia un plan superior. Al enviar la solicitud no se cobra nada: pagas por Nequi y el equipo activa el plan al confirmar el pago.</p>
     </div>
   );
 }
