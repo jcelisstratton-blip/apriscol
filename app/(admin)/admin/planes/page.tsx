@@ -8,6 +8,7 @@ import { EstadoVacio } from "@/components/EstadoVacio";
 import { Insignia } from "@/components/Insignia";
 import { ListaVigencias } from "@/components/ListaVigencias";
 import { formatoFecha } from "@/lib/fechas";
+import { datosNequi } from "@/lib/pago-manual";
 import { nombrePlan, planPorId, precioMes, usd } from "@/lib/planes";
 import { crearClienteServidor } from "@/lib/supabase/server";
 import type { PlanId } from "@/lib/tipos";
@@ -23,7 +24,7 @@ export default async function PaginaSolicitudesPlan() {
   // Las fincas por activar tienen su propia sección: aquí quedan las renovaciones y mejoras.
   const filas = (data ?? []).filter((s) => !idsPendientes.has(s.finca_id));
   const { data: comisiones } = await supabase.rpc("admin_listar_comisiones");
-  const { data: vigencias } = await supabase.rpc("admin_vigencias");
+  const { data: vigencias } = await supabase.rpc("admin_cobranza");
 
   return (
     <>
@@ -116,9 +117,9 @@ export default async function PaginaSolicitudesPlan() {
       )}
       {(vigencias ?? []).length > 0 ? (
         <section className="mt-8 space-y-3 lg:max-w-2xl" aria-label="Vigencia de los planes">
-          <h2 className="font-display text-xl font-semibold">Vigencia de los planes</h2>
-          <p className="text-sm text-humo">Hasta qué día está pagada cada finca. Al vencer tiene 7 días en solo lectura y después se bloquea (solo puede descargar sus datos y pedir la renovación).</p>
-          <ListaVigencias filas={vigencias ?? []} />
+          <h2 className="font-display text-xl font-semibold">Cobranza y vigencia de los planes</h2>
+          <p className="text-sm text-humo">Hasta qué día está pagada cada finca. Al vencer tiene 7 días en solo lectura y después se bloquea (solo puede descargar sus datos y pedir la renovación). Filtra por estado y recuérdales con el mensaje ya redactado.</p>
+          <ListaVigencias filas={vigencias ?? []} nequi={datosNequi()} />
         </section>
       ) : null}
       {(comisiones ?? []).length > 0 ? (

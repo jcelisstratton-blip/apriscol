@@ -132,6 +132,16 @@ export type FilaPagoAdmin = {
 };
 
 /** Una línea de la bitácora del superadmin (`admin_listar_auditoria`). */
+/** Una finca a fondo para el superadmin (`admin_ficha_finca`). */
+export type FichaFinca = {
+  finca: { id: string; nombre: string; departamento: string | null; municipio: string | null; vereda: string | null; creada_en: string; activada_en: string | null; plan: PlanId; plan_vence_en: string | null; estado: "vigente" | "por_vencer" | "gracia" | "bloqueada" | "pendiente"; numero_finca: number };
+  propietario: { email: string; nombre: string; telefono: string; ultimo_ingreso: string | null; registrado_en: string; cuenta_pruebas: boolean } | null;
+  uso: { animales_activos: number; miembros: number };
+  pagos: Omit<FilaPagoAdmin, "total">[];
+  solicitudes: { plan_actual: PlanId; plan_nuevo: PlanId; periodo: "mensual" | "anual"; estado: "pendiente" | "activada" | "cancelada"; created_at: string }[];
+  bitacora: { id: number; actor_email: string; accion: string; detalle: Record<string, unknown>; created_at: string }[];
+};
+
 export type FilaAuditoriaAdmin = {
   id: number; actor_email: string; accion: string; finca_id: string | null; finca_nombre: string | null; detalle: Record<string, unknown>; created_at: string; total: number;
 };
@@ -1444,6 +1454,8 @@ export type Database = {
       admin_fijar_vigencia_finca: { Args: { p_finca: string; p_fecha: string | null }; Returns: undefined };
       admin_vigencias: { Args: Record<string, never>; Returns: { finca_id: string; nombre: string; propietario_email: string; plan: PlanId; plan_vence_en: string | null; estado: "vigente" | "por_vencer" | "gracia" | "bloqueada" | "pendiente"; cuenta_pruebas: boolean }[] };
       admin_fincas_por_activar: { Args: Record<string, never>; Returns: { finca_id: string; nombre: string; correo: string; numero_finca: number; creada_en: string; periodo: string | null; aviso_pago_en: string | null }[] };
+      admin_cobranza: { Args: Record<string, never>; Returns: { finca_id: string; nombre: string; propietario_email: string; propietario_nombre: string; telefono: string; plan: PlanId; plan_vence_en: string | null; estado: "vigente" | "por_vencer" | "gracia" | "bloqueada" | "pendiente"; dias_restantes: number | null; numero_finca: number; cuenta_pruebas: boolean; ultimo_pago_en: string | null }[] };
+      admin_ficha_finca: { Args: { p_finca: string }; Returns: FichaFinca | null };
       admin_previsualizar_activacion: { Args: { p_finca: string; p_plan: PlanId; p_periodo: "mensual" | "anual" }; Returns: { finca_nombre: string; correo: string; numero_finca: number; plan_actual: PlanId; estado: string; vence_actual: string | null; vence_nueva: string; ultimo_pago_en: string | null }[] };
       admin_confirmar_pago: { Args: { p_finca: string; p_plan: PlanId; p_periodo?: "mensual" | "anual"; p_monto_usd?: number | null; p_monto_cop?: number | null; p_referencia?: string | null }; Returns: string };
       admin_anular_pago: { Args: { p_pago: string; p_motivo: string }; Returns: undefined };
