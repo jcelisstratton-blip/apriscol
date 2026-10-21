@@ -1,4 +1,5 @@
 import ExcelJS from "exceljs";
+import { COLOR, FMT } from "@/lib/excel-estilo";
 import { ETIQUETA_GRUPO_COSTO, ETIQUETA_ORIGEN, ETIQUETA_RUBRO, GRUPOS_COSTO, grupoDe } from "@/lib/costos";
 import { ETIQUETA_LINEA, ETIQUETA_ORIGEN_VENTA, LINEAS } from "@/lib/ventas";
 import { REPORTES, type ReporteId } from "@/lib/costos-reportes";
@@ -48,13 +49,10 @@ export type DatosReporte = {
 };
 
 // ───────────────────────── Estilo ─────────────────────────
-const MUSGO = "FF2F5A45";
-const LANA = "FFF5F0E6";
-const ARENA = "FFE6DEC9";
-const FMT_PESOS = '"$" #,##0;[Red]-"$" #,##0';
-const FMT_FECHA = "dd/mm/yyyy";
-const FMT_LITROS = "#,##0.0";
-const FMT_PCT = "0.0%";
+const FMT_PESOS = FMT.pesos;
+const FMT_FECHA = FMT.fecha;
+const FMT_LITROS = FMT.litros;
+const FMT_PCT = FMT.porcentaje;
 
 const aFecha = (iso: string | null | undefined): Date | null => {
   if (!iso) return null;
@@ -83,7 +81,7 @@ function encabezado(ws: ExcelJS.Worksheet, d: DatosReporte, titulo: string, cols
     celda.font = { name: "Calibri", size: opciones.size ?? 11, bold: opciones.bold ?? false, color: { argb: opciones.color ?? "FF1F1B16" } };
     celda.alignment = { vertical: "middle", horizontal: "left", wrapText: true };
   };
-  linea(1, d.finca, { size: 16, bold: true, color: MUSGO });
+  linea(1, d.finca, { size: 16, bold: true, color: COLOR.musgo });
   linea(2, titulo, { size: 13, bold: true });
   linea(3, `Periodo: del ${textoFecha(d.desde)} al ${textoFecha(d.hasta)} (${d.periodoTexto})`);
   linea(4, d.filtros.length > 0 ? `Filtros: ${d.filtros.join(" · ")}` : "Filtros: ninguno");
@@ -95,7 +93,7 @@ function encabezado(ws: ExcelJS.Worksheet, d: DatosReporte, titulo: string, cols
     const celda = r.getCell(i + 1);
     celda.value = c.titulo;
     celda.font = { name: "Calibri", bold: true, color: { argb: "FFFFFFFF" } };
-    celda.fill = { type: "pattern", pattern: "solid", fgColor: { argb: MUSGO } };
+    celda.fill = { type: "pattern", pattern: "solid", fgColor: { argb: COLOR.musgo } };
     celda.alignment = { vertical: "middle", horizontal: c.alinear ?? (c.formato ? "right" : "left"), wrapText: true };
   });
   r.height = 30;
@@ -113,7 +111,7 @@ function filaDatos(ws: ExcelJS.Worksheet, fila: number, cols: Col[], valores: (s
     c.value = v as ExcelJS.CellValue;
     if (cols[i].formato) c.numFmt = cols[i].formato!;
     c.alignment = { vertical: "top", horizontal: cols[i].alinear ?? (cols[i].formato && !(v instanceof Date) ? "right" : "left"), wrapText: !cols[i].formato };
-    c.border = { bottom: { style: "hair", color: { argb: ARENA } } };
+    c.border = { bottom: { style: "hair", color: { argb: COLOR.arena } } };
   });
 }
 
@@ -129,8 +127,8 @@ function filaTotales(ws: ExcelJS.Worksheet, fila: number, primera: number, ultim
       if (c.formato) celda.numFmt = c.formato;
     }
     celda.font = { name: "Calibri", bold: true };
-    celda.fill = { type: "pattern", pattern: "solid", fgColor: { argb: LANA } };
-    celda.border = { top: { style: "thin", color: { argb: MUSGO } } };
+    celda.fill = { type: "pattern", pattern: "solid", fgColor: { argb: COLOR.lana } };
+    celda.border = { top: { style: "thin", color: { argb: COLOR.musgo } } };
   });
 }
 
@@ -270,8 +268,8 @@ function hojaResultado(wb: ExcelJS.Workbook, d: DatosReporte) {
     ws.mergeCells(fila, 1, fila, 3);
     const c = ws.getCell(fila, 1);
     c.value = texto;
-    c.font = { bold: true, color: { argb: MUSGO } };
-    c.border = { bottom: { style: "thin", color: { argb: MUSGO } } };
+    c.font = { bold: true, color: { argb: COLOR.musgo } };
+    c.border = { bottom: { style: "thin", color: { argb: COLOR.musgo } } };
   };
   let f = inicio;
 

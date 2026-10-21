@@ -1,4 +1,5 @@
 import ExcelJS from "exceljs";
+import { COLOR, FMT, estiloEncabezado, relleno } from "@/lib/excel-estilo";
 import {
   COLUMNAS,
   COLUMNAS_REPRODUCCION,
@@ -14,9 +15,6 @@ import {
   type UbicacionRef,
 } from "@/lib/importar-animales";
 
-const MUSGO = "FF2F5A45";
-const LANA = "FFF5F0E6";
-const OCRE = "FFB07A2A";
 
 /** El valor útil de una celda de ExcelJS (fórmulas, texto con formato y enlaces incluidos). */
 function valorCelda(v: ExcelJS.CellValue): CeldaCruda {
@@ -151,8 +149,7 @@ export async function construirPlantillaAnimales({
   columnas.forEach((c, i) => {
     const celda = hoja.getCell(1, i + 1);
     celda.value = c.requerida ? `${c.titulo} *` : c.titulo;
-    celda.font = { bold: true, color: { argb: "FFFFFFFF" } };
-    celda.fill = { type: "pattern", pattern: "solid", fgColor: { argb: c.requerida ? OCRE : MUSGO } };
+    estiloEncabezado(celda, c.requerida ? COLOR.ocre : COLOR.musgo);
     celda.alignment = { vertical: "middle", wrapText: true };
     celda.note = c.ayuda;
     hoja.getColumn(i + 1).width = c.ancho;
@@ -195,7 +192,7 @@ export async function construirPlantillaAnimales({
   }
   for (const id of ["fecha_nacimiento", "fecha_ultimo_parto", "fecha_compra", "fecha_servicio"] as const) {
     if (!existe(id)) continue;
-    for (let r = 2; r <= MAX_FILAS_IMPORTAR + 1; r++) hoja.getCell(r, indice(id)).numFmt = "dd/mm/yyyy";
+    for (let r = 2; r <= MAX_FILAS_IMPORTAR + 1; r++) hoja.getCell(r, indice(id)).numFmt = FMT.fecha;
   }
   // Arete, chip y valores de texto como texto: Excel no debe volver número ni quitar ceros a un arete como 00123.
   for (const id of ["numero_arete", "padre_arete", "madre_arete", "semental_arete", "chip"] as const) {
@@ -208,7 +205,7 @@ export async function construirPlantillaAnimales({
   ayuda.getColumn(2).width = 92;
   const titulo = ayuda.getCell("A1");
   titulo.value = `Plantilla de animales · ${finca}`;
-  titulo.font = { bold: true, size: 15, color: { argb: MUSGO } };
+  titulo.font = { bold: true, size: 15, color: { argb: COLOR.musgo } };
   const pasos = [
     "1. Escribe un animal por fila en la hoja «Animales», debajo de los títulos. Las columnas con * son obligatorias.",
     "2. Para armar la genealogía, escribe el arete del padre y de la madre. Pueden ser animales de este mismo archivo o animales que ya están en tu hato.",
@@ -229,8 +226,7 @@ export async function construirPlantillaAnimales({
   ayuda.getCell(desde, 1).value = "Columna";
   ayuda.getCell(desde, 2).value = "Qué poner";
   for (const c of [ayuda.getCell(desde, 1), ayuda.getCell(desde, 2)]) {
-    c.font = { bold: true, color: { argb: "FFFFFFFF" } };
-    c.fill = { type: "pattern", pattern: "solid", fgColor: { argb: MUSGO } };
+    estiloEncabezado(c);
   }
   columnas.forEach((c, i) => {
     const a = ayuda.getCell(desde + 1 + i, 1);
@@ -239,12 +235,12 @@ export async function construirPlantillaAnimales({
     a.font = { bold: c.requerida };
     b.value = c.ayuda;
     b.alignment = { wrapText: true, vertical: "top" };
-    if (i % 2 === 0) for (const x of [a, b]) x.fill = { type: "pattern", pattern: "solid", fgColor: { argb: LANA } };
+    if (i % 2 === 0) for (const x of [a, b]) x.fill = relleno(COLOR.lana);
   });
 
   const ejemplo = desde + columnas.length + 3;
   ayuda.getCell(ejemplo, 1).value = "Ejemplo de genealogía";
-  ayuda.getCell(ejemplo, 1).font = { bold: true, color: { argb: MUSGO } };
+  ayuda.getCell(ejemplo, 1).font = { bold: true, color: { argb: COLOR.musgo } };
   const filasEjemplo = [
     ["Número de arete", "Sexo", "Arete del padre", "Arete de la madre"],
     ["C-001", "Macho", "", ""],

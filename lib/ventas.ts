@@ -10,14 +10,6 @@ export const ETIQUETA_LINEA: Record<LineaVenta, string> = {
   subproductos: "Abono, lana y pieles",
   otros: "Otras ventas",
 };
-export const DETALLE_LINEA: Record<LineaVenta, string> = {
-  leche: "Leche cruda despachada",
-  animales: "Animales vendidos en pie",
-  carne: "Carne y animales sacrificados",
-  derivados: "Queso, yogur y otros lácteos",
-  subproductos: "Estiércol, lana y pieles",
-  otros: "Cualquier otra venta",
-};
 
 /** De dónde viene una venta y cómo se llama en pantalla. */
 export const ETIQUETA_ORIGEN_VENTA: Record<OrigenVenta, string> = { venta: "Venta", leche: "Leche despachada", animal: "Animal vendido" };

@@ -22,6 +22,3 @@ export function estadoPlan(venceEn: string | null | undefined, hoy: string): Est
 
 /** Último día de solo lectura (el día en que la app se bloquea es el siguiente). */
 export const ultimoDiaDeGracia = (venceEn: string) => sumarDias(venceEn, DIAS_GRACIA);
-
-/** ¿Se puede escribir? Solo con el plan al día. */
-export const planPermiteEscribir = (e: EstadoPlan) => e === "vigente" || e === "por_vencer";

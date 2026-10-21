@@ -1,4 +1,5 @@
 import ExcelJS from "exceljs";
+import { COLOR, estiloEncabezado, relleno } from "@/lib/excel-estilo";
 import type { Writable } from "node:stream";
 import { COLUMNAS, type ColumnaId } from "@/lib/importar-animales";
 import {
@@ -34,8 +35,6 @@ export type ClienteExportar = {
 };
 
 const PAGINA = 1000;
-const MUSGO = "FF2F5A45";
-const LANA = "FFF5F0E6";
 
 // ───────────────────────── Lectura de la base ─────────────────────────
 async function* paginas(c: ClienteExportar, tabla: string, fincaId: string | null, orden: string): AsyncGenerator<Fila[]> {
@@ -79,14 +78,12 @@ const FUENTES: Record<BusquedaId, { tabla: string; global?: boolean; etiqueta: (
 };
 
 // ───────────────────────── Escritura ─────────────────────────
-const colorFuente = { argb: "FFFFFFFF" };
 
 function encabezado(hoja: ExcelJS.Worksheet, titulos: string[]) {
   const fila = hoja.addRow(titulos);
   fila.height = 30;
   fila.eachCell((celda) => {
-    celda.font = { bold: true, color: colorFuente };
-    celda.fill = { type: "pattern", pattern: "solid", fgColor: { argb: MUSGO } };
+    estiloEncabezado(celda);
     celda.alignment = { vertical: "middle", wrapText: true };
   });
   fila.commit();
@@ -195,7 +192,7 @@ export async function escribirExportacion({
     const dos = (n: number) => String(n).padStart(2, "0");
     const cuando = `${dos(bogota.getUTCDate())}/${dos(bogota.getUTCMonth() + 1)}/${bogota.getUTCFullYear()} ${dos(bogota.getUTCHours())}:${dos(bogota.getUTCMinutes())}`;
     const titulo = hoja.addRow([`Datos de la finca · ${finca.nombre}`]);
-    titulo.getCell(1).font = { bold: true, size: 15, color: { argb: MUSGO } };
+    titulo.getCell(1).font = { bold: true, size: 15, color: { argb: COLOR.musgo } };
     titulo.commit();
     for (const [a, b] of [
       ["Exportado el", cuando],
@@ -220,15 +217,14 @@ export async function escribirExportacion({
     hoja.addRow([]).commit();
     const enc = hoja.addRow(["Hoja", "Registros", "Nota"]);
     enc.eachCell((c) => {
-      c.font = { bold: true, color: colorFuente };
-      c.fill = { type: "pattern", pattern: "solid", fgColor: { argb: MUSGO } };
+      estiloEncabezado(c);
     });
     enc.commit();
     const lista: [string, number | null][] = [["Animales", conteos.get("animales") ?? null], ...HOJAS.map((h) => [h.hoja, conteos.get(h.tabla) ?? null] as [string, number | null])];
     lista.forEach(([nombre, n], i) => {
       if (n === 0) return;
       const f = hoja.addRow([nombre, n ?? "", n === null ? "No se pudo contar: revisa la hoja «Avisos» si existe." : ""]);
-      if (i % 2 === 0) f.eachCell((c) => (c.fill = { type: "pattern", pattern: "solid", fgColor: { argb: LANA } }));
+      if (i % 2 === 0) f.eachCell((c) => (c.fill = relleno(COLOR.lana)));
       f.commit();
     });
     await hoja.commit();

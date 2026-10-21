@@ -12,11 +12,10 @@ import { hoyBogota } from "@/lib/fechas";
 import { leerNumero } from "@/lib/numeros";
 import { motivoBloqueoIdentidad } from "@/lib/animal-historia";
 import { TIPOS_FOTO } from "@/lib/ferias";
+import { opcional, vacio } from "@/lib/validacion";
 
 export type EstadoAnimal = { error?: string } | undefined;
 
-const vacio = (v: unknown) => (typeof v === "string" && v.trim() === "" ? undefined : v);
-const opcional = <T extends z.ZodType>(s: T) => z.preprocess(vacio, s.optional());
 
 const esquema = z.object({
   especie: z.enum(["caprino", "ovino"]),

@@ -11,6 +11,7 @@ import { hoyBogota } from "@/lib/fechas";
 import { decimal, opcional, texto } from "@/lib/validacion";
 import { DESTINOS_LECHE, MOMENTOS_FRIO, RESIDUOS, TIPOS_MANTENIMIENTO } from "@/lib/leche-calidad";
 import { soporteValido } from "@/lib/soportes";
+import { esRepetido, noFutura } from "@/lib/validacion";
 
 export type EstadoForm = { error?: string } | undefined;
 type Resultado = { ok: true; destino?: string } | { ok: false; error: string };
@@ -35,7 +36,6 @@ const revalidar = (animal?: string | null) => {
 };
 
 /** Doble toque: el servidor ya guardó el mismo envío (`client_request_id` repetido). */
-const esRepetido = (e: { code?: string; message: string }) => e.code === "23505" && /client_req/.test(e.message);
 
 async function permiso(verbo: "registrar" | "editar") {
   const { finca, rol } = await obtenerContexto();
@@ -43,7 +43,6 @@ async function permiso(verbo: "registrar" | "editar") {
   return { finca, rol } as const;
 }
 
-const fechaNoFutura = (fecha: string) => (fecha > hoyBogota() ? "La fecha no puede ser futura: registra lo que ya pasó." : null);
 
 // ───────────────────────── Análisis de calidad ─────────────────────────
 const esquemaAnalisis = z.object({
@@ -70,7 +69,7 @@ function leerAnalisis(form: FormData, fincaId: string, exigirDocumento: boolean)
   const datos = esquemaAnalisis.safeParse(Object.fromEntries(form));
   if (!datos.success) return { error: datos.error.issues[0]?.message ?? "Revisa los datos." } as const;
   const d = datos.data;
-  const futura = fechaNoFutura(d.fecha);
+  const futura = noFutura(d.fecha);
   if (futura) return { error: futura } as const;
   const crioscopia = d.crioscopia_c == null ? null : -Math.abs(d.crioscopia_c);
   if (crioscopia !== null && (crioscopia <= -1 || crioscopia >= 0)) return { error: "La crioscopia debe estar entre -1 y 0 °C." } as const;
@@ -158,7 +157,7 @@ function leerDespacho(form: FormData) {
   const datos = esquemaDespacho.safeParse(Object.fromEntries(form));
   if (!datos.success) return { error: datos.error.issues[0]?.message ?? "Revisa los datos." } as const;
   const d = datos.data;
-  const futura = fechaNoFutura(d.fecha);
+  const futura = noFutura(d.fecha);
   if (futura) return { error: futura } as const;
   // Cobro: solo un despacho con precio es una venta. Sin precio no hay nada que cobrar todavía.
   const vendido = d.precio_litro != null && d.precio_litro > 0;
@@ -259,7 +258,7 @@ function leerFrio(form: FormData) {
   const datos = esquemaFrio.safeParse(Object.fromEntries(form));
   if (!datos.success) return { error: datos.error.issues[0]?.message ?? "Revisa los datos." } as const;
   const d = datos.data;
-  const futura = fechaNoFutura(d.fecha);
+  const futura = noFutura(d.fecha);
   if (futura) return { error: futura } as const;
   return {
     d,
@@ -317,7 +316,7 @@ function leerMantenimiento(form: FormData) {
   const datos = esquemaMantenimiento.safeParse(Object.fromEntries(form));
   if (!datos.success) return { error: datos.error.issues[0]?.message ?? "Revisa los datos." } as const;
   const d = datos.data;
-  const futura = fechaNoFutura(d.fecha);
+  const futura = noFutura(d.fecha);
   if (futura) return { error: futura } as const;
   if (d.proxima_fecha && d.proxima_fecha <= d.fecha) return { error: "La próxima vez debe ser después de la fecha de esta." } as const;
   return {

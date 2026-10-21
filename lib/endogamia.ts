@@ -29,12 +29,6 @@ export function nivelEndogamia(f: number, umbral: number): NivelEndogamia {
   return "muy_alto";
 }
 
-/** ¿Está en el umbral de la finca o por encima? (alta o muy alta) */
-export function sobreElUmbral(f: number, umbral: number): boolean {
-  const nivel = nivelEndogamia(f, umbral);
-  return nivel === "alto" || nivel === "muy_alto";
-}
-
 export type Reparto = { sobre: number; vigilar: number; aceptables: number; sin: number };
 
 /** Reparte los animales medidos en tres grupos que suman el total: sobre el umbral, a vigilar y aceptables (incluye a los que no tienen endogamia). */

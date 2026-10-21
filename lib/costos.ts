@@ -35,7 +35,6 @@ export const GRUPO_DE: Record<RubroGasto, GrupoGasto> = Object.fromEntries(GRUPO
 export type GrupoCosto = GrupoGasto | "personal" | "animales";
 export const GRUPOS_COSTO: GrupoCosto[] = [...GRUPOS, "personal", "animales"];
 export const ETIQUETA_GRUPO_COSTO: Record<GrupoCosto, string> = { ...ETIQUETA_GRUPO, personal: "Mano de obra", animales: "Compra de animales" };
-export const DETALLE_GRUPO_COSTO: Record<GrupoCosto, string> = { ...DETALLE_GRUPO, personal: "Jornales, salarios y honorarios", animales: "Lo que costaron los animales comprados" };
 /** El grupo de un rubro al reportar (misma regla que `private.grupo_rubro` en la base). */
 export const grupoDe = (rubro: RubroCosto): GrupoCosto => (rubro === "mano_obra" ? "personal" : rubro === "compra_animales" ? "animales" : GRUPO_DE[rubro]);
 

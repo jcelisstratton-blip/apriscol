@@ -7,24 +7,19 @@ import { crearClienteServidor } from "@/lib/supabase/server";
 import { obtenerContexto } from "@/lib/contexto";
 import { puedeEscribir, puedeGestionar } from "@/lib/permisos";
 import { mensajeAmigable } from "@/lib/mensaje-amigable";
-import { hoyBogota } from "@/lib/fechas";
 import { MAX_CRIAS, METODOS_DIAGNOSTICO, RESULTADOS_DIAGNOSTICO, TIPOS_PARTO, TIPOS_SERVICIO } from "@/lib/reproduccion";
 import { leerNumero } from "@/lib/numeros";
 import { decimal, opcional, texto } from "@/lib/validacion";
+import { esRepetido, noFutura } from "@/lib/validacion";
+import { permisoPara } from "@/lib/permiso-servidor";
 
 export type EstadoForm = { error?: string } | undefined;
 type Resultado = { ok: true; destino?: string } | { ok: false; error: string };
 
 const ID_UUID = z.uuid();
-const esRepetido = (e: { code?: string; message: string }) => e.code === "23505" && /client_req/.test(e.message);
 const destinoFicha = (hembra: string) => `/hato/${hembra}?guardado=1#reproduccion`;
-const noFutura = (fecha: string) => (fecha > hoyBogota() ? "La fecha no puede ser futura: registra lo que ya pasó." : null);
 
-async function permiso(verbo: string) {
-  const { finca, rol } = await obtenerContexto();
-  if (!puedeEscribir(rol, "reproduccion", finca.plan)) return { ok: false, error: `No tienes permiso para ${verbo} en esta finca.` } as const;
-  return { ok: true, finca, rol } as const;
-}
+const permiso = permisoPara("reproduccion");
 
 type Cliente = Awaited<ReturnType<typeof crearClienteServidor>>;
 

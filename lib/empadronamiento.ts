@@ -11,7 +11,6 @@ export const VALORES_CC = [1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5] as const;
 export const textoCC = (n: number | null) => (n == null ? "Sin dato" : String(n).replace(".", ","));
 
 export type EstadoEmp = "abierto" | "cerrado";
-export const estadoEmp = (e: Pick<Empadronamiento, "cerrado_en">): EstadoEmp => (e.cerrado_en ? "cerrado" : "abierto");
 
 /** Cuánto va de la temporada: días corridos, total previsto y si ya pasó la fecha prevista de cierre. */
 export function avanceEmp(e: Pick<Empadronamiento, "fecha_inicio" | "fecha_fin_prevista" | "cerrado_en">, hoy = hoyBogota()) {
