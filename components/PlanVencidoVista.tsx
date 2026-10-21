@@ -11,7 +11,7 @@ import { DIAS_GRACIA, ultimoDiaDeGracia, type EstadoPlan } from "@/lib/vigencia"
 import type { RolFinca } from "@/lib/tipos";
 
 export type DatosPlanVencido = {
-  estado: Exclude<EstadoPlan, "vigente">;
+  estado: Exclude<EstadoPlan, "vigente" | "pendiente">;
   fincaNombre: string;
   venceEn: string;
   planNombre: string;

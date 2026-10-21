@@ -43,7 +43,7 @@ es un aprisco pequeño y el plan de entrada tiene que ser muy accesible; como lo
 | **Hacienda** | US$ 72 | US$ 58 | Todo Profesional + soporte prioritario y acompañamiento para cargar la información inicial |
 
 **Precios siempre en dólares enteros.** Anual: 20 % menos. **Cada finca tiene su plan** y paga por separado; desde la **segunda finca** de un propietario, su plan tiene **10 % menos**
-(la primera finca es la más antigua). Los descuentos se aplican uno tras otro y el resultado se redondea al dólar (`precioMes(plan, anual, numeroFinca)`):
+(la primera finca es la más antigua). **Una finca adicional se crea «pendiente» y solo se activa cuando el equipo confirma su pago** (hoy manual, por Nequi; ver `docs/modulos/vigencia-plan.md`). Los descuentos se aplican uno tras otro y el resultado se redondea al dólar (`precioMes(plan, anual, numeroFinca)`):
 
 | Plan | Mensual, 2.ª finca en adelante | Anual, 2.ª finca en adelante |
 |---|---|---|

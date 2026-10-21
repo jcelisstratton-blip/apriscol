@@ -11,12 +11,15 @@ export function SolicitarRenovacion({
   textoAnio,
   pendiente,
   solicitar = solicitarRenovacion,
+  mensajeEnviada,
 }: {
   textoMes: string;
   textoAnio: string;
   /** Periodo de la solicitud que ya está hecha, si la hay. */
   pendiente: "mensual" | "anual" | null;
   solicitar?: (periodo: string) => Promise<ResultadoRenovacion>;
+  /** Texto del aviso tras pedir (por defecto, el de renovar un plan vencido). */
+  mensajeEnviada?: Record<"mensual" | "anual", string>;
 }) {
   const [enviada, setEnviada] = useState<"mensual" | "anual" | null>(pendiente);
   const [error, setError] = useState<string | null>(null);
@@ -37,7 +40,9 @@ export function SolicitarRenovacion({
     <div className="space-y-3">
       {enviada ? (
         <Aviso tipo="exito">
-          Pediste renovar {enviada === "anual" ? "por un año" : "por un mes"}. El equipo de Apriscol te confirma cómo pagar y activa tu plan apenas se confirme el pago.
+          {mensajeEnviada
+            ? mensajeEnviada[enviada]
+            : `Pediste renovar ${enviada === "anual" ? "por un año" : "por un mes"}. El equipo de Apriscol te confirma cómo pagar y activa tu plan apenas se confirme el pago.`}
         </Aviso>
       ) : null}
       <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">

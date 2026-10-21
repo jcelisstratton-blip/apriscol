@@ -18,7 +18,7 @@ export type Contexto = {
   vigencia: EstadoPlan;
 };
 
-const ESTADOS: EstadoPlan[] = ["vigente", "por_vencer", "gracia", "bloqueada"];
+const ESTADOS: EstadoPlan[] = ["vigente", "por_vencer", "gracia", "bloqueada", "pendiente"];
 
 /** Usuario autenticado (o redirige a /login). Una consulta por petición. */
 export const obtenerUsuario = cache(async () => {

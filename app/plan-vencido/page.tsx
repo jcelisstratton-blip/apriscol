@@ -11,6 +11,7 @@ export const metadata: Metadata = { title: "Plan vencido" };
 /** Fuera del grupo (app): no pasa por el bloqueo del layout. Con el plan al día no hay nada que mostrar aquí. */
 export default async function PaginaPlanVencido() {
   const { finca, fincas, rol, vigencia: estado } = await obtenerContexto();
+  if (estado === "pendiente") redirect("/activar-finca");
   if (estado === "vigente" || !finca.plan_vence_en) redirect("/");
 
   const supabase = await crearClienteServidor();

@@ -13,6 +13,8 @@ export default async function LayoutApp({ children }: { children: React.ReactNod
   const { user, perfil, finca, fincas, rol, vigencia: estado } = await obtenerContexto();
   // Plan vencido hace más de la semana de gracia: no se usa la app, solo se descargan los datos y se pide la renovación (/plan-vencido).
   if (estado === "bloqueada") redirect("/plan-vencido");
+  // Finca adicional que aún espera la confirmación de su pago: solo se ve cuánto cuesta y cómo pagar (/activar-finca).
+  if (estado === "pendiente") redirect("/activar-finca");
   const esSuperadmin = await esAdminPlataforma();
 
   return (
