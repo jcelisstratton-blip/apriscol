@@ -83,3 +83,12 @@ test("registro de errores: no escribe secretos", () => {
   const m = JSON.parse(lineaDeError(new Error(`falló con ${jwt} y token=ABC123 y password: hunter2`), "GET", {})).mensaje;
   for (const secreto of [jwt, "ABC123", "hunter2"]) assert.ok(!m.includes(secreto), `se coló ${secreto}: ${m}`);
 });
+
+import { mensajeAmigable } from "../lib/mensaje-amigable.ts";
+
+test("mensajes: la contraseña filtrada de Supabase sale en español y sin jerga", () => {
+  const m = mensajeAmigable("Password is known to be weak and easy to guess, please choose a different one.");
+  assert.match(m, /contraseña/i);
+  assert.doesNotMatch(m, /weak|guess/i);
+  assert.equal(mensajeAmigable("Invalid login credentials"), "El correo o la contraseña no coinciden.");
+});
