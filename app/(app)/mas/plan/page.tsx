@@ -6,9 +6,11 @@ import { Encabezado } from "@/components/Encabezado";
 import { EstadoVacio } from "@/components/EstadoVacio";
 import { Insignia } from "@/components/Insignia";
 import { MejorarPlan } from "@/components/MejorarPlan";
+import { PagoNequi } from "@/components/PagoNequi";
 import { Tarjeta } from "@/components/Tarjeta";
 import { obtenerContexto } from "@/lib/contexto";
 import { formatoFecha } from "@/lib/fechas";
+import { datosNequi, pesos, pesosPorDolar } from "@/lib/pago-manual";
 import { nombrePlan, planPorId, planesSuperiores, precioMes, usd } from "@/lib/planes";
 import { numeroDeFinca } from "@/lib/planes-servidor";
 import { crearClienteServidor } from "@/lib/supabase/server";
@@ -18,7 +20,7 @@ export const metadata: Metadata = { title: "Mejorar mi plan" };
 
 /** Mejorar el plan de la finca: solo hacia adelante. Muestra lo que ya tienes y lo que sumas con cada plan superior. */
 export default async function PaginaPlan() {
-  const { finca, fincas, rol, vigencia } = await obtenerContexto();
+  const { user, finca, fincas, rol, vigencia } = await obtenerContexto();
   const actual = planPorId(finca.plan);
   const superiores = planesSuperiores(finca.plan);
 
@@ -31,6 +33,13 @@ export default async function PaginaPlan() {
     .eq("finca_id", finca.id)
     .eq("estado", "pendiente")
     .maybeSingle();
+
+  // Lo que hay que pagar por la solicitud pendiente, con el descuento de la finca y, si se conoce el cambio, en pesos.
+  const anualPend = pendiente?.periodo === "anual";
+  const mesPend = pendiente ? precioMes(planPorId(pendiente.plan_nuevo as PlanId), anualPend, numeroFinca) : 0;
+  const cambio = pesosPorDolar();
+  const totalPend = anualPend ? mesPend * 12 : mesPend;
+  const montoPendiente = { texto: `${usd(totalPend)} ${anualPend ? "al año" : "al mes"}`, pesos: cambio ? pesos(totalPend * cambio) : null };
 
   return (
     <>
@@ -73,10 +82,16 @@ export default async function PaginaPlan() {
         ) : (
           <>
             {pendiente ? (
-              <Aviso tipo="info">
-                Tienes una solicitud pendiente para pasar a {nombrePlan(pendiente.plan_nuevo as PlanId)} ({pendiente.periodo === "anual" ? "pago anual" : "pago mensual"}), enviada el{" "}
-                {formatoFecha(pendiente.created_at.slice(0, 10), { day: "numeric", month: "short" })}. Si quieres otro plan, elígelo abajo y reemplaza esa solicitud.
-              </Aviso>
+              <>
+                <PagoNequi
+                  titulo={`Tu solicitud: ${nombrePlan(pendiente.plan_nuevo as PlanId)} · ${pendiente.periodo === "anual" ? "pago anual" : "pago mensual"}`}
+                  monto={montoPendiente.texto}
+                  pesos={montoPendiente.pesos}
+                  nequi={datosNequi()}
+                  referencia={`${finca.nombre} · ${user.email ?? ""}`.trim()}
+                />
+                <Aviso tipo="info">Enviada el {formatoFecha(pendiente.created_at.slice(0, 10), { day: "numeric", month: "short" })}. Si quieres otro plan, elígelo abajo y reemplaza esa solicitud.</Aviso>
+              </>
             ) : null}
             <MejorarPlan actual={finca.plan} numeroFinca={numeroFinca} />
           </>
