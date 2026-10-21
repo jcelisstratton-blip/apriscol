@@ -5334,6 +5334,23 @@ export type Database = {
         Args: { p_finca: string; p_plan: string }
         Returns: number
       }
+      admin_cobranza: {
+        Args: never
+        Returns: {
+          cuenta_pruebas: boolean
+          dias_restantes: number
+          estado: string
+          finca_id: string
+          nombre: string
+          numero_finca: number
+          plan: string
+          plan_vence_en: string
+          propietario_email: string
+          propietario_nombre: string
+          telefono: string
+          ultimo_pago_en: string
+        }[]
+      }
       admin_confirmar_pago: {
         Args: {
           p_finca: string
@@ -5345,6 +5362,7 @@ export type Database = {
         }
         Returns: string
       }
+      admin_ficha_finca: { Args: { p_finca: string }; Returns: Json }
       admin_fijar_vigencia_finca: {
         Args: { p_fecha: string; p_finca: string }
         Returns: undefined
