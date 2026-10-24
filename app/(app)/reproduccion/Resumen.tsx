@@ -12,6 +12,7 @@ import { etiquetaAnimal } from "@/lib/animal";
 import { diasHasta, formatoFecha, hoyBogota } from "@/lib/fechas";
 import { DIAS_PARTO_ATRASADO, DIAS_PARTO_PROXIMO, DIAS_REPETIR_DX_DESDE, DIAS_REPETIR_DX_HASTA, enObservacion, enUltimoTercio, partoAtrasado, partoProximo, plazoParto, porConfirmar as debeConfirmarse, porRepetir as debeRepetirse, porSecar as debeSecarse, ventanaRepetirDx } from "@/lib/reproduccion";
 import type { ReproHembra } from "@/lib/tipos";
+import { leerTodo } from "@/lib/consultas";
 
 /** Lo que más importa de la reproducción de toda la finca: quiénes están gestantes y cuándo paren, y qué servicios hay que confirmar. */
 export async function Resumen({
@@ -28,7 +29,7 @@ export async function Resumen({
   const supabase = cliente ?? (await crearClienteServidor());
   const { general } = ajustes ?? (await obtenerAjustes());
   const hoy = hoyBogota();
-  const { data } = await supabase.from("v_repro_hembras").select("*").eq("finca_id", fincaId).limit(2000);
+  const { data } = await leerTodo<ReproHembra>((d, h) => supabase.from("v_repro_hembras").select("*").eq("finca_id", fincaId).order("animal_id").range(d, h));
   const filas = (data ?? []) as ReproHembra[];
 
   const ventana = { desde: general.dx_prenez_dia_desde, hasta: general.dx_prenez_dia_hasta };

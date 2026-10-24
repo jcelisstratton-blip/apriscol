@@ -16,6 +16,7 @@ import { formatoFecha, hoyBogota, litros } from "@/lib/fechas";
 import { ETIQUETA_EVENTO, ETIQUETA_VIA, estadoDosis, nombreEvento } from "@/lib/sanidad";
 import { ANESTESIAS, CATEGORIAS, COJERAS, ETAPAS, MOTIVOS, REGLAS, etiquetaDe } from "@/lib/sanidad-campos";
 import { eliminarEvento } from "@/app/(app)/sanidad/actions";
+import { leerTodo } from "@/lib/consultas";
 
 export const metadata: Metadata = { title: "Registro de sanidad" };
 const ID_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -40,7 +41,7 @@ export default async function DetalleEvento({ params, searchParams }: { params: 
 
   const [{ data: e }, { data: filas }] = await Promise.all([
     supabase.from("eventos_sanitarios").select("*").eq("id", id).eq("finca_id", finca.id).maybeSingle(),
-    supabase.from("evento_sanitario_animales").select("animal_id").eq("evento_id", id).eq("finca_id", finca.id).limit(1000),
+    leerTodo((d, h) => supabase.from("evento_sanitario_animales").select("animal_id").eq("evento_id", id).eq("finca_id", finca.id).order("animal_id").range(d, h)),
   ]);
   if (!e) notFound();
   const animales = await animalesPorIds(supabase, finca.id, (filas ?? []).map((f) => f.animal_id));

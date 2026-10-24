@@ -6,6 +6,7 @@ import { pesos } from "@/lib/leche-calidad";
 import { CONTROLES_DESPACHO, resumenControles } from "@/lib/controles";
 import { agruparControles, controlesDe } from "@/lib/controles-datos";
 import { PorQueAnalizar } from "@/components/PorQueAnalizar";
+import { leerTodo } from "@/lib/consultas";
 
 /** Despachos de leche de la finca: lo que salió en los últimos 30 días frente a lo que se ordeñó, y el historial. */
 export async function Despachos({
@@ -23,7 +24,7 @@ export async function Despachos({
   const desde = sumarDias(hoy, -29);
   const [{ data }, recientes] = await Promise.all([
     supabase.rpc("leche_balance", { p_finca: fincaId, p_desde: desde, p_hasta: hoy }),
-    supabase.from("despachos_leche").select("id").eq("finca_id", fincaId).gte("fecha", desde).limit(1000),
+    leerTodo((d, h) => supabase.from("despachos_leche").select("id").eq("finca_id", fincaId).gte("fecha", desde).order("id").range(d, h)),
   ]);
   // Cómo van los controles de calidad de los despachos de los últimos 30 días.
   const ids = (recientes.data ?? []).map((d) => d.id);

@@ -14,7 +14,6 @@ export const FILTRO_ESPECIE: FiltroDef = filtro("especie", "Especie", [
   opcion("caprino", "Cabras", "Solo caprinos"),
   opcion("ovino", "Ovejas", "Solo ovinos"),
 ]);
-export const ETIQUETA_ESPECIE_FILTRO: Record<Especie, string> = { caprino: "Cabras", ovino: "Ovejas" };
 
 export const GRUPOS_REPORTE: { id: GrupoReporte; titulo: string; detalle: string }[] = [
   { id: "poblacion", titulo: "Población", detalle: "Qué animales hay y cuáles salieron" },

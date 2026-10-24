@@ -23,6 +23,7 @@ import { Aviso } from "@/components/Aviso";
 import { pesos } from "@/lib/ferias";
 import { RequierePlan } from "@/components/RequierePlan";
 import { servicioEnPlan } from "@/lib/planes";
+import { leerTodo } from "@/lib/consultas";
 
 export const metadata: Metadata = { title: "Costos" };
 
@@ -96,9 +97,13 @@ export default async function PaginaCostos({ searchParams }: { searchParams: Pro
 
 async function costosAnimales(fincaId: string, rango: { desde: string | null; hasta: string | null }) {
   const supabase = await crearClienteServidor();
-  let generales = supabase.from("gastos").select("monto").eq("finca_id", fincaId).eq("destino_tipo", "finca").limit(5000);
-  if (rango.desde) generales = generales.gte("fecha", rango.desde);
-  if (rango.hasta) generales = generales.lte("fecha", rango.hasta);
+  // Una suma de dinero no puede quedar corta: se leen todas las filas, no las primeras mil.
+  const generales = leerTodo((d, h) => {
+    let q = supabase.from("gastos").select("monto").eq("finca_id", fincaId).eq("destino_tipo", "finca");
+    if (rango.desde) q = q.gte("fecha", rango.desde);
+    if (rango.hasta) q = q.lte("fecha", rango.hasta);
+    return q.order("id").range(d, h);
+  });
   const [{ data }, { data: gen }] = await Promise.all([supabase.rpc("costos_por_animal", { p_finca: fincaId, p_desde: rango.desde, p_hasta: rango.hasta }), generales]);
   return {
     filas: (data ?? []).map((f) => ({ ...f, directo: Number(f.directo), repartido: Number(f.repartido), total: Number(f.total), valor_compra: f.valor_compra != null ? Number(f.valor_compra) : null })),

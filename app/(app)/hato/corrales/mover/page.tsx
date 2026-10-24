@@ -11,6 +11,7 @@ import { animalesPorIds } from "@/lib/animal-etiquetas";
 import { etiquetaAnimal } from "@/lib/animal";
 import { hoyBogota } from "@/lib/fechas";
 import type { MotivoMovimiento, UbicacionVista } from "@/lib/tipos";
+import { leerTodo } from "@/lib/consultas";
 
 export const metadata: Metadata = { title: "Mover animales" };
 const ID_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -40,15 +41,15 @@ export default async function PaginaMover({ searchParams }: { searchParams: Prom
     desde = origen.nombre;
     volverA = origen.id;
     motivo = origen.tipo === "potrero" ? "rotacion" : "traslado";
-    const { data: movs } = await supabase.from("movimientos_animales").select("animal_id").eq("ubicacion_id", origen.id).eq("finca_id", finca.id).is("hasta", null).limit(1000);
+    const { data: movs } = await leerTodo((d, h) => supabase.from("movimientos_animales").select("animal_id").eq("ubicacion_id", origen.id).eq("finca_id", finca.id).is("hasta", null).order("animal_id").range(d, h));
     ids = (movs ?? []).map((m) => m.animal_id);
   } else if (sp.animal) {
     if (!ID_UUID.test(sp.animal)) notFound();
     ids = [sp.animal];
   } else if (sp.grupo === "sin_ubicacion") {
     const [{ data: activos }, { data: ubicados }] = await Promise.all([
-      supabase.from("animales").select("id").eq("finca_id", finca.id).eq("estado", "activo").is("deleted_at", null).order("numero_arete").limit(1000),
-      supabase.from("movimientos_animales").select("animal_id").eq("finca_id", finca.id).is("hasta", null).limit(5000),
+      leerTodo((d, h) => supabase.from("animales").select("id").eq("finca_id", finca.id).eq("estado", "activo").is("deleted_at", null).order("numero_arete").order("id").range(d, h)),
+      leerTodo((d, h) => supabase.from("movimientos_animales").select("animal_id").eq("finca_id", finca.id).is("hasta", null).order("animal_id").range(d, h)),
     ]);
     const conUbicacion = new Set((ubicados ?? []).map((m) => m.animal_id));
     ids = (activos ?? []).map((a) => a.id).filter((i) => !conUbicacion.has(i));

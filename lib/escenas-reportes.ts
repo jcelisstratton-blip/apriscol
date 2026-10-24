@@ -1,4 +1,4 @@
-import { Activity, ArchiveX, Ban, Baby, Bone, Bug, CalendarClock, CalendarX, Cloud, Crown, Dna, Droplets, Eye, Footprints, Gauge, Heart, HeartCrack, HandCoins, Hourglass, Layers, Mars, Milk, Mountain, PawPrint, Scale, Search, ShieldAlert, Skull, Sprout, Stethoscope, Syringe, Tag, Timer, TriangleAlert, Venus, Waves, Wallet, Wheat } from "lucide-react";
+import { Activity, ArchiveX, Ban, Baby, Bone, Bug, CalendarClock, CalendarX, Cloud, Crown, Dna, Droplets, Eye, Footprints, Gauge, Heart, HeartCrack, HandCoins, Hourglass, Mars, Milk, Mountain, PawPrint, Scale, Search, ShieldAlert, Skull, Sprout, Stethoscope, Syringe, Tag, Timer, TriangleAlert, Venus, Waves, Wallet, Wheat } from "lucide-react";
 import { escena, ESC, type EscenaDef } from "@/lib/escenas";
 
 /** Las tarjetas de cada reporte en la pantalla de Reportes (un color por área de trabajo). */
@@ -74,12 +74,4 @@ export const ESCENA_FILTRO: Record<string, EscenaDef> = {
   famacha: escena(Eye, "arcilla", Bug),
   podologia: escena(Footprints, "ocre", Bone),
   pediluvio: escena(Waves, "ambar", Footprints),
-};
-
-/** Los grupos de la pantalla de Reportes. */
-export const ESCENA_GRUPO_REPORTE: Record<string, EscenaDef> = {
-  poblacion: escena(PawPrint, "ambar", Layers),
-  reproduccion: escena(Heart, "arcilla", Baby),
-  produccion: escena(Milk, "oliva", Droplets),
-  sanidad: escena(Syringe, "musgo", Bug),
 };

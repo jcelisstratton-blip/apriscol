@@ -13,6 +13,7 @@ import { ESCENA_MOTIVO, ESCENA_TODOS_MOTIVOS } from "@/lib/escenas-corrales";
 import { hoyBogota } from "@/lib/fechas";
 import { rangoPeriodo, type Periodo } from "@/lib/periodos";
 import type { CuarentenaAlerta, MotivoMovimiento, UbicacionVista } from "@/lib/tipos";
+import { leerTodo } from "@/lib/consultas";
 
 export type FiltrosCorrales = { periodo: Periodo; desde?: string; hasta?: string; motivo: MotivoMovimiento | "todos" };
 
@@ -51,13 +52,17 @@ export async function Resumen({
   const hayRango = Boolean(rango.desde || rango.hasta);
   const hayMotivo = filtros.motivo !== "todos";
 
-  let qMov = supabase.from("movimientos_animales").select("animal_id, motivo, desde, ubicacion_id").eq("finca_id", fincaId);
-  if (filtros.motivo !== "todos") qMov = qMov.eq("motivo", filtros.motivo);
-  if (rango.desde) qMov = qMov.gte("desde", rango.desde);
-  if (rango.hasta) qMov = qMov.lte("desde", rango.hasta);
+  // Cada página de una lectura completa necesita su propia consulta (una consulta de PostgREST no se reutiliza).
+  const armarMovimientos = () => {
+    let q = supabase.from("movimientos_animales").select("animal_id, motivo, desde, ubicacion_id").eq("finca_id", fincaId);
+    if (filtros.motivo !== "todos") q = q.eq("motivo", filtros.motivo);
+    if (rango.desde) q = q.gte("desde", rango.desde);
+    if (rango.hasta) q = q.lte("desde", rango.hasta);
+    return q;
+  };
 
   const [movDB, ubicacionesDB, cuarentenaDB] = await Promise.all([
-    qMov.order("desde", { ascending: false }).limit(2000),
+    leerTodo((d, h) => armarMovimientos().order("desde", { ascending: false }).order("id").range(d, h)),
     supabase.from("v_ubicaciones").select("*").eq("finca_id", fincaId).eq("activa", true).order("tipo").order("nombre").limit(300),
     supabase.from("v_cuarentena_alerta").select("*").eq("finca_id", fincaId).limit(500),
   ]);

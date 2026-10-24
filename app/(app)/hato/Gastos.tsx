@@ -8,6 +8,7 @@ import { crearClienteServidor } from "@/lib/supabase/server";
 import { AYUDA_GASTOS } from "@/lib/ayuda";
 import { formatoFecha, hoyBogota } from "@/lib/fechas";
 import { pesos } from "@/lib/ferias";
+import { leerTodo } from "@/lib/consultas";
 
 /**
  * Hato → Compras: donde se registran las compras del aprisco (concentrado, sales, vacunas, fletes…), se ven las que quedan por pagar y se corrigen.
@@ -27,7 +28,7 @@ export async function Gastos({
 }) {
   const supabase = cliente ?? (await crearClienteServidor());
   const hoy = hoyBogota();
-  const { data: pendientes } = await supabase.from("gastos").select("monto, vence").eq("finca_id", fincaId).is("pagado_en", null).limit(1000);
+  const { data: pendientes } = await leerTodo((d, h) => supabase.from("gastos").select("monto, vence").eq("finca_id", fincaId).is("pagado_en", null).order("id").range(d, h));
   const porPagar = (pendientes ?? []).reduce((s, g) => s + Number(g.monto), 0);
   const vencidos = (pendientes ?? []).filter((g) => g.vence && g.vence < hoy);
   const proximo = (pendientes ?? []).map((g) => g.vence).filter((v): v is string => !!v && v >= hoy).sort()[0];

@@ -131,7 +131,7 @@ verdad por todas sus ramas** (con datos, vacía, con un animal, con otro periodo
 ## Una sola definición (no se copia lo que ya existe)
 
 Antes de escribir un helper o una regla, buscar si ya existe. Lo que ya tiene casa única:
-- **Leer muchas filas:** `lib/consultas.ts` (`traerTodo`, `paginar`, `enTramos`). PostgREST corta cada respuesta en 1000: un `.limit(2000)` suelto deja una lista «completa» truncada en silencio. Nunca otro bucle de páginas.
+- **Leer muchas filas:** `lib/consultas.ts` (`leerTodo`, `traerTodo`, `paginar`, `enTramos`). PostgREST corta cada respuesta en 1000: un `.limit(2000)` suelto deja una lista «completa» truncada en silencio y **un conteo o una suma de dinero que sale corta**. Para conteos, sumas y todo lo que decide algo sobre el hato entero se usa `leerTodo` (con un `order` estable); `.limit(N)` solo en listas que se muestran recortadas a propósito. Una consulta de PostgREST **no se reutiliza** entre páginas (cada llamada la arma de nuevo). Nunca otro bucle de páginas.
 - **Buscar texto sin tildes:** `lib/texto.ts` (`sinTildes`). **Descargar un Excel:** `lib/archivos.ts` (`respuestaExcel`, `cabecerasExcel`).
 - **Reglas de seguimiento reproductivo** (parto próximo o atrasado, último tercio, por secar, por confirmar o repetir el diagnóstico, resultado de un servicio): `lib/reproduccion.ts`. **De sanidad** (revisión de pezuñas atrasada, FAMACHA por desparasitar): `lib/sanidad.ts` y `lib/famacha.ts`. El Resumen, la ficha, los programadores y los reportes **llaman** esas funciones; si la regla cambia, cambia ahí y los números nunca se contradicen. Tienen sus pruebas en `tests/compartido.test.mjs`.
 - **Días entre fechas:** `diasHasta` / `diasDesde` de `lib/fechas.ts`.

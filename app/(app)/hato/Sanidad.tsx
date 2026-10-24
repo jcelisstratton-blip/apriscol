@@ -16,6 +16,7 @@ import { contarFamacha } from "@/lib/famacha";
 import { formatoFecha, hoyBogota } from "@/lib/fechas";
 import { ETIQUETA_EVENTO, conRevisionAtrasada, estadoDosis, estadoFechaPrograma, nombreEvento, plazosRevisionPezuna } from "@/lib/sanidad";
 import type { ProgramaSanitarioResumen, SanidadPendiente, TipoEvento } from "@/lib/tipos";
+import { leerTodo } from "@/lib/consultas";
 
 type GrupoRefuerzo = { evento_id: string; tipo: TipoEvento | null; producto_nombre: string | null; proxima_fecha: string; animales: number };
 
@@ -42,10 +43,10 @@ export async function Sanidad({
   const { pediluvioDias: diasPediluvio } = plazosRevisionPezuna(ajustes, hoy);
   const [programasDB, pendientesDB, podologiaDB, pediluvioDB, famachaDB] = await Promise.all([
     supabase.from("v_programas_sanitarios").select("*").eq("finca_id", fincaId).eq("estado", "abierto").order("fecha_programada").limit(50),
-    supabase.from("v_sanidad_pendiente").select("*").eq("finca_id", fincaId).order("proxima_fecha").limit(1000),
-    supabase.from("v_podologia_animal").select("animal_id, ultima_fecha").eq("finca_id", fincaId).limit(2000),
-    supabase.from("v_pediluvio_animal").select("animal_id, ultima_fecha").eq("finca_id", fincaId).limit(2000),
-    supabase.from("v_famacha_animal").select("*").eq("finca_id", fincaId).gte("puntaje", 3).limit(2000),
+    leerTodo((d, h) => supabase.from("v_sanidad_pendiente").select("*").eq("finca_id", fincaId).order("proxima_fecha").order("evento_id").order("animal_id").range(d, h)),
+    leerTodo((d, h) => supabase.from("v_podologia_animal").select("animal_id, ultima_fecha").eq("finca_id", fincaId).order("animal_id").range(d, h)),
+    leerTodo((d, h) => supabase.from("v_pediluvio_animal").select("animal_id, ultima_fecha").eq("finca_id", fincaId).order("animal_id").range(d, h)),
+    leerTodo((d, h) => supabase.from("v_famacha_animal").select("*").eq("finca_id", fincaId).gte("puntaje", 3).order("animal_id").range(d, h)),
   ]);
   const programas = (programasDB.data ?? []) as ProgramaSanitarioResumen[];
 

@@ -5,6 +5,7 @@ import { crearClienteServidor } from "@/lib/supabase/server";
 import { animalesPorIds } from "@/lib/animal-etiquetas";
 import { etiquetaAnimal } from "@/lib/animal";
 import { hoyBogota, sumarDias } from "@/lib/fechas";
+import { leerTodo } from "@/lib/consultas";
 
 /** Días desde el último peso para que un animal sin lote siga apareciendo en Ceba. */
 const DIAS_RECIENTE = 90;
@@ -25,7 +26,7 @@ export async function Ceba({
   const [lotesDB, cebaDB, machosDB] = await Promise.all([
     supabase.from("lotes_ceba").select("id, nombre").eq("finca_id", fincaId).is("cerrado_en", null).order("nombre").limit(500),
     supabase.rpc("ceba_animales", { p_finca: fincaId }),
-    supabase.from("animales").select("id, lote_ceba_id").eq("finca_id", fincaId).eq("estado", "activo").is("deleted_at", null).eq("uso_macho", "carne").limit(1000),
+    leerTodo((d, h) => supabase.from("animales").select("id, lote_ceba_id").eq("finca_id", fincaId).eq("estado", "activo").is("deleted_at", null).eq("uso_macho", "carne").order("id").range(d, h)),
   ]);
   const lotes = lotesDB.data ?? [];
   const abiertos = new Set(lotes.map((l) => l.id));

@@ -17,6 +17,7 @@ import { formatoFecha, hoyBogota } from "@/lib/fechas";
 import { rangoPeriodo, type Periodo } from "@/lib/periodos";
 import { ETIQUETA_EVENTO, ETIQUETA_PRUEBA_CORTA, ETIQUETA_RESULTADO_PRUEBA, TIPOS_EVENTO, TONO_RESULTADO_PRUEBA, estadoDosis, estadoFechaPrograma, nombreEvento, conRevisionAtrasada, plazosRevisionPezuna } from "@/lib/sanidad";
 import type { EventoResumen, ProgramaSanitarioResumen, SanidadPendiente, TipoEvento } from "@/lib/tipos";
+import { leerTodo } from "@/lib/consultas";
 
 export type FiltrosSanidad = { periodo: Periodo; desde?: string; hasta?: string; tipo: TipoEvento | "todos" };
 
@@ -58,38 +59,43 @@ export async function Resumen({
   const rango = rangoPeriodo(filtros.periodo, hoy, filtros.desde, filtros.hasta);
   const hayRango = Boolean(rango.desde || rango.hasta);
 
-  let qEventos = supabase.from("v_eventos_sanitarios").select("*").eq("finca_id", fincaId);
+  // Cada página de una lectura completa necesita su propia consulta (una consulta de PostgREST no se reutiliza).
+  const armarEventos = () => {
+    let q = supabase.from("v_eventos_sanitarios").select("*").eq("finca_id", fincaId);
+    if (filtros.tipo !== "todos") q = q.eq("tipo", filtros.tipo);
+    if (rango.desde) q = q.gte("fecha", rango.desde);
+    if (rango.hasta) q = q.lte("fecha", rango.hasta);
+    return q;
+  };
+  const armarRefuerzos = () => {
+    let q = supabase.from("v_sanidad_pendiente").select("*").eq("finca_id", fincaId);
+    if (filtros.tipo !== "todos") q = q.eq("tipo", filtros.tipo);
+    if (rango.desde) q = q.gte("proxima_fecha", rango.desde);
+    if (rango.hasta) q = q.lte("proxima_fecha", rango.hasta);
+    return q;
+  };
   let qProgramas = supabase.from("v_programas_sanitarios").select("*").eq("finca_id", fincaId).neq("estado", "cancelado");
   let qPruebas = supabase.from("pruebas_sanitarias").select("id, animal_id, prueba, fecha, resultado").eq("finca_id", fincaId).in("resultado", ["positivo", "sospechoso"]);
-  let qRefuerzos = supabase.from("v_sanidad_pendiente").select("*").eq("finca_id", fincaId);
-  if (filtros.tipo !== "todos") {
-    qEventos = qEventos.eq("tipo", filtros.tipo);
-    qProgramas = qProgramas.eq("tipo", filtros.tipo);
-    qRefuerzos = qRefuerzos.eq("tipo", filtros.tipo);
-  }
+  if (filtros.tipo !== "todos") qProgramas = qProgramas.eq("tipo", filtros.tipo);
   if (rango.desde) {
-    qEventos = qEventos.gte("fecha", rango.desde);
     qProgramas = qProgramas.gte("fecha_programada", rango.desde);
     qPruebas = qPruebas.gte("fecha", rango.desde);
-    qRefuerzos = qRefuerzos.gte("proxima_fecha", rango.desde);
   }
   if (rango.hasta) {
-    qEventos = qEventos.lte("fecha", rango.hasta);
     qProgramas = qProgramas.lte("fecha_programada", rango.hasta);
     qPruebas = qPruebas.lte("fecha", rango.hasta);
-    qRefuerzos = qRefuerzos.lte("proxima_fecha", rango.hasta);
   }
 
   const { general: ajustes } = await obtenerAjustes();
   const [retiro, eventosDB, programasDB, pruebasDB, refuerzosDB, podologiaDB, pediluvioDB, famachaDB] = await Promise.all([
     supabase.rpc("animales_en_retiro", { p_finca: fincaId }),
-    qEventos.order("fecha", { ascending: false }).limit(1000),
+    leerTodo((d, h) => armarEventos().order("fecha", { ascending: false }).order("id").range(d, h)),
     qProgramas.order("fecha_programada").limit(500),
     qPruebas.order("fecha", { ascending: false }).limit(8),
-    qRefuerzos.order("proxima_fecha").limit(1000),
-    supabase.from("v_podologia_animal").select("animal_id, ultima_fecha").eq("finca_id", fincaId).limit(2000),
-    supabase.from("v_pediluvio_animal").select("animal_id, ultima_fecha").eq("finca_id", fincaId).limit(2000),
-    supabase.from("v_famacha_animal").select("*").eq("finca_id", fincaId).gte("puntaje", 3).limit(2000),
+    leerTodo((d, h) => armarRefuerzos().order("proxima_fecha").order("evento_id").order("animal_id").range(d, h)),
+    leerTodo((d, h) => supabase.from("v_podologia_animal").select("animal_id, ultima_fecha").eq("finca_id", fincaId).order("animal_id").range(d, h)),
+    leerTodo((d, h) => supabase.from("v_pediluvio_animal").select("animal_id, ultima_fecha").eq("finca_id", fincaId).order("animal_id").range(d, h)),
+    leerTodo((d, h) => supabase.from("v_famacha_animal").select("*").eq("finca_id", fincaId).gte("puntaje", 3).order("animal_id").range(d, h)),
   ]);
 
   const eventos = (eventosDB.data ?? []) as EventoResumen[];

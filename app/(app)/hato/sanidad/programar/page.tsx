@@ -15,6 +15,7 @@ import { TIPOS_PROGRAMABLES, conRevisionAtrasada, plazosRevisionPezuna } from "@
 import { obtenerAjustes } from "@/lib/ajustes-servidor";
 import { estadoFamacha } from "@/lib/famacha";
 import type { TipoEvento } from "@/lib/tipos";
+import { leerTodo } from "@/lib/consultas";
 
 export const metadata: Metadata = { title: "Programar sanidad" };
 const ID_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -40,7 +41,7 @@ export default async function PaginaProgramar({ searchParams }: { searchParams: 
     if (!p) notFound();
     if (p.cancelado_en) redirect("/hato?vista=sanidad");
     datos = { id: p.id, tipo: p.tipo, fecha_programada: p.fecha_programada, producto_id: p.producto_id, producto_nombre: p.producto_nombre, dosis: p.dosis, unidad_dosis: p.unidad_dosis, via: p.via, retiro_leche_dias: p.retiro_leche_dias, retiro_carne_dias: p.retiro_carne_dias, observaciones: p.observaciones };
-    const { data: pendientes } = await supabase.from("programa_sanitario_animales").select("animal_id").eq("programa_id", id).eq("finca_id", finca.id).is("evento_id", null).limit(1000);
+    const { data: pendientes } = await leerTodo((d, h) => supabase.from("programa_sanitario_animales").select("animal_id").eq("programa_id", id).eq("finca_id", finca.id).is("evento_id", null).order("animal_id").range(d, h));
     ids = (pendientes ?? []).map((a) => a.animal_id);
   } else {
     const tipoInicial = TIPOS_PROGRAMABLES.includes(tipo as TipoEvento) ? (tipo as TipoEvento) : "vacunacion";
@@ -49,13 +50,13 @@ export default async function PaginaProgramar({ searchParams }: { searchParams: 
       if (!ID_UUID.test(animal)) notFound();
       ids = [animal];
     } else if (grupo === "podologia") {
-      const { data } = await supabase.from("v_podologia_animal").select("animal_id, ultima_fecha").eq("finca_id", finca.id).limit(2000);
+      const { data } = await leerTodo((d, h) => supabase.from("v_podologia_animal").select("animal_id, ultima_fecha").eq("finca_id", finca.id).order("animal_id").range(d, h));
       ids = conRevisionAtrasada(data ?? [], (await obtenerAjustes()).general.podologia_inspeccion_dias, hoy).map((p) => p.animal_id).slice(0, 1000);
     } else if (grupo === "pediluvio") {
-      const { data } = await supabase.from("v_pediluvio_animal").select("animal_id, ultima_fecha").eq("finca_id", finca.id).limit(2000);
+      const { data } = await leerTodo((d, h) => supabase.from("v_pediluvio_animal").select("animal_id, ultima_fecha").eq("finca_id", finca.id).order("animal_id").range(d, h));
       ids = conRevisionAtrasada(data ?? [], plazosRevisionPezuna((await obtenerAjustes()).general, hoy).pediluvioDias, hoy).map((p) => p.animal_id).slice(0, 1000);
     } else if (grupo === "famacha") {
-      const { data } = await supabase.from("v_famacha_animal").select("animal_id, puntaje, ultima_fecha, desparasitado_en").eq("finca_id", finca.id).gte("puntaje", 4).limit(2000);
+      const { data } = await leerTodo((d, h) => supabase.from("v_famacha_animal").select("animal_id, puntaje, ultima_fecha, desparasitado_en").eq("finca_id", finca.id).gte("puntaje", 4).order("animal_id").range(d, h));
       ids = (data ?? []).filter((f) => estadoFamacha(f).clave === "desparasitar").map((f) => f.animal_id).slice(0, 1000);
     }
   }
