@@ -26,17 +26,25 @@ export async function actualizarSesion(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const esPublica = PUBLICAS.some((p) => pathname === p || pathname.startsWith(`${p}/`));
 
+  // Una redirección es una respuesta nueva: hay que llevarle las cookies que Supabase acaba de escribir (por ejemplo, el borrado de una sesión
+  // que ya no sirve); si no, el navegador se queda con la cookie vieja y vuelve a caer en lo mismo.
+  const redirigir = (url: URL) => {
+    const salida = NextResponse.redirect(url);
+    respuesta.cookies.getAll().forEach((c) => salida.cookies.set(c));
+    return salida;
+  };
+
   if (!hayUsuario && !esPublica) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     url.search = pathname === "/" ? "" : `?next=${encodeURIComponent(pathname + request.nextUrl.search)}`;
-    return NextResponse.redirect(url);
+    return redirigir(url);
   }
   if (hayUsuario && (pathname === "/login" || pathname === "/registro")) {
     const url = request.nextUrl.clone();
     url.pathname = "/";
     url.search = "";
-    return NextResponse.redirect(url);
+    return redirigir(url);
   }
   return respuesta;
 }

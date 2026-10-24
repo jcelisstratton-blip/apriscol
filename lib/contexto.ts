@@ -2,6 +2,7 @@ import "server-only";
 import { cache } from "react";
 import { redirect } from "next/navigation";
 import { crearClienteServidor } from "@/lib/supabase/server";
+import { RUTA_SALIR } from "@/lib/supabase/sesion";
 import { hoyBogota } from "@/lib/fechas";
 import type { Finca, Perfil, RolFinca } from "@/lib/tipos";
 import { estadoPlan, type EstadoPlan } from "@/lib/vigencia";
@@ -24,7 +25,8 @@ const ESTADOS: EstadoPlan[] = ["vigente", "por_vencer", "gracia", "bloqueada", "
 export const obtenerUsuario = cache(async () => {
   const supabase = await crearClienteServidor();
   const { data } = await supabase.auth.getUser();
-  if (!data.user) redirect("/login");
+  // Sin usuario (o con una sesión que el servidor ya no reconoce) se pasa por /auth/salir, que borra las cookies: un simple /login volvía a «/» en bucle.
+  if (!data.user) redirect(RUTA_SALIR);
   return { id: data.user.id, email: data.user.email ?? "" };
 });
 
