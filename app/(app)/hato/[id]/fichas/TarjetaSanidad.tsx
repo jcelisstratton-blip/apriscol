@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Plus } from "lucide-react";
 import { Insignia } from "@/components/Insignia";
 import { Tarjeta } from "@/components/Tarjeta";
 import { puedeEscribir, puedeVer } from "@/lib/permisos";
@@ -6,7 +7,7 @@ import { clasesBoton } from "@/components/Boton";
 import { formatoFecha, hoyBogota } from "@/lib/fechas";
 import { HistorialSanidadAnimal } from "@/components/HistorialSanidadAnimal";
 import { aplicaFamacha, estadoFamacha, FAMACHA } from "@/lib/famacha";
-import { estadoDosis, estadoFechaPrograma, ETIQUETA_EVENTO, nombreEvento, TIPOS_EVENTO } from "@/lib/sanidad";
+import { estadoDosis, estadoFechaPrograma, ETIQUETA_EVENTO, nombreEvento } from "@/lib/sanidad";
 import type { CtxFicha } from "./contexto";
 
 /** Vacunas, tratamientos, pruebas y FAMACHA del animal, y lo que está programado. */
@@ -114,14 +115,10 @@ export async function TarjetaSanidad({ c }: { c: CtxFicha }) {
       {puedeEscribir(rol, "sanidad", finca.plan) && animal.estado === "activo" ? (
         <div className="mt-3 space-y-3">
           <div>
-            <p className="text-sm font-semibold">Registrar lo que se le aplicó</p>
-            <div className="mt-1.5 grid grid-cols-2 gap-2">
-              {TIPOS_EVENTO.filter((t) => t !== "otro").map((t) => (
-                <Link key={t} href={`/hato/sanidad/nuevo?animal=${id}&tipo=${t}`} className={clasesBoton("secundario")}>
-                  {ETIQUETA_EVENTO[t]}
-                </Link>
-              ))}
-            </div>
+            <Link href={`/hato/sanidad/nuevo?animal=${id}`} className={clasesBoton("primario")}>
+              <Plus className="size-5" strokeWidth={2.2} aria-hidden="true" /> Registrar lo aplicado
+            </Link>
+            <p className="mt-1.5 text-[0.8125rem] text-humo">Vacuna, desparasitación, tratamiento, podología, pediluvio o cirugía: eliges cuál en el siguiente paso.</p>
           </div>
           <div className="grid grid-cols-1 gap-2 min-[420px]:grid-cols-2">
             <Link href={`/hato/sanidad/programar?animal=${id}`} className={clasesBoton("secundario")}>
