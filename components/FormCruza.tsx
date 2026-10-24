@@ -7,13 +7,13 @@ import { Cargando } from "@/components/Cargando";
 import { NivelEndogamia } from "@/components/NivelEndogamia";
 import { SelectorAnimal } from "@/components/SelectorAnimal";
 import { Tarjeta } from "@/components/Tarjeta";
-import { crearClienteNavegador } from "@/lib/supabase/client";
+import { consultarCruza, type ResultadoSimulacion } from "@/lib/cruza-cliente";
 import { RutasEndogamia } from "@/components/RutasEndogamia";
-import { nivelEndogamia, pedigriTexto, porcentaje, recomendacionCruza, type AncestroEndogamia } from "@/lib/endogamia";
+import { nivelEndogamia, pedigriTexto, porcentaje, recomendacionCruza } from "@/lib/endogamia";
 import type { Especie } from "@/lib/tipos";
 
 export type RefCruza = { id: string; numero_arete: string; nombre: string | null; especie?: Especie };
-export type ResultadoSimulacion = { f: number; pedigriMacho: number; pedigriHembra: number; origen: AncestroEndogamia[] };
+export type { ResultadoSimulacion };
 
 /** Simulador de cruza: elige un macho y una hembra y muestra la endogamia que tendría la cría. */
 export function FormCruza({
@@ -38,16 +38,11 @@ export function FormCruza({
     setError(null);
     if (!m || !h) return;
     iniciar(async () => {
-      const supabase = crearClienteNavegador();
-      const [sim, pm, ph, com] = await Promise.all([
-        supabase.rpc("simular_endogamia", { p_macho: m.id, p_hembra: h.id }),
-        supabase.rpc("completitud_pedigri", { p_animal: m.id }),
-        supabase.rpc("completitud_pedigri", { p_animal: h.id }),
-        supabase.rpc("explicar_cruza", { p_macho: m.id, p_hembra: h.id }),
-      ]);
-      const fallo = sim.error ?? pm.error ?? ph.error ?? com.error;
-      if (fallo) return setError(fallo.message);
-      setResultado({ f: sim.data ?? 0, pedigriMacho: pm.data ?? 0, pedigriHembra: ph.data ?? 0, origen: com.data ?? [] });
+      try {
+        setResultado(await consultarCruza(m.id, h.id));
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "No se pudo calcular la cruza.");
+      }
     });
   };
 

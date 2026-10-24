@@ -39,7 +39,7 @@ export default async function PaginaEditarServicio({ params }: { params: Promise
       </Link>
       <Encabezado titulo="Editar servicio" subtitulo={etiquetaAnimal(animal)} />
       <div className="space-y-8 lg:max-w-xl">
-        <FormServicio fincaId={finca.id} hembraId={animal.id} especie={animal.especie} gestacionDias={ajustes.especie[animal.especie].gestacion_dias} hoy={hoyBogota()} servicio={servicio} machoInicial={macho.data} madreInicial={madre.data} />
+        <FormServicio fincaId={finca.id} hembraId={animal.id} especie={animal.especie} gestacionDias={ajustes.especie[animal.especie].gestacion_dias} hoy={hoyBogota()} umbral={finca.umbral_endogamia} servicio={servicio} machoInicial={macho.data} madreInicial={madre.data} />
         {puedeGestionar(rol) ? (
           <EliminarRegistro
             etiqueta="Eliminar este servicio"
