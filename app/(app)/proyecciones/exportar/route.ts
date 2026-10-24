@@ -6,7 +6,9 @@ import { hoyBogota } from "@/lib/fechas";
 import { puedeGestionar, puedeVer } from "@/lib/permisos";
 import { cargarBase } from "@/lib/proyeccion/cargar";
 import { construirLibroProyeccion, nombreArchivoProyeccion } from "@/lib/proyeccion/excel";
-import { porAnio, simular } from "@/lib/proyeccion/motor";
+import { correr } from "@/lib/proyeccion/analisis";
+import { aEscenario } from "@/lib/proyeccion/escenarios";
+import { porAnio } from "@/lib/proyeccion/motor";
 import { aplicarAjustes, HORIZONTE_DEFECTO, HORIZONTES, limpiarAjustes } from "@/lib/proyeccion/supuestos";
 import { crearClienteServidor } from "@/lib/supabase/server";
 
@@ -33,7 +35,9 @@ export async function GET(req: NextRequest) {
     const hoy = hoyBogota();
     const datos = await cargarBase(supabase, finca.id, hoy, await obtenerAjustes());
     const supuestos = aplicarAjustes(datos.base, ajustes);
-    const proyeccion = simular(datos.inicio, supuestos, horizonte, datos.gestacionDias);
+    const entrada = { inicio: datos.inicio, horizonte, gestacionDias: datos.gestacionDias, estacion: datos.estacion };
+    const proyeccion = correr(entrada, supuestos);
+    const { data: guardados } = await supabase.from("proyecciones").select("id, nombre, horizonte_meses, ajustes").eq("finca_id", finca.id).order("created_at").limit(20);
     const libro = await construirLibroProyeccion({
       finca: finca.nombre,
       hoy,
@@ -44,6 +48,9 @@ export async function GET(req: NextRequest) {
       supuestos,
       ajustes,
       procedencia: datos.procedencia,
+      base: datos.base,
+      entrada,
+      escenarios: (guardados ?? []).map(aEscenario),
     });
     return respuestaExcel(libro, nombreArchivoProyeccion(finca.nombre, hoy));
   } catch {

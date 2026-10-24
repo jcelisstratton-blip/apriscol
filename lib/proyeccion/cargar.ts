@@ -44,6 +44,7 @@ export async function cargarBase(supabase: Cliente, fincaId: string, hoy: string
     gestacionDias: especieDominante.gestacion_dias,
     servicioEdadMinMeses: ajustes.general.servicio_edad_min_meses,
     pesoAdultoHembraKg: especieDominante.peso_adulto_hembra_kg,
+    mesesLluvia: ajustes.general.meses_lluvia,
   };
   return armarBase(datos);
 }

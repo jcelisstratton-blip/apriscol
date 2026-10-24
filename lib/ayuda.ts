@@ -149,6 +149,8 @@ export const AYUDA_PROYECCIONES: Ayuda = {
     { titulo: "De dónde sale cada número", texto: "«De tu finca» es un promedio de tus propios registros (verás de cuántos). «Referencia» es un valor típico mientras tu finca no tiene datos suficientes. «Tu ajuste» es el que cambiaste tú." },
     { titulo: "Cámbialos y mira qué pasa", texto: "En «Supuestos» puedes cambiar cualquier número y todo se recalcula al instante. Guarda tus ajustes para verlos la próxima vez." },
     { titulo: "Carne y leche, por separado", texto: "Elige «Carne» o «Leche» arriba para mirar cada una sola, o «Todo» para el resultado completo con todos los costos." },
+    { titulo: "Escenarios y comparación", texto: "Guarda hasta 10 escenarios («con más hembras», «si baja el precio») y compáralos de a tres en «Comparar»: lo mejor de cada cifra va marcado." },
+    { titulo: "Qué tan firme es", texto: "«Riesgos» dice desde qué precio pierdes dinero, qué número mueve más tu resultado (un 10 % arriba o abajo) y qué pasa si todo sale peor o mejor de lo esperado." },
     { titulo: "Es una estimación, no una promesa", texto: "El simulador no sabe de sequías, enfermedades ni cambios del mercado. Úsalo para comparar caminos y detectar problemas a tiempo (falta de espacio, de reemplazos o de caja)." },
   ],
   enlace: { href: "/mas/ajustes", texto: "Ajustes de la finca" },

@@ -2,6 +2,7 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { Download, RotateCcw } from "lucide-react";
+import Link from "next/link";
 import { Aviso } from "@/components/Aviso";
 import { Boton, clasesBoton } from "@/components/Boton";
 import { CLASE_INPUT } from "@/components/Campo";
@@ -12,7 +13,10 @@ import { useToast } from "@/components/Toast";
 import { ESCENA_ENFOQUE, ESCENA_PESTANA_PROYECCION } from "@/lib/escenas-proyecciones";
 import { leerNumero } from "@/lib/numeros";
 import type { BaseProyeccion, Procedencia } from "@/lib/proyeccion/base";
-import { porAnio, simular, type Aviso as AvisoProyeccion, type Mes } from "@/lib/proyeccion/motor";
+import type { Entrada } from "@/lib/proyeccion/analisis";
+import type { EscenarioGuardado } from "@/lib/proyeccion/escenarios";
+import { NOMBRE_ESCENARIO_BASE } from "@/lib/proyeccion/escenarios";
+import { porAnio, repartirMachos, simular, type Aviso as AvisoProyeccion, type Estacion, type Mes } from "@/lib/proyeccion/motor";
 import {
   aplicarAjustes,
   DEFINICIONES,
@@ -20,6 +24,7 @@ import {
   ETIQUETA_GRUPO_SUPUESTO,
   ETIQUETA_ORIGEN,
   GRUPOS_SUPUESTO,
+  HORIZONTE_DEFECTO,
   HORIZONTES,
   type Ajustes,
   type ClaveSupuesto,
@@ -30,6 +35,7 @@ import {
   columnasAlimento,
   columnasDinero,
   columnasHato,
+  costosSinRestar,
   etiquetaMes,
   formatear,
   lineasResumen,
@@ -37,15 +43,20 @@ import {
   type ColumnaMes,
   type Enfoque,
 } from "@/lib/proyeccion/vista";
-import { guardarProyeccion } from "./actions";
+import { BarraEscenarios } from "./BarraEscenarios";
+import { Comparar } from "./Comparar";
+import { Riesgos } from "./Riesgos";
+import { guardarEscenario } from "./actions";
 
-type Pestana = "resumen" | "hato" | "alimento" | "dinero" | "supuestos";
+type Pestana = "resumen" | "hato" | "alimento" | "dinero" | "comparar" | "riesgos" | "supuestos";
 
 const PESTANAS: { valor: Pestana; etiqueta: string; detalle: string }[] = [
   { valor: "resumen", etiqueta: "Resumen", detalle: "Año por año" },
   { valor: "hato", etiqueta: "Hato", detalle: "Animales mes a mes" },
   { valor: "alimento", etiqueta: "Alimento", detalle: "Lo que se come" },
   { valor: "dinero", etiqueta: "Dinero", detalle: "Lo que entra y sale" },
+  { valor: "comparar", etiqueta: "Comparar", detalle: "Tus escenarios lado a lado" },
+  { valor: "riesgos", etiqueta: "Riesgos", detalle: "Qué tan firme es" },
   { valor: "supuestos", etiqueta: "Supuestos", detalle: "Cambia los números" },
 ];
 
@@ -64,8 +75,9 @@ export type PropsProyecciones = {
   inicio: BaseProyeccion["inicio"];
   hato: BaseProyeccion["hato"];
   gestacionDias: number;
-  ajustesGuardados: Ajustes;
-  horizonteGuardado: number;
+  estacion: Estacion;
+  escenarios: EscenarioGuardado[];
+  activoInicial: string | null;
   puedeGuardar: boolean;
 };
 
@@ -81,13 +93,17 @@ export function Proyecciones(p: PropsProyecciones) {
   const [pendiente, empezar] = useTransition();
   const [pestana, setPestana] = useState<Pestana>("resumen");
   const [enfoque, setEnfoque] = useState<Enfoque>("todo");
-  const [horizonte, setHorizonte] = useState<number>(p.horizonteGuardado);
-  const [ajustes, setAjustes] = useState<Ajustes>(p.ajustesGuardados);
-  const [guardados, setGuardados] = useState<{ ajustes: Ajustes; horizonte: number }>({ ajustes: p.ajustesGuardados, horizonte: p.horizonteGuardado });
+  const [escenarios, setEscenarios] = useState<EscenarioGuardado[]>(p.escenarios);
+  const [activoId, setActivoId] = useState<string | null>(p.activoInicial);
+  const activo = escenarios.find((e) => e.id === activoId) ?? null;
+  const [horizonte, setHorizonte] = useState<number>(activo?.horizonte ?? HORIZONTE_DEFECTO);
+  const [ajustes, setAjustes] = useState<Ajustes>(activo?.ajustes ?? {});
   const [borradores, setBorradores] = useState<Partial<Record<ClaveSupuesto, string>>>({});
+  const guardados = { ajustes: activo?.ajustes ?? {}, horizonte: activo?.horizonte ?? HORIZONTE_DEFECTO };
 
   const supuestos: Supuestos = useMemo(() => aplicarAjustes(p.base, ajustes), [p.base, ajustes]);
-  const proyeccion = useMemo(() => simular(p.inicio, supuestos, horizonte, p.gestacionDias), [p.inicio, supuestos, horizonte, p.gestacionDias]);
+  const analisis: Entrada = useMemo(() => ({ inicio: p.inicio, horizonte, gestacionDias: p.gestacionDias, estacion: p.estacion }), [p.inicio, horizonte, p.gestacionDias, p.estacion]);
+  const proyeccion = useMemo(() => simular(analisis.inicio, supuestos, horizonte, analisis.gestacionDias, analisis.estacion), [analisis, supuestos, horizonte]);
   const bloques = useMemo(() => porAnio(proyeccion), [proyeccion]);
   const sinCambios = mismos(ajustes, guardados.ajustes) && horizonte === guardados.horizonte;
   const sinHato = p.hato.total === 0;
@@ -123,18 +139,49 @@ export function Proyecciones(p: PropsProyecciones) {
     setBorradores({});
   }
 
+  function recordar(e: EscenarioGuardado) {
+    setEscenarios((lista) => (lista.some((x) => x.id === e.id) ? lista.map((x) => (x.id === e.id ? e : x)) : [...lista, e]));
+    setActivoId(e.id);
+  }
+
   function guardar() {
     empezar(async () => {
-      const r = await guardarProyeccion({ ajustes, horizonte });
+      const r = await guardarEscenario({ id: activoId, nombre: NOMBRE_ESCENARIO_BASE, ajustes, horizonte });
       if (r.ok) {
-        setGuardados({ ajustes, horizonte });
-        toast.exito("Proyección guardada");
+        recordar(r.escenario);
+        toast.exito("Cambios guardados");
       } else toast.error(r.error);
     });
   }
 
+  /** Crea un escenario nuevo con lo que hay en pantalla; devuelve el mensaje de error si no se pudo. */
+  async function crear(nombre: string): Promise<string | null> {
+    const r = await guardarEscenario({ id: null, nombre, ajustes, horizonte });
+    if (!r.ok) return r.error;
+    recordar(r.escenario);
+    return null;
+  }
+
+  function elegir(id: string | null) {
+    const e = escenarios.find((x) => x.id === id) ?? null;
+    setActivoId(e?.id ?? null);
+    setAjustes(e?.ajustes ?? {});
+    setHorizonte(e?.horizonte ?? HORIZONTE_DEFECTO);
+    setBorradores({});
+  }
+
+  function quitar(id: string) {
+    const restantes = escenarios.filter((x) => x.id !== id);
+    setEscenarios(restantes);
+    const siguiente = restantes[0] ?? null;
+    setActivoId(siguiente?.id ?? null);
+    setAjustes(siguiente?.ajustes ?? {});
+    setHorizonte(siguiente?.horizonte ?? HORIZONTE_DEFECTO);
+    setBorradores({});
+  }
+
   const direccionExcel = `/proyecciones/exportar?h=${horizonte}&a=${encodeURIComponent(JSON.stringify(ajustes))}`;
-  const verEnfoque = pestana !== "supuestos";
+  const verEnfoque = pestana === "resumen" || pestana === "hato" || pestana === "alimento" || pestana === "dinero";
 
   return (
     <div className="space-y-4">
@@ -143,6 +190,17 @@ export function Proyecciones(p: PropsProyecciones) {
           <TarjetaOpcion key={t.valor} escena={ESCENA_PESTANA_PROYECCION[t.valor]} titulo={t.etiqueta} detalle={t.detalle} activo={pestana === t.valor} onClick={() => setPestana(t.valor)} />
         ))}
       </FilaTarjetas>
+
+      <BarraEscenarios
+        escenarios={escenarios}
+        activoId={activoId}
+        hayCambios={!sinCambios}
+        puedeGuardar={p.puedeGuardar}
+        alElegir={elegir}
+        alCrear={crear}
+        alRenombrar={(id, nombre) => setEscenarios((l) => l.map((x) => (x.id === id ? { ...x, nombre } : x)))}
+        alEliminar={quitar}
+      />
 
       <div className="space-y-3 lg:flex lg:items-end lg:justify-between lg:gap-6 lg:space-y-0">
         <div className="min-w-0 space-y-1.5 lg:w-80">
@@ -169,7 +227,7 @@ export function Proyecciones(p: PropsProyecciones) {
             <div className="flex flex-wrap gap-2">
               {p.puedeGuardar ? (
                 <Boton ancho={false} pendiente={pendiente} cargando="Guardando…" onClick={guardar}>
-                  Guardar mis ajustes
+                  Guardar cambios
                 </Boton>
               ) : null}
               <Boton ancho={false} variante="secundario" onClick={descartar} disabled={pendiente}>
@@ -184,21 +242,33 @@ export function Proyecciones(p: PropsProyecciones) {
         <Aviso tipo="atencion">Todavía no hay animales activos en tu hato, así que no hay con qué proyectar. Registra tus animales y vuelve.</Aviso>
       ) : (
         <>
-          {pestana === "resumen" ? <Resumen hoy={p.hoy} p={p} proyeccion={proyeccion} bloques={bloques} enfoque={enfoque} /> : null}
+          {pestana === "resumen" ? <Resumen hoy={p.hoy} p={p} supuestos={supuestos} proyeccion={proyeccion} bloques={bloques} enfoque={enfoque} /> : null}
           {pestana === "hato" ? <TablaMeses hoy={p.hoy} meses={proyeccion.meses} columnas={columnasHato(enfoque)} titulo="Hato mes a mes" /> : null}
           {pestana === "alimento" ? (
             <div className="space-y-3">
               <Aviso tipo="info">
                 Toneladas de materia seca (el alimento sin agua) y su costo, con {formatear("pesos", supuestos.costo_kg_ms)} por kilo. Incluye pasto, forraje, concentrado y sales.
               </Aviso>
+              {p.estacion.mesesLluvia.length === 0 ? (
+                <Aviso tipo="info">
+                  Todavía no dijiste cuáles son tus meses de lluvia, así que la proyección no cambia el costo del alimento ni la leche en época seca. Defínelos en{" "}
+                  <Link href="/mas/ajustes" className="font-semibold text-musgo underline underline-offset-4">Ajustes de la finca</Link>.
+                </Aviso>
+              ) : (
+                <Aviso tipo="info">
+                  En los meses fuera de lluvia (marcados «seco») el alimento cuesta {supuestos.seca_costo_alimento_pct} % más y la leche baja {supuestos.seca_litros_pct} %. Puedes cambiar los dos en «Supuestos».
+                </Aviso>
+              )}
               <TablaMeses hoy={p.hoy} meses={proyeccion.meses} columnas={columnasAlimento(enfoque)} titulo="Alimento mes a mes" conTotal />
             </div>
           ) : null}
           {pestana === "dinero" ? <Dinero hoy={p.hoy} proyeccion={proyeccion} enfoque={enfoque} /> : null}
         </>
       )}
-      {verEnfoque && NOTA_ENFOQUE[enfoque] && !sinHato ? <Aviso tipo="info">{NOTA_ENFOQUE[enfoque]}</Aviso> : null}
+      {verEnfoque && pestana !== "resumen" && NOTA_ENFOQUE[enfoque] && !sinHato ? <Aviso tipo="info">{NOTA_ENFOQUE[enfoque]}</Aviso> : null}
 
+      {pestana === "comparar" ? <Comparar escenarios={escenarios} ajustesPantalla={ajustes} hayCambios={!sinCambios} activoId={activoId} base={p.base} entrada={analisis} /> : null}
+      {pestana === "riesgos" && !sinHato ? <Riesgos entrada={analisis} supuestos={supuestos} /> : null}
       {pestana === "supuestos" ? (
         <Supuestos_ procedencia={p.procedencia} base={p.base} supuestos={supuestos} ajustes={ajustes} borradores={borradores} onCambiar={cambiar} onVolver={volverAlValor} />
       ) : null}
@@ -206,15 +276,29 @@ export function Proyecciones(p: PropsProyecciones) {
   );
 }
 
-function Resumen({ hoy, p, proyeccion, bloques, enfoque }: { hoy: string; p: PropsProyecciones; proyeccion: ReturnType<typeof simular>; bloques: ReturnType<typeof porAnio>; enfoque: Enfoque }) {
+function Resumen({ hoy, p, supuestos, proyeccion, bloques, enfoque }: { hoy: string; p: PropsProyecciones; supuestos: Supuestos; proyeccion: ReturnType<typeof simular>; bloques: ReturnType<typeof porAnio>; enfoque: Enfoque }) {
   const lineas = lineasResumen(enfoque);
+  const machos = repartirMachos(p.inicio, supuestos.hembras_por_semental);
+  const compartidos = bloques[0] ? costosSinRestar(bloques[0], enfoque) : null;
   const serie = proyeccion.meses.map((m) => (enfoque === "carne" ? m.ingresosCarne - m.costoAlimentoCeba : enfoque === "leche" ? m.ingresosLeche - m.costoAlimentoLactancia : m.flujo));
-  const tituloSerie = enfoque === "todo" ? "Lo que queda cada mes" : "Lo que queda cada mes sobre el alimento de esta línea";
+  const tituloSerie = enfoque === "todo" ? "Lo que queda cada mes" : "Ingresos menos el alimento de esta línea, mes a mes";
   return (
     <div className="space-y-4">
       <p className="text-sm text-humo [overflow-wrap:anywhere]">
-        Hoy tienes {Math.round(p.hato.vientres)} reproductoras, {Math.round(p.hato.sementales)} {p.hato.sementales === 1 ? "semental" : "sementales"}, {Math.round(p.hato.crias)} crías y {Math.round(p.hato.levante)} animales en levante.
+        Hoy tienes {Math.round(p.hato.vientres)} reproductoras, {Math.round(machos.sementales)} {Math.round(machos.sementales) === 1 ? "semental" : "sementales"}
+        {machos.paraVenta > 0 ? `, ${Math.round(machos.paraVenta)} ${Math.round(machos.paraVenta) === 1 ? "macho que se toma como carne" : "machos que se toman como carne"}` : ""}, {Math.round(p.hato.crias)} crías y {Math.round(p.hato.levante)} animales en levante.
       </p>
+      {p.hato.machosSinUso > 0 ? (
+        <Aviso tipo="atencion">
+          Tienes {p.hato.machosSinUso} {p.hato.machosSinUso === 1 ? "macho" : "machos"} sin uso definido. Se cuentan como sementales los que hacen falta (uno por cada {Math.round(supuestos.hembras_por_semental)} reproductoras: {Math.round(machos.sementales)}) y
+          {machos.paraVenta > 0 ? ` los otros ${Math.round(machos.paraVenta)} como animales de carne que se venden en el primer mes` : " ninguno sobra"}. Para que sea exacto, marca en la ficha de cada macho si es reproductor o de carne; la relación de hembras por semental la cambias en «Supuestos».
+        </Aviso>
+      ) : null}
+      {compartidos ? (
+        <Aviso tipo="atencion">
+          Ojo: en el primer año esta vista no resta {formatear("pesos", compartidos.sinRestar)} de costos compartidos (alimento base de reproductoras y sementales, sanidad y costos fijos), que sirven a la carne y a la leche. Con todo restado, la finca queda en {formatear("pesos", compartidos.resultadoCompleto)}: míralo en «Todo».
+        </Aviso>
+      ) : null}
       <Avisos avisos={proyeccion.avisos} />
       <div className="grid grid-cols-1 gap-3 lg:grid-cols-3 lg:items-start">
         {bloques.map((b) => (
@@ -275,7 +359,7 @@ function TablaMeses({ hoy, meses, columnas, titulo, conTotal = false }: { hoy: s
           <tbody>
             {meses.map((m) => (
               <tr key={m.n} className="border-b border-arena/60 last:border-0">
-                <th scope="row" className="whitespace-nowrap px-4 py-2.5 text-left font-semibold">{m.n} · {etiquetaMes(hoy, m.n)}</th>
+                <th scope="row" className="whitespace-nowrap px-4 py-2.5 text-left font-semibold">{m.n} · {etiquetaMes(hoy, m.n)}{m.seco ? " · seco" : ""}</th>
                 {columnas.map((c) => (
                   <td key={c.clave} className={`px-3 py-2.5 text-right ${c.formato === "pesos" && c.valor(m) < 0 ? "text-rojo" : ""}`}>{formatear(c.formato, c.valor(m))}</td>
                 ))}
@@ -295,7 +379,7 @@ function TablaMeses({ hoy, meses, columnas, titulo, conTotal = false }: { hoy: s
       <ul className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:hidden">
         {meses.map((m) => (
           <li key={m.n} className="min-w-0 rounded-2xl bg-papel p-3.5 ring-1 ring-arena">
-            <p className="mb-2 text-sm font-bold">Mes {m.n} · {etiquetaMes(hoy, m.n)}</p>
+            <p className="mb-2 text-sm font-bold">Mes {m.n} · {etiquetaMes(hoy, m.n)}{m.seco ? " · seco" : ""}</p>
             <dl className="space-y-1">
               {columnas.map((c) => (
                 <div key={c.clave} className="flex items-baseline justify-between gap-3 text-[0.9375rem]">

@@ -14,7 +14,10 @@ export const DIAS_MES = 30.4;
 export type Inicio = {
   /** Hembras reproductoras. */
   vientres: number;
+  /** Machos que ya se sabe que son reproductores (uso «reproductor»). */
   sementales: number;
+  /** Machos adultos sin uso definido: solo los que hagan falta se cuentan como sementales; el resto se toma como carne. */
+  machosSinUso?: number;
   /** Hembras reproductoras que hoy están en lactancia. */
   lactantes: number;
   /** Los animales jóvenes por edad en meses: los machos se venderán y las hembras se dejan de reemplazo. */
@@ -24,9 +27,14 @@ export type Inicio = {
   servidasPorMes: number[];
 };
 
+/** La época del año: de qué mes calendario es «hoy» y qué meses son de lluvia (los demás se toman como secos). Sin meses de lluvia no hay efecto. */
+export type Estacion = { mesHoy: number; mesesLluvia: number[] };
+
 export type Mes = {
   /** 1 = el mes que viene. */
   n: number;
+  /** Es un mes de época seca (según los meses de lluvia de los Ajustes). */
+  seco: boolean;
   // Hato (al final del mes)
   vientres: number;
   sementales: number;
@@ -82,7 +90,15 @@ export function mesesGestacion(gestacionDias: number) {
   return Math.max(1, Math.ceil(gestacionDias / DIAS_MES));
 }
 
-export function simular(inicio: Inicio, s: Supuestos, horizonte: number, gestacionDias = 150): Proyeccion {
+/** Cuántos de los machos de hoy se cuentan como sementales y cuántos se toman como animales de carne (1 semental por cada `hembrasPorSemental` reproductoras). */
+export function repartirMachos(inicio: Pick<Inicio, "vientres" | "sementales" | "machosSinUso">, hembrasPorSemental: number): { sementales: number; paraVenta: number } {
+  const sinUso = inicio.machosSinUso ?? 0;
+  const faltan = Math.max(0, Math.ceil(inicio.vientres / Math.max(1, hembrasPorSemental)) - inicio.sementales);
+  const toman = Math.min(sinUso, faltan);
+  return { sementales: inicio.sementales + toman, paraVenta: sinUso - toman };
+}
+
+export function simular(inicio: Inicio, s: Supuestos, horizonte: number, gestacionDias = 150, estacion?: Estacion): Proyeccion {
   const G = mesesGestacion(gestacionDias);
   const destete = Math.max(1, Math.round(s.destete_meses));
   const edadVenta = Math.max(destete + 1, Math.round(s.edad_venta_meses));
@@ -107,8 +123,11 @@ export function simular(inicio: Inicio, s: Supuestos, horizonte: number, gestaci
     .filter((c) => c.machos + c.hembras > 0)
     .map((c) => ({ edad: Math.max(0, Math.round(c.edad)), m: c.machos, hv: 0, hr: c.hembras }));
 
+  const { sementales, paraVenta } = repartirMachos(inicio, s.hembras_por_semental);
+  // Los machos sin uso que no hacen falta como sementales salen a la venta en el primer mes.
+  if (paraVenta > 0) cohortes.push({ edad: edadVenta - 1, m: paraVenta, hv: 0, hr: 0 });
+
   let V = vientres0;
-  const sementales = inicio.sementales;
   const partosPasados: number[] = [];
   const avisos: Aviso[] = [];
   const meses: Mes[] = [];
@@ -188,7 +207,8 @@ export function simular(inicio: Inicio, s: Supuestos, horizonte: number, gestaci
     const recientes = suma(partosPasados.slice(-lactanciaMeses));
     const heredadas = inicio.lactantes * Math.max(0, 1 - t / lactanciaMeses);
     const lactantes = Math.min(V, recientes + heredadas);
-    const litros = lactantes * (s.hembras_ordenadas_pct / 100) * s.litros_dia * DIAS_MES;
+    const seco = Boolean(estacion && estacion.mesesLluvia.length > 0 && !estacion.mesesLluvia.includes(((estacion.mesHoy - 1 + t) % 12) + 1));
+    const litros = lactantes * (s.hembras_ordenadas_pct / 100) * s.litros_dia * DIAS_MES * (seco ? 1 - s.seca_litros_pct / 100 : 1);
 
     // 8. Alimento (kg de materia seca por mes) y dinero
     const msVientresSecos = V * s.ms_vientre_seco;
@@ -202,9 +222,10 @@ export function simular(inicio: Inicio, s: Supuestos, horizonte: number, gestaci
       descartes * s.peso_descarte_kg * s.precio_kg_vivo * (1 - s.castigo_descarte_pct / 100) +
       sobrantes * s.peso_descarte_kg * s.precio_kg_vivo;
     const ingresosLeche = litros * s.precio_litro;
-    const costoAlimento = msMes * s.costo_kg_ms;
-    const costoAlimentoCeba = msCeba * DIAS_MES * s.costo_kg_ms;
-    const costoAlimentoLactancia = msExtraLactancia * DIAS_MES * s.costo_kg_ms;
+    const precioMs = s.costo_kg_ms * (seco ? 1 + s.seca_costo_alimento_pct / 100 : 1);
+    const costoAlimento = msMes * precioMs;
+    const costoAlimentoCeba = msCeba * DIAS_MES * precioMs;
+    const costoAlimentoLactancia = msExtraLactancia * DIAS_MES * precioMs;
     const costoAnimales = total * s.costo_animal_mes;
     const costoFijos = s.costos_fijos_mes;
     const ingresos = ingresosCarne + ingresosLeche;
@@ -212,6 +233,7 @@ export function simular(inicio: Inicio, s: Supuestos, horizonte: number, gestaci
 
     meses.push({
       n: t,
+      seco,
       vientres: V,
       sementales,
       crias,

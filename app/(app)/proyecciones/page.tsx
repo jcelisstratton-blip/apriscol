@@ -9,7 +9,7 @@ import { obtenerContexto } from "@/lib/contexto";
 import { hoyBogota } from "@/lib/fechas";
 import { puedeEscribir, puedeGestionar, puedeVer } from "@/lib/permisos";
 import { cargarBase } from "@/lib/proyeccion/cargar";
-import { HORIZONTE_DEFECTO, HORIZONTES, limpiarAjustes } from "@/lib/proyeccion/supuestos";
+import { aEscenario } from "@/lib/proyeccion/escenarios";
 import { crearClienteServidor } from "@/lib/supabase/server";
 import { Proyecciones } from "./Proyecciones";
 
@@ -35,10 +35,10 @@ export default async function PaginaProyecciones() {
   const hoy = hoyBogota();
   const [ajustes, guardada] = await Promise.all([
     obtenerAjustes(),
-    supabase.from("proyecciones").select("ajustes, horizonte_meses").eq("finca_id", finca.id).order("created_at").limit(1).maybeSingle(),
+    supabase.from("proyecciones").select("id, nombre, horizonte_meses, ajustes").eq("finca_id", finca.id).order("created_at").limit(20),
   ]);
   const datos = await cargarBase(supabase, finca.id, hoy, ajustes);
-  const horizonte = HORIZONTES.find((h) => h === guardada.data?.horizonte_meses) ?? HORIZONTE_DEFECTO;
+  const escenarios = (guardada.data ?? []).map(aEscenario);
 
   return (
     <>
@@ -53,8 +53,9 @@ export default async function PaginaProyecciones() {
         inicio={datos.inicio}
         hato={datos.hato}
         gestacionDias={datos.gestacionDias}
-        ajustesGuardados={limpiarAjustes(guardada.data?.ajustes)}
-        horizonteGuardado={horizonte}
+        estacion={datos.estacion}
+        escenarios={escenarios}
+        activoInicial={escenarios[0]?.id ?? null}
         puedeGuardar={puedeEscribir(rol, "proyecciones", finca.plan)}
       />
     </>
