@@ -120,7 +120,7 @@ export default async function PaginaEventoNuevo({ searchParams }: { searchParams
       <Link href={animalFijo ? `/hato/${animalFijo.id}#sanidad` : "/hato?vista=sanidad"} className="-ml-2 mt-3 inline-flex min-h-11 items-center gap-1 rounded-full px-2 text-[0.9375rem] font-semibold text-musgo">
         <ChevronLeft className="size-5" strokeWidth={2} /> {animalFijo ? (animalFijo.nombre ?? animalFijo.numero_arete) : "Hato"}
       </Link>
-      <Encabezado titulo={programaId ? "Aplicar lo programado" : refuerzo ? "Aplicar la siguiente dosis" : "Registrar lo aplicado"} subtitulo={animalFijo ? etiquetaAnimal(animalFijo) : finca.nombre} />
+      <Encabezado titulo={programaId ? "Aplicar lo programado" : refuerzo ? "Aplicar la siguiente dosis" : "Registrar una aplicación"} subtitulo={animalFijo ? etiquetaAnimal(animalFijo) : finca.nombre} />
       <div className="lg:max-w-xl">
         <FormEvento
           fincaId={finca.id}

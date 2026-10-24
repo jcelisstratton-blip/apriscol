@@ -69,7 +69,7 @@ export async function Sanidad({
         <CalendarClock className="size-5" strokeWidth={2} aria-hidden="true" /> Programar
       </Link>
       <Link href="/hato/sanidad/nuevo" className={clasesBoton("secundario")}>
-        <Plus className="size-5" strokeWidth={2.2} aria-hidden="true" /> Registrar lo aplicado
+        <Plus className="size-5" strokeWidth={2.2} aria-hidden="true" /> Registrar una aplicación
       </Link>
     </div>
   ) : null;
