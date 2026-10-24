@@ -285,8 +285,6 @@ export type Parto = {
   causa_aborto: CausaAborto | null;
   /** Quién asistió (parto asistido, cesárea o aborto; el normal no lo lleva): el veterinario de la finca u otra persona. */
   asistido_por: string | null;
-  /** En desuso: lo reemplaza `asistido_por` (se retira en una migración aparte). */
-  responsable_quirurgico: string | null;
   /** Solo cesárea: protocolo posoperatorio y fármacos. */
   protocolo_posoperatorio: string | null;
   client_request_id: string | null;
