@@ -1,5 +1,6 @@
 import { diasHasta } from "@/lib/fechas";
-import type { EstadoRepro, MetodoDiagnostico, ResultadoDiagnostico, TecnicaInseminacion, TipoParto, TipoServicio, TipoTransferencia } from "@/lib/tipos";
+import { sumarDias } from "@/lib/fechas";
+import type { EstadoRepro, IndicadorPalpacion, MetodoDiagnostico, ReproHembra, ResultadoDiagnostico, TecnicaInseminacion, TipoParto, TipoServicio, TipoTransferencia, ViabilidadFetal } from "@/lib/tipos";
 
 export const TIPOS_SERVICIO: TipoServicio[] = ["monta_natural", "inseminacion", "transferencia_embrionaria"];
 export const ETIQUETA_SERVICIO: Record<TipoServicio, string> = {
@@ -25,6 +26,40 @@ export const DETALLE_TRANSFERENCIA: Record<TipoTransferencia, string> = {
 };
 
 export const METODOS_DIAGNOSTICO: MetodoDiagnostico[] = ["ecografia", "palpacion", "otro"];
+export const DETALLE_METODO: Record<MetodoDiagnostico, string> = { ecografia: "Se ve el feto y su latido.", palpacion: "Revisión manual o señales del animal.", otro: "Prueba de laboratorio u hormonal." };
+export const DETALLE_RESULTADO: Record<ResultadoDiagnostico, string> = { gestante: "Pasa a gestante y se proyecta el parto.", vacia: "Vuelve a estar disponible para un nuevo ciclo.", dudoso: "Queda en observación: se repite la prueba." };
+
+export const FETOS: number[] = [1, 2, 3, 4];
+export const ETIQUETA_FETOS: Record<number, string> = { 1: "Único", 2: "Mellizos", 3: "Trillizos", 4: "Cuatro o más" };
+export const DETALLE_FETOS: Record<number, string> = { 1: "Un feto.", 2: "Dos fetos.", 3: "Tres fetos.", 4: "Cuatro fetos." };
+
+export const VIABILIDADES: ViabilidadFetal[] = ["latido", "sin_actividad"];
+export const ETIQUETA_VIABILIDAD: Record<ViabilidadFetal, string> = { latido: "Latido presente", sin_actividad: "Sin actividad" };
+export const DETALLE_VIABILIDAD: Record<ViabilidadFetal, string> = { latido: "El feto está vivo.", sin_actividad: "No se ve latido." };
+
+export const INDICADORES_PALPACION: IndicadorPalpacion[] = ["ausencia_celo", "retorno_celo", "llenado_uterino", "revision_manual"];
+export const ETIQUETA_INDICADOR: Record<IndicadorPalpacion, string> = { ausencia_celo: "No volvió a celo", retorno_celo: "Retornó al celo", llenado_uterino: "Llenado uterino", revision_manual: "Revisión manual" };
+export const DETALLE_INDICADOR: Record<IndicadorPalpacion, string> = {
+  ausencia_celo: "Pasó el ciclo sin señales de celo.",
+  retorno_celo: "Volvió a mostrar celo: no quedó gestante.",
+  llenado_uterino: "Se siente el útero lleno por palpación.",
+  revision_manual: "Palpación abdominal u otra revisión a mano.",
+};
+
+/** Cuántos días después de un diagnóstico dudoso conviene repetirlo (desde, hasta). */
+export const DIAS_REPETIR_DX_DESDE = 14;
+export const DIAS_REPETIR_DX_HASTA = 21;
+
+/** Ventana para repetir un diagnóstico dudoso: se calcula con la fecha del diagnóstico, no se guarda. */
+export const ventanaRepetirDx = (fechaDx: string) => ({ desde: sumarDias(fechaDx, DIAS_REPETIR_DX_DESDE), hasta: sumarDias(fechaDx, DIAS_REPETIR_DX_HASTA) });
+
+/** Hembra servida cuyo último diagnóstico (de este servicio) fue «dudoso»: sigue en observación hasta repetirlo. */
+export const enObservacion = (f: Pick<ReproHembra, "estado" | "diagnostico" | "fecha_diagnostico" | "ultimo_servicio">) =>
+  f.estado === "servida" && f.diagnostico === "dudoso" && Boolean(f.fecha_diagnostico && f.ultimo_servicio && f.fecha_diagnostico >= f.ultimo_servicio);
+
+/** Un servicio sigue «activo» mientras no haya un parto o aborto de la hembra en su fecha o después. */
+export const servicioEsActivo = (fechaServicio: string, fechaUltimoParto: string | null) => !fechaUltimoParto || fechaServicio > fechaUltimoParto;
+
 export const ETIQUETA_METODO: Record<MetodoDiagnostico, string> = { ecografia: "Ecografía", palpacion: "Palpación", otro: "Otro método" };
 
 export const RESULTADOS_DIAGNOSTICO: ResultadoDiagnostico[] = ["gestante", "vacia", "dudoso"];
@@ -34,6 +69,7 @@ export const TIPOS_PARTO: TipoParto[] = ["normal", "asistido", "cesarea", "abort
 export const ETIQUETA_PARTO: Record<TipoParto, string> = { normal: "Parto normal", asistido: "Parto asistido", cesarea: "Cesárea", aborto: "Aborto" };
 
 export const ETIQUETA_ESTADO: Record<EstadoRepro, string> = { sin_datos: "Sin datos", vacia: "Vacía", servida: "Servida", gestante: "Gestante" };
+export const ETIQUETA_OBSERVACION = "En observación";
 export const TONO_ESTADO: Record<EstadoRepro, "neutro" | "aviso" | "ok" | "musgo"> = { sin_datos: "neutro", vacia: "neutro", servida: "aviso", gestante: "musgo" };
 
 /** Cuántos días pasada la fecha prevista sin parto se marca como atrasada. */

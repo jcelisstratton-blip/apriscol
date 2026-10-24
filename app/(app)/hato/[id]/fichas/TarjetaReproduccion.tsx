@@ -5,10 +5,24 @@ import { Tarjeta } from "@/components/Tarjeta";
 import { puedeEscribir, puedeVer } from "@/lib/permisos";
 import { clasesBoton } from "@/components/Boton";
 import { diasHasta, formatoFecha, hoyBogota } from "@/lib/fechas";
-import { ETIQUETA_ESTADO, ETIQUETA_METODO, ETIQUETA_PARTO, ETIQUETA_RESULTADO, ETIQUETA_SERVICIO, plazoParto, textoPartos, TONO_ESTADO } from "@/lib/reproduccion";
+import { enObservacion, ETIQUETA_ESTADO, ETIQUETA_FETOS, ETIQUETA_INDICADOR, ETIQUETA_METODO, ETIQUETA_OBSERVACION, ETIQUETA_VIABILIDAD, ventanaRepetirDx, ETIQUETA_PARTO, ETIQUETA_RESULTADO, ETIQUETA_SERVICIO, plazoParto, textoPartos, TONO_ESTADO } from "@/lib/reproduccion";
 import { PartosPrevios } from "@/components/PartosPrevios";
+import type { DiagnosticoGestacion } from "@/lib/tipos";
 import type { CtxFicha } from "./contexto";
 import { Dato } from "./Dato";
+
+/** Lo propio del método en una línea: días, fetos y latido de la ecografía; indicador y condición corporal de la palpación; o la prueba y su resultado. */
+function detalleDiagnostico(x: DiagnosticoGestacion): string | undefined {
+  const partes = [
+    x.dias_gestacion != null && `${x.dias_gestacion} días`,
+    x.num_fetos != null && ETIQUETA_FETOS[x.num_fetos]?.toLowerCase(),
+    x.viabilidad_fetal && ETIQUETA_VIABILIDAD[x.viabilidad_fetal].toLowerCase(),
+    x.indicador_palpacion && ETIQUETA_INDICADOR[x.indicador_palpacion].toLowerCase(),
+    x.condicion_corporal != null && `condición corporal ${String(x.condicion_corporal).replace(".", ",")}`,
+    x.prueba_nombre && `${x.prueba_nombre}${x.prueba_resultado ? `: ${x.prueba_resultado}` : ""}`,
+  ].filter(Boolean);
+  return partes.length ? partes.join(" · ") : undefined;
+}
 
 /** Estado reproductivo de la hembra y su historial de servicios, diagnósticos y partos. */
 export async function TarjetaReproduccion({ c, sinCrear }: { c: CtxFicha; sinCrear: string }) {
@@ -25,7 +39,7 @@ export async function TarjetaReproduccion({ c, sinCrear }: { c: CtxFicha; sinCre
   const repro = reproDB.data;
   const todoRepro = [
     ...(serviciosDB.data ?? []).map((x) => ({ clave: `s-${x.id}`, fecha: x.fecha, tipo: "servicio" as const, href: `/reproduccion/servicios/${x.id}`, texto: `Servicio · ${ETIQUETA_SERVICIO[x.tipo]}` })),
-    ...(diagnosticosDB.data ?? []).map((x) => ({ clave: `d-${x.id}`, fecha: x.fecha, tipo: "diagnostico" as const, href: `/reproduccion/diagnosticos/${x.id}`, texto: `Diagnóstico · ${ETIQUETA_RESULTADO[x.resultado]} (${ETIQUETA_METODO[x.metodo].toLowerCase()})` })),
+    ...(diagnosticosDB.data ?? []).map((x) => ({ clave: `d-${x.id}`, fecha: x.fecha, tipo: "diagnostico" as const, href: `/reproduccion/diagnosticos/${x.id}`, texto: `Diagnóstico · ${ETIQUETA_RESULTADO[x.resultado]} (${ETIQUETA_METODO[x.metodo].toLowerCase()})`, detalle: detalleDiagnostico(x) })),
     ...(partosDB.data ?? []).map((x) => ({ clave: `p-${x.id}`, fecha: x.fecha, tipo: "parto" as const, href: `/reproduccion/partos/${x.id}`, texto: `${ETIQUETA_PARTO[x.tipo]}${x.tipo === "aborto" ? "" : ` · ${x.numero_crias} ${x.numero_crias === 1 ? "cría" : "crías"}`}` })),
   ].sort((a, b) => (a.fecha < b.fecha ? 1 : -1));
   const historialRepro = todoRepro.slice(0, 8);
@@ -43,6 +57,7 @@ export async function TarjetaReproduccion({ c, sinCrear }: { c: CtxFicha; sinCre
         <div className="space-y-3">
           <div className="flex flex-wrap items-center gap-2">
             <Insignia tono={TONO_ESTADO[repro.estado]}>{ETIQUETA_ESTADO[repro.estado]}</Insignia>
+            {enObservacion(repro) ? <Insignia tono="aviso">{ETIQUETA_OBSERVACION}</Insignia> : null}
             {repro.fecha_prevista_parto ? <Insignia tono={plazoParto(repro.fecha_prevista_parto, hoyBogota()).tono}>{plazoParto(repro.fecha_prevista_parto, hoyBogota()).texto}</Insignia> : null}
             {repro.en_lactancia ? <Insignia tono="musgo">En lactancia</Insignia> : null}
             {repro.empadronamiento_id ? <Insignia tono="aviso">En empadronamiento</Insignia> : null}
@@ -58,7 +73,12 @@ export async function TarjetaReproduccion({ c, sinCrear }: { c: CtxFicha; sinCre
             {repro.ultimo_parto ? <Dato etiqueta="Último parto">{formatoFecha(repro.ultimo_parto)}</Dato> : null}
             <Dato etiqueta="Partos">{textoPartos(repro.partos_totales)}</Dato>
           </dl>
-          {repro.estado === "servida" && repro.ultimo_servicio && diasHasta(hoyBogota(), repro.ultimo_servicio) >= ajustes.general.dx_prenez_dia_desde ? (
+          {enObservacion(repro) && repro.fecha_diagnostico ? (
+            <Aviso tipo={hoyBogota() >= ventanaRepetirDx(repro.fecha_diagnostico).desde ? "atencion" : "info"}>
+              El último diagnóstico fue dudoso. Conviene repetirlo entre el {formatoFecha(ventanaRepetirDx(repro.fecha_diagnostico).desde)} y el {formatoFecha(ventanaRepetirDx(repro.fecha_diagnostico).hasta)}.
+            </Aviso>
+          ) : null}
+          {repro.estado === "servida" && !enObservacion(repro) && repro.ultimo_servicio && diasHasta(hoyBogota(), repro.ultimo_servicio) >= ajustes.general.dx_prenez_dia_desde ? (
             <Aviso tipo="atencion">Ya pasaron {diasHasta(hoyBogota(), repro.ultimo_servicio)} días del servicio: conviene confirmar con un diagnóstico si quedó gestante.</Aviso>
           ) : null}
           {animal.estado === "activo" ? <PartosPrevios animalId={id} previos={animal.partos_previos} registrados={repro.partos_registrados} puedeEditar={puedeEscribir(rol, "hato", finca.plan)} /> : null}
@@ -70,6 +90,7 @@ export async function TarjetaReproduccion({ c, sinCrear }: { c: CtxFicha; sinCre
             <li key={e.clave} className="flex items-center justify-between gap-3 py-2">
               <span className="min-w-0 text-[0.9375rem] [overflow-wrap:anywhere]">
                 <span className="font-semibold">{e.texto}</span>
+                {"detalle" in e && e.detalle ? <span className="block text-sm text-humo">{e.detalle}</span> : null}
                 <span className="block text-sm text-humo">{formatoFecha(e.fecha, { day: "numeric", month: "short", year: "numeric" })}</span>
               </span>
               {puedeEscribir(rol, "reproduccion", finca.plan) ? (

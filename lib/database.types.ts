@@ -1095,42 +1095,63 @@ export type Database = {
       diagnosticos_gestacion: {
         Row: {
           created_at: string
+          condicion_corporal: number | null
           created_by: string | null
+          dias_gestacion: number | null
           fecha: string
           finca_id: string
           hembra_id: string
           id: string
+          indicador_palpacion: string | null
           metodo: string
+          num_fetos: number | null
           observaciones: string | null
+          prueba_nombre: string | null
+          prueba_resultado: string | null
           resultado: string
           servicio_id: string | null
           updated_at: string
+          viabilidad_fetal: string | null
         }
         Insert: {
           created_at?: string
+          condicion_corporal?: number | null
           created_by?: string | null
+          dias_gestacion?: number | null
           fecha?: string
           finca_id: string
           hembra_id: string
           id?: string
+          indicador_palpacion?: string | null
           metodo?: string
+          num_fetos?: number | null
           observaciones?: string | null
+          prueba_nombre?: string | null
+          prueba_resultado?: string | null
           resultado: string
           servicio_id?: string | null
           updated_at?: string
+          viabilidad_fetal?: string | null
         }
         Update: {
           created_at?: string
+          condicion_corporal?: number | null
           created_by?: string | null
+          dias_gestacion?: number | null
           fecha?: string
           finca_id?: string
           hembra_id?: string
           id?: string
+          indicador_palpacion?: string | null
           metodo?: string
+          num_fetos?: number | null
           observaciones?: string | null
+          prueba_nombre?: string | null
+          prueba_resultado?: string | null
           resultado?: string
           servicio_id?: string | null
           updated_at?: string
+          viabilidad_fetal?: string | null
         }
         Relationships: [
           {

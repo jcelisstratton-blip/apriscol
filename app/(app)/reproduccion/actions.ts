@@ -7,7 +7,10 @@ import { crearClienteServidor } from "@/lib/supabase/server";
 import { obtenerContexto } from "@/lib/contexto";
 import { puedeEscribir, puedeGestionar } from "@/lib/permisos";
 import { mensajeAmigable } from "@/lib/mensaje-amigable";
-import { MAX_CRIAS, METODOS_DIAGNOSTICO, RESULTADOS_DIAGNOSTICO, TECNICAS_INSEMINACION, TIPOS_PARTO, TIPOS_SERVICIO, TIPOS_TRANSFERENCIA } from "@/lib/reproduccion";
+import { INDICADORES_PALPACION, MAX_CRIAS, METODOS_DIAGNOSTICO, RESULTADOS_DIAGNOSTICO, TECNICAS_INSEMINACION, TIPOS_PARTO, TIPOS_SERVICIO, TIPOS_TRANSFERENCIA, VIABILIDADES } from "@/lib/reproduccion";
+import { diasHasta } from "@/lib/fechas";
+import { MENSAJE_SIN_SERVICIO, MENSAJE_YA_VACIA, servicioVigente } from "@/lib/servicio-vigente";
+import type { DiagnosticoGestacion } from "@/lib/tipos";
 import { leerNumero } from "@/lib/numeros";
 import { decimal, opcional, texto } from "@/lib/validacion";
 import { esRepetido, noFutura } from "@/lib/validacion";
@@ -149,16 +152,28 @@ export async function eliminarServicio(id: string): Promise<Resultado> {
 }
 
 // ───────────────────────── Diagnóstico de gestación ─────────────────────────
+const entero = (min: number, max: number, mensaje: string) => decimal(z.number(mensaje).int(mensaje).min(min, mensaje).max(max, mensaje));
+
 const esquemaDiagnostico = z.object({
   hembra_id: z.uuid("Elige la hembra."),
   fecha: z.iso.date("Indica la fecha del diagnóstico."),
   metodo: z.enum(METODOS_DIAGNOSTICO as [string, ...string[]], "Elige cómo se hizo."),
   resultado: z.enum(RESULTADOS_DIAGNOSTICO as [string, ...string[]], "Elige el resultado."),
-  servicio_id: opcional(z.uuid()),
+  dias_gestacion: entero(1, 200, "Los días de gestación deben ser un número entero entre 1 y 200."),
+  num_fetos: entero(1, 4, "Elige cuántos fetos se ven."),
+  viabilidad_fetal: opcional(z.enum(VIABILIDADES as [string, ...string[]], "Indica si hay latido.")),
+  indicador_palpacion: opcional(z.enum(INDICADORES_PALPACION as [string, ...string[]], "Elige qué indicó la preñez.")),
+  condicion_corporal: decimal(z.number("La condición corporal debe estar entre 1 y 5.").min(1, "La condición corporal debe estar entre 1 y 5.").max(5, "La condición corporal debe estar entre 1 y 5.")),
+  prueba_nombre: texto(80, "El nombre de la prueba es muy largo."),
+  prueba_resultado: texto(120, "El resultado de la prueba es muy largo."),
   observaciones: texto(1000, "Las observaciones son muy largas."),
   diagnostico_id: opcional(z.uuid()),
 });
 
+/**
+ * Lee y valida un diagnóstico. Al crear, el servidor busca el servicio activo de la hembra (el navegador no lo elige) y sin él no se guarda; al editar,
+ * el diagnóstico conserva el servicio que ya tenía. Cada método guarda solo sus datos: ecografía, palpación u otra prueba.
+ */
 async function leerDiagnostico(form: FormData, fincaId: string, supabase: Cliente) {
   const datos = esquemaDiagnostico.safeParse(Object.fromEntries(form));
   if (!datos.success) return { error: datos.error.issues[0]?.message ?? "Revisa los datos." } as const;
@@ -167,14 +182,60 @@ async function leerDiagnostico(form: FormData, fincaId: string, supabase: Client
   if (futura) return { error: futura } as const;
   const h = await hembraActiva(supabase, fincaId, d.hembra_id);
   if ("error" in h) return { error: h.error } as const;
-  if (d.servicio_id) {
-    const { data: s } = await supabase.from("servicios").select("id, fecha").eq("id", d.servicio_id).eq("finca_id", fincaId).eq("hembra_id", d.hembra_id).maybeSingle();
-    if (!s) return { error: "No encontramos el servicio al que corresponde este diagnóstico." } as const;
-    if (d.fecha < s.fecha) return { error: "El diagnóstico no puede ser anterior al servicio." } as const;
+
+  let servicioId: string | null = null;
+  let servicioFecha: string | null = null;
+  if (d.diagnostico_id) {
+    const { data: previo } = await supabase.from("diagnosticos_gestacion").select("servicio_id").eq("id", d.diagnostico_id).eq("finca_id", fincaId).eq("hembra_id", d.hembra_id).maybeSingle();
+    if (!previo) return { error: "No encontramos ese diagnóstico." } as const;
+    servicioId = previo.servicio_id;
+    if (servicioId) {
+      const { data: s } = await supabase.from("servicios").select("fecha").eq("id", servicioId).eq("finca_id", fincaId).maybeSingle();
+      servicioFecha = s?.fecha ?? null;
+    }
+  } else {
+    const v = await servicioVigente(supabase, fincaId, d.hembra_id);
+    if (!v.servicio) return { error: v.razon === "ya_vacia" ? MENSAJE_YA_VACIA : MENSAJE_SIN_SERVICIO } as const;
+    servicioId = v.servicio.id;
+    servicioFecha = v.servicio.fecha;
   }
+  if (servicioFecha && d.fecha < servicioFecha) return { error: "El diagnóstico no puede ser anterior al servicio." } as const;
+
+  const sinEco = { dias_gestacion: null, num_fetos: null, viabilidad_fetal: null };
+  const sinPalpacion = { indicador_palpacion: null, condicion_corporal: null };
+  const sinPrueba = { prueba_nombre: null, prueba_resultado: null };
+  let propios: Pick<DiagnosticoGestacion, "dias_gestacion" | "num_fetos" | "viabilidad_fetal" | "indicador_palpacion" | "condicion_corporal" | "prueba_nombre" | "prueba_resultado">;
+
+  if (d.metodo === "ecografia") {
+    // Una hembra vacía no tiene nada que estimar: la ecografía solo guarda sus datos si se vio algo.
+    if (d.resultado === "vacia") propios = { ...sinEco, ...sinPalpacion, ...sinPrueba };
+    else {
+      if (d.resultado === "gestante") {
+        if (d.dias_gestacion == null) return { error: "Indica los días de gestación que calculó el ecografista." } as const;
+        if (d.num_fetos == null) return { error: "Elige cuántos fetos se ven." } as const;
+        if (!d.viabilidad_fetal) return { error: "Indica si el feto tiene latido." } as const;
+        if (d.viabilidad_fetal === "sin_actividad") return { error: "Sin actividad fetal no se confirma una gestación: elige «Dudoso» para repetir la ecografía o «Vacía»." } as const;
+      }
+      if (d.dias_gestacion != null && servicioFecha && d.dias_gestacion > diasHasta(d.fecha, servicioFecha) + 10) {
+        return { error: `La ecografía calcula ${d.dias_gestacion} días de gestación, pero el servicio fue hace ${diasHasta(d.fecha, servicioFecha)} días.` } as const;
+      }
+      propios = { dias_gestacion: d.dias_gestacion ?? null, num_fetos: d.num_fetos ?? null, viabilidad_fetal: (d.viabilidad_fetal ?? null) as never, ...sinPalpacion, ...sinPrueba };
+    }
+  } else if (d.metodo === "palpacion") {
+    if (!d.indicador_palpacion) return { error: "Elige el indicador de la palpación." } as const;
+    if (d.indicador_palpacion === "retorno_celo" && d.resultado === "gestante") return { error: "Si volvió a celo no quedó gestante: elige «Vacía» o «Dudoso»." } as const;
+    if (d.resultado === "vacia" && d.condicion_corporal == null) return { error: "Indica la condición corporal: sirve para decidir si la hembra vuelve al lote de reproducción." } as const;
+    propios = { ...sinEco, indicador_palpacion: d.indicador_palpacion as never, condicion_corporal: d.condicion_corporal ?? null, ...sinPrueba };
+  } else {
+    if (!d.prueba_nombre) return { error: "Escribe el nombre de la prueba o del kit que se usó." } as const;
+    if (!d.prueba_resultado) return { error: "Escribe el resultado de la prueba o su valor de referencia." } as const;
+    propios = { ...sinEco, ...sinPalpacion, prueba_nombre: d.prueba_nombre, prueba_resultado: d.prueba_resultado };
+  }
+
   return {
     d,
-    fila: { fecha: d.fecha, metodo: d.metodo as never, resultado: d.resultado as never, servicio_id: d.servicio_id ?? null, observaciones: d.observaciones ?? null },
+    servicioId,
+    fila: { fecha: d.fecha, metodo: d.metodo as never, resultado: d.resultado as never, ...propios, observaciones: d.observaciones ?? null },
   } as const;
 }
 
@@ -184,7 +245,7 @@ export async function crearDiagnostico(_: EstadoForm, form: FormData): Promise<E
   const supabase = await crearClienteServidor();
   const l = await leerDiagnostico(form, p.finca.id, supabase);
   if ("error" in l) return { error: l.error };
-  const { error } = await supabase.from("diagnosticos_gestacion").insert({ finca_id: p.finca.id, hembra_id: l.d.hembra_id, ...l.fila });
+  const { error } = await supabase.from("diagnosticos_gestacion").insert({ finca_id: p.finca.id, hembra_id: l.d.hembra_id, servicio_id: l.servicioId, ...l.fila });
   if (error) return { error: mensajeAmigable(error.message) };
   revalidatePath("/reproduccion");
   revalidatePath(`/hato/${l.d.hembra_id}`);

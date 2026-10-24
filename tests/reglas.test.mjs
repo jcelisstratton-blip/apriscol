@@ -149,3 +149,21 @@ test("logo de la finca: solo rutas de la propia finca, con nombre uuid y formato
   assert.equal(urlLogo({ id: f, logo_path: null }), null);
   assert.equal(urlLogo({ id: f, logo_path: `${f}/${a}.png` }), `/api/logo?f=${f}&v=${a}.png`);
 });
+
+import { enObservacion, servicioEsActivo, ventanaRepetirDx } from "../lib/reproduccion.ts";
+
+test("reproducción: un servicio está activo mientras no haya un parto o aborto desde su fecha", () => {
+  assert.equal(servicioEsActivo("2026-03-01", null), true);
+  assert.equal(servicioEsActivo("2026-03-01", "2026-02-10"), true);
+  assert.equal(servicioEsActivo("2026-03-01", "2026-03-01"), false);
+  assert.equal(servicioEsActivo("2026-03-01", "2026-08-01"), false);
+});
+
+test("reproducción: un diagnóstico dudoso deja a la hembra en observación y se repite a los 14-21 días", () => {
+  const base = { estado: "servida", ultimo_servicio: "2026-03-01", diagnostico: "dudoso", fecha_diagnostico: "2026-04-10" };
+  assert.equal(enObservacion(base), true);
+  assert.equal(enObservacion({ ...base, diagnostico: "gestante" }), false);
+  assert.equal(enObservacion({ ...base, estado: "gestante" }), false);
+  assert.equal(enObservacion({ ...base, fecha_diagnostico: "2026-02-20" }), false, "un dudoso de un servicio anterior no cuenta");
+  assert.deepEqual(ventanaRepetirDx("2026-04-10"), { desde: "2026-04-24", hasta: "2026-05-01" });
+});
