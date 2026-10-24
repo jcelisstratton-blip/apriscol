@@ -5008,6 +5008,20 @@ export type Database = {
           },
         ]
       }
+      v_peso_animal: {
+        Row: {
+          anterior_fecha: string | null
+          anterior_peso_kg: number | null
+          animal_id: string | null
+          condicion_corporal: number | null
+          fecha_condicion: string | null
+          finca_id: string | null
+          pesajes: number | null
+          ultima_fecha: string | null
+          ultimo_peso_kg: number | null
+        }
+        Relationships: []
+      }
       v_podologia_animal: {
         Row: {
           animal_id: string | null

@@ -62,7 +62,7 @@ export const PLANES: Plan[] = [
       "Personal y nómina con el costo real de la mano de obra",
       "Carne y ceba: pesos, lotes y alimento",
       "Costo por litro, por animal, por lote y por especie",
-      "Reportes de costos en Excel con las fechas que elijas",
+      "Reportes en Excel: costos y hato, con las fechas que elijas",
       "Controles de calidad con constancia (leche y carne)",
       "Soportes de gastos: facturas en PDF o foto",
     ],
@@ -109,7 +109,7 @@ export function moduloEnPlan(plan: PlanId, modulo: ModuloApp): boolean {
 /** Servicios que se piden dentro de un módulo (la pantalla los cierra; la base cierra los módulos completos). */
 export const SERVICIOS_PLAN = {
   equipo: { desde: "hato", nombre: "Equipo con roles" },
-  reportes: { desde: "profesional", nombre: "Reportes de costos en Excel" },
+  reportes: { desde: "profesional", nombre: "Reportes en Excel" },
   costoAnimal: { desde: "profesional", nombre: "Costo por animal, lote y especie" },
   calidad: { desde: "profesional", nombre: "Controles de calidad con constancia" },
   soportes: { desde: "profesional", nombre: "Soportes de gastos (facturas)" },

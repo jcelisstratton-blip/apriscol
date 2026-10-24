@@ -3,6 +3,7 @@ import { AvisoVigencia } from "@/components/AvisoVigencia";
 import { BottomNav } from "@/components/BottomNav";
 import { NavLateral } from "@/components/NavLateral";
 import { esAdminPlataforma, obtenerContexto } from "@/lib/contexto";
+import { reportesVisibles } from "@/lib/reportes/catalogo";
 import { puedeGestionar, puedeVer } from "@/lib/permisos";
 
 /**
@@ -33,6 +34,7 @@ export default async function LayoutApp({ children }: { children: React.ReactNod
         verCostos={puedeVer(rol, "contabilidad", finca.plan)}
         verCarne={puedeVer(rol, "carne", finca.plan)}
         verRepro={puedeVer(rol, "reproduccion", finca.plan)}
+        verReportes={reportesVisibles((m) => puedeVer(rol, m, finca.plan)).length > 0 || puedeVer(rol, "contabilidad", finca.plan)}
         verEquipo={puedeGestionar(rol) || puedeVer(rol, "contabilidad", finca.plan)}
         verPlan={rol === "propietario"}
         planMejorable={finca.plan !== "hacienda"}

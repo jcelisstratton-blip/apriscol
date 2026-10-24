@@ -238,6 +238,19 @@ export type LactanciaResumen = {
   pico_diario: number | null;
 };
 
+/** Una fila de `v_peso_animal`: el último pesaje de un animal activo, el anterior (para la ganancia diaria) y su última condición corporal. */
+export type PesoAnimal = {
+  finca_id: string;
+  animal_id: string;
+  ultima_fecha: string;
+  ultimo_peso_kg: number;
+  anterior_fecha: string | null;
+  anterior_peso_kg: number | null;
+  condicion_corporal: number | null;
+  fecha_condicion: string | null;
+  pesajes: number;
+};
+
 export type ServicioConParto = {
   id: string | null;
   finca_id: string | null;
@@ -1334,6 +1347,7 @@ export type Database = {
       reglas_ceba: Tabla<Omit<ReglaCeba, "personalizada"> & { finca_id: string; created_by: string | null; created_at: string; updated_at: string }, "finca_id" | "especie">;
       pesajes: Tabla<Pesaje, "finca_id" | "animal_id" | "peso_kg">;
       empadronamientos: Tabla<Omit<Empadronamiento, "machos" | "hembras" | "excepciones">, "finca_id" | "especie" | "nombre" | "fecha_fin_prevista" | "edad_min_meses" | "peso_min_kg">;
+      lotes: Tabla<{ id: string; finca_id: string; nombre: string; descripcion: string | null; created_at: string; updated_at: string }, "finca_id" | "nombre">;
       ubicaciones: Tabla<Ubicacion, "finca_id" | "tipo" | "nombre">;
       movimientos_animales: Tabla<MovimientoAnimal, "finca_id" | "animal_id" | "ubicacion_id" | "desde">;
       programas_sanitarios: Tabla<ProgramaSanitario, "finca_id" | "tipo" | "fecha_programada">;
@@ -1348,6 +1362,7 @@ export type Database = {
     Views: {
       v_produccion_diaria: { Row: ProduccionDiaria; Relationships: [] };
       v_lactancias_resumen: { Row: LactanciaResumen; Relationships: [] };
+      v_peso_animal: { Row: PesoAnimal; Relationships: [] };
       v_servicios: { Row: ServicioConParto; Relationships: [] };
       v_palmares_animal: { Row: PalmaresAnimal; Relationships: [] };
       v_palmares_finca: { Row: PalmaresFinca; Relationships: [] };
