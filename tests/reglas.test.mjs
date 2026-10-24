@@ -167,3 +167,23 @@ test("reproducción: un diagnóstico dudoso deja a la hembra en observación y s
   assert.equal(enObservacion({ ...base, fecha_diagnostico: "2026-02-20" }), false, "un dudoso de un servicio anterior no cuenta");
   assert.deepEqual(ventanaRepetirDx("2026-04-10"), { desde: "2026-04-24", hasta: "2026-05-01" });
 });
+
+import { datosPorTipoParto } from "../lib/parto-reglas.ts";
+
+test("parto: cada tipo pide y guarda solo lo suyo", () => {
+  // Cesárea: el responsable de la cirugía es obligatorio.
+  assert.match(datosPorTipoParto({ tipo: "cesarea" }).error, /cesárea/);
+  const ces = datosPorTipoParto({ tipo: "cesarea", responsable_quirurgico: "Dra. Ruiz", protocolo_posoperatorio: "Penicilina 3 días", causa_aborto: "infecciosa" });
+  assert.equal(ces.datos.responsable_quirurgico, "Dra. Ruiz");
+  assert.equal(ces.datos.protocolo_posoperatorio, "Penicilina 3 días");
+  assert.equal(ces.datos.causa_aborto, null, "una cesárea no guarda causa de aborto");
+  // Aborto: la causa es obligatoria y no guarda datos de cirugía.
+  assert.match(datosPorTipoParto({ tipo: "aborto" }).error, /causa/);
+  const ab = datosPorTipoParto({ tipo: "aborto", causa_aborto: "nutricional", responsable_quirurgico: "X", complicaciones: "Retención de placenta" });
+  assert.equal(ab.datos.causa_aborto, "nutricional");
+  assert.equal(ab.datos.responsable_quirurgico, null);
+  assert.equal(ab.datos.complicaciones, "Retención de placenta");
+  // Normal y asistido: solo complicaciones y observaciones.
+  const nor = datosPorTipoParto({ tipo: "asistido", observaciones: "Cría atravesada", responsable_quirurgico: "X", causa_aborto: "toxica" });
+  assert.deepEqual(nor.datos, { complicaciones: null, observaciones: "Cría atravesada", causa_aborto: null, responsable_quirurgico: null, protocolo_posoperatorio: null });
+});

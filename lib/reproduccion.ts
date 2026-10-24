@@ -1,6 +1,6 @@
 import { diasHasta } from "@/lib/fechas";
 import { sumarDias } from "@/lib/fechas";
-import type { EstadoRepro, IndicadorPalpacion, MetodoDiagnostico, ReproHembra, ResultadoDiagnostico, TecnicaInseminacion, TipoParto, TipoServicio, TipoTransferencia, ViabilidadFetal } from "@/lib/tipos";
+import type { EstadoRepro, IndicadorPalpacion, MetodoDiagnostico, ReproHembra, ResultadoDiagnostico, TecnicaInseminacion, CausaAborto, TipoParto, TipoServicio, TipoTransferencia, ViabilidadFetal } from "@/lib/tipos";
 
 export const TIPOS_SERVICIO: TipoServicio[] = ["monta_natural", "inseminacion", "transferencia_embrionaria"];
 export const ETIQUETA_SERVICIO: Record<TipoServicio, string> = {
@@ -68,6 +68,23 @@ export const ETIQUETA_RESULTADO: Record<ResultadoDiagnostico, string> = { gestan
 export const TIPOS_PARTO: TipoParto[] = ["normal", "asistido", "cesarea", "aborto"];
 export const ETIQUETA_PARTO: Record<TipoParto, string> = { normal: "Parto normal", asistido: "Parto asistido", cesarea: "Cesárea", aborto: "Aborto" };
 
+export const DETALLE_PARTO: Record<TipoParto, string> = {
+  normal: "Sin ayuda: nació por sí sola.",
+  asistido: "Hubo que ayudarla a parir.",
+  cesarea: "Intervención quirúrgica.",
+  aborto: "Pérdida de la gestación, sin crías.",
+};
+
+export const CAUSAS_ABORTO: CausaAborto[] = ["infecciosa", "nutricional", "traumatica", "toxica", "desconocida"];
+export const ETIQUETA_CAUSA: Record<CausaAborto, string> = { infecciosa: "Infecciosa", nutricional: "Nutricional", traumatica: "Trauma o estrés", toxica: "Tóxica o medicamentos", desconocida: "Desconocida" };
+export const DETALLE_CAUSA: Record<CausaAborto, string> = {
+  infecciosa: "Sospecha de bacterias, virus o parásitos.",
+  nutricional: "Falta o exceso de alimento o minerales.",
+  traumatica: "Golpes, peleas, transporte o manejo brusco.",
+  toxica: "Plantas, moho o un medicamento.",
+  desconocida: "No se sabe todavía.",
+};
+
 export const ETIQUETA_ESTADO: Record<EstadoRepro, string> = { sin_datos: "Sin datos", vacia: "Vacía", servida: "Servida", gestante: "Gestante" };
 export const ETIQUETA_OBSERVACION = "En observación";
 export const TONO_ESTADO: Record<EstadoRepro, "neutro" | "aviso" | "ok" | "musgo"> = { sin_datos: "neutro", vacia: "neutro", servida: "aviso", gestante: "musgo" };
@@ -85,6 +102,13 @@ export function plazoParto(prevista: string, hoy: string): PlazoParto {
   if (d === 0) return { texto: "Pare hoy", tono: "aviso" };
   if (d <= 14) return { texto: d === 1 ? "Pare mañana" : `Pare en ${d} días`, tono: "aviso" };
   return { texto: `Pare en ${d} días`, tono: "ok" };
+}
+
+/** Lo propio del evento en una línea: la causa de un aborto, o quién operó una cesárea. */
+export function detalleParto(p: { tipo: TipoParto; causa_aborto: CausaAborto | null; responsable_quirurgico: string | null }): string | undefined {
+  if (p.tipo === "aborto" && p.causa_aborto) return `Causa ${ETIQUETA_CAUSA[p.causa_aborto].toLowerCase()}`;
+  if (p.tipo === "cesarea" && p.responsable_quirurgico) return `Operó ${p.responsable_quirurgico}`;
+  return undefined;
 }
 
 /** Partos totales en texto: «3 partos», «1 parto» o «Sin dato». */

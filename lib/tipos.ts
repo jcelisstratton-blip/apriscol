@@ -265,7 +265,14 @@ export type Parto = {
   fecha: string;
   tipo: TipoParto;
   numero_crias: number;
+  /** En una cesárea, las complicaciones quirúrgicas. */
   complicaciones: string | null;
+  observaciones: string | null;
+  /** Solo aborto: causa aparente. */
+  causa_aborto: CausaAborto | null;
+  /** Solo cesárea: médico veterinario que operó y protocolo posoperatorio (fármacos). */
+  responsable_quirurgico: string | null;
+  protocolo_posoperatorio: string | null;
   client_request_id: string | null;
   created_by: string | null;
   created_at: string;
@@ -1051,6 +1058,7 @@ export type ResultadoDiagnostico = "gestante" | "vacia" | "dudoso";
 export type ViabilidadFetal = "latido" | "sin_actividad";
 export type IndicadorPalpacion = "ausencia_celo" | "retorno_celo" | "llenado_uterino" | "revision_manual";
 export type TipoParto = "normal" | "asistido" | "cesarea" | "aborto";
+export type CausaAborto = "infecciosa" | "nutricional" | "traumatica" | "toxica" | "desconocida";
 /** Dónde está una hembra en su ciclo: sin datos, vacía, servida (esperando diagnóstico) o gestante. */
 export type EstadoRepro = "sin_datos" | "vacia" | "servida" | "gestante";
 

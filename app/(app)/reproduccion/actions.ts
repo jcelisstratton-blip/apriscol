@@ -7,8 +7,9 @@ import { crearClienteServidor } from "@/lib/supabase/server";
 import { obtenerContexto } from "@/lib/contexto";
 import { puedeEscribir, puedeGestionar } from "@/lib/permisos";
 import { mensajeAmigable } from "@/lib/mensaje-amigable";
-import { INDICADORES_PALPACION, MAX_CRIAS, METODOS_DIAGNOSTICO, RESULTADOS_DIAGNOSTICO, TECNICAS_INSEMINACION, TIPOS_PARTO, TIPOS_SERVICIO, TIPOS_TRANSFERENCIA, VIABILIDADES } from "@/lib/reproduccion";
+import { CAUSAS_ABORTO, INDICADORES_PALPACION, MAX_CRIAS, METODOS_DIAGNOSTICO, RESULTADOS_DIAGNOSTICO, TECNICAS_INSEMINACION, TIPOS_PARTO, TIPOS_SERVICIO, TIPOS_TRANSFERENCIA, VIABILIDADES } from "@/lib/reproduccion";
 import { diasHasta } from "@/lib/fechas";
+import { datosPorTipoParto } from "@/lib/parto-reglas";
 import { MENSAJE_SIN_SERVICIO, MENSAJE_YA_VACIA, servicioVigente } from "@/lib/servicio-vigente";
 import type { DiagnosticoGestacion } from "@/lib/tipos";
 import { leerNumero } from "@/lib/numeros";
@@ -293,12 +294,21 @@ const esquemaCria = z.object({
   nombre: z.string().trim().max(60, "El nombre es muy largo.").optional(),
 });
 
+/** Lo clínico de un parto: complicaciones y observaciones de todos; causa del aborto; y el médico y el protocolo de una cesárea. */
+const camposClinicosParto = {
+  complicaciones: texto(1000, "Las complicaciones son muy largas."),
+  observaciones: texto(1000, "Las observaciones son muy largas."),
+  causa_aborto: opcional(z.enum(CAUSAS_ABORTO as [string, ...string[]], "Elige la causa aparente del aborto.")),
+  responsable_quirurgico: texto(120, "El nombre del responsable de la cirugía es muy largo."),
+  protocolo_posoperatorio: texto(1000, "El protocolo posoperatorio es muy largo."),
+};
+
 const esquemaParto = z.object({
   madre_id: z.uuid("Elige la hembra."),
   fecha: z.iso.date("Indica la fecha del parto."),
   tipo: z.enum(TIPOS_PARTO as [string, ...string[]], "Elige qué pasó."),
   servicio_id: opcional(z.uuid()),
-  complicaciones: texto(500, "Las complicaciones son muy largas."),
+  ...camposClinicosParto,
   crias: opcional(z.string().max(5000)),
   client_request_id: opcional(z.uuid()),
   parto_id: opcional(z.uuid()),
@@ -328,6 +338,8 @@ export async function crearParto(_: EstadoForm, form: FormData): Promise<EstadoF
   const d = datos.data;
   const futura = noFutura(d.fecha);
   if (futura) return { error: futura };
+  const clinico = datosPorTipoParto(d);
+  if ("error" in clinico) return { error: clinico.error };
   const c = leerCrias(d.crias, d.tipo);
   if ("error" in c) return { error: c.error };
 
@@ -362,7 +374,7 @@ export async function crearParto(_: EstadoForm, form: FormData): Promise<EstadoF
       servicio_id: servicio?.id ?? null,
       fecha: d.fecha,
       tipo: d.tipo,
-      complicaciones: d.complicaciones ?? null,
+      ...clinico.datos,
       client_request_id: d.client_request_id ?? null,
       padre_id: servicio?.macho_id ?? null,
       padre_externo: servicio?.macho_externo ?? null,
@@ -387,10 +399,10 @@ const esquemaEdicionParto = z.object({
   parto_id: z.uuid("No encontramos ese parto."),
   fecha: z.iso.date("Indica la fecha del parto."),
   tipo: z.enum(TIPOS_PARTO as [string, ...string[]], "Elige qué pasó."),
-  complicaciones: texto(500, "Las complicaciones son muy largas."),
+  ...camposClinicosParto,
 });
 
-/** Corrige la fecha, el tipo y las complicaciones de un parto. Pasar de aborto a parto (o al revés) cambia la lactancia: en ese caso se elimina y se registra de nuevo. */
+/** Corrige la fecha, el tipo y los datos clínicos de un parto (las crías se corrigen desde su ficha). Pasar de aborto a parto (o al revés) cambia la lactancia: en ese caso se elimina y se registra de nuevo. */
 export async function editarParto(_: EstadoForm, form: FormData): Promise<EstadoForm> {
   const p = await permiso("editar partos");
   if (!p.ok) return { error: p.error };
@@ -399,11 +411,13 @@ export async function editarParto(_: EstadoForm, form: FormData): Promise<Estado
   const d = datos.data;
   const futura = noFutura(d.fecha);
   if (futura) return { error: futura };
+  const clinico = datosPorTipoParto(d);
+  if ("error" in clinico) return { error: clinico.error };
   const supabase = await crearClienteServidor();
   const { data: actual } = await supabase.from("partos").select("id, tipo, servicio_id").eq("id", d.parto_id).eq("finca_id", p.finca.id).eq("madre_id", d.madre_id).maybeSingle();
   if (!actual) return { error: "No encontramos ese parto." };
   if ((actual.tipo === "aborto") !== (d.tipo === "aborto")) return { error: "No se puede cambiar un parto a aborto (ni al revés): elimina el registro y créalo de nuevo." };
-  const { error } = await supabase.from("partos").update({ fecha: d.fecha, tipo: d.tipo as never, complicaciones: d.complicaciones ?? null }).eq("id", d.parto_id).eq("finca_id", p.finca.id);
+  const { error } = await supabase.from("partos").update({ fecha: d.fecha, tipo: d.tipo as never, ...clinico.datos }).eq("id", d.parto_id).eq("finca_id", p.finca.id);
   if (error) return { error: mensajeAmigable(error.message) };
   revalidatePath("/reproduccion");
   revalidatePath(`/hato/${d.madre_id}`);
