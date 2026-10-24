@@ -268,3 +268,58 @@ test("crías de un parto: cuántas nacieron vivas y cuántas muertas", () => {
   assert.equal(resumenCrias([{ vivo: true }, { vivo: false }]), "2 crías · 1 viva · 1 muerta");
   assert.equal(resumenCrias([{ vivo: true }, { vivo: true }, { vivo: false }]), "3 crías · 2 vivas · 1 muerta");
 });
+
+import { CATEGORIAS, REGLAS, datosPorTipoEvento, diasSugeridosProxima } from "../lib/sanidad-campos.ts";
+
+test("sanidad: cada tipo pide y guarda lo suyo", () => {
+  // Vacunación: contra qué y qué dosis son obligatorios; el diagnóstico no aplica.
+  assert.match(datosPorTipoEvento("vacunacion", {}, true).error, /Contra qué enfermedad/);
+  assert.match(datosPorTipoEvento("vacunacion", { categoria: "clostridiales" }, true).error, /primera dosis/);
+  const vac = datosPorTipoEvento("vacunacion", { categoria: "clostridiales", etapa: "primera", motivo: "famacha", cojera: 2 }, true);
+  assert.equal(vac.extra.categoria, "clostridiales");
+  assert.equal(vac.extra.etapa, "primera");
+  assert.equal(vac.extra.motivo, null, "una vacuna no guarda motivo de desparasitación");
+  assert.equal(vac.extra.cojera, null);
+  assert.equal(vac.limpiar.diagnostico, true);
+  assert.match(datosPorTipoEvento("vacunacion", { categoria: "aftosa", etapa: "primera" }, true).error, /opciones/);
+  // Desparasitación: parásito y motivo.
+  assert.match(datosPorTipoEvento("desparasitacion", { categoria: "gastrointestinales" }, true).error, /por qué se desparasita/i);
+  assert.ok(datosPorTipoEvento("desparasitacion", { categoria: "gastrointestinales", motivo: "famacha" }, true).extra);
+  // Tratamiento: diagnóstico, dosis y vía obligatorios; dura al menos un día.
+  assert.match(datosPorTipoEvento("tratamiento", { categoria: "infeccion" }, true).error, /Diagnóstico/);
+  assert.match(datosPorTipoEvento("tratamiento", { categoria: "infeccion", diagnostico: "Mastitis" }, true).error, /dosis/);
+  assert.match(datosPorTipoEvento("tratamiento", { categoria: "infeccion", diagnostico: "Mastitis", dosis: 5 }, true).error, /vía/);
+  assert.equal(datosPorTipoEvento("tratamiento", { categoria: "infeccion", diagnostico: "Mastitis", dosis: 5, via: "intramuscular" }, true).extra.dias_tratamiento, 1);
+  // Podología: sin medicamento no deja retiro ni dosis; con dosis pero sin producto se pide el producto.
+  const pod = datosPorTipoEvento("podologia", { categoria: "recorte" }, true);
+  assert.equal(pod.limpiar.retiro, true);
+  assert.equal(pod.limpiar.dosis, true);
+  assert.match(datosPorTipoEvento("podologia", { categoria: "recorte", dosis: 2 }, true).error, /producto/);
+  assert.equal(datosPorTipoEvento("podologia", { categoria: "curacion", producto: "Oxitetraciclina", dosis: 2 }, true).limpiar.retiro, false);
+  assert.match(datosPorTipoEvento("podologia", { categoria: "recorte", cojera: 5 }, true).error, /0 a 3/);
+  // Pediluvio: concentración y minutos; nunca retiro ni dosis.
+  assert.match(datosPorTipoEvento("pediluvio", { categoria: "zinc" }, true).error, /concentración/);
+  assert.match(datosPorTipoEvento("pediluvio", { categoria: "zinc", concentracion_pct: 10 }, true).error, /minutos/);
+  const ped = datosPorTipoEvento("pediluvio", { categoria: "zinc", concentracion_pct: 10, minutos: 10 }, true);
+  assert.equal(ped.limpiar.retiro, true);
+  assert.equal(ped.extra.minutos, 10);
+  // Cirugía: cuál, por qué, anestesia y quién la hizo.
+  assert.match(datosPorTipoEvento("cirugia", { categoria: "castracion", diagnostico: "Macho de carne" }, true).error, /anestesia/);
+  assert.match(datosPorTipoEvento("cirugia", { categoria: "castracion", diagnostico: "Macho de carne", anestesia: "local" }, true).error, /quién hizo/);
+  assert.ok(datosPorTipoEvento("cirugia", { categoria: "castracion", diagnostico: "Macho de carne", anestesia: "local", responsable: "Dra. Ruiz" }, true).extra);
+  // Otro: describir qué se hizo.
+  assert.match(datosPorTipoEvento("otro", {}, true).error, /¿Qué se hizo\?/);
+  // Al corregir un registro antiguo no se exige nada.
+  assert.ok(datosPorTipoEvento("cirugia", {}, false).extra);
+  // Referencias.
+  assert.equal(diasSugeridosProxima("vacunacion", "primera"), 28);
+  assert.equal(diasSugeridosProxima("vacunacion", "anual"), 365);
+  assert.equal(diasSugeridosProxima("tratamiento", "primera"), null);
+  for (const tipo of Object.keys(REGLAS)) {
+    const r = REGLAS[tipo];
+    assert.ok(r.ayuda.length > 20 && r.proxima.chips.length > 0, tipo);
+    assert.ok(!r.tituloCategoria || CATEGORIAS[tipo]?.length > 0, tipo);
+  }
+  assert.equal(REGLAS.pediluvio.retiro, "oculto");
+  assert.equal(REGLAS.podologia.retiro, "segun_medicamento");
+});

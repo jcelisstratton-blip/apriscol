@@ -372,6 +372,15 @@ export type EventoSanitario = {
   diagnostico: string | null;
   observaciones: string | null;
   proxima_fecha: string | null;
+  /** Lo propio de cada tipo (ver `lib/sanidad-campos.ts`). */
+  categoria: string | null;
+  motivo: string | null;
+  etapa: string | null;
+  dias_tratamiento: number | null;
+  cojera: number | null;
+  concentracion_pct: number | null;
+  minutos: number | null;
+  anestesia: string | null;
   client_request_id: string | null;
   created_by: string | null;
   created_at: string;
@@ -1487,6 +1496,10 @@ export type Database = {
       };
       guardar_evento_sanitario: {
         Args: { p_finca: string; p_evento: string | null; p_datos: Record<string, unknown>; p_animales: string[] };
+        Returns: string;
+      };
+      guardar_evento_sanitario_detalle: {
+        Args: { p_finca: string; p_evento: string | null; p_datos: Record<string, unknown>; p_extra: Record<string, unknown>; p_animales: string[] };
         Returns: string;
       };
       coef_endogamia: { Args: { p_animal: string }; Returns: number };
