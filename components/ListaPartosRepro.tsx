@@ -10,7 +10,7 @@ import { ListaEscalable } from "@/components/ListaEscalable";
 import { crearClienteNavegador } from "@/lib/supabase/client";
 import { etiquetaAnimal } from "@/lib/animal";
 import { formatoFecha } from "@/lib/fechas";
-import { ETIQUETA_PARTO } from "@/lib/reproduccion";
+import { detalleParto, ETIQUETA_PARTO } from "@/lib/reproduccion";
 import type { Parto } from "@/lib/tipos";
 
 type FilaParto = Parto & { madre?: { numero_arete: string; nombre: string | null } };
@@ -57,6 +57,7 @@ export function ListaPartosRepro({ fincaId, puedeEditar }: { fincaId: string; pu
             <Link href={`/hato/${p.madre_id}#reproduccion`} className="block min-w-0 flex-1">
               <span className="block font-bold [overflow-wrap:anywhere]">{p.madre ? etiquetaAnimal(p.madre) : "Hembra"}</span>
               <span className="block text-sm text-humo">{formatoFecha(p.fecha, { day: "numeric", month: "short", year: "numeric" })}</span>
+              {detalleParto(p) ? <span className="block text-sm text-humo [overflow-wrap:anywhere]">{detalleParto(p)}</span> : null}
               <span className="mt-1.5 flex flex-wrap gap-1.5">
                 <Insignia tono={p.tipo === "aborto" ? "alerta" : p.tipo === "normal" ? "musgo" : "aviso"}>{ETIQUETA_PARTO[p.tipo]}</Insignia>
                 {p.tipo !== "aborto" ? <Insignia>{`${p.numero_crias} ${p.numero_crias === 1 ? "cría" : "crías"}`}</Insignia> : null}

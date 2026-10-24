@@ -29,3 +29,13 @@ Cada método pide lo suyo y solo guarda sus datos (opciones como tarjetas):
 - **Otro método:** prueba o kit y su resultado, ambos obligatorios.
 
 El estado sale de `v_repro_hembras`, no se guarda: **Gestante** → estado gestante y parto previsto = servicio + días de gestación de la especie en la finca (150 caprinos, 147 ovinos por omisión); **Vacía** → disponible otra vez (servicio, sincronización o empadronamiento); **Dudoso** → sigue «servida» y se muestra como **«En observación»** (`enObservacion`), y el panel avisa para repetir la prueba entre **14 y 21 días** después (`ventanaRepetirDx`, tarjeta «Diagnósticos para repetir»). Migración `20261024140929_diagnosticos_datos_por_metodo` (solo agrega columnas y un disparador de inserción).
+
+## Parto (normal, asistido, cesárea y aborto)
+
+`FormParto` se adapta al tipo de evento (`datosPorTipoParto`, `lib/parto-reglas.ts`, lo exige la acción y solo se guarda lo del tipo):
+
+- **Parto normal y asistido:** crías (una fila por cría, hasta 8: sexo, **estado viva/muerta** como tarjetas, peso al nacer en kg, arete opcional y nombre), complicaciones y observaciones. Una cría viva con arete se crea también como animal del hato (madre y padre del servicio); una muerta no.
+- **Cesárea:** la misma sección de crías vivas y muertas, más el **médico veterinario o responsable de la cirugía (obligatorio, `responsable_quirurgico`)**, las **complicaciones quirúrgicas** (`complicaciones`) y el **protocolo posoperatorio y fármacos administrados** (`protocolo_posoperatorio`).
+- **Aborto:** sin crías ni pesos. Pide fecha, **causa aparente obligatoria** (`causa_aborto`: infecciosa, nutricional, trauma o estrés, tóxica o medicamentos, desconocida, como tarjetas; con «Infecciosa» avisa de aislar a la hembra y manejar el feto con guantes) y complicaciones y **observaciones clínicas** (`observaciones`) para el control epidemiológico.
+
+Al corregir un parto cambian la fecha, el tipo (dentro de su grupo: un aborto no se vuelve parto ni al revés) y los datos clínicos; las crías se corrigen desde su ficha. Migración `20261024143319_partos_datos_por_tipo` (solo agrega columnas y amplía `registrar_parto`).

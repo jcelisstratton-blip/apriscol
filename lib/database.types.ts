@@ -3204,6 +3204,7 @@ export type Database = {
       }
       partos: {
         Row: {
+          causa_aborto: string | null
           client_request_id: string | null
           complicaciones: string | null
           created_at: string
@@ -3213,11 +3214,15 @@ export type Database = {
           id: string
           madre_id: string
           numero_crias: number
+          observaciones: string | null
+          protocolo_posoperatorio: string | null
+          responsable_quirurgico: string | null
           servicio_id: string | null
           tipo: string
           updated_at: string
         }
         Insert: {
+          causa_aborto?: string | null
           client_request_id?: string | null
           complicaciones?: string | null
           created_at?: string
@@ -3227,11 +3232,15 @@ export type Database = {
           id?: string
           madre_id: string
           numero_crias?: number
+          observaciones?: string | null
+          protocolo_posoperatorio?: string | null
+          responsable_quirurgico?: string | null
           servicio_id?: string | null
           tipo?: string
           updated_at?: string
         }
         Update: {
+          causa_aborto?: string | null
           client_request_id?: string | null
           complicaciones?: string | null
           created_at?: string
@@ -3241,6 +3250,9 @@ export type Database = {
           id?: string
           madre_id?: string
           numero_crias?: number
+          observaciones?: string | null
+          protocolo_posoperatorio?: string | null
+          responsable_quirurgico?: string | null
           servicio_id?: string | null
           tipo?: string
           updated_at?: string

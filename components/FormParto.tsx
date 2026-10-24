@@ -9,17 +9,19 @@ import { Campo, CLASE_INPUT } from "@/components/Campo";
 import { SelectorTarjetas } from "@/components/SelectorTarjetas";
 import { crearParto, editarParto } from "@/app/(app)/reproduccion/actions";
 import { formatoFecha } from "@/lib/fechas";
-import { ESCENA_TIPO_PARTO } from "@/lib/escenas-forms-b-reproduccion";
+import { ESCENA_CAUSA_ABORTO, ESCENA_ESTADO_CRIA, ESCENA_TIPO_PARTO } from "@/lib/escenas-forms-b-reproduccion";
 import { ESCENA_SEXO } from "@/lib/escenas-forms-b-hato";
-import { ETIQUETA_PARTO, MAX_CRIAS, TIPOS_PARTO } from "@/lib/reproduccion";
-import type { Cria, Parto, TipoParto } from "@/lib/tipos";
+import { CAUSAS_ABORTO, DETALLE_CAUSA, DETALLE_PARTO, ETIQUETA_CAUSA, ETIQUETA_PARTO, MAX_CRIAS, TIPOS_PARTO } from "@/lib/reproduccion";
+import type { CausaAborto, Cria, Parto, TipoParto } from "@/lib/tipos";
 
 type Fila = { sexo: "hembra" | "macho" | ""; vivo: boolean; peso: string; arete: string; nombre: string };
 const NUEVA: Fila = { sexo: "", vivo: true, peso: "", arete: "", nombre: "" };
 
 /**
- * Registrar el parto de una hembra con sus crías (una fila por cría: gemelos y trillizos). Una cría viva con arete se crea también como
- * animal del hato, con su madre y su padre. Al corregir un parto solo cambian la fecha, el tipo y las complicaciones.
+ * Registrar el parto de una hembra. El formulario se adapta al tipo de evento: parto normal o asistido, crías (una fila por cría: gemelos y
+ * trillizos), complicaciones y observaciones; cesárea, lo mismo más el médico veterinario que operó, las complicaciones quirúrgicas y el protocolo
+ * posoperatorio; aborto, sin crías ni pesos: causa aparente, complicaciones y observaciones clínicas. Una cría viva con arete se crea también como
+ * animal del hato, con su madre y su padre. Al corregir un parto cambian la fecha, el tipo y los datos clínicos; las crías se corrigen desde su ficha.
  */
 export function FormParto({
   hembraId,
@@ -43,7 +45,11 @@ export function FormParto({
   const [, iniciar] = useTransition();
   const [tipo, setTipo] = useState<TipoParto>(parto?.tipo ?? "normal");
   const [filas, setFilas] = useState<Fila[]>([{ ...NUEVA }]);
+  const [causa, setCausa] = useState<CausaAborto | "">(parto?.causa_aborto ?? "");
   const esAborto = tipo === "aborto";
+  const esCesarea = tipo === "cesarea";
+  // Al corregir, un aborto no se vuelve parto (ni al revés): se ofrecen solo los tipos de su grupo.
+  const tiposOfrecidos = editando ? TIPOS_PARTO.filter((t) => (t === "aborto") === (parto?.tipo === "aborto")) : TIPOS_PARTO;
 
   const cambiar = (i: number, cambio: Partial<Fila>) => setFilas((f) => f.map((x, k) => (k === i ? { ...x, ...cambio } : x)));
 
@@ -74,7 +80,7 @@ export function FormParto({
       </Campo>
 
       <Campo etiqueta="¿Qué pasó?">
-        {(id) => <SelectorTarjetas id={id} nombre="tipo" valor={tipo} onCambio={(v) => v && setTipo(v)} titulo="¿Qué pasó?" opciones={TIPOS_PARTO.map((t) => ({ valor: t, etiqueta: ETIQUETA_PARTO[t], escena: ESCENA_TIPO_PARTO[t] }))} />}
+        {(id) => <SelectorTarjetas id={id} nombre="tipo" valor={tipo} onCambio={(v) => v && setTipo(v)} titulo="¿Qué pasó?" opciones={tiposOfrecidos.map((t) => ({ valor: t, etiqueta: ETIQUETA_PARTO[t], detalle: DETALLE_PARTO[t], escena: ESCENA_TIPO_PARTO[t] }))} />}
       </Campo>
 
       {!editando && !esAborto ? (
@@ -95,10 +101,11 @@ export function FormParto({
                   <SelectorTarjetas id={id} valor={x.sexo} onCambio={(v) => cambiar(i, { sexo: v as Fila["sexo"] })} titulo="Sexo de la cría" opciones={[{ valor: "hembra", etiqueta: "Hembra", escena: ESCENA_SEXO.hembra }, { valor: "macho", etiqueta: "Macho", escena: ESCENA_SEXO.macho }]} />
                 )}
               </Campo>
-              <label className="flex min-h-11 items-center gap-3 text-[0.9375rem]">
-                <input type="checkbox" checked={x.vivo} onChange={(e) => cambiar(i, { vivo: e.target.checked, arete: e.target.checked ? x.arete : "" })} className="size-5 accent-[var(--musgo)]" />
-                Nació viva
-              </label>
+              <Campo etiqueta="Estado">
+                {(id) => (
+                  <SelectorTarjetas id={id} valor={x.vivo ? "viva" : "muerta"} onCambio={(v) => v && cambiar(i, { vivo: v === "viva", arete: v === "viva" ? x.arete : "", nombre: v === "viva" ? x.nombre : "" })} titulo="Estado de la cría" opciones={[{ valor: "viva", etiqueta: "Viva", escena: ESCENA_ESTADO_CRIA.viva }, { valor: "muerta", etiqueta: "Muerta", escena: ESCENA_ESTADO_CRIA.muerta }]} />
+                )}
+              </Campo>
               <Campo etiqueta="Peso al nacer (kg)" ayuda="Opcional.">
                 {(id) => <input id={id} value={x.peso} onChange={(e) => cambiar(i, { peso: e.target.value })} inputMode="decimal" autoComplete="off" placeholder="Ej. 3,2" className={CLASE_INPUT} />}
               </Campo>
@@ -136,8 +143,35 @@ export function FormParto({
         </div>
       ) : null}
 
-      <Campo etiqueta="Complicaciones" ayuda="Opcional.">
-        {(id) => <textarea id={id} name="complicaciones" defaultValue={parto?.complicaciones ?? ""} rows={3} maxLength={500} className={`${CLASE_INPUT} py-3`} />}
+      {esAborto ? (
+        <div className="space-y-3">
+          <Campo etiqueta="Causa aparente" ayuda="Sirve para el control epidemiológico de tu hato.">
+            {(id) => <SelectorTarjetas id={id} nombre="causa_aborto" valor={causa} onCambio={setCausa} titulo="Causa aparente del aborto" opciones={CAUSAS_ABORTO.map((c) => ({ valor: c, etiqueta: ETIQUETA_CAUSA[c], detalle: DETALLE_CAUSA[c], escena: ESCENA_CAUSA_ABORTO[c] }))} />}
+          </Campo>
+          {causa === "infecciosa" ? (
+            <Aviso tipo="atencion">Si se sospecha una infección, aísla a la hembra, maneja el feto y la placenta con guantes (algunas causas, como la brucelosis, pasan a las personas) y avisa a tu veterinario.</Aviso>
+          ) : null}
+        </div>
+      ) : null}
+
+      {esCesarea ? (
+        <Campo etiqueta="Médico veterinario o responsable de la cirugía" ayuda="Quién hizo la cesárea.">
+          {(id) => <input id={id} name="responsable_quirurgico" defaultValue={parto?.responsable_quirurgico ?? ""} maxLength={120} autoComplete="off" required className={CLASE_INPUT} />}
+        </Campo>
+      ) : null}
+
+      <Campo etiqueta={esCesarea ? "Complicaciones quirúrgicas" : "Complicaciones"} ayuda="Opcional.">
+        {(id) => <textarea id={id} name="complicaciones" defaultValue={parto?.complicaciones ?? ""} rows={3} maxLength={1000} className={`${CLASE_INPUT} py-3`} />}
+      </Campo>
+
+      {esCesarea ? (
+        <Campo etiqueta="Protocolo posoperatorio y fármacos administrados" ayuda="Opcional. Medicamentos, dosis y cuidados después de la cirugía.">
+          {(id) => <textarea id={id} name="protocolo_posoperatorio" defaultValue={parto?.protocolo_posoperatorio ?? ""} rows={3} maxLength={1000} className={`${CLASE_INPUT} py-3`} />}
+        </Campo>
+      ) : null}
+
+      <Campo etiqueta={esAborto ? "Observaciones clínicas" : "Observaciones"} ayuda="Opcional.">
+        {(id) => <textarea id={id} name="observaciones" defaultValue={parto?.observaciones ?? ""} rows={3} maxLength={1000} className={`${CLASE_INPUT} py-3`} />}
       </Campo>
 
       {estado?.error ? <Aviso tipo="error">{estado.error}</Aviso> : null}

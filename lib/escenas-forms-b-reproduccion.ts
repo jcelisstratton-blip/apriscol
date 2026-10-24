@@ -1,6 +1,6 @@
-import { Baby, CalendarOff, CircleHelp, Droplets, HeartPulse, RotateCcw, CircleOff, Hand, HandHelping, Handshake, Heart, HeartCrack, House, Microscope, ScanLine, Scissors, Snowflake, Stethoscope, Syringe, Truck } from "lucide-react";
+import { Baby, Bug, FlaskConical, Wheat, Zap, CalendarOff, CircleHelp, Droplets, HeartPulse, RotateCcw, CircleOff, Hand, HandHelping, Handshake, Heart, HeartCrack, House, Microscope, ScanLine, Scissors, Snowflake, Stethoscope, Syringe, Truck } from "lucide-react";
 import { ESC, escena, type EscenaDef } from "@/lib/escenas";
-import type { IndicadorPalpacion, MetodoDiagnostico, ResultadoDiagnostico, TecnicaInseminacion, TipoParto, TipoServicio, TipoTransferencia, ViabilidadFetal } from "@/lib/tipos";
+import type { IndicadorPalpacion, MetodoDiagnostico, ResultadoDiagnostico, TecnicaInseminacion, TipoParto, TipoServicio, TipoTransferencia, ViabilidadFetal, CausaAborto } from "@/lib/tipos";
 
 /** Cómo se hizo el servicio a una hembra. */
 export const ESCENA_TIPO_SERVICIO: Record<TipoServicio, EscenaDef> = {
@@ -43,6 +43,21 @@ export const ESCENA_INDICADOR_PALPACION: Record<IndicadorPalpacion, EscenaDef> =
   retorno_celo: escena(RotateCcw, "arcilla", Heart),
   llenado_uterino: escena(Droplets, "oliva", Hand),
   revision_manual: escena(Hand, "ocre", Stethoscope),
+};
+
+/** Causa aparente de un aborto. */
+export const ESCENA_CAUSA_ABORTO: Record<CausaAborto, EscenaDef> = {
+  infecciosa: escena(Bug, "arcilla", Syringe),
+  nutricional: escena(Wheat, "ocre"),
+  traumatica: escena(Zap, "ambar", HandHelping),
+  toxica: escena(FlaskConical, "musgo"),
+  desconocida: escena(CircleHelp, "grafito"),
+};
+
+/** La cría nació viva o muerta. */
+export const ESCENA_ESTADO_CRIA: Record<"viva" | "muerta", EscenaDef> = {
+  viva: escena(HeartPulse, "oliva", Baby),
+  muerta: escena(HeartCrack, "grafito"),
 };
 
 /** Qué pasó en un parto. */

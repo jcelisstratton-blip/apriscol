@@ -5,7 +5,7 @@ import { Tarjeta } from "@/components/Tarjeta";
 import { puedeEscribir, puedeVer } from "@/lib/permisos";
 import { clasesBoton } from "@/components/Boton";
 import { diasHasta, formatoFecha, hoyBogota } from "@/lib/fechas";
-import { enObservacion, ETIQUETA_ESTADO, ETIQUETA_FETOS, ETIQUETA_INDICADOR, ETIQUETA_METODO, ETIQUETA_OBSERVACION, ETIQUETA_VIABILIDAD, ventanaRepetirDx, ETIQUETA_PARTO, ETIQUETA_RESULTADO, ETIQUETA_SERVICIO, plazoParto, textoPartos, TONO_ESTADO } from "@/lib/reproduccion";
+import { detalleParto, enObservacion, ETIQUETA_ESTADO, ETIQUETA_FETOS, ETIQUETA_INDICADOR, ETIQUETA_METODO, ETIQUETA_OBSERVACION, ETIQUETA_VIABILIDAD, ventanaRepetirDx, ETIQUETA_PARTO, ETIQUETA_RESULTADO, ETIQUETA_SERVICIO, plazoParto, textoPartos, TONO_ESTADO } from "@/lib/reproduccion";
 import { PartosPrevios } from "@/components/PartosPrevios";
 import type { DiagnosticoGestacion } from "@/lib/tipos";
 import type { CtxFicha } from "./contexto";
@@ -40,7 +40,7 @@ export async function TarjetaReproduccion({ c, sinCrear }: { c: CtxFicha; sinCre
   const todoRepro = [
     ...(serviciosDB.data ?? []).map((x) => ({ clave: `s-${x.id}`, fecha: x.fecha, tipo: "servicio" as const, href: `/reproduccion/servicios/${x.id}`, texto: `Servicio · ${ETIQUETA_SERVICIO[x.tipo]}` })),
     ...(diagnosticosDB.data ?? []).map((x) => ({ clave: `d-${x.id}`, fecha: x.fecha, tipo: "diagnostico" as const, href: `/reproduccion/diagnosticos/${x.id}`, texto: `Diagnóstico · ${ETIQUETA_RESULTADO[x.resultado]} (${ETIQUETA_METODO[x.metodo].toLowerCase()})`, detalle: detalleDiagnostico(x) })),
-    ...(partosDB.data ?? []).map((x) => ({ clave: `p-${x.id}`, fecha: x.fecha, tipo: "parto" as const, href: `/reproduccion/partos/${x.id}`, texto: `${ETIQUETA_PARTO[x.tipo]}${x.tipo === "aborto" ? "" : ` · ${x.numero_crias} ${x.numero_crias === 1 ? "cría" : "crías"}`}` })),
+    ...(partosDB.data ?? []).map((x) => ({ clave: `p-${x.id}`, fecha: x.fecha, tipo: "parto" as const, href: `/reproduccion/partos/${x.id}`, texto: `${ETIQUETA_PARTO[x.tipo]}${x.tipo === "aborto" ? "" : ` · ${x.numero_crias} ${x.numero_crias === 1 ? "cría" : "crías"}`}`, detalle: detalleParto(x) })),
   ].sort((a, b) => (a.fecha < b.fecha ? 1 : -1));
   const historialRepro = todoRepro.slice(0, 8);
   const mostrarRepro = verRepro && (animal.estado === "activo" || historialRepro.length > 0);
