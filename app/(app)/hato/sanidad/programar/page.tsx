@@ -10,10 +10,9 @@ import { crearClienteServidor } from "@/lib/supabase/server";
 import { puedeEscribir } from "@/lib/permisos";
 import { animalesPorIds } from "@/lib/animal-etiquetas";
 import { etiquetaAnimal } from "@/lib/animal";
-import { hoyBogota, sumarDias } from "@/lib/fechas";
-import { TIPOS_PROGRAMABLES } from "@/lib/sanidad";
+import { hoyBogota } from "@/lib/fechas";
+import { TIPOS_PROGRAMABLES, conRevisionAtrasada, plazosRevisionPezuna } from "@/lib/sanidad";
 import { obtenerAjustes } from "@/lib/ajustes-servidor";
-import { diasEntrePediluvios, mesDeFecha } from "@/lib/ajustes";
 import { estadoFamacha } from "@/lib/famacha";
 import type { TipoEvento } from "@/lib/tipos";
 
@@ -51,12 +50,10 @@ export default async function PaginaProgramar({ searchParams }: { searchParams: 
       ids = [animal];
     } else if (grupo === "podologia") {
       const { data } = await supabase.from("v_podologia_animal").select("animal_id, ultima_fecha").eq("finca_id", finca.id).limit(2000);
-      const limite = sumarDias(hoy, -(await obtenerAjustes()).general.podologia_inspeccion_dias);
-      ids = (data ?? []).filter((p) => !p.ultima_fecha || p.ultima_fecha < limite).map((p) => p.animal_id).slice(0, 1000);
+      ids = conRevisionAtrasada(data ?? [], (await obtenerAjustes()).general.podologia_inspeccion_dias, hoy).map((p) => p.animal_id).slice(0, 1000);
     } else if (grupo === "pediluvio") {
       const { data } = await supabase.from("v_pediluvio_animal").select("animal_id, ultima_fecha").eq("finca_id", finca.id).limit(2000);
-      const limite = sumarDias(hoy, -diasEntrePediluvios((await obtenerAjustes()).general, mesDeFecha(hoy)));
-      ids = (data ?? []).filter((p) => !p.ultima_fecha || p.ultima_fecha < limite).map((p) => p.animal_id).slice(0, 1000);
+      ids = conRevisionAtrasada(data ?? [], plazosRevisionPezuna((await obtenerAjustes()).general, hoy).pediluvioDias, hoy).map((p) => p.animal_id).slice(0, 1000);
     } else if (grupo === "famacha") {
       const { data } = await supabase.from("v_famacha_animal").select("animal_id, puntaje, ultima_fecha, desparasitado_en").eq("finca_id", finca.id).gte("puntaje", 4).limit(2000);
       ids = (data ?? []).filter((f) => estadoFamacha(f).clave === "desparasitar").map((f) => f.animal_id).slice(0, 1000);

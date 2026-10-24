@@ -33,3 +33,9 @@ export function aplicaFamacha(a: { estado: string; fecha_nacimiento: string | nu
   if (!a.fecha_nacimiento) return true;
   return -diasHasta(a.fecha_nacimiento, hoy) >= DIAS_EDAD_FAMACHA;
 }
+
+/** Cuántos animales hay por desparasitar y cuántos por vigilar según su última evaluación. Una sola cuenta para todas las pantallas. */
+export function contarFamacha(filas: { puntaje: number; ultima_fecha: string; desparasitado_en: string | null }[]): { desparasitar: number; vigilar: number } {
+  const claves = filas.map((f) => estadoFamacha(f).clave);
+  return { desparasitar: claves.filter((c) => c === "desparasitar").length, vigilar: claves.filter((c) => c === "vigilar").length };
+}

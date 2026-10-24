@@ -1,4 +1,5 @@
-import { diasHasta, formatoFecha, sumarDias } from "@/lib/fechas";
+import { diasEntrePediluvios, mesDeFecha, type AjustesFinca } from "@/lib/ajustes";
+import { diasDesde, diasHasta, formatoFecha, sumarDias } from "@/lib/fechas";
 import type { ResultadoPrueba, TipoEvento, TipoProducto, TipoPrueba, ViaAplicacion } from "@/lib/tipos";
 
 export const TIPOS_EVENTO: TipoEvento[] = ["vacunacion", "desparasitacion", "tratamiento", "podologia", "pediluvio", "cirugia", "otro"];
@@ -118,3 +119,26 @@ export function estadoFechaPrograma(fecha: string, hoy: string): { dias: number;
   if (dias <= 7) return { dias, texto: `En ${dias} ${dias === 1 ? "día" : "días"}`, tono: "aviso" };
   return { dias, texto: `En ${dias} días`, tono: "neutro" };
 }
+
+// ───────────────────────── Revisiones periódicas de pezuñas ─────────────────────────
+/** Cada cuántos días toca la podología y el pediluvio hoy (el pediluvio es más seguido en los meses de lluvia de la finca). */
+export function plazosRevisionPezuna(ajustes: AjustesFinca, hoy: string): { podologiaDias: number; pediluvioDias: number } {
+  return { podologiaDias: ajustes.podologia_inspeccion_dias, pediluvioDias: diasEntrePediluvios(ajustes, mesDeFecha(hoy)) };
+}
+
+export type UltimaRevision = { animal_id: string; ultima_fecha: string | null };
+export type RevisionAtrasada = { /** Cuándo debió hacerse; `null` si nunca se ha hecho. */ vence: string | null; /** Días de atraso; `null` si nunca se ha hecho. */ diasAtraso: number | null };
+
+/**
+ * Una revisión periódica (podología, pediluvio) está atrasada si nunca se hizo o si su última vez fue hace más días que los de la finca.
+ * Devuelve `null` si está al día. Es **la** definición: las pantallas de Sanidad, el programador y el reporte la usan, no la repiten.
+ */
+export function revisionAtrasada(ultimaFecha: string | null, cadaDias: number, hoy: string): RevisionAtrasada | null {
+  if (!ultimaFecha) return { vence: null, diasAtraso: null };
+  const vence = sumarDias(ultimaFecha, cadaDias);
+  if (vence >= hoy) return null;
+  return { vence, diasAtraso: diasDesde(vence, hoy) };
+}
+
+/** Los animales cuya revisión está atrasada. */
+export const conRevisionAtrasada = <T extends UltimaRevision>(lista: T[], cadaDias: number, hoy: string): T[] => lista.filter((r) => revisionAtrasada(r.ultima_fecha, cadaDias, hoy) !== null);

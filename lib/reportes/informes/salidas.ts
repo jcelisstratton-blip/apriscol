@@ -1,6 +1,7 @@
 import { nombreTipo } from "@/lib/animal";
 import { ETIQUETA_MOTIVO_BAJA, ETIQUETA_TIPO_BAJA } from "@/lib/bajas";
-import { COLUMNAS_ANIMAL, NOTA_TRUNCADO, cargarAnimales, col, hrefAnimal, pasaEspecie, tituloAnimal, traerTodo, valoresAnimal } from "@/lib/reportes/base";
+import { COLUMNAS_ANIMAL, NOTA_TRUNCADO, cargarAnimales, col, hrefAnimal, pasaEspecie, tituloAnimal, valoresAnimal } from "@/lib/reportes/base";
+import { traerTodo } from "@/lib/consultas";
 import type { AnimalBase, ContextoReporte } from "@/lib/reportes/base";
 import { suma } from "@/lib/reportes/calculos";
 import { cifra } from "@/lib/reportes/formato";

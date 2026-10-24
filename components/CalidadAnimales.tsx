@@ -12,6 +12,7 @@ import { Insignia } from "@/components/Insignia";
 import { ListaPorTramos } from "@/components/ListaPorTramos";
 import { formatoFecha } from "@/lib/fechas";
 import { estadoRcs, formatoMiles } from "@/lib/leche-calidad";
+import { sinTildes } from "@/lib/texto";
 
 export type HembraCalidad = {
   id: string;
@@ -21,7 +22,6 @@ export type HembraCalidad = {
 
 type Filtro = "todas" | "sin" | "altas";
 const MIN_PARA_BUSCAR = 8;
-const sinTildes = (t: string) => t.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 
 /** Hato → Ordeño → Calidad: cada hembra en leche con su último análisis, y el atajo para registrar uno desde su ficha. */
 export function CalidadAnimales({ hembras, puedeEditar, limiteRcs }: { hembras: HembraCalidad[]; puedeEditar: boolean; limiteRcs: number }) {

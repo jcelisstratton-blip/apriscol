@@ -1,7 +1,9 @@
 import { nombreTipo } from "@/lib/animal";
-import { COLUMNAS_ANIMAL, NOTA_TRUNCADO, cargarAnimales, col, hrefAnimal, pasaEspecie, tituloAnimal, traerTodo, valoresAnimal } from "@/lib/reportes/base";
+import { COLUMNAS_ANIMAL, NOTA_TRUNCADO, cargarAnimales, col, hrefAnimal, pasaEspecie, tituloAnimal, valoresAnimal } from "@/lib/reportes/base";
+import { traerTodo } from "@/lib/consultas";
 import type { AnimalBase, ContextoReporte } from "@/lib/reportes/base";
-import { CC_ALTA, CC_BAJA, DIAS_SIN_PESAR, ETIQUETA_CATEGORIA, bandaCondicion, categoriaAnimal, compararArete, diasDesde, gananciaDiariaG, promedio } from "@/lib/reportes/calculos";
+import { CC_ALTA, CC_BAJA, DIAS_SIN_PESAR, ETIQUETA_CATEGORIA, bandaCondicion, categoriaAnimal, compararArete, gananciaDiariaG, promedio } from "@/lib/reportes/calculos";
+import { diasDesde } from "@/lib/fechas";
 import { cifra } from "@/lib/reportes/formato";
 import type { FilaReporte, Indicador, ResultadoReporte, TonoFila } from "@/lib/reportes/tipos";
 import type { PesoAnimal } from "@/lib/tipos";

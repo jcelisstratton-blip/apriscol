@@ -5,12 +5,12 @@ import { Check, ChevronDown } from "lucide-react";
 import { Sheet } from "@/components/Sheet";
 import { CLASE_INPUT } from "@/components/Campo";
 import { CampoBusqueda } from "@/components/CampoBusqueda";
+import { sinTildes } from "@/lib/texto";
 
 export type Opcion<T extends string | number> = { valor: T; etiqueta: string; detalle?: string };
 
 /** Desde cuántas opciones la lista trae un buscador (departamentos, municipios, razas…). */
 const MIN_PARA_BUSCAR = 12;
-const sinTildes = (t: string) => t.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 
 /** Lista desplegable: hoja inferior en el celular. Nunca un <select> nativo. */
 export function Selector<T extends string | number>({

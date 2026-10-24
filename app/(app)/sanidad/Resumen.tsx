@@ -8,14 +8,14 @@ import { Insignia } from "@/components/Insignia";
 import { Tarjeta } from "@/components/Tarjeta";
 import { crearClienteServidor } from "@/lib/supabase/server";
 import { obtenerAjustes } from "@/lib/ajustes-servidor";
-import { diasEntrePediluvios, mesDeFecha, textoPlazo } from "@/lib/ajustes";
+import { textoPlazo } from "@/lib/ajustes";
 import { ESCENA_EVENTO, ESCENA_TODOS_TIPOS } from "@/lib/escenas-sanidad";
-import { estadoFamacha } from "@/lib/famacha";
+import { contarFamacha } from "@/lib/famacha";
 import { animalesPorIds } from "@/lib/animal-etiquetas";
 import { etiquetaAnimal } from "@/lib/animal";
-import { formatoFecha, hoyBogota, sumarDias } from "@/lib/fechas";
+import { formatoFecha, hoyBogota } from "@/lib/fechas";
 import { rangoPeriodo, type Periodo } from "@/lib/periodos";
-import { ETIQUETA_EVENTO, ETIQUETA_PRUEBA_CORTA, ETIQUETA_RESULTADO_PRUEBA, TIPOS_EVENTO, TONO_RESULTADO_PRUEBA, estadoDosis, estadoFechaPrograma, nombreEvento } from "@/lib/sanidad";
+import { ETIQUETA_EVENTO, ETIQUETA_PRUEBA_CORTA, ETIQUETA_RESULTADO_PRUEBA, TIPOS_EVENTO, TONO_RESULTADO_PRUEBA, estadoDosis, estadoFechaPrograma, nombreEvento, conRevisionAtrasada, plazosRevisionPezuna } from "@/lib/sanidad";
 import type { EventoResumen, ProgramaSanitarioResumen, SanidadPendiente, TipoEvento } from "@/lib/tipos";
 
 export type FiltrosSanidad = { periodo: Periodo; desde?: string; hasta?: string; tipo: TipoEvento | "todos" };
@@ -113,14 +113,10 @@ export async function Resumen({
 
   const enRetiro = (retiro.data ?? []).slice().sort((a, b) => (a.retiro_carne_hasta ?? a.retiro_leche_hasta ?? "").localeCompare(b.retiro_carne_hasta ?? b.retiro_leche_hasta ?? ""));
   const pruebas = pruebasDB.data ?? [];
-  const estadosFamacha = (famachaDB.data ?? []).map((f) => estadoFamacha(f).clave);
-  const famachaDesparasitar = estadosFamacha.filter((c) => c === "desparasitar").length;
-  const famachaVigilar = estadosFamacha.filter((c) => c === "vigilar").length;
-  const limitePodologia = sumarDias(hoy, -ajustes.podologia_inspeccion_dias);
-  const sinPodologia = (podologiaDB.data ?? []).filter((p) => !p.ultima_fecha || p.ultima_fecha < limitePodologia).length;
-  const diasPediluvio = diasEntrePediluvios(ajustes, mesDeFecha(hoy));
-  const limitePediluvio = sumarDias(hoy, -diasPediluvio);
-  const sinPediluvio = (pediluvioDB.data ?? []).filter((p) => !p.ultima_fecha || p.ultima_fecha < limitePediluvio).length;
+  const { desparasitar: famachaDesparasitar, vigilar: famachaVigilar } = contarFamacha(famachaDB.data ?? []);
+  const { pediluvioDias: diasPediluvio } = plazosRevisionPezuna(ajustes, hoy);
+  const sinPodologia = conRevisionAtrasada(podologiaDB.data ?? [], ajustes.podologia_inspeccion_dias, hoy).length;
+  const sinPediluvio = conRevisionAtrasada(pediluvioDB.data ?? [], diasPediluvio, hoy).length;
 
   const nombres = new Map((await animalesPorIds(supabase, fincaId, [...enRetiro.map((r) => r.animal_id), ...pruebas.map((p) => p.animal_id), ...refuerzos.filter((g) => g.animales.length === 1).map((g) => g.animales[0])])).map((a) => [a.id, etiquetaAnimal(a)]));
 

@@ -11,10 +11,10 @@ import { Insignia } from "@/components/Insignia";
 import { crearClienteServidor } from "@/lib/supabase/server";
 import { ayudaSanidad } from "@/lib/ayuda";
 import { obtenerAjustes } from "@/lib/ajustes-servidor";
-import { diasEntrePediluvios, mesDeFecha, textoPlazo } from "@/lib/ajustes";
-import { estadoFamacha } from "@/lib/famacha";
-import { formatoFecha, hoyBogota, sumarDias } from "@/lib/fechas";
-import { ETIQUETA_EVENTO, estadoDosis, estadoFechaPrograma, nombreEvento } from "@/lib/sanidad";
+import { textoPlazo } from "@/lib/ajustes";
+import { contarFamacha } from "@/lib/famacha";
+import { formatoFecha, hoyBogota } from "@/lib/fechas";
+import { ETIQUETA_EVENTO, conRevisionAtrasada, estadoDosis, estadoFechaPrograma, nombreEvento, plazosRevisionPezuna } from "@/lib/sanidad";
 import type { ProgramaSanitarioResumen, SanidadPendiente, TipoEvento } from "@/lib/tipos";
 
 type GrupoRefuerzo = { evento_id: string; tipo: TipoEvento | null; producto_nombre: string | null; proxima_fecha: string; animales: number };
@@ -39,9 +39,7 @@ export async function Sanidad({
   const supabase = cliente ?? (await crearClienteServidor());
   const hoy = hoyBogota();
   const { general: ajustes } = await obtenerAjustes();
-  const limitePodologia = sumarDias(hoy, -ajustes.podologia_inspeccion_dias);
-  const diasPediluvio = diasEntrePediluvios(ajustes, mesDeFecha(hoy));
-  const limitePediluvio = sumarDias(hoy, -diasPediluvio);
+  const { pediluvioDias: diasPediluvio } = plazosRevisionPezuna(ajustes, hoy);
   const [programasDB, pendientesDB, podologiaDB, pediluvioDB, famachaDB] = await Promise.all([
     supabase.from("v_programas_sanitarios").select("*").eq("finca_id", fincaId).eq("estado", "abierto").order("fecha_programada").limit(50),
     supabase.from("v_sanidad_pendiente").select("*").eq("finca_id", fincaId).order("proxima_fecha").limit(1000),
@@ -60,11 +58,9 @@ export async function Sanidad({
     grupos.set(p.evento_id, g);
   }
   const refuerzos = [...grupos.values()].sort((a, b) => a.proxima_fecha.localeCompare(b.proxima_fecha));
-  const estadosFamacha = (famachaDB.data ?? []).map((f) => estadoFamacha(f).clave);
-  const famachaDesparasitar = estadosFamacha.filter((c) => c === "desparasitar").length;
-  const famachaVigilar = estadosFamacha.filter((c) => c === "vigilar").length;
-  const sinPodologia = (podologiaDB.data ?? []).filter((p) => !p.ultima_fecha || p.ultima_fecha < limitePodologia).length;
-  const sinPediluvio = (pediluvioDB.data ?? []).filter((p) => !p.ultima_fecha || p.ultima_fecha < limitePediluvio).length;
+  const { desparasitar: famachaDesparasitar, vigilar: famachaVigilar } = contarFamacha(famachaDB.data ?? []);
+  const sinPodologia = conRevisionAtrasada(podologiaDB.data ?? [], ajustes.podologia_inspeccion_dias, hoy).length;
+  const sinPediluvio = conRevisionAtrasada(pediluvioDB.data ?? [], diasPediluvio, hoy).length;
 
   const botones = puedeEditar ? (
     <div className="grid grid-cols-1 gap-2 min-[420px]:grid-cols-2">

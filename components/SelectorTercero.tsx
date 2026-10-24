@@ -7,8 +7,8 @@ import { CLASE_INPUT } from "@/components/Campo";
 import { Sheet } from "@/components/Sheet";
 import { crearTercero } from "@/app/(app)/mas/productos/actions";
 import type { Tercero, TipoTercero } from "@/lib/tipos";
+import { sinTildes } from "@/lib/texto";
 
-const sinTildes = (t: string) => t.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 
 /**
  * Elegir un proveedor o un comprador de la lista de la finca. Si todavía no está, se escribe su nombre en el buscador y se agrega ahí mismo:

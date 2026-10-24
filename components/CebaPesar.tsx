@@ -16,6 +16,7 @@ import { guardarPeso } from "@/app/(app)/carne/actions";
 import { formatoFecha } from "@/lib/fechas";
 import { gdp, kg } from "@/lib/carne";
 import { leerNumero } from "@/lib/numeros";
+import { sinTildes } from "@/lib/texto";
 
 export type AnimalCeba = {
   id: string;
@@ -28,7 +29,6 @@ export type AnimalCeba = {
 
 const SIN_LOTE = "sin";
 const MIN_PARA_BUSCAR = 8;
-const sinTildes = (t: string) => t.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 
 /**
  * Hato → Ceba: los animales en engorde con su último peso. Se escribe el peso de cada uno y se guarda al instante (un peso por animal y día;

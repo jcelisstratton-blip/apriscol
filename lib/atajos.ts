@@ -6,6 +6,7 @@ import {
 import { puedeEscribir, puedeGestionar, puedeVer } from "@/lib/permisos";
 import { servicioEnPlan, type ServicioPlan } from "@/lib/planes";
 import type { ModuloApp, PlanId, RolFinca } from "@/lib/tipos";
+import { sinTildes } from "@/lib/texto";
 
 export type GrupoAtajo = "Hato" | "Leche" | "Reproducción" | "Sanidad" | "Carne" | "Corrales" | "Costos" | "Premios" | "Cuenta";
 export const GRUPOS_ATAJO: GrupoAtajo[] = ["Hato", "Leche", "Reproducción", "Sanidad", "Carne", "Corrales", "Costos", "Premios", "Cuenta"];
@@ -130,7 +131,6 @@ export function atajosPara(rol: RolFinca, plan: PlanId): Atajo[] {
   });
 }
 
-const sinTildes = (t: string) => t.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 
 /** ¿Coincide con lo que la persona escribió? Ignora tildes y mayúsculas; todas las palabras deben aparecer. */
 export function coincideAtajo(a: Atajo, texto: string): boolean {

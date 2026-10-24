@@ -1,7 +1,8 @@
 import { ETIQUETA_USO_MACHO, ETIQUETA_VOCACION, nombreTipo } from "@/lib/animal";
 import { edadTexto } from "@/lib/fechas";
 import { ETIQUETA_ESTADO, ETIQUETA_OBSERVACION, enObservacion } from "@/lib/reproduccion";
-import { COLUMNAS_ANIMAL, NOTA_TRUNCADO, cargarAnimales, col, hrefAnimal, pasaEspecie, tituloAnimal, traerTodo, valoresAnimal } from "@/lib/reportes/base";
+import { COLUMNAS_ANIMAL, NOTA_TRUNCADO, cargarAnimales, col, hrefAnimal, pasaEspecie, tituloAnimal, valoresAnimal } from "@/lib/reportes/base";
+import { traerTodo } from "@/lib/consultas";
 import type { AnimalBase, ContextoReporte } from "@/lib/reportes/base";
 import { ETIQUETA_CATEGORIA, ORDEN_CATEGORIA, categoriaAnimal, compararArete } from "@/lib/reportes/calculos";
 import type { Categoria } from "@/lib/reportes/calculos";

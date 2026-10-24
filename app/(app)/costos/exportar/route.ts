@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { traerTodo } from "@/lib/consultas";
 import { obtenerContexto } from "@/lib/contexto";
 import { crearClienteServidor } from "@/lib/supabase/server";
 import { puedeVer } from "@/lib/permisos";
@@ -11,6 +12,7 @@ import { diasHasta, hoyBogota } from "@/lib/fechas";
 import { esPeriodo, rangoPeriodo, type Periodo } from "@/lib/periodos";
 import { construirLibro, nombreArchivo, type DatosReporte, type FilaDetalle } from "@/lib/reportes-excel";
 import type { CostoLinea } from "@/lib/tipos";
+import { respuestaExcel } from "@/lib/archivos";
 
 export const dynamic = "force-dynamic";
 
@@ -55,16 +57,8 @@ export async function GET(req: NextRequest) {
   };
 
   /** Todo el detalle del periodo, por páginas (la base devuelve hasta 5.000 filas por llamada). */
-  const detalleCompleto = async (rubro: string | null): Promise<CostoLinea[]> => {
-    const todas: CostoLinea[] = [];
-    for (let salto = 0; salto < TOPE_FILAS; salto += POR_PAGINA) {
-      const { data, error } = await supabase.rpc("costos_detalle", { ...p, p_rubro: rubro, p_limite: POR_PAGINA, p_salto: salto });
-      if (error) throw new Error(error.message);
-      todas.push(...(data ?? []));
-      if ((data ?? []).length < POR_PAGINA) break;
-    }
-    return todas;
-  };
+  const detalleCompleto = async (rubro: string | null): Promise<CostoLinea[]> =>
+    (await traerTodo<CostoLinea>((d, h) => supabase.rpc("costos_detalle", { ...p, p_rubro: rubro, p_limite: h - d + 1, p_salto: d }), { porPagina: POR_PAGINA, tope: TOPE_FILAS })).filas;
 
   try {
     if (reporte === "rubros" || reporte === "resultado") {
@@ -136,14 +130,7 @@ export async function GET(req: NextRequest) {
     }
     const libro = await construirLibro(reporte, datos);
     const nombre = nombreArchivo(finca.nombre, reporte, desde, hasta);
-    const ascii = nombre.normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^\x20-\x7e]/g, "_").replace(/"/g, "'");
-    return new NextResponse(new Uint8Array(libro), {
-      headers: {
-        "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        "Content-Disposition": `attachment; filename="${ascii}"; filename*=UTF-8''${encodeURIComponent(nombre)}`,
-        "Cache-Control": "no-store",
-      },
-    });
+    return respuestaExcel(libro, nombre);
   } catch {
     return new NextResponse("No se pudo armar el reporte. Intenta de nuevo.", { status: 500 });
   }

@@ -9,11 +9,11 @@ import { Insignia } from "@/components/Insignia";
 import { ListaEscalable } from "@/components/ListaEscalable";
 import { textoCelda } from "@/lib/reportes/formato";
 import type { Columna, FilaReporte } from "@/lib/reportes/tipos";
+import { sinTildes } from "@/lib/texto";
 
 /** Cuántas filas hacen falta para ofrecer el buscador (por debajo se ve todo de un vistazo). */
 const MINIMO_BUSCADOR = 8;
 
-const sinTildes = (t: string) => t.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 
 /** Una fila del reporte: el título (con su enlace) y la insignia arriba, y debajo todos sus datos, en el celular también. */
 function FilaDeReporte({ fila, columnas }: { fila: FilaReporte; columnas: Columna[] }) {

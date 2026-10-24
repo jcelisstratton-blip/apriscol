@@ -1,7 +1,9 @@
 import { ETIQUETA_CAUSA, ETIQUETA_PARTO } from "@/lib/reproduccion";
-import { COLUMNAS_ANIMAL, NOTA_TRUNCADO, cargarAnimales, col, hrefAnimal, pasaEspecie, tituloAnimal, traerTodo, valoresAnimal } from "@/lib/reportes/base";
+import { COLUMNAS_ANIMAL, NOTA_TRUNCADO, cargarAnimales, col, hrefAnimal, pasaEspecie, tituloAnimal, valoresAnimal } from "@/lib/reportes/base";
+import { traerTodo } from "@/lib/consultas";
 import type { AnimalBase, ContextoReporte } from "@/lib/reportes/base";
-import { diasDesde, promedio, suma } from "@/lib/reportes/calculos";
+import { promedio, suma } from "@/lib/reportes/calculos";
+import { diasDesde } from "@/lib/fechas";
 import { cifra, porcentaje } from "@/lib/reportes/formato";
 import type { FilaReporte, Indicador, ResultadoReporte, TonoFila } from "@/lib/reportes/tipos";
 import type { Cria, Parto, TipoParto } from "@/lib/tipos";

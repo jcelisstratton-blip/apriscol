@@ -2,6 +2,7 @@ import ExcelJS from "exceljs";
 import { COLOR, estiloEncabezado, relleno } from "@/lib/excel-estilo";
 import type { Writable } from "node:stream";
 import { COLUMNAS, type ColumnaId } from "@/lib/importar-animales";
+import { paginar } from "@/lib/consultas";
 import {
   ARCHIVO_POR_COLUMNA,
   BUSQUEDA_POR_COLUMNA,
@@ -38,15 +39,13 @@ const PAGINA = 1000;
 
 // ───────────────────────── Lectura de la base ─────────────────────────
 async function* paginas(c: ClienteExportar, tabla: string, fincaId: string | null, orden: string): AsyncGenerator<Fila[]> {
-  for (let desde = 0; ; desde += PAGINA) {
+  // Sin tope: la exportación lleva todo lo que es de la persona.
+  const pagina = (desde: number, hasta: number) => {
     let q = c.from(tabla).select("*");
     if (fincaId) q = q.eq("finca_id", fincaId);
-    const { data, error } = await q.order(orden).range(desde, desde + PAGINA - 1);
-    if (error) throw new Error(error.message);
-    const filas = data ?? [];
-    if (filas.length > 0) yield filas;
-    if (filas.length < PAGINA) return;
-  }
+    return q.order(orden).range(desde, hasta);
+  };
+  for await (const { filas } of paginar<Fila>(pagina, PAGINA, Infinity)) if (filas.length > 0) yield filas;
 }
 
 async function todas(c: ClienteExportar, tabla: string, fincaId: string | null, orden = "id"): Promise<Fila[]> {

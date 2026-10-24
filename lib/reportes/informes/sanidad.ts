@@ -1,19 +1,16 @@
 import { nombreTipo } from "@/lib/animal";
-import { diasEntrePediluvios, mesDeFecha } from "@/lib/ajustes";
-import { sumarDias } from "@/lib/fechas";
 import { FAMACHA, estadoFamacha } from "@/lib/famacha";
-import { ETIQUETA_EVENTO, estadoDosis } from "@/lib/sanidad";
-import { COLUMNAS_ANIMAL, NOTA_TRUNCADO, cargarAnimales, col, hrefAnimal, pasaEspecie, tituloAnimal, traerTodo, valoresAnimal } from "@/lib/reportes/base";
+import { ETIQUETA_EVENTO, estadoDosis, plazosRevisionPezuna, revisionAtrasada, type UltimaRevision } from "@/lib/sanidad";
+import { COLUMNAS_ANIMAL, NOTA_TRUNCADO, cargarAnimales, col, hrefAnimal, pasaEspecie, tituloAnimal, valoresAnimal } from "@/lib/reportes/base";
+import { traerTodo } from "@/lib/consultas";
 import type { AnimalBase, ContextoReporte } from "@/lib/reportes/base";
-import { compararArete, diasDesde } from "@/lib/reportes/calculos";
+import { compararArete } from "@/lib/reportes/calculos";
 import { cifra } from "@/lib/reportes/formato";
 import type { FilaReporte, Indicador, ResultadoReporte, TonoFila } from "@/lib/reportes/tipos";
 import type { FamachaAnimal, SanidadPendiente } from "@/lib/tipos";
 
 /** Las dosis programadas que faltan más de estos días no se listan: aún no son para atender. */
 export const DIAS_ADELANTE_DOSIS = 30;
-
-export type UltimaRevision = { animal_id: string; ultima_fecha: string | null };
 
 export type DatosSanidad = {
   hoy: string;
@@ -43,15 +40,6 @@ type Pendiente = {
 };
 
 const ETIQUETA_CLASE = { dosis: "Dosis", famacha: "FAMACHA", podologia: "Podología", pediluvio: "Pediluvio" } as const;
-
-/** Una revisión periódica (podología, pediluvio) está atrasada si nunca se hizo o si pasaron más días que los de la finca. */
-function revisionAtrasada(r: UltimaRevision, cadaDias: number, hoy: string): { atrasada: false } | { atrasada: true; vence: string | null; texto: string; gravedad: number } {
-  if (!r.ultima_fecha) return { atrasada: true, vence: null, texto: "Nunca se ha hecho", gravedad: 1 };
-  const vence = sumarDias(r.ultima_fecha, cadaDias);
-  if (vence >= hoy) return { atrasada: false };
-  const atraso = diasDesde(vence, hoy);
-  return { atrasada: true, vence, texto: `Atrasada ${atraso} ${atraso === 1 ? "día" : "días"}`, gravedad: 1 };
-}
 
 /** Todo lo que hay que atender en sanidad: dosis vencidas o próximas, animales con FAMACHA alto sin desparasitar, y podología y pediluvio atrasados. */
 export function construirSanidad(d: DatosSanidad): ResultadoReporte {
@@ -99,8 +87,8 @@ export function construirSanidad(d: DatosSanidad): ResultadoReporte {
     for (const r of lista) {
       const a = visible(r.animal_id);
       if (!a) continue;
-      const x = revisionAtrasada(r, cada, d.hoy);
-      if (!x.atrasada) continue;
+      const x = revisionAtrasada(r.ultima_fecha, cada, d.hoy);
+      if (!x) continue;
       pendientes.push({
         id: `${clase}:${a.id}`,
         animal: a,
@@ -108,7 +96,7 @@ export function construirSanidad(d: DatosSanidad): ResultadoReporte {
         detalle: `Cada ${cada} días`,
         ultima: r.ultima_fecha,
         vence: x.vence,
-        situacion: x.texto,
+        situacion: x.diasAtraso === null ? "Nunca se ha hecho" : `Atrasada ${x.diasAtraso} ${x.diasAtraso === 1 ? "día" : "días"}`,
         tono: "aviso",
         gravedad: 3,
       });
@@ -178,7 +166,7 @@ export async function informeSanidad(c: ContextoReporte): Promise<ResultadoRepor
     hoy: c.hoy,
     tipo: c.filtros.tipo ?? "todos",
     podologiaCadaDias: g.podologia_inspeccion_dias,
-    pediluvioCadaDias: diasEntrePediluvios(g, mesDeFecha(c.hoy)),
+    pediluvioCadaDias: plazosRevisionPezuna(g, c.hoy).pediluvioDias,
     dosis: dosis.filas,
     famacha: famacha.filas,
     podologia: podologia.filas,

@@ -1,10 +1,10 @@
 import { nombreTipo } from "@/lib/animal";
 import { diasHasta } from "@/lib/fechas";
-import { DIAS_PARTO_ATRASADO, plazoParto } from "@/lib/reproduccion";
-import { COLUMNAS_ANIMAL, NOTA_TRUNCADO, col, enTramos, hrefAnimal, tituloAnimal, valoresAnimal } from "@/lib/reportes/base";
+import { DIAS_PARTO_ATRASADO, ETIQUETA_ETAPA, avanceGestacion, enUltimoTercio, etapaGestacion, partoAtrasado, partoProximo, plazoParto, porSecar, type Etapa } from "@/lib/reproduccion";
+import { COLUMNAS_ANIMAL, NOTA_TRUNCADO, col, hrefAnimal, tituloAnimal, valoresAnimal } from "@/lib/reportes/base";
 import type { AnimalBase, ContextoReporte } from "@/lib/reportes/base";
-import { DIAS_PARTO_PROXIMO, ETIQUETA_ETAPA, avanceGestacion, compararArete, etapaGestacion, suma } from "@/lib/reportes/calculos";
-import type { Etapa } from "@/lib/reportes/calculos";
+import { compararArete, suma } from "@/lib/reportes/calculos";
+import { enTramos } from "@/lib/consultas";
 import { cifra } from "@/lib/reportes/formato";
 import { cargarReproBase, cargarServicios, reproductorDe, tipoServicio } from "@/lib/reportes/informes/repro-comun";
 import type { DiagnosticoBase, ServicioBase } from "@/lib/reportes/informes/repro-comun";
@@ -14,8 +14,8 @@ import type { ReproHembra } from "@/lib/tipos";
 export type DatosGestantes = {
   hoy: string;
   ventana: string;
-  ultimoTercioDia: number;
-  secadoDiasAntes: number;
+  /** Los días de los Ajustes que deciden cuándo empieza el último tercio y cuándo se seca. */
+  ajustes: { ultimo_tercio_dia: number; secado_dias_antes_parto: number };
   repro: ReproHembra[];
   animales: Map<string, AnimalBase>;
   servicios: Map<string, ServicioBase>;
@@ -24,7 +24,7 @@ export type DatosGestantes = {
   truncado: boolean;
 };
 
-type Fila = { r: ReproHembra; a: AnimalBase; dias: number; etapa: Etapa; fetos: number | null; porSecar: boolean };
+type Fila = { r: ReproHembra; a: AnimalBase; dias: number; etapa: Etapa; fetos: number | null; porSecar: boolean; ultimoTercio: boolean };
 
 /** Las hembras con la gestación confirmada: cuándo paren, en qué parte van, cuántas crías se esperan y a quiénes ya toca secar. */
 export function construirGestantes(d: DatosGestantes): ResultadoReporte {
@@ -33,24 +33,24 @@ export function construirGestantes(d: DatosGestantes): ResultadoReporte {
     .flatMap((r): Fila[] => {
       const a = d.animales.get(r.animal_id);
       if (!a || a.estado !== "activo") return [];
-      const dias = diasHasta(r.fecha_prevista_parto!, d.hoy);
       const { gestados, total } = r.ultimo_servicio ? avanceGestacion(r.ultimo_servicio, r.fecha_prevista_parto!, d.hoy) : { gestados: 0, total: 150 };
       return [
         {
           r,
           a,
-          dias,
-          etapa: etapaGestacion(gestados, total, d.ultimoTercioDia),
+          dias: diasHasta(r.fecha_prevista_parto!, d.hoy),
+          etapa: etapaGestacion(gestados, total, d.ajustes.ultimo_tercio_dia),
           fetos: r.servicio_id ? (d.fetos.get(r.servicio_id) ?? null) : null,
-          porSecar: r.en_lactancia && dias <= d.secadoDiasAntes,
+          porSecar: porSecar(r, d.hoy, d.ajustes.secado_dias_antes_parto),
+          ultimoTercio: enUltimoTercio(r, d.hoy, d.ajustes.ultimo_tercio_dia),
         },
       ];
     });
 
   const pasa = (x: Fila) =>
-    d.ventana === "proximos" ? x.dias >= -DIAS_PARTO_ATRASADO && x.dias <= DIAS_PARTO_PROXIMO
-    : d.ventana === "atrasadas" ? x.dias < -DIAS_PARTO_ATRASADO
-    : d.ventana === "ultimo_tercio" ? x.etapa === "ultimo_tercio" && x.dias >= 0
+    d.ventana === "proximos" ? partoProximo(x.r, d.hoy)
+    : d.ventana === "atrasadas" ? partoAtrasado(x.r, d.hoy)
+    : d.ventana === "ultimo_tercio" ? x.ultimoTercio
     : d.ventana === "por_secar" ? x.porSecar
     : true;
   const visibles = gestantes.filter(pasa).sort((x, y) => x.dias - y.dias || compararArete(x.a.numero_arete, y.a.numero_arete));
@@ -81,14 +81,14 @@ export function construirGestantes(d: DatosGestantes): ResultadoReporte {
   });
 
   const entre = (desde: number, hasta: number) => cifra(gestantes.filter((x) => x.dias >= desde && x.dias <= hasta).length);
-  const atrasadas = gestantes.filter((x) => x.dias < -DIAS_PARTO_ATRASADO).length;
+  const atrasadas = gestantes.filter((x) => partoAtrasado(x.r, d.hoy)).length;
   const indicadores: Indicador[] = [
     { etiqueta: "Gestantes", valor: cifra(gestantes.length) },
     { etiqueta: "Crías esperadas (mínimo)", valor: cifra(suma(gestantes.map((x) => x.fetos ?? 1))), detalle: "Sin ecografía se cuenta una cría por hembra" },
     { etiqueta: "Paren en 30 días", valor: entre(-DIAS_PARTO_ATRASADO, 30) },
     { etiqueta: "Entre 31 y 60 días", valor: entre(31, 60) },
     { etiqueta: "Atrasadas", valor: cifra(atrasadas), alerta: atrasadas > 0 },
-    { etiqueta: "En último tercio", valor: cifra(gestantes.filter((x) => x.etapa === "ultimo_tercio" && x.dias >= 0).length) },
+    { etiqueta: "En último tercio", valor: cifra(gestantes.filter((x) => x.ultimoTercio).length) },
     { etiqueta: "Por secar", valor: cifra(gestantes.filter((x) => x.porSecar).length) },
   ];
 
@@ -138,8 +138,7 @@ export async function informeGestantes(c: ContextoReporte): Promise<ResultadoRep
   return construirGestantes({
     hoy: c.hoy,
     ventana: c.filtros.ventana ?? "todos",
-    ultimoTercioDia: c.ajustes.general.ultimo_tercio_dia,
-    secadoDiasAntes: c.ajustes.general.secado_dias_antes_parto,
+    ajustes: c.ajustes.general,
     repro: base.repro,
     animales: base.animales,
     servicios,

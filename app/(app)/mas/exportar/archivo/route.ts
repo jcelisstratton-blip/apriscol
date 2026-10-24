@@ -5,6 +5,7 @@ import { crearClienteServidor } from "@/lib/supabase/server";
 import { hoyBogota } from "@/lib/fechas";
 import { nombreArchivoFinca } from "@/lib/exportar-finca";
 import { escribirExportacion, type ClienteExportar } from "@/lib/exportar-finca-excel";
+import { cabecerasExcel } from "@/lib/archivos";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -28,12 +29,5 @@ export async function GET() {
   }).catch((e) => salida.destroy(e instanceof Error ? e : new Error("No se pudo armar el archivo.")));
 
   const nombre = nombreArchivoFinca(finca.nombre, hoyBogota());
-  const ascii = nombre.replace(/[^\x20-\x7e]/g, "_").replace(/"/g, "'");
-  return new Response(Readable.toWeb(salida) as ReadableStream, {
-    headers: {
-      "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      "Content-Disposition": `attachment; filename="${ascii}"; filename*=UTF-8''${encodeURIComponent(nombre)}`,
-      "Cache-Control": "no-store",
-    },
-  });
+  return new Response(Readable.toWeb(salida) as ReadableStream, { headers: cabecerasExcel(nombre) });
 }

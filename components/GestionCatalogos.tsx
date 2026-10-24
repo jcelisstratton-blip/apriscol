@@ -19,8 +19,8 @@ import { pesos } from "@/lib/ferias";
 import { textoPrecio } from "@/lib/productos";
 import { ETIQUETA_LINEA, LINEAS } from "@/lib/ventas";
 import type { Producto, RubroGasto, Tercero, TipoTercero } from "@/lib/tipos";
+import { sinTildes } from "@/lib/texto";
 
-const sinTildes = (t: string) => t.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 const ETIQUETA_TIPO_TERCERO: Record<TipoTercero, string> = { proveedor: "Proveedor", comprador: "Comprador", ambos: "Proveedor y comprador" };
 const RUBROS_COMPRABLES = GRUPOS.flatMap((g) => RUBROS_DE[g]).filter((r): r is Exclude<RubroGasto, "mano_obra"> => r !== "mano_obra");
 

@@ -1,6 +1,7 @@
 import { etiquetaAnimal } from "@/lib/animal";
 import { ETIQUETA_SERVICIO } from "@/lib/reproduccion";
-import { cargarAnimales, enTramos, pasaEspecie, traerTodo } from "@/lib/reportes/base";
+import { cargarAnimales, pasaEspecie } from "@/lib/reportes/base";
+import { enTramos, traerTodo } from "@/lib/consultas";
 import type { AnimalBase, ContextoReporte } from "@/lib/reportes/base";
 import type { DiagnosticoGestacion, ReproHembra, Servicio } from "@/lib/tipos";
 

@@ -1,5 +1,4 @@
-import { diasHasta } from "@/lib/fechas";
-import { sumarDias } from "@/lib/fechas";
+import { diasDesde, diasHasta, sumarDias } from "@/lib/fechas";
 import type { EstadoRepro, IndicadorPalpacion, MetodoDiagnostico, ReproHembra, ResultadoDiagnostico, TecnicaInseminacion, CausaAborto, TipoParto, TipoServicio, TipoTransferencia, ViabilidadFetal } from "@/lib/tipos";
 
 export const TIPOS_SERVICIO: TipoServicio[] = ["monta_natural", "inseminacion", "transferencia_embrionaria"];
@@ -126,3 +125,118 @@ export function resumenCrias(crias: { vivo: boolean }[]): string {
 export const textoPartos = (n: number | null) => (n == null ? "Sin dato" : n === 1 ? "1 parto" : `${n} partos`);
 
 export const MAX_CRIAS = 8;
+
+// ───────────────────────── Reglas de seguimiento (una sola definición para el Resumen, la ficha y los reportes) ─────────────────────────
+/** Cuántos días hacia adelante cuenta un parto como «próximo». */
+export const DIAS_PARTO_PROXIMO = 45;
+
+export type Etapa = "primer_tercio" | "segundo_tercio" | "ultimo_tercio";
+export const ETIQUETA_ETAPA: Record<Etapa, string> = { primer_tercio: "Primer tercio", segundo_tercio: "Segundo tercio", ultimo_tercio: "Último tercio" };
+
+/** En qué parte de la gestación va una hembra. El último tercio empieza el día que la finca definió en sus Ajustes. */
+export function etapaGestacion(diasGestados: number, gestacionDias: number, ultimoTercioDia: number): Etapa {
+  if (diasGestados >= ultimoTercioDia) return "ultimo_tercio";
+  if (diasGestados >= Math.floor(gestacionDias / 3)) return "segundo_tercio";
+  return "primer_tercio";
+}
+
+export type SituacionDiagnostico = "pronto" | "toca" | "atrasado";
+
+/**
+ * Qué toca con una hembra servida que aún no tiene diagnóstico: todavía es pronto, ya toca (dentro de la ventana de la finca) o el
+ * diagnóstico va tarde. `dias` son los días desde el servicio; la ventana (desde, hasta) sale de los Ajustes.
+ */
+export function situacionDiagnostico(dias: number, desde: number, hasta: number): SituacionDiagnostico {
+  if (dias < desde) return "pronto";
+  if (dias <= hasta) return "toca";
+  return "atrasado";
+}
+
+/** Cuántos días de gestación lleva y cuántos dura en total, a partir de la fecha del servicio y la fecha prevista de parto. */
+export function avanceGestacion(servicio: string, prevista: string, hoy: string): { gestados: number; total: number } {
+  return { gestados: Math.max(0, diasDesde(servicio, hoy)), total: Math.max(1, diasHasta(prevista, servicio)) };
+}
+
+/** Qué pasó con un servicio, para medir la tasa de preñez de un reproductor o de un tipo de servicio. */
+export type ResultadoServicio = "parto" | "aborto" | "gestante" | "vacia" | "pendiente";
+
+/**
+ * El resultado de un servicio: lo que registró el parto manda sobre el diagnóstico (si parió, quedó preñada aunque nunca se diagnosticara);
+ * sin parto, vale el último diagnóstico. Un diagnóstico dudoso o ninguno deja el servicio pendiente.
+ */
+export function resultadoServicio(parto: "normal" | "asistido" | "cesarea" | "aborto" | null, ultimoDiagnostico: "gestante" | "vacia" | "dudoso" | null): ResultadoServicio {
+  if (parto === "aborto") return "aborto";
+  if (parto) return "parto";
+  if (ultimoDiagnostico === "gestante") return "gestante";
+  if (ultimoDiagnostico === "vacia") return "vacia";
+  return "pendiente";
+}
+
+/** Un servicio «resuelto» es el que ya se sabe si preñó o no; la tasa de preñez solo cuenta esos. */
+export const servicioResuelto = (r: ResultadoServicio) => r !== "pendiente";
+/** Quedó preñada: parió, abortó o está confirmada gestante. */
+export const servicioPreno = (r: ResultadoServicio) => r === "parto" || r === "aborto" || r === "gestante";
+
+
+type FilaRepro = Pick<ReproHembra, "estado" | "diagnostico" | "fecha_diagnostico" | "ultimo_servicio" | "fecha_prevista_parto" | "en_lactancia">;
+/** La ventana del diagnóstico de gestación según los Ajustes de la finca: desde y hasta qué día después del servicio. */
+export type VentanaDx = { desde: number; hasta: number };
+
+const enGestacion = (f: Pick<FilaRepro, "estado">) => f.estado === "gestante" || f.estado === "servida";
+
+/** Pare en los próximos `DIAS_PARTO_PROXIMO` días (o lo debió hacer hace poco, sin pasar de `DIAS_PARTO_ATRASADO`). */
+export function partoProximo(f: Pick<FilaRepro, "estado" | "fecha_prevista_parto">, hoy: string): boolean {
+  if (!enGestacion(f) || !f.fecha_prevista_parto) return false;
+  const d = diasHasta(f.fecha_prevista_parto, hoy);
+  return d >= -DIAS_PARTO_ATRASADO && d <= DIAS_PARTO_PROXIMO;
+}
+
+/** Pasó su fecha prevista por más de `DIAS_PARTO_ATRASADO` días sin parir. */
+export const partoAtrasado = (f: Pick<FilaRepro, "estado" | "fecha_prevista_parto">, hoy: string): boolean =>
+  enGestacion(f) && Boolean(f.fecha_prevista_parto) && diasHasta(f.fecha_prevista_parto!, hoy) < -DIAS_PARTO_ATRASADO;
+
+/** Gestante confirmada que ya entró al último tercio (según el día que fijó la finca) y aún no pare: conviene reforzar la alimentación. */
+export const enUltimoTercio = (f: Pick<FilaRepro, "estado" | "ultimo_servicio" | "fecha_prevista_parto">, hoy: string, ultimoTercioDia: number): boolean =>
+  f.estado === "gestante" && Boolean(f.ultimo_servicio) && Boolean(f.fecha_prevista_parto) && diasDesde(f.ultimo_servicio!, hoy) >= ultimoTercioDia && diasHasta(f.fecha_prevista_parto!, hoy) >= 0;
+
+/** Gestante confirmada, en lactancia y a `diasAntes` días del parto o menos: llegó el momento de secarla. */
+export const porSecar = (f: Pick<FilaRepro, "estado" | "en_lactancia" | "fecha_prevista_parto">, hoy: string, diasAntes: number): boolean =>
+  f.estado === "gestante" && f.en_lactancia && Boolean(f.fecha_prevista_parto) && diasHasta(f.fecha_prevista_parto!, hoy) <= diasAntes;
+
+export type SeguimientoServida = {
+  /** «diagnostico» si aún no se ha diagnosticado; «repetir» si el último diagnóstico fue dudoso. */
+  clase: "diagnostico" | "repetir";
+  estado: SituacionDiagnostico;
+  /** Días desde el servicio (o desde el diagnóstico dudoso, si hay que repetirlo). */
+  dias: number;
+  /** La ventana en que toca, como fechas. */
+  desde: string;
+  hasta: string;
+};
+
+/**
+ * Qué toca con una hembra servida: confirmar su gestación con un diagnóstico (ventana de los Ajustes) o repetir uno dudoso (14 a 21 días después).
+ * `null` si no está servida. «pronto» = todavía no; «toca» = dentro de la ventana; «atrasado» = pasó la ventana.
+ */
+export function seguimientoServida(f: FilaRepro, hoy: string, ventana: VentanaDx): SeguimientoServida | null {
+  if (f.estado !== "servida" || !f.ultimo_servicio) return null;
+  if (enObservacion(f)) {
+    const dias = diasDesde(f.fecha_diagnostico!, hoy);
+    const v = ventanaRepetirDx(f.fecha_diagnostico!);
+    return { clase: "repetir", estado: situacionDiagnostico(dias, DIAS_REPETIR_DX_DESDE, DIAS_REPETIR_DX_HASTA), dias, desde: v.desde, hasta: v.hasta };
+  }
+  const dias = diasDesde(f.ultimo_servicio, hoy);
+  return { clase: "diagnostico", estado: situacionDiagnostico(dias, ventana.desde, ventana.hasta), dias, desde: sumarDias(f.ultimo_servicio, ventana.desde), hasta: sumarDias(f.ultimo_servicio, ventana.hasta) };
+}
+
+/** Servida a la que ya toca (o va tarde) confirmarle la gestación. */
+export const porConfirmar = (f: FilaRepro, hoy: string, ventana: VentanaDx): boolean => {
+  const s = seguimientoServida(f, hoy, ventana);
+  return s?.clase === "diagnostico" && s.estado !== "pronto";
+};
+
+/** Diagnóstico dudoso al que ya toca (o va tarde) repetirle la prueba. */
+export const porRepetir = (f: FilaRepro, hoy: string, ventana: VentanaDx): boolean => {
+  const s = seguimientoServida(f, hoy, ventana);
+  return s?.clase === "repetir" && s.estado !== "pronto";
+};
