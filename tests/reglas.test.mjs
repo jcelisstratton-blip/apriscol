@@ -187,3 +187,33 @@ test("parto: cada tipo pide y guarda solo lo suyo", () => {
   const nor = datosPorTipoParto({ tipo: "asistido", observaciones: "Cría atravesada", responsable_quirurgico: "X", causa_aborto: "toxica" });
   assert.deepEqual(nor.datos, { complicaciones: null, observaciones: "Cría atravesada", causa_aborto: null, responsable_quirurgico: null, protocolo_posoperatorio: null });
 });
+
+import { perfilPorRol, resumenPerfil } from "../lib/perfil-personal.ts";
+
+test("equipo: cada perfil pide y guarda solo lo suyo", () => {
+  // Veterinario: tarjeta profesional y teléfono obligatorios al agregarlo.
+  assert.match(perfilPorRol("veterinario", {}, true).error, /tarjeta profesional/);
+  assert.match(perfilPorRol("veterinario", { tarjeta_profesional: "MV-1234" }, true).error, /teléfono/);
+  const vet = perfilPorRol("veterinario", { tarjeta_profesional: "MV-1234", telefono: "300 123 4567", especialidades: "sanidad,reproduccion", experiencia_anios: "8", turno_ordeno: "manana" }, true);
+  assert.equal(vet.datos.tarjeta_profesional, "MV-1234");
+  assert.deepEqual(vet.datos.especialidades, ["reproduccion", "sanidad"]);
+  assert.equal(vet.datos.experiencia_anios, 8);
+  assert.equal(vet.datos.turno_ordeno, null, "un veterinario no guarda turno de ordeño");
+  assert.match(perfilPorRol("veterinario", { tarjeta_profesional: "MV-1234", telefono: "300 123 4567", especialidades: "magia" }, true).error, /especialidad/);
+  // Al corregir a alguien que ya existía no se exige nada, pero lo que escriba se valida.
+  assert.ok(perfilPorRol("veterinario", {}, false).datos);
+  assert.match(perfilPorRol("veterinario", { telefono: "abc" }, false).error, /teléfono/);
+  assert.match(perfilPorRol("administrador", { experiencia_anios: "-2" }, false).error, /experiencia/);
+  // Ordeñador: turno y tipo de ordeño; el vencimiento del curso solo cuenta si lo tiene.
+  assert.match(perfilPorRol("ordenador", { tipo_ordeno: "manual" }, true).error, /turno/);
+  const ord = perfilPorRol("ordenador", { turno_ordeno: "ambos", tipo_ordeno: "manual", curso_manipulacion: "no", curso_manipulacion_vence: "2027-01-01" }, true);
+  assert.equal(ord.datos.curso_manipulacion, false);
+  assert.equal(ord.datos.curso_manipulacion_vence, null);
+  // Contador: público exige tarjeta; auxiliar no la guarda.
+  assert.match(perfilPorRol("contador", { tipo_contador: "publico" }, true).error, /tarjeta/);
+  assert.equal(perfilPorRol("contador", { tipo_contador: "auxiliar", tarjeta_profesional: "123" }, true).datos.tarjeta_profesional, null);
+  // Sin acceso a la app: la labor principal.
+  assert.match(perfilPorRol("ninguno", {}, true).error, /labor/);
+  assert.equal(perfilPorRol("ninguno", { labor_principal: "potreros" }, true).datos.labor_principal, "potreros");
+  assert.equal(resumenPerfil("veterinario", { tarjeta_profesional: "MV-1234", especialidades: ["sanidad"], experiencia_anios: 8 }), "T.P. MV-1234 · Sanidad · 8 años de experiencia");
+});

@@ -2,13 +2,15 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { Users } from "lucide-react";
+import { MessageCircle, Phone, Users } from "lucide-react";
 import { CampoBusqueda } from "@/components/CampoBusqueda";
 import { EstadoVacio } from "@/components/EstadoVacio";
 import { Insignia } from "@/components/Insignia";
 import { ListaPorTramos } from "@/components/ListaPorTramos";
 import { pesos } from "@/lib/ferias";
 import { ETIQUETA_ROL } from "@/lib/permisos";
+import { telefonoWhatsApp } from "@/lib/cobranza";
+import { resumenPerfil, type DatosPerfil } from "@/lib/perfil-personal";
 import { ETIQUETA_FORMA_PAGO, ETIQUETA_VINCULACION, UNIDAD_PAGO } from "@/lib/nomina";
 import type { Persona } from "@/lib/tipos";
 
@@ -41,6 +43,7 @@ export function ListaPersonal({ personal, puedeEditar }: { personal: Persona[]; 
                 <div className="min-w-0">
                   <p className="font-bold [overflow-wrap:anywhere]">{p.nombre}</p>
                   {p.cargo ? <p className="text-sm text-humo [overflow-wrap:anywhere]">{p.cargo}</p> : null}
+                  {resumenPerfil(p.rol ?? "ninguno", p as unknown as Partial<DatosPerfil>) ? <p className="text-sm text-humo [overflow-wrap:anywhere]">{resumenPerfil(p.rol ?? "ninguno", p as unknown as Partial<DatosPerfil>)}</p> : null}
                 </div>
                 <p className="shrink-0 text-right font-display text-lg font-semibold tabular-nums">{pesos(Number(p.valor_base))}</p>
               </div>
@@ -52,6 +55,18 @@ export function ListaPersonal({ personal, puedeEditar }: { personal: Persona[]; 
                   {ETIQUETA_FORMA_PAGO[p.forma_pago]} · {UNIDAD_PAGO[p.forma_pago].valor.toLowerCase()}
                 </span>
               </div>
+              {p.telefono ? (
+                <div className="mt-1 flex flex-wrap items-center gap-x-4">
+                  <a href={`tel:${p.telefono.replace(/[^\d+]/g, "")}`} className="inline-flex min-h-11 items-center gap-1.5 text-sm font-semibold text-musgo underline-offset-4 hover:underline">
+                    <Phone className="size-3.5" strokeWidth={2} aria-hidden="true" /> {p.telefono}
+                  </a>
+                  {telefonoWhatsApp(p.telefono) ? (
+                    <a href={`https://wa.me/${telefonoWhatsApp(p.telefono)}`} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center gap-1.5 text-sm font-semibold text-musgo underline-offset-4 hover:underline">
+                      <MessageCircle className="size-3.5" strokeWidth={2} aria-hidden="true" /> WhatsApp
+                    </a>
+                  ) : null}
+                </div>
+              ) : null}
               {puedeEditar ? (
                 <div className="mt-1 flex flex-wrap items-center gap-x-4 border-t border-arena pt-1">
                   {p.activo ? (

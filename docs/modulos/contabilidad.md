@@ -37,3 +37,17 @@ por separado, y el usuario elige de listas en vez de escribir** (decisión del d
   devolviendo «ingresos de leche» y «de animales», este último = todo lo que no es leche) para no romper el código anterior durante el despliegue. **Excel:** `/costos/exportar?reporte=…&periodo=…` arma el `.xlsx` en el servidor con la sesión
   (`lib/reportes-excel.ts`, `exceljs`): título con finca, reporte, periodo y filtros dentro de la hoja, totales como fórmulas, y el archivo se llama `<finca> - <reporte> - <desde> a <hasta>.xlsx`. Un reporte nuevo se agrega en
   `lib/costos-reportes.ts` y en `construirLibro`.
+
+## Datos de cada perfil del equipo
+
+Al agregar a alguien en Equipo (`FormInvitar`), con el perfil elegido se abre su bloque de datos (`CamposPerfil`, reglas en `lib/perfil-personal.ts#perfilPorRol`, que lo exige la acción y solo guarda lo del perfil). Se guardan en `personal` (migración `20261024150504_personal_perfil_por_cargo`, solo agrega columnas y amplía `registrar_persona`). **Nunca se pide documento de identidad**; la tarjeta profesional es el registro del oficio.
+
+| Perfil | Obligatorio al agregarlo | Opcional |
+|---|---|---|
+| **Veterinario** | Tarjeta profesional y teléfono (a quien se llama en una urgencia) | Especialidades (reproducción, sanidad, cirugía, nutrición, calidad de leche; varias), años de experiencia, acreditaciones (ICA u otras) |
+| **Ordeñador** | Turno de ordeño (mañana, tarde, ambos) y tipo de ordeño (manual, mecánico, ambos) | Curso de manipulación de alimentos (lo tiene / no; con vencimiento), experiencia, teléfono |
+| **Administrador** | — | Formación (empírica, técnica, tecnológica, profesional), experiencia, teléfono |
+| **Contador** | Tipo (público o auxiliar); la tarjeta profesional si es público | Experiencia, teléfono |
+| **Sin acceso a la app** | Labor principal (hato, potreros y cercas, alimentación, mantenimiento, otra) | Experiencia, teléfono |
+
+Al **corregir** a alguien (`/personal/[id]/editar`) los datos del perfil se editan igual pero no se exigen (para no bloquear, por ejemplo, retirar a un veterinario antiguo); lo que se escriba sí se valida. En la lista del equipo se ve un resumen del perfil y el teléfono con «llamar» y WhatsApp. Los planes sin el módulo de personal (por debajo de Profesional) solo invitan: no guardan estos datos.

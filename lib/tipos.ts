@@ -517,6 +517,19 @@ export type Persona = {
   /** Con qué correo se invitó a la app y qué rol de acceso tiene; nulos si trabaja en la finca pero no usa la app. */
   correo: string | null;
   rol: Exclude<RolFinca, "propietario"> | null;
+  /** Datos propios de su perfil (ver `lib/perfil-personal.ts`): solo se llena lo que corresponde. */
+  telefono: string | null;
+  experiencia_anios: number | null;
+  formacion: string | null;
+  tarjeta_profesional: string | null;
+  tipo_contador: string | null;
+  especialidades: string[];
+  acreditaciones: string | null;
+  turno_ordeno: string | null;
+  tipo_ordeno: string | null;
+  curso_manipulacion: boolean | null;
+  curso_manipulacion_vence: string | null;
+  labor_principal: string | null;
   created_at: string;
   updated_at: string;
 };

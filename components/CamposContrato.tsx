@@ -18,6 +18,7 @@ export function CamposContrato({
   tienePagos = false,
   conEstado = false,
   nombreSugerido,
+  perfil,
 }: {
   hoy: string;
   persona?: Persona;
@@ -25,6 +26,8 @@ export function CamposContrato({
   /** Al corregir: si sigue trabajando, fecha de retiro y observaciones. */
   conEstado?: boolean;
   nombreSugerido?: string;
+  /** Los datos propios del perfil (`CamposPerfil`): van justo después del cargo, antes del contrato. */
+  perfil?: React.ReactNode;
 }) {
   const [vinculacion, setVinculacion] = useState<Vinculacion>(persona?.vinculacion ?? "laboral");
   const [forma, setForma] = useState<FormaPago>(persona?.forma_pago ?? "mensual");
@@ -44,6 +47,8 @@ export function CamposContrato({
       <Campo etiqueta="Cargo (opcional)">
         {(id) => <input id={id} name="cargo" defaultValue={persona?.cargo ?? ""} maxLength={60} autoComplete="off" enterKeyHint="next" placeholder="Ej. Ordeñadora, veterinario, jornalero" className={CLASE_INPUT} />}
       </Campo>
+
+      {perfil}
 
       <Campo etiqueta="¿Cómo está vinculada?" ayuda={tienePagos ? "Ya tiene pagos registrados, por eso no se puede cambiar." : undefined}>
         {(id) => (

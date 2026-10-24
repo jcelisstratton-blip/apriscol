@@ -11,6 +11,7 @@ import type { FormaPago, Vinculacion } from "@/lib/tipos";
 import { mensajeAmigable } from "@/lib/mensaje-amigable";
 import { urlDelSitio } from "@/lib/sitio";
 import { opcional } from "@/lib/validacion";
+import { perfilPorRol } from "@/lib/perfil-personal";
 
 export type EstadoInvitar = { error?: string; enlace?: string; email?: string; persona?: string } | undefined;
 
@@ -26,6 +27,19 @@ const esquema = z.object({
   forma_pago: z.enum(["mensual", "jornal", "por_servicio"], "Elige cómo se le paga."),
   valor_base: numero("Escribe cuánto se le paga (solo números).").pipe(z.number().min(0, "El valor no puede ser negativo.").max(99_999_999_999, "El valor es demasiado alto. Revísalo.")),
   fecha_ingreso: opcional(z.iso.date("Indica la fecha de ingreso.")),
+  // Los datos propios del perfil llegan como texto: `perfilPorRol` los valida y descarta los que no son del perfil.
+  telefono: z.string().optional(),
+  experiencia_anios: z.string().optional(),
+  formacion: z.string().optional(),
+  tarjeta_profesional: z.string().optional(),
+  tipo_contador: z.string().optional(),
+  especialidades: z.string().optional(),
+  acreditaciones: z.string().optional(),
+  turno_ordeno: z.string().optional(),
+  tipo_ordeno: z.string().optional(),
+  curso_manipulacion: z.string().optional(),
+  curso_manipulacion_vence: z.string().optional(),
+  labor_principal: z.string().optional(),
 });
 /** Sin el contrato (planes que no incluyen personal y nómina): solo el perfil y el correo de quien se invita. */
 const esquemaSoloInvitacion = z.object({
@@ -57,6 +71,9 @@ export async function invitar(_: EstadoInvitar, form: FormData): Promise<EstadoI
   if (conAcceso && !d.email) return { error: "Escribe el correo con el que se va a registrar." };
   if (!formasDe(d.vinculacion as Vinculacion).includes(d.forma_pago as FormaPago)) return { error: "Con contrato de trabajo se paga por mes o por jornal." };
 
+  const perfil = perfilPorRol(d.rol, d, true);
+  if ("error" in perfil) return { error: perfil.error };
+
   const supabase = await crearClienteServidor();
   // Un solo paso en la base: la persona y, si va a tener acceso, su invitación se guardan juntas (si la invitación falla, la persona no queda).
   const { data: r, error } = await supabase.rpc("registrar_persona", {
@@ -68,6 +85,7 @@ export async function invitar(_: EstadoInvitar, form: FormData): Promise<EstadoI
       forma_pago: d.forma_pago,
       valor_base: d.valor_base,
       fecha_ingreso: d.fecha_ingreso ?? null,
+      ...perfil.datos,
     },
     p_email: conAcceso ? (d.email ?? null) : null,
     p_rol: conAcceso ? d.rol : null,
