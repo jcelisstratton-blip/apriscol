@@ -288,3 +288,133 @@ test("base → simulador: con los datos armados la proyección cierra el balance
   const b = armarBase(datos());
   assert.ok(descuadreBalance(simular(b.inicio, b.base, 36, b.gestacionDias)) < 1e-6);
 });
+
+import { correr, totales, sensibilidad, equilibrio, rango } from "../lib/proyeccion/analisis.ts";
+
+const entrada = (extra = {}) => ({ inicio: inicio(), horizonte: 24, gestacionDias: 150, ...extra });
+
+test("época seca: encarece el alimento y baja la leche solo en los meses sin lluvia, y el balance sigue cerrando", () => {
+  const s = { ...REFERENCIAS, hembras_ordenadas_pct: 100 };
+  const estacion = { mesHoy: 10, mesesLluvia: [4, 5, 10, 11] };
+  const con = simular(inicio(), s, 12, 150, estacion);
+  const sin = simular(inicio(), s, 12, 150);
+  assert.ok(descuadreBalance(con) < 1e-6);
+  con.meses.forEach((m, i) => {
+    const mesCal = ((10 - 1 + m.n) % 12) + 1;
+    assert.equal(m.seco, ![4, 5, 10, 11].includes(mesCal));
+    const k = sin.meses[i];
+    if (m.seco) {
+      assert.ok(Math.abs(m.costoAlimento - k.costoAlimento * 1.15) < 1e-3);
+      assert.ok(Math.abs(m.litros - k.litros * 0.9) < 1e-6);
+    } else {
+      assert.ok(Math.abs(m.costoAlimento - k.costoAlimento) < 1e-6);
+      assert.ok(Math.abs(m.litros - k.litros) < 1e-6);
+    }
+  });
+});
+
+test("época seca: sin meses de lluvia definidos no cambia nada", () => {
+  const a = simular(inicio(), REFERENCIAS, 12, 150, { mesHoy: 10, mesesLluvia: [] });
+  const b = simular(inicio(), REFERENCIAS, 12, 150);
+  assert.deepEqual(a.meses.map((m) => m.flujo), b.meses.map((m) => m.flujo));
+  assert.ok(a.meses.every((m) => m.seco === false));
+});
+
+test("totales: suman los meses pedidos y coinciden con el resumen por año", () => {
+  const p = correr(entrada(), REFERENCIAS);
+  const t12 = totales(p, 12);
+  assert.equal(t12.meses, 12);
+  assert.ok(Math.abs(t12.flujo - porAnio(p)[0].flujo) < 1e-3);
+  assert.ok(Math.abs(totales(p).ingresos - (totales(p).ingresosCarne + totales(p).ingresosLeche)) < 1e-3);
+  assert.ok(totales(p).picoAnimales >= totales(p).totalFinal);
+});
+
+test("sensibilidad: ordenada por impacto y con el signo que corresponde", () => {
+  const s = { ...REFERENCIAS, hembras_ordenadas_pct: 100 };
+  const f = sensibilidad(entrada(), s);
+  for (let i = 1; i < f.length; i++) assert.ok(f[i - 1].impacto >= f[i].impacto);
+  const de = (k) => f.find((x) => x.clave === k);
+  assert.ok(de("precio_kg_vivo").siSube > 0 && de("precio_kg_vivo").siBaja < 0);
+  assert.ok(de("costo_kg_ms").siSube < 0 && de("costo_kg_ms").siBaja > 0);
+  assert.ok(de("mortalidad_levante_pct").siSube < 0);
+  // un 10 % del precio mueve los ingresos de carne exactamente un 10 %
+  const base = totales(correr(entrada(), s));
+  assert.ok(Math.abs(de("precio_kg_vivo").siSube - base.ingresosCarne * 0.1) < 1e-3);
+});
+
+test("equilibrio: con ese precio lo que queda es cero y la holgura dice cuánto puede bajar", () => {
+  const s = { ...REFERENCIAS, hembras_ordenadas_pct: 100 };
+  for (const clave of ["precio_kg_vivo", "precio_litro"]) {
+    const eq = equilibrio(entrada(), s, clave);
+    assert.ok(eq.equilibrio !== null);
+    const flujo = totales(correr(entrada(), { ...s, [clave]: eq.equilibrio })).flujo;
+    assert.ok(Math.abs(flujo) < 1, `${clave}: ${flujo}`);
+    assert.ok(Math.abs(eq.holguraPct - ((eq.actual - eq.equilibrio) / eq.actual) * 100) < 1e-9);
+  }
+  // en los primeros 12 meses el equilibrio es otro (los partos registrados tardan en pagar)
+  assert.notEqual(equilibrio(entrada(), s, "precio_kg_vivo", 12).equilibrio, equilibrio(entrada(), s, "precio_kg_vivo", 24).equilibrio);
+});
+
+test("equilibrio: una línea que no vende nada no tiene precio de equilibrio", () => {
+  const sinLeche = { ...REFERENCIAS, hembras_ordenadas_pct: 0 };
+  assert.equal(equilibrio(entrada(), sinLeche, "precio_litro").equilibrio, null);
+});
+
+test("rango: pesimista < base < optimista y el camino base es la corrida normal", () => {
+  const s = { ...REFERENCIAS, hembras_ordenadas_pct: 100 };
+  const [pes, base, opt] = rango(entrada(), s);
+  assert.ok(pes.totales.flujo < base.totales.flujo && base.totales.flujo < opt.totales.flujo);
+  assert.equal(base.totales.flujo, totales(correr(entrada(), s)).flujo);
+  assert.equal(base.flujoPorAnio.length, 2);
+});
+
+import ExcelJS from "exceljs";
+import { ganadores, FILAS_COMPARACION } from "../lib/proyeccion/comparacion.ts";
+import { limpiarNombre, nombreLibre, aEscenario } from "../lib/proyeccion/escenarios.ts";
+import { construirLibroProyeccion } from "../lib/proyeccion/excel.ts";
+
+test("comparación: marca al mejor de cada fila y a nadie si empatan o no hay qué comparar", () => {
+  const flujo = FILAS_COMPARACION.find((f) => f.titulo === "Lo que queda en total");
+  const costos = FILAS_COMPARACION.find((f) => f.titulo === "Costos");
+  const animales = FILAS_COMPARACION.find((f) => f.titulo === "Animales vendidos");
+  assert.deepEqual(ganadores(flujo, [10, 30, 20]), [false, true, false]);
+  assert.deepEqual(ganadores(costos, [10, 30, 20]), [true, false, false]);
+  assert.deepEqual(ganadores(flujo, [5, 5]), [false, false]);
+  assert.deepEqual(ganadores(animales, [1, 9]), [false, false]);
+  assert.deepEqual(ganadores(flujo, [7]), [false]);
+});
+
+test("escenarios: nombres limpios y sin repetirse; lo que llega de la base se limpia", () => {
+  assert.equal(limpiarNombre("  Con   más  cabras "), "Con más cabras");
+  assert.equal(limpiarNombre("   "), null);
+  assert.equal(limpiarNombre("x".repeat(81)), null);
+  assert.equal(limpiarNombre(5), null);
+  assert.equal(nombreLibre("Base", ["base", "Otro"]), "Base 2");
+  assert.equal(nombreLibre("Nuevo", ["Base"]), "Nuevo");
+  assert.deepEqual(aEscenario({ id: "1", nombre: "A", horizonte_meses: 24, ajustes: { prolificidad: 1.6, basura: 3, peso_venta_kg: 999 } }), { id: "1", nombre: "A", horizonte: 24, ajustes: { prolificidad: 1.6 } });
+});
+
+test("Excel: hojas de resumen, mes a mes, supuestos, escenarios y riesgos con números de verdad", async () => {
+  const b = armarBase(datos());
+  const e = { inicio: b.inicio, horizonte: 24, gestacionDias: b.gestacionDias, estacion: { mesHoy: 10, mesesLluvia: [4, 5, 10, 11] } };
+  const s = { ...b.base, hembras_ordenadas_pct: 100 };
+  const proyeccion = correr(e, s);
+  const buf = await construirLibroProyeccion({
+    finca: "Finca de prueba", hoy: HOY, generado: new Date(), horizonte: 24, proyeccion, bloques: porAnio(proyeccion), supuestos: s, ajustes: { hembras_ordenadas_pct: 100 },
+    procedencia: b.procedencia, base: b.base, entrada: e, escenarios: [{ id: "a", nombre: "Con más leche", horizonte: 24, ajustes: { hembras_ordenadas_pct: 100, litros_dia: 2 } }],
+  });
+  const wb = new ExcelJS.Workbook();
+  await wb.xlsx.load(buf);
+  assert.deepEqual(wb.worksheets.map((w) => w.name), ["Resumen por año", "Mes a mes", "Supuestos", "Escenarios", "Riesgos"]);
+  const meses = wb.getWorksheet("Mes a mes");
+  assert.equal(meses.rowCount, 6 + 24);
+  assert.equal(typeof meses.getRow(7).getCell(2).value, "number");
+  const esc = wb.getWorksheet("Escenarios");
+  assert.equal(esc.getRow(6).getCell(2).value, "Lo que ves en pantalla");
+  assert.equal(esc.getRow(6).getCell(3).value, "Con más leche");
+  const filaFlujo = FILAS_COMPARACION.findIndex((f) => f.titulo === "Lo que queda en total");
+  assert.ok(Math.abs(esc.getRow(7 + filaFlujo).getCell(2).value - totales(proyeccion).flujo) < 1);
+  assert.ok(esc.getRow(7 + filaFlujo).getCell(3).value > esc.getRow(7 + filaFlujo).getCell(2).value, "más litros por hembra deja más");
+  const rie = wb.getWorksheet("Riesgos");
+  assert.ok(rie.rowCount > 10);
+});

@@ -4,9 +4,13 @@ Entrada propia del menú principal (`/proyecciones`; en el celular, dentro de «
 
 ## Qué se ve
 
-- Pestañas (tarjetas, cambian sin recargar): **Resumen** (avisos + una tarjeta por año + barras de lo que queda cada mes), **Hato**, **Alimento**, **Dinero** (mes a mes: tabla desde `lg`, una tarjeta por mes en el celular) y **Supuestos** (todos los números editables).
+- **Escenarios** (`BarraEscenarios`): hasta 10 por finca, uno elegido a la vez (`Selector`); «Nuevo con lo de pantalla», duplicar, cambiar nombre y eliminar. Cambiar de escenario con cambios sin guardar se bloquea con un aviso. Lo guardado es el nombre, el horizonte y solo los ajustes.
+- Pestañas (tarjetas, cambian sin recargar): **Resumen** (avisos + una tarjeta por año + barras de lo que queda cada mes), **Hato**, **Alimento**, **Dinero** (mes a mes: tabla desde `lg`, una tarjeta por mes en el celular), **Comparar**, **Riesgos** y **Supuestos** (todos los números editables).
+- **Comparar** (`Comparar.tsx`, filas en `lib/proyeccion/comparacion.ts`): hasta 3 escenarios —los guardados y, si hay cambios sin guardar, «Lo que ves en pantalla»— con el mismo hato y el mismo horizonte; el mejor de cada fila va marcado (✓).
+- **Riesgos** (`Riesgos.tsx`, cálculo en `lib/proyeccion/analisis.ts`): (1) **precio de equilibrio** del kilo vivo y del litro: como los ingresos son lineales en el precio se calcula con dos corridas, dejando el otro precio fijo; (2) **sensibilidad**: cada uno de 12 números ±10 % (uno por vez, dentro de su rango) y cuánto cambia lo que queda en total; (3) **si sale mal / como está / si sale bien**: pesimista (precios −15 %, alimento +20 %, muertes de crías +50 %, crías por parto −10 %, leche −10 %) y optimista (precios +10 %, alimento −5 %, muertes −30 %, crías +5 %, leche +5 %). Los choques están en `CHOQUES` y se explican en pantalla.
+- **Época seca**: los meses que no están en `meses_lluvia` de los Ajustes (si hay alguno definido) son «secos»: el alimento cuesta `seca_costo_alimento_pct` más y la leche baja `seca_litros_pct`. Sin meses de lluvia no hay efecto y el panel de Alimento lo dice. Las toneladas no cambian, solo el precio.
 - **Enfoque** (tarjetas): **Todo · Carne · Leche**. Carne y leche se consultan por separado. Como el alimento base de las reproductoras, la sanidad y el personal sirven a las dos líneas, **no se reparten**: la línea de carne se compara con el alimento de crías y levante, y la de leche con el alimento *extra* que pide la lactancia («Queda sobre ese alimento»). El resultado completo, con todos los costos, es «Todo».
-- Horizonte 12/24/36 meses (`Segmentado`), «Descargar en Excel» (`/proyecciones/exportar?h=&a=`: el horizonte y los ajustes de la pantalla; hojas *Resumen por año*, *Mes a mes* y *Supuestos* con su origen).
+- Horizonte 12/24/36 meses (`Segmentado`), «Descargar en Excel» (`/proyecciones/exportar?h=&a=`: el horizonte y los ajustes de la pantalla; hojas *Resumen por año*, *Mes a mes*, *Supuestos* con su origen, *Escenarios* con todos los guardados y *Riesgos*).
 
 ## Los supuestos y de dónde sale cada uno
 
@@ -38,12 +42,12 @@ Función pura `simular(inicio, supuestos, horizonte, gestacionDias)`; corre igua
 - **Dinero:** ingresos (carne + leche) − alimento − sanidad y reproducción (por animal) − costos fijos. Todo en **pesos de hoy** (sin inflación).
 - **Avisos:** capacidad (primer mes en que no caben), reemplazo insuficiente (las reproductoras bajan del objetivo), meses con caja negativa y poca información de preñeces.
 
-Se simplifica a propósito: una sola especie de referencia para la gestación (`caprino`), sin estacionalidad, sin compras de animales ni inflación. Son las siguientes fases (escenarios guardados y comparados, sensibilidad ±10 %, precio de equilibrio, rango pesimista/base/optimista, estacionalidad por `meses_lluvia`).
+Se simplifica a propósito: una sola especie de referencia para la gestación (`caprino`), sin compras de animales ni inflación (todo en pesos de hoy). Posibles mejoras futuras: gestación y parámetros por especie, compra de reproductores, inflación.
 
 ## Datos y permisos
 
-- Tabla `proyecciones` (`finca_id`, `nombre`, `horizonte_meses` 6–36, `ajustes jsonb`): guarda **solo lo que la persona cambió** frente a los valores de su finca; lo demás se recalcula con datos al día. RLS con `crear_politicas_finca('proyecciones','proyecciones')` (el borrado, solo quien gestiona). Hoy se usa una fila por finca («Mi proyección»).
-- `guardarProyeccion` (acción de servidor) exige `permisoPara("proyecciones")` y `puedeGestionar`, limpia las claves y los rangos (`limpiarAjustes`) y no confía en lo que llega del navegador.
+- Tabla `proyecciones` (`finca_id`, `nombre`, `horizonte_meses` 6–36, `ajustes jsonb`): guarda **solo lo que la persona cambió** frente a los valores de su finca; lo demás se recalcula con datos al día. RLS con `crear_politicas_finca('proyecciones','proyecciones')` (el borrado, solo quien gestiona). Una fila por escenario (hasta 10 por finca, nombre único sin importar mayúsculas); `guardarEscenario`, `renombrarEscenario` y `eliminarEscenario` en `actions.ts`.
+- Las acciones de servidor exigen `permisoPara("proyecciones")` y `puedeGestionar`, limpia las claves y los rangos (`limpiarAjustes`) y no confía en lo que llega del navegador.
 - Espejos del módulo: `private.modulo_rango`, `lib/planes.ts#moduloEnPlan`, `ModuloApp` en `lib/tipos.ts`, `tests/fixtures/espejos-sql.json`.
 - Migraciones: `20261024193026_modulo_proyecciones_enum` (el valor del enum, en su propia migración) y `20261024210000_proyecciones` (rango por plan + tabla + políticas; contiene `on delete`, así que la ejecuta el propietario en el Editor SQL).
 

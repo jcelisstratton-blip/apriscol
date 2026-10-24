@@ -20,8 +20,8 @@ export type ClaveSupuesto =
   | "retencion_hembras_pct" | "crecimiento_hato_pct" | "destete_meses" | "edad_venta_meses" | "edad_entrada_vientres_meses"
   | "lactancia_meses"
   | "peso_venta_kg" | "precio_kg_vivo" | "peso_descarte_kg" | "castigo_descarte_pct"
-  | "litros_dia" | "hembras_ordenadas_pct" | "precio_litro"
-  | "ms_vientre_seco" | "ms_vientre_lactando" | "ms_semental" | "ms_cria" | "ms_levante" | "costo_kg_ms"
+  | "litros_dia" | "hembras_ordenadas_pct" | "precio_litro" | "seca_litros_pct"
+  | "ms_vientre_seco" | "ms_vientre_lactando" | "ms_semental" | "ms_cria" | "ms_levante" | "costo_kg_ms" | "seca_costo_alimento_pct"
   | "costo_animal_mes" | "costos_fijos_mes" | "capacidad_max_animales";
 
 export type Supuestos = Record<ClaveSupuesto, number>;
@@ -71,6 +71,7 @@ export const DEFINICIONES: DefinicionSupuesto[] = [
   { clave: "hembras_ordenadas_pct", grupo: "leche", etiqueta: "Hembras en lactancia que se ordeñan", detalle: "De cada 100 hembras recién paridas, cuántas se ordeñan (las demás crían a su cría).", unidad: "pct", min: 0, max: 100, decimales: 0, referencia: 50 },
   { clave: "litros_dia", grupo: "leche", etiqueta: "Litros por hembra ordeñada al día", detalle: "Promedio de la leche que se saca por cada hembra en ordeño.", unidad: "litros", min: 0.1, max: 6, decimales: 2, referencia: 1.2 },
   { clave: "precio_litro", grupo: "leche", etiqueta: "Precio por litro", detalle: "Lo que te pagan por cada litro de leche.", unidad: "pesos", min: 200, max: 30000, decimales: 0, referencia: 3000 },
+  { clave: "seca_litros_pct", grupo: "leche", etiqueta: "Leche que se pierde en época seca", detalle: "Cuánto baja la producción en los meses que no son de lluvia (los de lluvia los defines en Ajustes). Con 0 no cambia.", unidad: "pct", min: 0, max: 80, decimales: 0, referencia: 10 },
   // Alimento
   { clave: "ms_vientre_seco", grupo: "alimento", etiqueta: "Alimento de una reproductora seca", detalle: "Kilos de materia seca (el alimento sin agua) por día.", unidad: "kg_ms", min: 0.3, max: 4, decimales: 2, referencia: 1.3 },
   { clave: "ms_vientre_lactando", grupo: "alimento", etiqueta: "Alimento de una reproductora en lactancia", detalle: "Kilos de materia seca por día mientras da leche.", unidad: "kg_ms", min: 0.3, max: 5, decimales: 2, referencia: 1.8 },
@@ -78,6 +79,7 @@ export const DEFINICIONES: DefinicionSupuesto[] = [
   { clave: "ms_cria", grupo: "alimento", etiqueta: "Alimento de una cría lactante", detalle: "Kilos de materia seca por día, sin contar la leche de la madre.", unidad: "kg_ms", min: 0.05, max: 1.5, decimales: 2, referencia: 0.25 },
   { clave: "ms_levante", grupo: "alimento", etiqueta: "Alimento de un animal en levante o ceba", detalle: "Kilos de materia seca por día.", unidad: "kg_ms", min: 0.2, max: 3, decimales: 2, referencia: 0.8 },
   { clave: "costo_kg_ms", grupo: "alimento", etiqueta: "Costo por kilo de alimento (materia seca)", detalle: "Lo que cuesta, en promedio, cada kilo de alimento seco entre pasto, forraje, concentrado y sales.", unidad: "pesos", min: 100, max: 10000, decimales: 0, referencia: 1200 },
+  { clave: "seca_costo_alimento_pct", grupo: "alimento", etiqueta: "Alimento más caro en época seca", detalle: "Cuánto sube el costo del alimento en los meses que no son de lluvia (hay que comprar más forraje y concentrado). Con 0 no cambia.", unidad: "pct", min: 0, max: 100, decimales: 0, referencia: 15 },
   // Costos
   { clave: "costo_animal_mes", grupo: "dinero", etiqueta: "Sanidad y reproducción por animal al mes", detalle: "Vacunas, tratamientos, pruebas, pajillas, aretes y fletes, repartidos entre los animales.", unidad: "pesos", min: 0, max: 100000, decimales: 0, referencia: 2500 },
   { clave: "costos_fijos_mes", grupo: "dinero", etiqueta: "Costos fijos al mes", detalle: "Mano de obra, arriendo, servicios y mantenimiento: no cambian aunque el hato crezca.", unidad: "pesos", min: 0, max: 500000000, decimales: 0, referencia: 1750000 },

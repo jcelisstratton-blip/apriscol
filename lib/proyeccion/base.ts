@@ -1,4 +1,4 @@
-import { DIAS_MES, mesesGestacion, type Inicio } from "@/lib/proyeccion/motor";
+import { DIAS_MES, mesesGestacion, type Estacion, type Inicio } from "@/lib/proyeccion/motor";
 import { CLAVES, DEFINICION, REFERENCIAS, type ClaveSupuesto, type OrigenSupuesto, type Supuestos } from "@/lib/proyeccion/supuestos";
 
 /**
@@ -39,6 +39,8 @@ export type DatosFinca = {
   gestacionDias: number;
   servicioEdadMinMeses: number;
   pesoAdultoHembraKg: number | null;
+  /** Meses de lluvia de los Ajustes de la finca (vacío = sin época seca). */
+  mesesLluvia?: number[];
 };
 
 export type Procedencia = { origen: OrigenSupuesto; muestra?: string };
@@ -48,6 +50,8 @@ export type BaseProyeccion = {
   procedencia: Record<ClaveSupuesto, Procedencia>;
   inicio: Inicio;
   gestacionDias: number;
+  /** La época del año, para encarecer el alimento y bajar la leche en los meses secos. */
+  estacion: Estacion;
   /** El hato de hoy, para mostrarlo. */
   hato: { vientres: number; sementales: number; crias: number; levante: number; total: number; lactantes: number };
 };
@@ -192,5 +196,6 @@ export function armarBase(d: DatosFinca): BaseProyeccion {
 
   const cohortes = [...jovenes.entries()].map(([edad, c]) => ({ edad, machos: c.machos, hembras: c.hembras })).sort((a, b) => a.edad - b.edad);
   const inicio: Inicio = { vientres, sementales, lactantes: Math.min(lactantes, vientres), cohortes, gestantesPorMes, servidasPorMes };
-  return { base, procedencia, inicio, gestacionDias: d.gestacionDias, hato: { vientres, sementales, crias, levante, total: totalAnimales, lactantes: inicio.lactantes } };
+  const estacion: Estacion = { mesHoy: Number(d.hoy.slice(5, 7)), mesesLluvia: d.mesesLluvia ?? [] };
+  return { base, procedencia, inicio, gestacionDias: d.gestacionDias, estacion, hato: { vientres, sementales, crias, levante, total: totalAnimales, lactantes: inicio.lactantes } };
 }

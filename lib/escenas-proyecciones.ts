@@ -1,4 +1,4 @@
-import { Beef, Coins, Droplets, LayoutDashboard, Milk, PawPrint, SlidersHorizontal, Sprout, Tag, Wheat } from "lucide-react";
+import { Beef, Coins, Columns3, Droplets, LayoutDashboard, Milk, PawPrint, ShieldAlert, SlidersHorizontal, Sprout, Tag, TrendingDown, Wheat } from "lucide-react";
 import { escena, type EscenaDef } from "@/lib/escenas";
 import type { Enfoque } from "@/lib/proyeccion/vista";
 
@@ -8,6 +8,8 @@ export const ESCENA_PESTANA_PROYECCION: Record<string, EscenaDef> = {
   hato: escena(PawPrint, "ambar", Tag),
   alimento: escena(Wheat, "ocre", Sprout),
   dinero: escena(Coins, "oliva", Tag),
+  comparar: escena(Columns3, "arcilla", Tag),
+  riesgos: escena(ShieldAlert, "ocre", TrendingDown),
   supuestos: escena(SlidersHorizontal, "grafito", Coins),
 };
 
