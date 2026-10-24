@@ -6,6 +6,7 @@ import { ChevronLeft } from "lucide-react";
 import { Encabezado } from "@/components/Encabezado";
 import { FormParto } from "@/components/FormParto";
 import { obtenerContexto } from "@/lib/contexto";
+import { veterinariosDeLaFinca } from "@/lib/veterinarios-servidor";
 import { crearClienteServidor } from "@/lib/supabase/server";
 import { puedeEscribir } from "@/lib/permisos";
 import { etiquetaAnimal } from "@/lib/animal";
@@ -28,6 +29,8 @@ export default async function PaginaPartoNuevo({ params }: { params: Promise<{ i
   // El parto se liga al servicio de la gestación en curso (servida o gestante).
   const servicio = repro?.servicio_id && repro.ultimo_servicio && (repro.estado === "gestante" || repro.estado === "servida") ? { id: repro.servicio_id, fecha: repro.ultimo_servicio } : null;
 
+  const veterinarios = await veterinariosDeLaFinca(supabase, finca.id);
+
   return (
     <>
       <Link href={`/hato/${id}#reproduccion`} className="-ml-2 mt-3 inline-flex min-h-11 items-center gap-1 rounded-full px-2 text-[0.9375rem] font-semibold text-musgo">
@@ -35,7 +38,7 @@ export default async function PaginaPartoNuevo({ params }: { params: Promise<{ i
       </Link>
       <Encabezado titulo="Registrar parto" subtitulo={etiquetaAnimal(animal)} />
       <div className="lg:max-w-xl">
-        <FormParto hembraId={id} hoy={hoyBogota()} servicio={servicio} solicitud={randomUUID()} />
+        <FormParto hembraId={id} veterinarios={veterinarios} hoy={hoyBogota()} servicio={servicio} solicitud={randomUUID()} />
       </div>
     </>
   );

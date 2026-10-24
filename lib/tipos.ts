@@ -1115,6 +1115,8 @@ export type DiagnosticoGestacion = {
   /** Otro método: prueba o kit usado y su resultado. */
   prueba_nombre: string | null;
   prueba_resultado: string | null;
+  /** Quién hizo el diagnóstico (el veterinario de la finca o quien lo hizo). */
+  responsable: string | null;
   observaciones: string | null;
   created_by: string | null;
   created_at: string;
@@ -1357,6 +1359,7 @@ export type Database = {
       eliminar_empadronamiento: { Args: { p_finca: string; p_lote: string }; Returns: undefined };
       agregar_semental_externo: { Args: { p_finca: string; p_lote: string; p_externo: unknown; p_num_hembras: number }; Returns: string };
       quitar_semental: { Args: { p_finca: string; p_lote: string; p_macho: string }; Returns: undefined };
+      veterinarios_finca: { Args: { p_finca: string }; Returns: { id: string; nombre: string; tarjeta_profesional: string | null }[] };
       registrar_persona: { Args: { p_finca: string; p_persona: unknown; p_email?: string | null; p_rol?: string | null }; Returns: unknown };
       importar_animales_lote: {
         Args: { p_finca: string; p_filas: unknown };

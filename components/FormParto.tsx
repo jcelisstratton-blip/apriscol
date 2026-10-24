@@ -6,12 +6,14 @@ import { Plus, Trash2 } from "lucide-react";
 import { Aviso } from "@/components/Aviso";
 import { Boton, clasesBoton } from "@/components/Boton";
 import { Campo, CLASE_INPUT } from "@/components/Campo";
+import { ResponsableProcedimiento } from "@/components/ResponsableProcedimiento";
 import { SelectorTarjetas } from "@/components/SelectorTarjetas";
 import { crearParto, editarParto } from "@/app/(app)/reproduccion/actions";
 import { formatoFecha } from "@/lib/fechas";
 import { ESCENA_CAUSA_ABORTO, ESCENA_ESTADO_CRIA, ESCENA_TIPO_PARTO } from "@/lib/escenas-forms-b-reproduccion";
 import { ESCENA_SEXO } from "@/lib/escenas-forms-b-hato";
 import { CAUSAS_ABORTO, DETALLE_CAUSA, DETALLE_PARTO, ETIQUETA_CAUSA, ETIQUETA_PARTO, MAX_CRIAS, TIPOS_PARTO } from "@/lib/reproduccion";
+import type { VeterinarioRef } from "@/lib/veterinarios";
 import type { CausaAborto, Cria, Parto, TipoParto } from "@/lib/tipos";
 
 type Fila = { sexo: "hembra" | "macho" | ""; vivo: boolean; peso: string; arete: string; nombre: string };
@@ -29,6 +31,7 @@ export function FormParto({
   servicio,
   parto,
   crias,
+  veterinarios,
   solicitud,
 }: {
   hembraId: string;
@@ -38,6 +41,8 @@ export function FormParto({
   parto?: Parto;
   /** Al corregir: las crías que ya tiene (solo lectura). */
   crias?: Cria[];
+  /** Los veterinarios del equipo: quien hace una cesárea suele ser uno de ellos. */
+  veterinarios: VeterinarioRef[];
   solicitud?: string;
 }) {
   const editando = Boolean(parto);
@@ -155,9 +160,7 @@ export function FormParto({
       ) : null}
 
       {esCesarea ? (
-        <Campo etiqueta="Médico veterinario o responsable de la cirugía" ayuda="Quién hizo la cesárea.">
-          {(id) => <input id={id} name="responsable_quirurgico" defaultValue={parto?.responsable_quirurgico ?? ""} maxLength={120} autoComplete="off" required className={CLASE_INPUT} />}
-        </Campo>
+        <ResponsableProcedimiento nombre="responsable_quirurgico" etiqueta="Médico veterinario o responsable de la cirugía" ayuda="Quién hizo la cesárea." veterinarios={veterinarios} inicial={parto?.responsable_quirurgico} requerido />
       ) : null}
 
       <Campo etiqueta={esCesarea ? "Complicaciones quirúrgicas" : "Complicaciones"} ayuda="Opcional.">

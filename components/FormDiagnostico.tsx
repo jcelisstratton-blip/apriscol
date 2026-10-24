@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Aviso } from "@/components/Aviso";
 import { Boton, clasesBoton } from "@/components/Boton";
 import { Campo, CLASE_INPUT } from "@/components/Campo";
+import { ResponsableProcedimiento } from "@/components/ResponsableProcedimiento";
 import { Selector } from "@/components/Selector";
 import { SelectorTarjetas } from "@/components/SelectorTarjetas";
 import { crearDiagnostico, editarDiagnostico } from "@/app/(app)/reproduccion/actions";
@@ -15,6 +16,7 @@ import {
   DETALLE_FETOS, DETALLE_INDICADOR, DETALLE_METODO, DETALLE_RESULTADO, DETALLE_VIABILIDAD, ETIQUETA_FETOS, ETIQUETA_INDICADOR, ETIQUETA_METODO, ETIQUETA_RESULTADO, ETIQUETA_VIABILIDAD,
   FETOS, INDICADORES_PALPACION, METODOS_DIAGNOSTICO, RESULTADOS_DIAGNOSTICO, ventanaRepetirDx, VIABILIDADES,
 } from "@/lib/reproduccion";
+import type { VeterinarioRef } from "@/lib/veterinarios";
 import type { DiagnosticoGestacion, IndicadorPalpacion, MetodoDiagnostico, ResultadoDiagnostico, ViabilidadFetal } from "@/lib/tipos";
 
 /**
@@ -26,6 +28,7 @@ export function FormDiagnostico({
   hoy,
   servicio,
   gestacionDias,
+  veterinarios,
   diagnostico,
 }: {
   hembraId: string;
@@ -34,6 +37,8 @@ export function FormDiagnostico({
   servicio?: { id: string; fecha: string } | null;
   /** Días de gestación de la especie en esta finca: con ellos se proyecta la fecha probable de parto. */
   gestacionDias: number;
+  /** Los veterinarios del equipo: quien diagnostica suele ser uno de ellos. */
+  veterinarios: VeterinarioRef[];
   diagnostico?: DiagnosticoGestacion;
 }) {
   const editando = Boolean(diagnostico);
@@ -114,6 +119,8 @@ export function FormDiagnostico({
           </Campo>
         </>
       ) : null}
+
+      <ResponsableProcedimiento nombre="responsable" etiqueta="Quién lo hizo" ayuda="Opcional." veterinarios={veterinarios} inicial={diagnostico?.responsable} />
 
       {resultado === "gestante" && servicio ? (
         <Aviso tipo="info">La hembra pasa a «Gestante» y el parto se espera hacia el {formatoFecha(sumarDias(servicio.fecha, gestacionDias))} ({gestacionDias} días desde el servicio).</Aviso>

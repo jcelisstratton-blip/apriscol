@@ -29,7 +29,7 @@ export function datosPorTipoParto(e: EntradaParto): { error: string } | { datos:
     return { datos: { ...base, causa_aborto: e.causa_aborto as CausaAborto, responsable_quirurgico: null, protocolo_posoperatorio: null } };
   }
   if (e.tipo === "cesarea") {
-    if (!e.responsable_quirurgico) return { error: "Escribe quién hizo la cesárea: el médico veterinario o responsable de la cirugía." };
+    if (!e.responsable_quirurgico) return { error: "Elige o escribe quién hizo la cesárea: el médico veterinario o responsable de la cirugía." };
     return { datos: { ...base, causa_aborto: null, responsable_quirurgico: e.responsable_quirurgico, protocolo_posoperatorio: e.protocolo_posoperatorio ?? null } };
   }
   return { datos: { ...base, causa_aborto: null, responsable_quirurgico: null, protocolo_posoperatorio: null } };

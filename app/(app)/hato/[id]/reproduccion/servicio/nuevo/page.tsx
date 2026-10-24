@@ -6,6 +6,7 @@ import { ChevronLeft } from "lucide-react";
 import { Encabezado } from "@/components/Encabezado";
 import { FormServicio } from "@/components/FormServicio";
 import { obtenerContexto } from "@/lib/contexto";
+import { veterinariosDeLaFinca } from "@/lib/veterinarios-servidor";
 import { obtenerAjustes } from "@/lib/ajustes-servidor";
 import { crearClienteServidor } from "@/lib/supabase/server";
 import { puedeEscribir } from "@/lib/permisos";
@@ -27,6 +28,8 @@ export default async function PaginaServicioNuevo({ params }: { params: Promise<
   if (animal.sexo !== "hembra" || animal.estado !== "activo") redirect(`/hato/${id}`);
   const ajustes = await obtenerAjustes();
 
+  const veterinarios = await veterinariosDeLaFinca(supabase, finca.id);
+
   return (
     <>
       <Link href={`/hato/${id}#reproduccion`} className="-ml-2 mt-3 inline-flex min-h-11 items-center gap-1 rounded-full px-2 text-[0.9375rem] font-semibold text-musgo">
@@ -34,7 +37,7 @@ export default async function PaginaServicioNuevo({ params }: { params: Promise<
       </Link>
       <Encabezado titulo="Registrar servicio" subtitulo={etiquetaAnimal(animal)} />
       <div className="lg:max-w-xl">
-        <FormServicio fincaId={finca.id} hembraId={id} especie={animal.especie} gestacionDias={ajustes.especie[animal.especie].gestacion_dias} hoy={hoyBogota()} umbral={finca.umbral_endogamia} solicitud={randomUUID()} />
+        <FormServicio fincaId={finca.id} veterinarios={veterinarios} hembraId={id} especie={animal.especie} gestacionDias={ajustes.especie[animal.especie].gestacion_dias} hoy={hoyBogota()} umbral={finca.umbral_endogamia} solicitud={randomUUID()} />
       </div>
     </>
   );

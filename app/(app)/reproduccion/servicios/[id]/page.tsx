@@ -6,6 +6,7 @@ import { EliminarRegistro } from "@/components/EliminarRegistro";
 import { Encabezado } from "@/components/Encabezado";
 import { FormServicio } from "@/components/FormServicio";
 import { obtenerContexto } from "@/lib/contexto";
+import { veterinariosDeLaFinca } from "@/lib/veterinarios-servidor";
 import { obtenerAjustes } from "@/lib/ajustes-servidor";
 import { crearClienteServidor } from "@/lib/supabase/server";
 import { puedeEscribir, puedeGestionar } from "@/lib/permisos";
@@ -32,6 +33,8 @@ export default async function PaginaEditarServicio({ params }: { params: Promise
     servicio.madre_genetica_id ? supabase.from("animales").select("id, numero_arete, nombre").eq("id", servicio.madre_genetica_id).eq("finca_id", finca.id).maybeSingle() : Promise.resolve({ data: null }),
   ]);
 
+  const veterinarios = await veterinariosDeLaFinca(supabase, finca.id);
+
   return (
     <>
       <Link href={`/hato/${animal.id}#reproduccion`} className="-ml-2 mt-3 inline-flex min-h-11 items-center gap-1 rounded-full px-2 text-[0.9375rem] font-semibold text-musgo">
@@ -39,7 +42,7 @@ export default async function PaginaEditarServicio({ params }: { params: Promise
       </Link>
       <Encabezado titulo="Editar servicio" subtitulo={etiquetaAnimal(animal)} />
       <div className="space-y-8 lg:max-w-xl">
-        <FormServicio fincaId={finca.id} hembraId={animal.id} especie={animal.especie} gestacionDias={ajustes.especie[animal.especie].gestacion_dias} hoy={hoyBogota()} umbral={finca.umbral_endogamia} servicio={servicio} machoInicial={macho.data} madreInicial={madre.data} />
+        <FormServicio fincaId={finca.id} veterinarios={veterinarios} hembraId={animal.id} especie={animal.especie} gestacionDias={ajustes.especie[animal.especie].gestacion_dias} hoy={hoyBogota()} umbral={finca.umbral_endogamia} servicio={servicio} machoInicial={macho.data} madreInicial={madre.data} />
         {puedeGestionar(rol) ? (
           <EliminarRegistro
             etiqueta="Eliminar este servicio"

@@ -20,6 +20,7 @@ function detalleDiagnostico(x: DiagnosticoGestacion): string | undefined {
     x.indicador_palpacion && ETIQUETA_INDICADOR[x.indicador_palpacion].toLowerCase(),
     x.condicion_corporal != null && `condición corporal ${String(x.condicion_corporal).replace(".", ",")}`,
     x.prueba_nombre && `${x.prueba_nombre}${x.prueba_resultado ? `: ${x.prueba_resultado}` : ""}`,
+    x.responsable && `por ${x.responsable}`,
   ].filter(Boolean);
   return partes.length ? partes.join(" · ") : undefined;
 }

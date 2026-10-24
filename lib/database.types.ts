@@ -1108,6 +1108,7 @@ export type Database = {
           observaciones: string | null
           prueba_nombre: string | null
           prueba_resultado: string | null
+          responsable: string | null
           resultado: string
           servicio_id: string | null
           updated_at: string
@@ -1148,6 +1149,7 @@ export type Database = {
           observaciones?: string | null
           prueba_nombre?: string | null
           prueba_resultado?: string | null
+          responsable?: string | null
           resultado?: string
           servicio_id?: string | null
           updated_at?: string
@@ -6051,6 +6053,10 @@ export type Database = {
       registrar_animal: {
         Args: { p_animal: Json; p_fecha_ultimo_parto?: string; p_finca: string }
         Returns: string
+      }
+      veterinarios_finca: {
+        Args: { p_finca: string }
+        Returns: { id: string; nombre: string; tarjeta_profesional: string }[]
       }
       registrar_parto: {
         Args: { p_crias: Json; p_finca: string; p_parto: Json }
