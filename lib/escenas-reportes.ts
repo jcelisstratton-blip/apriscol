@@ -1,5 +1,5 @@
-import { Activity, ArchiveX, Ban, Baby, Bone, Bug, CalendarClock, CalendarX, Cloud, Crown, Dna, Droplets, Eye, Footprints, Gauge, Heart, HeartCrack, HandCoins, Hourglass, Mars, Milk, Mountain, PawPrint, Scale, Search, ShieldAlert, Skull, Sprout, Stethoscope, Syringe, Tag, Timer, TriangleAlert, Venus, Waves, Wallet, Wheat } from "lucide-react";
-import { escena, ESC, type EscenaDef } from "@/lib/escenas";
+import { Activity, ArchiveX, Ban, Baby, Bone, Bug, CalendarClock, CalendarX, Crown, Dna, Droplets, Eye, Footprints, Gauge, Heart, HeartCrack, HandCoins, Hourglass, Mars, Milk, PawPrint, Scale, Search, ShieldAlert, Skull, Sprout, Stethoscope, Syringe, Tag, Timer, TriangleAlert, Venus, Waves, Wallet } from "lucide-react";
+import { escena, ESC, ESCENA_HATO, type EscenaDef } from "@/lib/escenas";
 
 /** Las tarjetas de cada reporte en la pantalla de Reportes (un color por área de trabajo). */
 export const ESCENA_REPORTE: Record<string, EscenaDef> = {
@@ -19,11 +19,10 @@ export const ESCENA_REPORTE: Record<string, EscenaDef> = {
 
 /** Las opciones de los filtros de los reportes, por su valor. El mismo valor se ve igual en todos los reportes. */
 export const ESCENA_FILTRO: Record<string, EscenaDef> = {
-  // todas las listas
-  todos: escena(PawPrint, "musgo", Sprout),
-  // especie
-  caprino: escena(Mountain, "oliva", Sprout),
-  ovino: escena(Cloud, "ambar", Wheat),
+  // todas las listas y la especie: las mismas del Hato, para verse igual en todas las pantallas
+  todos: ESCENA_HATO.todos,
+  caprino: ESCENA_HATO.caprino,
+  ovino: ESCENA_HATO.ovino,
   // inventario: categoría
   hembra_adulta: escena(Venus, "ocre", Droplets),
   macho_adulto: escena(Mars, "grafito", Crown),
