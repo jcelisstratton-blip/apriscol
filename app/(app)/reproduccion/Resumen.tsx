@@ -10,7 +10,7 @@ import type { AjustesCompletos } from "@/lib/ajustes";
 import { animalesPorIds } from "@/lib/animal-etiquetas";
 import { etiquetaAnimal } from "@/lib/animal";
 import { diasHasta, formatoFecha, hoyBogota } from "@/lib/fechas";
-import { DIAS_PARTO_ATRASADO, plazoParto } from "@/lib/reproduccion";
+import { DIAS_PARTO_ATRASADO, DIAS_REPETIR_DX_DESDE, DIAS_REPETIR_DX_HASTA, enObservacion, plazoParto, ventanaRepetirDx } from "@/lib/reproduccion";
 import type { ReproHembra } from "@/lib/tipos";
 
 /** Cuántos días hacia adelante cuenta como «parto próximo». */
@@ -40,8 +40,12 @@ export async function Resumen({
     .sort((a, b) => a.fecha_prevista_parto!.localeCompare(b.fecha_prevista_parto!));
   const atrasados = enGestacion.filter((f) => f.fecha_prevista_parto && diasHasta(f.fecha_prevista_parto, hoy) < -DIAS_PARTO_ATRASADO);
   const porConfirmar = filas
-    .filter((f) => f.estado === "servida" && f.ultimo_servicio && diasHasta(hoy, f.ultimo_servicio) >= general.dx_prenez_dia_desde)
+    .filter((f) => f.estado === "servida" && !enObservacion(f) && f.ultimo_servicio && diasHasta(hoy, f.ultimo_servicio) >= general.dx_prenez_dia_desde)
     .sort((a, b) => a.ultimo_servicio!.localeCompare(b.ultimo_servicio!));
+  // Diagnóstico dudoso: sigue en observación y toca repetir la prueba entre 14 y 21 días después.
+  const porRepetir = filas
+    .filter((f) => enObservacion(f) && diasHasta(hoy, f.fecha_diagnostico!) >= DIAS_REPETIR_DX_DESDE)
+    .sort((a, b) => a.fecha_diagnostico!.localeCompare(b.fecha_diagnostico!));
   // Gestantes confirmadas que ya entraron al último tercio (aún sin parir): conviene reforzar la alimentación.
   const ultimoTercio = filas
     .filter((f) => f.estado === "gestante" && f.ultimo_servicio && f.fecha_prevista_parto && diasHasta(hoy, f.ultimo_servicio) >= general.ultimo_tercio_dia && diasHasta(f.fecha_prevista_parto, hoy) >= 0)
@@ -54,7 +58,7 @@ export async function Resumen({
   const sinDatos = filas.filter((f) => f.estado === "sin_datos").length;
   const enMonta = filas.filter((f) => f.empadronamiento_id).length;
 
-  const ids = [...proximos.slice(0, 10), ...atrasados.slice(0, 10), ...porConfirmar.slice(0, 10), ...ultimoTercio.slice(0, 15), ...porSecar.slice(0, 15)].map((f) => f.animal_id);
+  const ids = [...proximos.slice(0, 10), ...atrasados.slice(0, 10), ...porConfirmar.slice(0, 10), ...porRepetir.slice(0, 15), ...ultimoTercio.slice(0, 15), ...porSecar.slice(0, 15)].map((f) => f.animal_id);
   const nombres = new Map((await animalesPorIds(supabase, fincaId, ids)).map((a) => [a.id, etiquetaAnimal(a)]));
   const etiqueta = (id: string) => nombres.get(id) ?? "Hembra";
 
@@ -64,7 +68,8 @@ export async function Resumen({
 
   const cifras: [string, string][] = [
     ["Gestantes", String(gestantes)],
-    ["Servidas por confirmar", String(filas.filter((f) => f.estado === "servida").length)],
+    ["Servidas por confirmar", String(filas.filter((f) => f.estado === "servida" && !enObservacion(f)).length)],
+    ["En observación", String(filas.filter(enObservacion).length)],
     [`Partos en ${DIAS_PROXIMOS} días`, String(proximos.length)],
     ["Partos atrasados", String(atrasados.length)],
   ];
@@ -120,6 +125,33 @@ export async function Resumen({
           </ul>
         )}
       </Tarjeta>
+
+      {porRepetir.length > 0 ? (
+        <Tarjeta titulo="Diagnósticos para repetir">
+          <p className="mb-2 text-sm text-humo">El último diagnóstico fue dudoso: conviene repetirlo entre {DIAS_REPETIR_DX_DESDE} y {DIAS_REPETIR_DX_HASTA} días después.</p>
+          <ul className="divide-y divide-arena">
+            {porRepetir.slice(0, 15).map((f) => {
+              const v = ventanaRepetirDx(f.fecha_diagnostico!);
+              return (
+                <li key={f.animal_id}>
+                  <Link href={`/hato/${f.animal_id}/reproduccion/diagnostico/nuevo`} className="flex min-h-14 items-center justify-between gap-3 py-2">
+                    <span className="min-w-0 [overflow-wrap:anywhere]">
+                      <span className="block font-semibold">{etiqueta(f.animal_id)}</span>
+                      <span className="block text-sm text-humo">
+                        Dudoso el {formatoFecha(f.fecha_diagnostico, { day: "numeric", month: "short" })} · repetir del {formatoFecha(v.desde, { day: "numeric", month: "short" })} al {formatoFecha(v.hasta, { day: "numeric", month: "short" })}
+                        {hoy > v.hasta ? " · ya pasó la ventana" : ""}
+                      </span>
+                    </span>
+                    <span className="flex shrink-0 items-center gap-1 text-sm font-semibold text-musgo">
+                      Repetir <ChevronRight className="size-4 text-humo" aria-hidden="true" />
+                    </span>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </Tarjeta>
+      ) : null}
 
       {porConfirmar.length > 0 ? (
         <Tarjeta titulo="Servicios por confirmar">

@@ -15,3 +15,15 @@ Se registran desde la ficha de la hembra (`FormServicio`) y cada tipo pide solo 
 - **Transferencia de embrión:** la hembra del servicio es la **receptora**. Padre genético (`macho_id` / `macho_externo`), **madre genética** (`madre_genetica_id` hembra del hato de la misma especie y distinta de la receptora, o `madre_genetica_externa`), **código o lote del embrión** (`embrion_codigo`) y **tipo de transferencia** (`tipo_transferencia`: fresco, vitrificado, congelado, como tarjetas); técnico opcional.
 
 Migración `20261024135534_servicios_datos_por_tipo` (solo agrega columnas). `v_servicios` no incluye las columnas nuevas (la usa solo el inicio). Los servicios antiguos que no tengan estos datos se leen igual; al editarlos se piden los que falten.
+
+## Diagnóstico de gestación
+
+Se registra desde la ficha de la hembra (`FormDiagnostico`). **Siempre cuelga de un servicio activo**: `servicioVigente` (`lib/servicio-vigente.ts`) lo busca en el servidor (el navegador no lo elige) y es el último servicio de la hembra mientras no haya un parto o aborto desde entonces y su último diagnóstico no sea «Vacía». Sin él no se guarda (la pantalla lo explica y lleva a «Registrar servicio»; la acción y el disparador `diagnosticos_validar_servicio` lo exigen). Al editar, el diagnóstico conserva su servicio.
+
+Cada método pide lo suyo y solo guarda sus datos (opciones como tarjetas):
+
+- **Ecografía** (si el resultado no es «Vacía»): días de gestación estimados, fetos detectados (único, mellizos, trillizos, cuatro o más) y viabilidad fetal (latido / sin actividad). Con «Gestante» los tres son obligatorios y «Sin actividad» no confirma gestación; los días no pueden superar los transcurridos desde el servicio (+10).
+- **Palpación:** indicador (no volvió a celo, retornó al celo, llenado uterino, revisión manual; «retornó al celo» no puede quedar gestante) y condición corporal (obligatoria si queda vacía: decide si vuelve al lote de reproducción).
+- **Otro método:** prueba o kit y su resultado, ambos obligatorios.
+
+El estado sale de `v_repro_hembras`, no se guarda: **Gestante** → estado gestante y parto previsto = servicio + días de gestación de la especie en la finca (150 caprinos, 147 ovinos por omisión); **Vacía** → disponible otra vez (servicio, sincronización o empadronamiento); **Dudoso** → sigue «servida» y se muestra como **«En observación»** (`enObservacion`), y el panel avisa para repetir la prueba entre **14 y 21 días** después (`ventanaRepetirDx`, tarjeta «Diagnósticos para repetir»). Migración `20261024140929_diagnosticos_datos_por_metodo` (solo agrega columnas y un disparador de inserción).

@@ -6,6 +6,7 @@ import { EliminarRegistro } from "@/components/EliminarRegistro";
 import { Encabezado } from "@/components/Encabezado";
 import { FormDiagnostico } from "@/components/FormDiagnostico";
 import { obtenerContexto } from "@/lib/contexto";
+import { obtenerAjustes } from "@/lib/ajustes-servidor";
 import { crearClienteServidor } from "@/lib/supabase/server";
 import { puedeEscribir, puedeGestionar } from "@/lib/permisos";
 import { etiquetaAnimal } from "@/lib/animal";
@@ -23,8 +24,9 @@ export default async function PaginaEditarDiagnostico({ params }: { params: Prom
   const { data: diagnostico } = await supabase.from("diagnosticos_gestacion").select("*").eq("id", id).eq("finca_id", finca.id).maybeSingle();
   if (!diagnostico) notFound();
   if (!puedeEscribir(rol, "reproduccion", finca.plan)) redirect(`/hato/${diagnostico.hembra_id}`);
-  const { data: animal } = await supabase.from("animales").select("id, numero_arete, nombre").eq("id", diagnostico.hembra_id).eq("finca_id", finca.id).maybeSingle();
+  const { data: animal } = await supabase.from("animales").select("id, numero_arete, nombre, especie").eq("id", diagnostico.hembra_id).eq("finca_id", finca.id).maybeSingle();
   if (!animal) notFound();
+  const ajustes = await obtenerAjustes();
   const { data: servicio } = diagnostico.servicio_id ? await supabase.from("servicios").select("id, fecha").eq("id", diagnostico.servicio_id).eq("finca_id", finca.id).maybeSingle() : { data: null };
 
   return (
@@ -34,7 +36,7 @@ export default async function PaginaEditarDiagnostico({ params }: { params: Prom
       </Link>
       <Encabezado titulo="Editar diagnóstico" subtitulo={etiquetaAnimal(animal)} />
       <div className="space-y-8 lg:max-w-xl">
-        <FormDiagnostico hembraId={animal.id} hoy={hoyBogota()} servicio={servicio} diagnostico={diagnostico} />
+        <FormDiagnostico hembraId={animal.id} hoy={hoyBogota()} servicio={servicio} gestacionDias={ajustes.especie[animal.especie].gestacion_dias} diagnostico={diagnostico} />
         {puedeGestionar(rol) ? (
           <EliminarRegistro
             etiqueta="Eliminar este diagnóstico"

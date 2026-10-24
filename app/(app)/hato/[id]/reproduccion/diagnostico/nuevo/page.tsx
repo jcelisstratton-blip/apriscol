@@ -2,9 +2,13 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { ChevronLeft } from "lucide-react";
+import { Aviso } from "@/components/Aviso";
+import { clasesBoton } from "@/components/Boton";
 import { Encabezado } from "@/components/Encabezado";
 import { FormDiagnostico } from "@/components/FormDiagnostico";
 import { obtenerContexto } from "@/lib/contexto";
+import { obtenerAjustes } from "@/lib/ajustes-servidor";
+import { MENSAJE_SIN_SERVICIO, MENSAJE_YA_VACIA, servicioVigente } from "@/lib/servicio-vigente";
 import { crearClienteServidor } from "@/lib/supabase/server";
 import { puedeEscribir } from "@/lib/permisos";
 import { etiquetaAnimal } from "@/lib/animal";
@@ -19,12 +23,11 @@ export default async function PaginaDiagnosticoNuevo({ params }: { params: Promi
   const { finca, rol } = await obtenerContexto();
   if (!puedeEscribir(rol, "reproduccion", finca.plan)) redirect(`/hato/${id}`);
   const supabase = await crearClienteServidor();
-  const { data: animal } = await supabase.from("animales").select("id, numero_arete, nombre, sexo, estado").eq("id", id).eq("finca_id", finca.id).is("deleted_at", null).maybeSingle();
+  const { data: animal } = await supabase.from("animales").select("id, numero_arete, nombre, sexo, estado, especie").eq("id", id).eq("finca_id", finca.id).is("deleted_at", null).maybeSingle();
   if (!animal) notFound();
   if (animal.sexo !== "hembra" || animal.estado !== "activo") redirect(`/hato/${id}`);
-  const { data: repro } = await supabase.from("v_repro_hembras").select("*").eq("animal_id", id).maybeSingle();
-  // El servicio al que corresponde: el último, si es posterior al último parto.
-  const servicio = repro?.servicio_id && repro.ultimo_servicio && (!repro.ultimo_parto || repro.ultimo_servicio > repro.ultimo_parto) ? { id: repro.servicio_id, fecha: repro.ultimo_servicio } : null;
+  // El servicio al que corresponde lo decide el servidor: el último, mientras no haya un parto desde entonces ni un diagnóstico «vacía».
+  const [vigente, ajustes] = await Promise.all([servicioVigente(supabase, finca.id, id), obtenerAjustes()]);
 
   return (
     <>
@@ -33,7 +36,19 @@ export default async function PaginaDiagnosticoNuevo({ params }: { params: Promi
       </Link>
       <Encabezado titulo="Diagnóstico de gestación" subtitulo={etiquetaAnimal(animal)} />
       <div className="lg:max-w-xl">
-        <FormDiagnostico hembraId={id} hoy={hoyBogota()} servicio={servicio} />
+        {vigente.servicio ? (
+          <FormDiagnostico hembraId={id} hoy={hoyBogota()} servicio={vigente.servicio} gestacionDias={ajustes.especie[animal.especie].gestacion_dias} />
+        ) : (
+          <div className="space-y-4">
+            <Aviso tipo="atencion">{vigente.razon === "ya_vacia" ? MENSAJE_YA_VACIA : MENSAJE_SIN_SERVICIO}</Aviso>
+            <Link href={`/hato/${id}/reproduccion/servicio/nuevo`} className={clasesBoton("primario")}>
+              Registrar servicio
+            </Link>
+            <Link href={`/hato/${id}#reproduccion`} className={clasesBoton("fantasma")}>
+              Volver a la ficha
+            </Link>
+          </div>
+        )}
       </div>
     </>
   );

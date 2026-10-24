@@ -1048,6 +1048,8 @@ export type TecnicaInseminacion = "cervical" | "transcervical" | "laparoscopica"
 export type TipoTransferencia = "fresco" | "vitrificado" | "congelado";
 export type MetodoDiagnostico = "ecografia" | "palpacion" | "otro";
 export type ResultadoDiagnostico = "gestante" | "vacia" | "dudoso";
+export type ViabilidadFetal = "latido" | "sin_actividad";
+export type IndicadorPalpacion = "ausencia_celo" | "retorno_celo" | "llenado_uterino" | "revision_manual";
 export type TipoParto = "normal" | "asistido" | "cesarea" | "aborto";
 /** Dónde está una hembra en su ciclo: sin datos, vacía, servida (esperando diagnóstico) o gestante. */
 export type EstadoRepro = "sin_datos" | "vacia" | "servida" | "gestante";
@@ -1082,6 +1084,16 @@ export type DiagnosticoGestacion = {
   fecha: string;
   metodo: MetodoDiagnostico;
   resultado: ResultadoDiagnostico;
+  /** Ecografía: días de gestación que estimó el ecografista, fetos vistos y si tienen latido. */
+  dias_gestacion: number | null;
+  num_fetos: number | null;
+  viabilidad_fetal: ViabilidadFetal | null;
+  /** Palpación: qué indicó la preñez (o su ausencia) y la condición corporal del momento. */
+  indicador_palpacion: IndicadorPalpacion | null;
+  condicion_corporal: number | null;
+  /** Otro método: prueba o kit usado y su resultado. */
+  prueba_nombre: string | null;
+  prueba_resultado: string | null;
   observaciones: string | null;
   created_by: string | null;
   created_at: string;

@@ -1,6 +1,6 @@
-import { Baby, CircleHelp, CircleOff, Hand, HandHelping, Handshake, Heart, HeartCrack, House, Microscope, ScanLine, Scissors, Snowflake, Stethoscope, Syringe, Truck } from "lucide-react";
+import { Baby, CalendarOff, CircleHelp, Droplets, HeartPulse, RotateCcw, CircleOff, Hand, HandHelping, Handshake, Heart, HeartCrack, House, Microscope, ScanLine, Scissors, Snowflake, Stethoscope, Syringe, Truck } from "lucide-react";
 import { ESC, escena, type EscenaDef } from "@/lib/escenas";
-import type { MetodoDiagnostico, ResultadoDiagnostico, TecnicaInseminacion, TipoParto, TipoServicio, TipoTransferencia } from "@/lib/tipos";
+import type { IndicadorPalpacion, MetodoDiagnostico, ResultadoDiagnostico, TecnicaInseminacion, TipoParto, TipoServicio, TipoTransferencia, ViabilidadFetal } from "@/lib/tipos";
 
 /** Cómo se hizo el servicio a una hembra. */
 export const ESCENA_TIPO_SERVICIO: Record<TipoServicio, EscenaDef> = {
@@ -21,6 +21,28 @@ export const ESCENA_TIPO_TRANSFERENCIA: Record<TipoTransferencia, EscenaDef> = {
   fresco: escena(Baby, "oliva"),
   vitrificado: escena(Snowflake, "musgo", Microscope),
   congelado: escena(Snowflake, "ocre"),
+};
+
+/** Cuántos fetos se ven en la ecografía. */
+export const ESCENA_FETOS: Record<number, EscenaDef> = {
+  1: escena(Baby, "oliva"),
+  2: escena(Baby, "musgo", Baby),
+  3: escena(Baby, "ocre", Baby),
+  4: escena(Baby, "arcilla", Baby),
+};
+
+/** Si el feto tiene latido. */
+export const ESCENA_VIABILIDAD: Record<ViabilidadFetal, EscenaDef> = {
+  latido: escena(HeartPulse, "oliva", Baby),
+  sin_actividad: escena(HeartCrack, "grafito"),
+};
+
+/** Qué señal indicó la preñez (o su ausencia) en una palpación. */
+export const ESCENA_INDICADOR_PALPACION: Record<IndicadorPalpacion, EscenaDef> = {
+  ausencia_celo: escena(CalendarOff, "musgo"),
+  retorno_celo: escena(RotateCcw, "arcilla", Heart),
+  llenado_uterino: escena(Droplets, "oliva", Hand),
+  revision_manual: escena(Hand, "ocre", Stethoscope),
 };
 
 /** Qué pasó en un parto. */
