@@ -3,20 +3,18 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { Baby, Beef, Droplets, Fence, FileBarChart2, GitFork, Home, MapPin, PawPrint, Rocket, SlidersHorizontal, Syringe, TrendingUp, Trophy, Users, Wallet, Zap } from "lucide-react";
+import { Zap } from "lucide-react";
 import { FincaSelector } from "@/components/FincaSelector";
 import { HojaAlGrano } from "@/components/HojaAlGrano";
 import { Marca } from "@/components/Marca";
 import { MenuUsuario } from "@/components/MenuUsuario";
+import { destinosMenu, menuFinca, menuPrincipal, type EntradaMenu, type VisibilidadMenu } from "@/lib/menu";
 import { entradaMarcada } from "@/lib/nav";
 import type { PlanId, RolFinca } from "@/lib/tipos";
 
-type Enlace = { href: string; etiqueta: string; Icono: typeof Home };
-type Grupo = { titulo?: string; enlaces: Enlace[] };
-
 /**
- * Menú lateral del computador (desde `lg`). En el celular manda la barra inferior (`BottomNav`).
- * Muestra solo lo que el rol de la persona puede ver.
+ * Menú lateral del computador (desde `lg`). En el celular manda la barra inferior (`BottomNav`) y la lista de «Más»; las dos salen de `lib/menu.ts`,
+ * así que tienen las mismas entradas en el mismo orden. Muestra solo lo que el rol de la persona puede ver.
  */
 export function NavLateral({
   nombre,
@@ -25,18 +23,7 @@ export function NavLateral({
   fincaActiva,
   rol,
   plan,
-  verLeche,
-  verPremios,
-  verSanidad,
-  verCorrales,
-  verCostos,
-  verCarne,
-  verRepro,
-  verReportes,
-  verProyecciones,
-  verEquipo,
-  verPlan,
-  planMejorable,
+  visibilidad,
   esSuperadmin,
 }: {
   nombre: string;
@@ -45,78 +32,24 @@ export function NavLateral({
   fincaActiva: string;
   rol: RolFinca;
   plan: PlanId;
-  verLeche: boolean;
-  verPremios: boolean;
-  verSanidad: boolean;
-  verCorrales: boolean;
-  verCostos: boolean;
-  verCarne: boolean;
-  verRepro: boolean;
-  /** Hay al menos un reporte que la persona puede abrir. */
-  verReportes: boolean;
-  /** Propietario o administrador con el plan que incluye Proyecciones. */
-  verProyecciones: boolean;
-  verEquipo: boolean;
-  /** El propietario ve su plan en el menú principal. */
-  verPlan: boolean;
-  /** Hay un plan superior al actual: la entrada dice «Cambiar el plan»; si no, «Plan de esta finca». */
-  planMejorable: boolean;
+  visibilidad: VisibilidadMenu;
   esSuperadmin: boolean;
 }) {
   const ruta = usePathname();
   const [abierta, setAbierta] = useState(false);
 
-  // El trabajo de cada día arriba, agrupado por tipo de cosa; lo de la finca (datos, ajustes, equipo, plan) abajo, aparte. Un grupo sin entradas no se muestra.
-  const grupos: Grupo[] = [
-    {
-      enlaces: [
-        { href: "/", etiqueta: "Hoy", Icono: Home },
-        { href: "/hato", etiqueta: "Hato", Icono: PawPrint },
-      ],
-    },
-    {
-      titulo: "Producción y manejo",
-      enlaces: [
-        ...(verLeche ? [{ href: "/leche", etiqueta: "Leche", Icono: Droplets }] : []),
-        ...(verRepro ? [{ href: "/reproduccion", etiqueta: "Reproducción", Icono: Baby }] : []),
-        ...(verCarne ? [{ href: "/carne", etiqueta: "Carne", Icono: Beef }] : []),
-        ...(verSanidad ? [{ href: "/sanidad", etiqueta: "Sanidad", Icono: Syringe }] : []),
-        ...(verCorrales ? [{ href: "/corrales", etiqueta: "Corrales", Icono: Fence }] : []),
-      ],
-    },
-    {
-      titulo: "Dinero y análisis",
-      enlaces: [
-        ...(verCostos ? [{ href: "/costos", etiqueta: "Costos", Icono: Wallet }] : []),
-        ...(verReportes ? [{ href: "/reportes", etiqueta: "Reportes", Icono: FileBarChart2 }] : []),
-        ...(verProyecciones ? [{ href: "/proyecciones", etiqueta: "Proyecciones", Icono: TrendingUp }] : []),
-      ],
-    },
-    {
-      // Lo que mira o hace sobre todo el hato va aquí; lo que es de un solo animal vive en su ficha.
-      titulo: "Genealogía",
-      enlaces: [
-        { href: "/hato/endogamia", etiqueta: "Endogamia", Icono: GitFork },
-        ...(verPremios ? [{ href: "/ferias", etiqueta: "Premios", Icono: Trophy }] : []),
-      ],
-    },
-  ].filter((g) => g.enlaces.length > 0);
+  // El trabajo de cada día arriba, agrupado por tipo de cosa; lo de la finca abajo, aparte.
+  const grupos = menuPrincipal(visibilidad);
+  const miFinca = menuFinca(visibilidad);
 
-  const miFinca: Enlace[] = [
-    ...(verEquipo ? [{ href: "/mas/finca", etiqueta: "Datos de la finca", Icono: MapPin }] : []),
-    { href: "/mas/ajustes", etiqueta: "Ajustes de la finca", Icono: SlidersHorizontal },
-    ...(verEquipo ? [{ href: "/mas/miembros", etiqueta: "Equipo", Icono: Users }] : []),
-    ...(verPlan ? [{ href: "/mas/plan", etiqueta: planMejorable ? "Cambiar el plan" : "Plan de esta finca", Icono: Rocket }] : []),
-  ];
-
-  const marcada = entradaMarcada(ruta, [...grupos.flatMap((g) => g.enlaces), ...miFinca].map((e) => e.href).concat("/mas"));
+  const marcada = entradaMarcada(ruta, destinosMenu(visibilidad));
   const activo = (href: string) => href === marcada;
   const clase = (esActivo: boolean) =>
     `flex min-h-10 items-center gap-3 rounded-xl px-3 text-[0.9375rem] font-semibold transition ${
       esActivo ? "bg-musgo/12 text-musgo" : "text-humo hover:bg-arena/60 hover:text-tinta"
     }`;
   const TITULO_GRUPO = "px-3 pb-1 text-[0.6875rem] font-bold uppercase tracking-[0.09em] text-humo/75";
-  const fila = ({ href, etiqueta, Icono }: Enlace) => (
+  const fila = ({ href, etiqueta, Icono }: EntradaMenu) => (
     <Link key={href} href={href} aria-current={activo(href) ? "page" : undefined} className={clase(activo(href))}>
       <Icono className="size-5 shrink-0" strokeWidth={activo(href) ? 2.1 : 1.7} /> {etiqueta}
     </Link>
@@ -143,9 +76,9 @@ export function NavLateral({
         <div className="mt-3 flex min-h-0 flex-1 flex-col overflow-y-auto px-4 pb-3 [scrollbar-width:thin]">
           <nav aria-label="Principal">
             {grupos.map((g, n) => (
-              <div key={g.titulo ?? "inicio"} role="group" aria-label={g.titulo} className={n === 0 ? "space-y-0.5" : "mt-4 space-y-0.5"}>
+              <div key={g.id} role="group" aria-label={g.titulo} className={n === 0 ? "space-y-0.5" : "mt-4 space-y-0.5"}>
                 {g.titulo ? <p className={TITULO_GRUPO} aria-hidden="true">{g.titulo}</p> : null}
-                {g.enlaces.map(fila)}
+                {g.entradas.map(fila)}
               </div>
             ))}
           </nav>
