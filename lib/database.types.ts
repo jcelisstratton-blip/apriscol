@@ -3975,11 +3975,16 @@ export type Database = {
           finca_id: string
           hembra_id: string
           id: string
+          embrion_codigo: string | null
           macho_externo: string | null
           macho_id: string | null
+          madre_genetica_externa: string | null
+          madre_genetica_id: string | null
           observaciones: string | null
           responsable: string | null
           semen_lote: string | null
+          tecnica_inseminacion: string | null
+          tipo_transferencia: string | null
           tipo: string
           updated_at: string
         }
@@ -3991,11 +3996,16 @@ export type Database = {
           finca_id: string
           hembra_id: string
           id?: string
+          embrion_codigo?: string | null
           macho_externo?: string | null
           macho_id?: string | null
+          madre_genetica_externa?: string | null
+          madre_genetica_id?: string | null
           observaciones?: string | null
           responsable?: string | null
           semen_lote?: string | null
+          tecnica_inseminacion?: string | null
+          tipo_transferencia?: string | null
           tipo: string
           updated_at?: string
         }
@@ -4007,11 +4017,16 @@ export type Database = {
           finca_id?: string
           hembra_id?: string
           id?: string
+          embrion_codigo?: string | null
           macho_externo?: string | null
           macho_id?: string | null
+          madre_genetica_externa?: string | null
+          madre_genetica_id?: string | null
           observaciones?: string | null
           responsable?: string | null
           semen_lote?: string | null
+          tecnica_inseminacion?: string | null
+          tipo_transferencia?: string | null
           tipo?: string
           updated_at?: string
         }

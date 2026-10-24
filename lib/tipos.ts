@@ -1044,6 +1044,8 @@ export type ControlCalidad = {
 
 // ───────────────────────── Reproducción: servicios, gestación, partos y crías ─────────────────────────
 export type TipoServicio = "monta_natural" | "inseminacion" | "transferencia_embrionaria";
+export type TecnicaInseminacion = "cervical" | "transcervical" | "laparoscopica";
+export type TipoTransferencia = "fresco" | "vitrificado" | "congelado";
 export type MetodoDiagnostico = "ecografia" | "palpacion" | "otro";
 export type ResultadoDiagnostico = "gestante" | "vacia" | "dudoso";
 export type TipoParto = "normal" | "asistido" | "cesarea" | "aborto";
@@ -1059,6 +1061,11 @@ export type Servicio = {
   macho_id: string | null;
   macho_externo: string | null;
   semen_lote: string | null;
+  tecnica_inseminacion: TecnicaInseminacion | null;
+  tipo_transferencia: TipoTransferencia | null;
+  embrion_codigo: string | null;
+  madre_genetica_id: string | null;
+  madre_genetica_externa: string | null;
   responsable: string | null;
   observaciones: string | null;
   client_request_id: string | null;
