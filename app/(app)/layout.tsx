@@ -3,8 +3,7 @@ import { AvisoVigencia } from "@/components/AvisoVigencia";
 import { BottomNav } from "@/components/BottomNav";
 import { NavLateral } from "@/components/NavLateral";
 import { esAdminPlataforma, obtenerContexto } from "@/lib/contexto";
-import { reportesVisibles } from "@/lib/reportes/catalogo";
-import { puedeGestionar, puedeVer } from "@/lib/permisos";
+import { visibilidadMenu } from "@/lib/menu";
 
 /**
  * Celular: una columna con la barra inferior. Computador (desde `lg`): menú lateral fijo y contenido más ancho.
@@ -27,18 +26,7 @@ export default async function LayoutApp({ children }: { children: React.ReactNod
         fincaActiva={finca.id}
         rol={rol}
         plan={finca.plan}
-        verLeche={puedeVer(rol, "leche", finca.plan)}
-        verPremios={puedeVer(rol, "ferias", finca.plan)}
-        verSanidad={puedeVer(rol, "sanidad", finca.plan)}
-        verCorrales={puedeVer(rol, "corrales", finca.plan)}
-        verCostos={puedeVer(rol, "contabilidad", finca.plan)}
-        verCarne={puedeVer(rol, "carne", finca.plan)}
-        verRepro={puedeVer(rol, "reproduccion", finca.plan)}
-        verReportes={reportesVisibles((m) => puedeVer(rol, m, finca.plan)).length > 0 || puedeVer(rol, "contabilidad", finca.plan)}
-        verProyecciones={puedeGestionar(rol) && puedeVer(rol, "proyecciones", finca.plan)}
-        verEquipo={puedeGestionar(rol) || puedeVer(rol, "contabilidad", finca.plan)}
-        verPlan={rol === "propietario"}
-        planMejorable={finca.plan !== "hacienda"}
+        visibilidad={visibilidadMenu(rol, finca.plan)}
         esSuperadmin={esSuperadmin}
       />
       <div className="lg:pl-64">

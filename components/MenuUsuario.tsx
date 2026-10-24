@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useId, useRef, useState } from "react";
-import { ChevronsUpDown, KeyRound, LogOut, MoreHorizontal, ShieldCheck } from "lucide-react";
+import { ChevronsUpDown, FileText, KeyRound, LogOut, MoreHorizontal, ShieldCheck } from "lucide-react";
 import { cerrarSesion } from "@/app/login/actions";
 
 /**
@@ -50,6 +50,9 @@ export function MenuUsuario({ nombre, correo, esSuperadmin, enMas }: { nombre: s
           </Link>
           <Link href="/cambiar-clave" role="menuitem" onClick={() => setAbierto(false)} className={ITEM}>
             <KeyRound className="size-5 shrink-0 text-humo" strokeWidth={1.7} /> Cambiar contraseña
+          </Link>
+          <Link href="/terminos" role="menuitem" onClick={() => setAbierto(false)} className={ITEM}>
+            <FileText className="size-5 shrink-0 text-humo" strokeWidth={1.75} /> Términos y privacidad
           </Link>
           <div className="mx-2 my-1 border-t border-arena" aria-hidden="true" />
           <form action={cerrarSesion}>
