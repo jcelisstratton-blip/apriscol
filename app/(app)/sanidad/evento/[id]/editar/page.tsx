@@ -5,6 +5,7 @@ import { ChevronLeft } from "lucide-react";
 import { Encabezado } from "@/components/Encabezado";
 import { FormEvento } from "@/components/FormEvento";
 import { obtenerContexto } from "@/lib/contexto";
+import { cargarVeterinarios } from "@/lib/veterinarios-servidor";
 import { crearClienteServidor } from "@/lib/supabase/server";
 import { puedeEscribir } from "@/lib/permisos";
 import { animalesPorIds } from "@/lib/animal-etiquetas";
@@ -37,6 +38,8 @@ export default async function PaginaEditarEvento({ params }: { params: Promise<{
     if (p) productos = [p, ...productos];
   }
 
+  const { veterinarios, puedeAgregar: puedeAgregarVeterinario } = await cargarVeterinarios(supabase, finca, rol);
+
   return (
     <>
       <Link href={`/sanidad/evento/${id}`} className="-ml-2 mt-3 inline-flex min-h-11 items-center gap-1 rounded-full px-2 text-[0.9375rem] font-semibold text-musgo">
@@ -50,6 +53,8 @@ export default async function PaginaEditarEvento({ params }: { params: Promise<{
           productos={productos}
           hoy={hoyBogota()}
           animalesIniciales={animales}
+          veterinarios={veterinarios}
+          puedeAgregarVeterinario={puedeAgregarVeterinario}
           datos={{
             id: e.id,
             tipo: e.tipo,
@@ -68,6 +73,14 @@ export default async function PaginaEditarEvento({ params }: { params: Promise<{
             diagnostico: e.diagnostico,
             observaciones: e.observaciones,
             proxima_fecha: e.proxima_fecha,
+            categoria: e.categoria,
+            motivo: e.motivo,
+            etapa: e.etapa,
+            dias_tratamiento: e.dias_tratamiento,
+            cojera: e.cojera,
+            concentracion_pct: e.concentracion_pct,
+            minutos: e.minutos,
+            anestesia: e.anestesia,
           }}
         />
       </div>

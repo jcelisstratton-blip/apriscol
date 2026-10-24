@@ -1555,6 +1555,14 @@ export type Database = {
       }
       eventos_sanitarios: {
         Row: {
+          anestesia: string | null
+          categoria: string | null
+          cojera: number | null
+          concentracion_pct: number | null
+          dias_tratamiento: number | null
+          etapa: string | null
+          minutos: number | null
+          motivo: string | null
           client_request_id: string | null
           costo: number | null
           created_at: string
@@ -1581,6 +1589,14 @@ export type Database = {
           via: string | null
         }
         Insert: {
+          anestesia?: string | null
+          categoria?: string | null
+          cojera?: number | null
+          concentracion_pct?: number | null
+          dias_tratamiento?: number | null
+          etapa?: string | null
+          minutos?: number | null
+          motivo?: string | null
           client_request_id?: string | null
           costo?: number | null
           created_at?: string
@@ -1607,6 +1623,14 @@ export type Database = {
           via?: string | null
         }
         Update: {
+          anestesia?: string | null
+          categoria?: string | null
+          cojera?: number | null
+          concentracion_pct?: number | null
+          dias_tratamiento?: number | null
+          etapa?: string | null
+          minutos?: number | null
+          motivo?: string | null
           client_request_id?: string | null
           costo?: number | null
           created_at?: string
@@ -5940,6 +5964,16 @@ export type Database = {
           p_animales: string[]
           p_datos: Json
           p_evento: string
+          p_finca: string
+        }
+        Returns: string
+      }
+      guardar_evento_sanitario_detalle: {
+        Args: {
+          p_animales: string[]
+          p_datos: Json
+          p_evento: string
+          p_extra: Json
           p_finca: string
         }
         Returns: string

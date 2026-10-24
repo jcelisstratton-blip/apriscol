@@ -6,6 +6,7 @@ import { ChevronLeft } from "lucide-react";
 import { Encabezado } from "@/components/Encabezado";
 import { FormEvento, type DatosEvento } from "@/components/FormEvento";
 import { obtenerContexto } from "@/lib/contexto";
+import { cargarVeterinarios } from "@/lib/veterinarios-servidor";
 import { crearClienteServidor } from "@/lib/supabase/server";
 import { puedeEscribir } from "@/lib/permisos";
 import { animalesPorIds } from "@/lib/animal-etiquetas";
@@ -29,6 +30,7 @@ export default async function PaginaEventoNuevo({ searchParams }: { searchParams
   const supabase = await crearClienteServidor();
   const hoy = hoyBogota();
 
+  const { veterinarios, puedeAgregar: puedeAgregarVeterinario } = await cargarVeterinarios(supabase, finca, rol);
   const { data: productos } = await supabase.from("productos_veterinarios").select("*").eq("finca_id", finca.id).eq("activo", true).order("nombre").limit(500);
 
   let animalFijo: { id: string; numero_arete: string; nombre: string | null } | undefined;
@@ -65,6 +67,13 @@ export default async function PaginaEventoNuevo({ searchParams }: { searchParams
         diagnostico: null,
         observaciones: null,
         proxima_fecha: null,
+        // La siguiente aplicación sigue siendo de lo mismo: la misma enfermedad, parásito, solución… Tras una primera dosis, el refuerzo; tras un refuerzo, la revacunación.
+        categoria: e.categoria,
+        motivo: e.motivo,
+        etapa: e.etapa === "primera" ? "refuerzo" : e.etapa ? "anual" : null,
+        dias_tratamiento: e.dias_tratamiento,
+        concentracion_pct: e.concentracion_pct,
+        minutos: e.minutos,
       };
       animalesIniciales = await animalesPorIds(supabase, finca.id, (pendientes ?? []).map((p) => p.animal_id).filter((x): x is string => !!x));
     }
@@ -122,6 +131,8 @@ export default async function PaginaEventoNuevo({ searchParams }: { searchParams
           datos={datos}
           programaId={programaId}
           solicitud={randomUUID()}
+          veterinarios={veterinarios}
+          puedeAgregarVeterinario={puedeAgregarVeterinario}
         />
       </div>
     </>

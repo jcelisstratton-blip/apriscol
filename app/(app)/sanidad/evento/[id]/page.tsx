@@ -14,6 +14,7 @@ import { puedeEscribir, puedeGestionar, puedeVer } from "@/lib/permisos";
 import { animalesPorIds } from "@/lib/animal-etiquetas";
 import { formatoFecha, hoyBogota, litros } from "@/lib/fechas";
 import { ETIQUETA_EVENTO, ETIQUETA_VIA, estadoDosis, nombreEvento } from "@/lib/sanidad";
+import { ANESTESIAS, CATEGORIAS, COJERAS, ETAPAS, MOTIVOS, REGLAS, etiquetaDe } from "@/lib/sanidad-campos";
 import { eliminarEvento } from "@/app/(app)/sanidad/actions";
 
 export const metadata: Metadata = { title: "Registro de sanidad" };
@@ -109,13 +110,21 @@ export default async function DetalleEvento({ params, searchParams }: { params: 
 
         <Tarjeta titulo="Detalle">
           <dl className="divide-y divide-arena">
+            {e.categoria ? <Dato etiqueta={(REGLAS[e.tipo].tituloCategoria ?? "Qué fue").replace(/[¿?]/g, "")}>{etiquetaDe(CATEGORIAS[e.tipo], e.categoria) ?? e.categoria}</Dato> : null}
+            {e.etapa ? <Dato etiqueta="Dosis">{etiquetaDe(ETAPAS, e.etapa)}</Dato> : null}
+            {e.motivo ? <Dato etiqueta="Motivo">{etiquetaDe(MOTIVOS, e.motivo)}</Dato> : null}
+            {e.cojera !== null ? <Dato etiqueta="Cómo caminaba">{etiquetaDe(COJERAS, String(e.cojera))}</Dato> : null}
+            {e.anestesia ? <Dato etiqueta="Anestesia">{etiquetaDe(ANESTESIAS, e.anestesia)}</Dato> : null}
+            {e.concentracion_pct !== null ? <Dato etiqueta="Concentración">{String(e.concentracion_pct).replace(".", ",")} %</Dato> : null}
+            {e.minutos !== null ? <Dato etiqueta="Tiempo en el baño">{e.minutos} {e.minutos === 1 ? "minuto" : "minutos"}</Dato> : null}
+            {e.dias_tratamiento !== null && e.dias_tratamiento > 1 ? <Dato etiqueta="Duración">{e.dias_tratamiento} días</Dato> : null}
             {e.dosis ? <Dato etiqueta="Dosis">{litros(e.dosis)} {e.unidad_dosis ?? ""}</Dato> : null}
             {e.via ? <Dato etiqueta="Vía">{ETIQUETA_VIA[e.via]}</Dato> : null}
             {e.lote_producto ? <Dato etiqueta="Lote">{e.lote_producto}</Dato> : null}
             {e.fecha_vencimiento ? <Dato etiqueta="Vence el lote">{formatoFecha(e.fecha_vencimiento)}</Dato> : null}
-            {e.responsable ? <Dato etiqueta="Responsable">{e.responsable}</Dato> : null}
+            {e.responsable ? <Dato etiqueta={REGLAS[e.tipo].etiquetaVeterinario}>{e.responsable}</Dato> : null}
             {e.costo !== null ? <Dato etiqueta="Costo">{new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 }).format(e.costo)}</Dato> : null}
-            {e.diagnostico ? <Dato etiqueta="Diagnóstico">{e.diagnostico}</Dato> : null}
+            {e.diagnostico ? <Dato etiqueta={(REGLAS[e.tipo].diagnostico?.etiqueta ?? "Diagnóstico").replace(/[¿?]/g, "")}>{e.diagnostico}</Dato> : null}
             <Dato etiqueta="Animales">{animales.length}</Dato>
           </dl>
           {e.observaciones ? <p className="mt-3 whitespace-pre-wrap border-t border-arena pt-3 text-[0.9375rem]">{e.observaciones}</p> : null}

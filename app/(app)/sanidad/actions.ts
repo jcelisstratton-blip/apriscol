@@ -11,6 +11,7 @@ import { hoyBogota, sumarDias } from "@/lib/fechas";
 import { leerNumero } from "@/lib/numeros";
 import { soporteValido } from "@/lib/soportes";
 import { DIRECCION_SANIDAD } from "@/lib/hato";
+import { datosPorTipoEvento, type EntradaEvento } from "@/lib/sanidad-campos";
 import { EVENTO_CON_PRODUCTO, RESULTADOS_PRUEBA, TIPOS_EVENTO, TIPOS_PRODUCTO, TIPOS_PROGRAMABLES, TIPOS_PRUEBA, VIAS } from "@/lib/sanidad";
 import { opcional } from "@/lib/validacion";
 
@@ -40,6 +41,15 @@ const esquemaEvento = z.object({
   diagnostico: opcional(z.string().trim().max(300, "El diagnóstico es muy largo.")),
   observaciones: opcional(z.string().trim().max(1000, "Las observaciones son muy largas.")),
   proxima_fecha: opcional(z.iso.date("La fecha de la próxima dosis no es válida.")),
+  // Lo propio de cada tipo (`lib/sanidad-campos.ts`): se valida según el tipo y lo que no le corresponde se descarta.
+  categoria: opcional(z.string().trim().max(40)),
+  motivo: opcional(z.string().trim().max(20)),
+  etapa: opcional(z.string().trim().max(20)),
+  dias_tratamiento: numero(z.coerce.number("Los días del tratamiento deben ser un número entero.").int("Los días del tratamiento deben ser un número entero.").min(1, "El tratamiento dura al menos un día.").max(60, "El tratamiento no puede pasar de 60 días.")),
+  cojera: numero(z.coerce.number("El grado de cojera va de 0 a 3.").int().min(0, "El grado de cojera va de 0 a 3.").max(3, "El grado de cojera va de 0 a 3.")),
+  concentracion_pct: numero(z.coerce.number("La concentración debe ser un número, como 10.").positive("La concentración debe ser mayor que cero.").max(100, "La concentración no puede pasar de 100 %.")),
+  minutos: numero(z.coerce.number("Los minutos deben ser un número entero.").int("Los minutos deben ser un número entero.").min(1, "Los minutos deben ser al menos 1.").max(240, "Los minutos no pueden pasar de 240.")),
+  anestesia: opcional(z.string().trim().max(20)),
   client_request_id: opcional(z.uuid()),
   evento_id: opcional(z.uuid()),
   animal: opcional(z.uuid()),
@@ -50,7 +60,7 @@ const esquemaEvento = z.object({
 type Cliente = Awaited<ReturnType<typeof crearClienteServidor>>;
 
 /** Valida el formulario de un evento y lo deja listo para la base: resuelve el producto elegido y verifica las fechas y los animales. */
-async function leerEvento(form: FormData, fincaId: string, supabase: Cliente) {
+async function leerEvento(form: FormData, fincaId: string, supabase: Cliente, exigir: boolean) {
   const datos = esquemaEvento.safeParse(Object.fromEntries(form));
   if (!datos.success) return { error: datos.error.issues[0]?.message ?? "Revisa los datos." } as const;
   const d = datos.data;
@@ -74,26 +84,35 @@ async function leerEvento(form: FormData, fincaId: string, supabase: Cliente) {
   }
   if (EVENTO_CON_PRODUCTO.includes(d.tipo as never) && !nombre) return { error: "Indica el producto que se aplicó." } as const;
 
+  // Cada tipo pide y guarda lo suyo: se validan sus datos y lo que no le corresponde (dosis y retiro de un pediluvio, por ejemplo) se descarta.
+  const entrada: EntradaEvento = {
+    categoria: d.categoria, motivo: d.motivo, etapa: d.etapa, dias_tratamiento: d.dias_tratamiento, cojera: d.cojera, concentracion_pct: d.concentracion_pct,
+    minutos: d.minutos, anestesia: d.anestesia, diagnostico: d.diagnostico, responsable: d.responsable, producto: nombre, dosis: d.dosis, via: d.via,
+  };
+  const porTipo = datosPorTipoEvento(d.tipo as never, entrada, exigir);
+  if ("error" in porTipo) return { error: porTipo.error } as const;
+  const { extra, limpiar } = porTipo;
+
   const payload = {
     fecha: d.fecha,
     tipo: d.tipo,
     producto_id: productoId ?? "",
     producto_nombre: nombre ?? "",
-    lote_producto: d.lote_producto ?? "",
-    fecha_vencimiento: d.fecha_vencimiento ?? "",
-    dosis: d.dosis ?? "",
-    unidad_dosis: d.dosis ? (d.unidad_dosis ?? "") : "",
-    via: d.via ?? "",
+    lote_producto: limpiar.lote ? "" : (d.lote_producto ?? ""),
+    fecha_vencimiento: limpiar.lote ? "" : (d.fecha_vencimiento ?? ""),
+    dosis: limpiar.dosis ? "" : (d.dosis ?? ""),
+    unidad_dosis: !limpiar.dosis && d.dosis ? (d.unidad_dosis ?? "") : "",
+    via: limpiar.dosis ? "" : (d.via ?? ""),
     responsable: d.responsable ?? "",
     costo: d.costo ?? "",
-    retiro_leche_dias: d.retiro_leche_dias,
-    retiro_carne_dias: d.retiro_carne_dias,
-    diagnostico: d.diagnostico ?? "",
+    retiro_leche_dias: limpiar.retiro ? 0 : d.retiro_leche_dias,
+    retiro_carne_dias: limpiar.retiro ? 0 : d.retiro_carne_dias,
+    diagnostico: limpiar.diagnostico ? "" : (d.diagnostico ?? ""),
     observaciones: d.observaciones ?? "",
     proxima_fecha: d.proxima_fecha ?? "",
     client_request_id: d.client_request_id ?? "",
   };
-  return { payload, ids, animal: d.animal, eventoId: d.evento_id, programaId: d.programa_id } as const;
+  return { payload, extra, ids, animal: d.animal, eventoId: d.evento_id, programaId: d.programa_id } as const;
 }
 
 function revalidarSanidad(animales: string[]) {
@@ -107,10 +126,10 @@ export async function crearEvento(_: EstadoForm, form: FormData): Promise<Estado
   const { finca, rol } = await obtenerContexto();
   if (!puedeEscribir(rol, "sanidad", finca.plan)) return { error: "No tienes permiso para registrar sanidad en esta finca." };
   const supabase = await crearClienteServidor();
-  const leido = await leerEvento(form, finca.id, supabase);
+  const leido = await leerEvento(form, finca.id, supabase, true);
   if ("error" in leido) return { error: leido.error };
 
-  const { data, error } = await supabase.rpc("guardar_evento_sanitario", { p_finca: finca.id, p_evento: null, p_datos: leido.payload, p_animales: leido.ids });
+  const { data, error } = await supabase.rpc("guardar_evento_sanitario_detalle", { p_finca: finca.id, p_evento: null, p_datos: leido.payload, p_extra: leido.extra, p_animales: leido.ids });
   let id = data;
   if (error) {
     // Doble toque: la misma solicitud ya se guardó (client_request_id único) → seguimos al registro.
@@ -135,13 +154,13 @@ export async function editarEvento(_: EstadoForm, form: FormData): Promise<Estad
   const { finca, rol } = await obtenerContexto();
   if (!puedeEscribir(rol, "sanidad", finca.plan)) return { error: "No tienes permiso para editar sanidad en esta finca." };
   const supabase = await crearClienteServidor();
-  const leido = await leerEvento(form, finca.id, supabase);
+  const leido = await leerEvento(form, finca.id, supabase, false);
   if ("error" in leido) return { error: leido.error };
   if (!leido.eventoId) return { error: "No encontramos ese registro." };
 
   // Los animales que salen del evento también cambian su ficha.
   const { data: antes } = await supabase.from("evento_sanitario_animales").select("animal_id").eq("evento_id", leido.eventoId).eq("finca_id", finca.id).limit(1000);
-  const { error } = await supabase.rpc("guardar_evento_sanitario", { p_finca: finca.id, p_evento: leido.eventoId, p_datos: leido.payload, p_animales: leido.ids });
+  const { error } = await supabase.rpc("guardar_evento_sanitario_detalle", { p_finca: finca.id, p_evento: leido.eventoId, p_datos: leido.payload, p_extra: leido.extra, p_animales: leido.ids });
   if (error) return { error: mensajeAmigable(error.message) };
 
   revalidarSanidad([...leido.ids, ...(antes ?? []).map((a) => a.animal_id)]);
