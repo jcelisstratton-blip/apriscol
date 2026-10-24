@@ -3358,6 +3358,18 @@ export type Database = {
       }
       personal: {
         Row: {
+          acreditaciones: string | null
+          curso_manipulacion: boolean | null
+          curso_manipulacion_vence: string | null
+          especialidades: string[]
+          experiencia_anios: number | null
+          formacion: string | null
+          labor_principal: string | null
+          tarjeta_profesional: string | null
+          telefono: string | null
+          tipo_contador: string | null
+          tipo_ordeno: string | null
+          turno_ordeno: string | null
           activo: boolean
           cargo: string | null
           correo: string | null
@@ -3375,6 +3387,18 @@ export type Database = {
           vinculacion: string
         }
         Insert: {
+          acreditaciones?: string | null
+          curso_manipulacion?: boolean | null
+          curso_manipulacion_vence?: string | null
+          especialidades?: string[]
+          experiencia_anios?: number | null
+          formacion?: string | null
+          labor_principal?: string | null
+          tarjeta_profesional?: string | null
+          telefono?: string | null
+          tipo_contador?: string | null
+          tipo_ordeno?: string | null
+          turno_ordeno?: string | null
           activo?: boolean
           cargo?: string | null
           correo?: string | null
@@ -3392,6 +3416,18 @@ export type Database = {
           vinculacion: string
         }
         Update: {
+          acreditaciones?: string | null
+          curso_manipulacion?: boolean | null
+          curso_manipulacion_vence?: string | null
+          especialidades?: string[]
+          experiencia_anios?: number | null
+          formacion?: string | null
+          labor_principal?: string | null
+          tarjeta_profesional?: string | null
+          telefono?: string | null
+          tipo_contador?: string | null
+          tipo_ordeno?: string | null
+          turno_ordeno?: string | null
           activo?: boolean
           cargo?: string | null
           correo?: string | null

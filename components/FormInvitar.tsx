@@ -6,6 +6,7 @@ import { Aviso } from "@/components/Aviso";
 import { Boton } from "@/components/Boton";
 import { Campo, CLASE_INPUT } from "@/components/Campo";
 import { CamposContrato } from "@/components/CamposContrato";
+import { CamposPerfil } from "@/components/CamposPerfil";
 import { SelectorTarjetas } from "@/components/SelectorTarjetas";
 import { useToast } from "@/components/Toast";
 import { invitar, revocarInvitacion } from "@/app/(app)/mas/miembros/actions";
@@ -78,7 +79,7 @@ export function FormInvitar({ hoy, puedeInvitar, conContrato = true }: { hoy: st
           {(id) => <input id={id} name="email" type="email" inputMode="email" autoCapitalize="none" required className={CLASE_INPUT} placeholder="nombre@correo.com" />}
         </Campo>
       ) : null}
-      {rol && conContrato ? <CamposContrato key={rol === "ninguno" ? "sin" : "con"} hoy={hoy} /> : null}
+      {rol && conContrato ? <CamposContrato key={rol === "ninguno" ? "sin" : "con"} hoy={hoy} perfil={<CamposPerfil key={rol} rol={rol} />} /> : null}
       {estado?.error ? <Aviso tipo="error">{estado.error}</Aviso> : null}
       {rol ? (
         <Boton type="submit" pendiente={pendiente} cargando={rol === "ninguno" ? "Guardando…" : "Creando invitación…"}>
