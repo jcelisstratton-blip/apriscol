@@ -20,6 +20,7 @@ import { pesos } from "@/lib/ferias";
 import { IconoEvento } from "@/components/IconoEvento";
 import { ETIQUETA_EVENTO, estadoDosis, estadoFechaPrograma, nombreEvento } from "@/lib/sanidad";
 import type { CandidatoCeba, CuarentenaAlerta, ProgramaSanitarioResumen, SanidadPendiente, ServicioConParto, TipoEvento, UbicacionVista } from "@/lib/tipos";
+import { leerTodo } from "@/lib/consultas";
 
 export const metadata: Metadata = { title: "Hoy" };
 
@@ -55,7 +56,7 @@ export default async function PaginaHoy({ searchParams }: { searchParams: Promis
     verLeche ? supabase.rpc("produccion_tendencia", { p_finca: finca.id }) : Promise.resolve({ data: [] }),
     // Dosis vencidas o que se vencen en la próxima semana.
     verSanidad
-      ? supabase.from("v_sanidad_pendiente").select("*").eq("finca_id", finca.id).lte("proxima_fecha", sumarDias(hoy, 7)).order("proxima_fecha").limit(1000)
+      ? leerTodo((d, h) => supabase.from("v_sanidad_pendiente").select("*").eq("finca_id", finca.id).lte("proxima_fecha", sumarDias(hoy, 7)).order("proxima_fecha").order("evento_id").order("animal_id").range(d, h))
       : Promise.resolve({ data: [] as SanidadPendiente[] }),
     // Animales que conviene pasar a ceba (según las reglas de la finca).
     verCarne ? supabase.rpc("candidatos_ceba", { p_finca: finca.id }) : Promise.resolve({ data: [] as CandidatoCeba[] }),

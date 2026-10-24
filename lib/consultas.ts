@@ -44,3 +44,12 @@ export function enTramos<T>(lista: T[], tamano = 100): T[][] {
   for (let i = 0; i < lista.length; i += tamano) tramos.push(lista.slice(i, i + tamano));
   return tramos;
 }
+
+/**
+ * Como `traerTodo`, pero con la forma `{ data }` de una respuesta de PostgREST: se cambia el `.limit(2000)` de una consulta por esto y el resto del código sigue igual.
+ * Un error de la base se lanza (la pantalla de error de la marca y el registro de errores lo recogen) en vez de dejar una lista vacía que parece cierta.
+ */
+export async function leerTodo<T>(pagina: (desde: number, hasta: number) => PromiseLike<Respuesta<T>>, opciones: { tope?: number; porPagina?: number } = {}): Promise<{ data: T[]; truncado: boolean }> {
+  const { filas, truncado } = await traerTodo(pagina, opciones);
+  return { data: filas, truncado };
+}

@@ -9,6 +9,7 @@ import { crearClienteServidor } from "@/lib/supabase/server";
 import { reportesVisibles } from "@/lib/reportes/catalogo";
 import { cifra } from "@/lib/reportes/formato";
 import type { ReporteId } from "@/lib/reportes/tipos";
+import { leerTodo } from "@/lib/consultas";
 
 export const metadata: Metadata = { title: "Reportes" };
 
@@ -36,7 +37,7 @@ export default async function PaginaReportes() {
 
   const [activos, estados, retiros] = await Promise.all([
     ids.has("inventario") ? seguro(() => supabase.from("animales").select("id", { count: "exact", head: true }).eq("finca_id", finca.id).eq("estado", "activo").is("deleted_at", null)) : null,
-    ids.has("gestantes") || ids.has("por_palpar") ? seguro(() => supabase.from("v_repro_hembras").select("estado").eq("finca_id", finca.id).in("estado", ["gestante", "servida"]).limit(5000)) : null,
+    ids.has("gestantes") || ids.has("por_palpar") ? seguro(() => leerTodo((d, h) => supabase.from("v_repro_hembras").select("estado").eq("finca_id", finca.id).in("estado", ["gestante", "servida"]).order("animal_id").range(d, h))) : null,
     ids.has("retiro") ? seguro(() => supabase.rpc("animales_en_retiro", { p_finca: finca.id })) : null,
   ]);
 

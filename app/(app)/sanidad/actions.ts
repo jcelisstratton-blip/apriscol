@@ -14,6 +14,7 @@ import { DIRECCION_SANIDAD } from "@/lib/hato";
 import { datosPorTipoEvento, type EntradaEvento } from "@/lib/sanidad-campos";
 import { EVENTO_CON_PRODUCTO, RESULTADOS_PRUEBA, TIPOS_EVENTO, TIPOS_PRODUCTO, TIPOS_PROGRAMABLES, TIPOS_PRUEBA, VIAS } from "@/lib/sanidad";
 import { opcional } from "@/lib/validacion";
+import { leerTodo } from "@/lib/consultas";
 
 export type EstadoForm = { error?: string } | undefined;
 type Resultado = { ok: true } | { ok: false; error: string };
@@ -157,9 +158,10 @@ export async function editarEvento(_: EstadoForm, form: FormData): Promise<Estad
   const leido = await leerEvento(form, finca.id, supabase, false);
   if ("error" in leido) return { error: leido.error };
   if (!leido.eventoId) return { error: "No encontramos ese registro." };
+  const eventoLeido = leido.eventoId;
 
   // Los animales que salen del evento también cambian su ficha.
-  const { data: antes } = await supabase.from("evento_sanitario_animales").select("animal_id").eq("evento_id", leido.eventoId).eq("finca_id", finca.id).limit(1000);
+  const { data: antes } = await leerTodo((d, h) => supabase.from("evento_sanitario_animales").select("animal_id").eq("evento_id", eventoLeido).eq("finca_id", finca.id).order("animal_id").range(d, h));
   const { error } = await supabase.rpc("guardar_evento_sanitario_detalle", { p_finca: finca.id, p_evento: leido.eventoId, p_datos: leido.payload, p_extra: leido.extra, p_animales: leido.ids });
   if (error) return { error: mensajeAmigable(error.message) };
 
@@ -174,7 +176,7 @@ export async function eliminarEvento(eventoId: string): Promise<Resultado> {
   if (!puedeGestionar(rol)) return { ok: false, error: "Solo el propietario o un administrador puede eliminar registros de sanidad." };
   if (!ID_UUID.safeParse(eventoId).success) return { ok: false, error: "Registro no válido." };
   const supabase = await crearClienteServidor();
-  const { data: animales } = await supabase.from("evento_sanitario_animales").select("animal_id").eq("evento_id", eventoId).eq("finca_id", finca.id).limit(1000);
+  const { data: animales } = await leerTodo((d, h) => supabase.from("evento_sanitario_animales").select("animal_id").eq("evento_id", eventoId).eq("finca_id", finca.id).order("animal_id").range(d, h));
   const { data, error } = await supabase.from("eventos_sanitarios").delete().eq("id", eventoId).eq("finca_id", finca.id).select("id");
   if (error) return { ok: false, error: mensajeAmigable(error.message) };
   if (!data || data.length === 0) return { ok: false, error: "No encontramos ese registro." };
@@ -511,12 +513,13 @@ export async function editarPrograma(_: EstadoForm, form: FormData): Promise<Est
   const leido = await leerPrograma(form, finca.id, supabase, false);
   if ("error" in leido) return { error: leido.error };
   if (!leido.programaId) return { error: "No encontramos esa programación." };
+  const programaLeido = leido.programaId;
 
   const { error } = await supabase.rpc("guardar_programa_sanitario", { p_finca: finca.id, p_programa: leido.programaId, p_datos: leido.payload, p_animales: leido.ids });
   if (error) return { error: mensajeAmigable(error.message) };
 
   // Los pendientes que ya no van se quitan de la programación (por tramos: la dirección de la consulta tiene largo máximo).
-  const { data: actuales } = await supabase.from("programa_sanitario_animales").select("animal_id").eq("programa_id", leido.programaId).eq("finca_id", finca.id).is("evento_id", null).limit(2000);
+  const { data: actuales } = await leerTodo((d, h) => supabase.from("programa_sanitario_animales").select("animal_id").eq("programa_id", programaLeido).eq("finca_id", finca.id).is("evento_id", null).order("animal_id").range(d, h));
   const sobran = (actuales ?? []).map((a) => a.animal_id).filter((a) => !leido.ids.includes(a));
   for (let i = 0; i < sobran.length; i += 100) {
     await supabase.from("programa_sanitario_animales").delete().eq("programa_id", leido.programaId).eq("finca_id", finca.id).is("evento_id", null).in("animal_id", sobran.slice(i, i + 100));

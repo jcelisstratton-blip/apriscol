@@ -22,6 +22,7 @@ import { servicioEnPlan } from "@/lib/planes";
 import { ETIQUETA_ROL, puedeEscribir, puedeGestionar, puedeVer } from "@/lib/permisos";
 import { crearClienteServidor } from "@/lib/supabase/server";
 import type { Persona } from "@/lib/tipos";
+import { leerTodo } from "@/lib/consultas";
 
 export const metadata: Metadata = { title: "Equipo" };
 
@@ -47,8 +48,8 @@ export default async function PaginaMiembros({ searchParams }: { searchParams: P
   const [personalDB, abiertosDB, mesDB] = cuentas
     ? await Promise.all([
         supabase.from("personal").select("*").eq("finca_id", finca.id).order("activo", { ascending: false }).order("nombre"),
-        supabase.from("pagos_personal").select("costo_total").eq("finca_id", finca.id).is("pagado_en", null).limit(5000),
-        supabase.from("pagos_personal").select("costo_total").eq("finca_id", finca.id).gte("fecha", `${hoy.slice(0, 7)}-01`).limit(5000),
+        leerTodo((d, h) => supabase.from("pagos_personal").select("costo_total").eq("finca_id", finca.id).is("pagado_en", null).order("id").range(d, h)),
+        leerTodo((d, h) => supabase.from("pagos_personal").select("costo_total").eq("finca_id", finca.id).gte("fecha", `${hoy.slice(0, 7)}-01`).order("id").range(d, h)),
       ])
     : [{ data: [] }, { data: [] }, { data: [] }];
   const lista = (personalDB.data ?? []) as Persona[];

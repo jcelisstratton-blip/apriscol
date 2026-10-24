@@ -11,6 +11,7 @@ import { puedeEscribir } from "@/lib/permisos";
 import { animalesPorIds } from "@/lib/animal-etiquetas";
 import { hoyBogota } from "@/lib/fechas";
 import { nombreEvento } from "@/lib/sanidad";
+import { leerTodo } from "@/lib/consultas";
 
 export const metadata: Metadata = { title: "Editar registro de sanidad" };
 const ID_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -24,7 +25,7 @@ export default async function PaginaEditarEvento({ params }: { params: Promise<{
 
   const [{ data: e }, { data: filas }] = await Promise.all([
     supabase.from("eventos_sanitarios").select("*").eq("id", id).eq("finca_id", finca.id).maybeSingle(),
-    supabase.from("evento_sanitario_animales").select("animal_id").eq("evento_id", id).eq("finca_id", finca.id).limit(1000),
+    leerTodo((d, h) => supabase.from("evento_sanitario_animales").select("animal_id").eq("evento_id", id).eq("finca_id", finca.id).order("animal_id").range(d, h)),
   ]);
   if (!e) notFound();
   const [animales, { data: activos }] = await Promise.all([

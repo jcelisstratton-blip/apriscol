@@ -14,6 +14,7 @@ import { etiquetaAnimal } from "@/lib/animal";
 import { etiquetaExterno } from "@/lib/semental-externo";
 import { avanceEmp, capacidadSemental, ETIQUETA_CAPACIDAD, mesesDesde } from "@/lib/empadronamiento";
 import { formatoFecha, hoyBogota } from "@/lib/fechas";
+import { leerTodo } from "@/lib/consultas";
 
 /**
  * Hato → Empadronamiento: las temporadas de monta abiertas, donde se arman y se cierran: crear una, agregar hembras a sus sementales
@@ -49,8 +50,8 @@ export async function Monta({
 
   const [machosDB, hembrasDB] = ids.length
     ? await Promise.all([
-        supabase.from("empadronamiento_machos").select("empadronamiento_id, macho_id, num_hembras, externo").in("empadronamiento_id", ids).eq("finca_id", fincaId).limit(1000),
-        supabase.from("empadronamiento_hembras").select("empadronamiento_id, macho_id").in("empadronamiento_id", ids).eq("finca_id", fincaId).limit(5000),
+        leerTodo((d, h) => supabase.from("empadronamiento_machos").select("empadronamiento_id, macho_id, num_hembras, externo").in("empadronamiento_id", ids).eq("finca_id", fincaId).order("empadronamiento_id").order("macho_id").range(d, h)),
+        leerTodo((d, h) => supabase.from("empadronamiento_hembras").select("empadronamiento_id, macho_id").in("empadronamiento_id", ids).eq("finca_id", fincaId).order("id").range(d, h)),
       ])
     : [{ data: [] }, { data: [] }];
   const machos = machosDB.data ?? [];

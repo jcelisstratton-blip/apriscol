@@ -1,7 +1,7 @@
 // Lo que antes estaba copiado en varias pantallas y ahora tiene una sola definición: leer filas por páginas, texto, descargas y reglas de seguimiento.
 import test from "node:test";
 import assert from "node:assert/strict";
-import { enTramos, paginar, traerTodo } from "../lib/consultas.ts";
+import { enTramos, leerTodo, paginar, traerTodo } from "../lib/consultas.ts";
 import { sinTildes } from "../lib/texto.ts";
 import { cabecerasExcel, nombreAscii } from "../lib/archivos.ts";
 import { diasDesde } from "../lib/fechas.ts";
@@ -66,6 +66,13 @@ test("paginar: sin tope trae todo (la exportación de la finca) y respeta el tam
   };
   assert.equal((await traerTodo(rpc, { porPagina: 5000, tope: 50_000 })).filas.length, 7000);
   assert.deepEqual(llamadas, [5000, 5000]);
+});
+
+test("leerTodo: tiene la forma { data } de una respuesta, así reemplaza a un .limit() sin cambiar el resto del código, y trae más de 1000", async () => {
+  const r = await leerTodo(base(1800).pagina);
+  assert.equal(r.data.length, 1800);
+  assert.equal(r.truncado, false);
+  await assert.rejects(() => leerTodo(base(3000, { falla: 2 }).pagina), /se cayó/, "un error se lanza, no deja una lista vacía que parezca cierta");
 });
 
 test("enTramos: parte una lista sin perder ni repetir", () => {

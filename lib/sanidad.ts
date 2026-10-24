@@ -15,8 +15,6 @@ export const ETIQUETA_EVENTO: Record<TipoEvento, string> = {
 /** Los tipos que llevan un producto aplicado (la cirugía y «otro» pueden no tenerlo). */
 export const EVENTO_CON_PRODUCTO: TipoEvento[] = ["vacunacion", "desparasitacion", "tratamiento"];
 /** Los tipos donde tiene sentido programar una próxima dosis. */
-export const EVENTO_CON_REFUERZO: TipoEvento[] = ["vacunacion", "desparasitacion", "tratamiento", "podologia", "pediluvio"];
-
 export const TIPOS_PRODUCTO: TipoProducto[] = ["vacuna", "desparasitante", "antibiotico", "antiinflamatorio", "vitamina", "otro"];
 export const ETIQUETA_PRODUCTO: Record<TipoProducto, string> = {
   vacuna: "Vacuna",

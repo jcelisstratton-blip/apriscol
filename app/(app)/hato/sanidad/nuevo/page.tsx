@@ -14,6 +14,7 @@ import { etiquetaAnimal } from "@/lib/animal";
 import { hoyBogota } from "@/lib/fechas";
 import { TIPOS_EVENTO } from "@/lib/sanidad";
 import type { TipoEvento } from "@/lib/tipos";
+import { leerTodo } from "@/lib/consultas";
 
 export const metadata: Metadata = { title: "Registrar sanidad" };
 const ID_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -47,7 +48,7 @@ export default async function PaginaEventoNuevo({ searchParams }: { searchParams
   if (refuerzo && ID_UUID.test(refuerzo)) {
     const [{ data: e }, { data: pendientes }] = await Promise.all([
       supabase.from("eventos_sanitarios").select("*").eq("id", refuerzo).eq("finca_id", finca.id).maybeSingle(),
-      supabase.from("v_sanidad_pendiente").select("animal_id").eq("finca_id", finca.id).eq("evento_id", refuerzo).limit(1000),
+      leerTodo((d, h) => supabase.from("v_sanidad_pendiente").select("animal_id").eq("finca_id", finca.id).eq("evento_id", refuerzo).order("animal_id").range(d, h)),
     ]);
     if (e) {
       datos = {
@@ -84,7 +85,7 @@ export default async function PaginaEventoNuevo({ searchParams }: { searchParams
   if (programa && ID_UUID.test(programa)) {
     const [{ data: p }, { data: pendientes }] = await Promise.all([
       supabase.from("programas_sanitarios").select("*").eq("id", programa).eq("finca_id", finca.id).is("cancelado_en", null).maybeSingle(),
-      supabase.from("programa_sanitario_animales").select("animal_id").eq("programa_id", programa).eq("finca_id", finca.id).is("evento_id", null).limit(1000),
+      leerTodo((d, h) => supabase.from("programa_sanitario_animales").select("animal_id").eq("programa_id", programa).eq("finca_id", finca.id).is("evento_id", null).order("animal_id").range(d, h)),
     ]);
     if (p) {
       programaId = p.id;
