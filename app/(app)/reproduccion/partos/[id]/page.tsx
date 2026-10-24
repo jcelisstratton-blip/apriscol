@@ -6,6 +6,7 @@ import { EliminarRegistro } from "@/components/EliminarRegistro";
 import { Encabezado } from "@/components/Encabezado";
 import { FormParto } from "@/components/FormParto";
 import { obtenerContexto } from "@/lib/contexto";
+import { veterinariosDeLaFinca } from "@/lib/veterinarios-servidor";
 import { crearClienteServidor } from "@/lib/supabase/server";
 import { puedeEscribir, puedeGestionar } from "@/lib/permisos";
 import { etiquetaAnimal } from "@/lib/animal";
@@ -29,6 +30,8 @@ export default async function PaginaEditarParto({ params }: { params: Promise<{ 
   ]);
   if (!animal) notFound();
 
+  const veterinarios = await veterinariosDeLaFinca(supabase, finca.id);
+
   return (
     <>
       <Link href={`/hato/${animal.id}#reproduccion`} className="-ml-2 mt-3 inline-flex min-h-11 items-center gap-1 rounded-full px-2 text-[0.9375rem] font-semibold text-musgo">
@@ -36,7 +39,7 @@ export default async function PaginaEditarParto({ params }: { params: Promise<{ 
       </Link>
       <Encabezado titulo="Editar parto" subtitulo={etiquetaAnimal(animal)} />
       <div className="space-y-8 lg:max-w-xl">
-        <FormParto hembraId={animal.id} hoy={hoyBogota()} parto={parto} crias={crias ?? []} />
+        <FormParto hembraId={animal.id} veterinarios={veterinarios} hoy={hoyBogota()} parto={parto} crias={crias ?? []} />
         {puedeGestionar(rol) ? (
           <EliminarRegistro
             etiqueta="Eliminar este parto"

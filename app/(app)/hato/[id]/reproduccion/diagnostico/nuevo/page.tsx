@@ -7,6 +7,7 @@ import { clasesBoton } from "@/components/Boton";
 import { Encabezado } from "@/components/Encabezado";
 import { FormDiagnostico } from "@/components/FormDiagnostico";
 import { obtenerContexto } from "@/lib/contexto";
+import { veterinariosDeLaFinca } from "@/lib/veterinarios-servidor";
 import { obtenerAjustes } from "@/lib/ajustes-servidor";
 import { MENSAJE_SIN_SERVICIO, MENSAJE_YA_VACIA, servicioVigente } from "@/lib/servicio-vigente";
 import { crearClienteServidor } from "@/lib/supabase/server";
@@ -29,6 +30,8 @@ export default async function PaginaDiagnosticoNuevo({ params }: { params: Promi
   // El servicio al que corresponde lo decide el servidor: el último, mientras no haya un parto desde entonces ni un diagnóstico «vacía».
   const [vigente, ajustes] = await Promise.all([servicioVigente(supabase, finca.id, id), obtenerAjustes()]);
 
+  const veterinarios = await veterinariosDeLaFinca(supabase, finca.id);
+
   return (
     <>
       <Link href={`/hato/${id}#reproduccion`} className="-ml-2 mt-3 inline-flex min-h-11 items-center gap-1 rounded-full px-2 text-[0.9375rem] font-semibold text-musgo">
@@ -37,7 +40,7 @@ export default async function PaginaDiagnosticoNuevo({ params }: { params: Promi
       <Encabezado titulo="Diagnóstico de gestación" subtitulo={etiquetaAnimal(animal)} />
       <div className="lg:max-w-xl">
         {vigente.servicio ? (
-          <FormDiagnostico hembraId={id} hoy={hoyBogota()} servicio={vigente.servicio} gestacionDias={ajustes.especie[animal.especie].gestacion_dias} />
+          <FormDiagnostico hembraId={id} veterinarios={veterinarios} hoy={hoyBogota()} servicio={vigente.servicio} gestacionDias={ajustes.especie[animal.especie].gestacion_dias} />
         ) : (
           <div className="space-y-4">
             <Aviso tipo="atencion">{vigente.razon === "ya_vacia" ? MENSAJE_YA_VACIA : MENSAJE_SIN_SERVICIO}</Aviso>

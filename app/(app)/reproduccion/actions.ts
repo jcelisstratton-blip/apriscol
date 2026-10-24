@@ -167,6 +167,7 @@ const esquemaDiagnostico = z.object({
   condicion_corporal: decimal(z.number("La condición corporal debe estar entre 1 y 5.").min(1, "La condición corporal debe estar entre 1 y 5.").max(5, "La condición corporal debe estar entre 1 y 5.")),
   prueba_nombre: texto(80, "El nombre de la prueba es muy largo."),
   prueba_resultado: texto(120, "El resultado de la prueba es muy largo."),
+  responsable: texto(120, "El nombre de quien hizo el diagnóstico es muy largo."),
   observaciones: texto(1000, "Las observaciones son muy largas."),
   diagnostico_id: opcional(z.uuid()),
 });
@@ -236,7 +237,7 @@ async function leerDiagnostico(form: FormData, fincaId: string, supabase: Client
   return {
     d,
     servicioId,
-    fila: { fecha: d.fecha, metodo: d.metodo as never, resultado: d.resultado as never, ...propios, observaciones: d.observaciones ?? null },
+    fila: { fecha: d.fecha, metodo: d.metodo as never, resultado: d.resultado as never, ...propios, responsable: d.responsable ?? null, observaciones: d.observaciones ?? null },
   } as const;
 }
 

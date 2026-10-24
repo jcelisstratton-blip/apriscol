@@ -232,3 +232,21 @@ test("equipo: el cargo sale del perfil y no se pregunta", () => {
   assert.match(perfilPorRol("ninguno", { labor_principal: "otra" }, true).error, /labor/);
   assert.ok(perfilPorRol("ninguno", { labor_principal: "otra", cargo: "Esquilador" }, true).datos);
 });
+
+import { eleccionInicialResponsable, nombreResponsable, OTRA_PERSONA } from "../lib/veterinarios.ts";
+
+test("responsable de un procedimiento: el veterinario de la finca o el nombre de otra persona", () => {
+  const ana = { id: "v1", nombre: "Dra. Ana Ruiz", tarjeta_profesional: "MV-1" };
+  const luis = { id: "v2", nombre: "Luis Peña", tarjeta_profesional: null };
+  // Nuevo: con un solo veterinario ya viene elegido; con varios no se adivina; sin veterinarios solo se escribe el nombre.
+  assert.equal(eleccionInicialResponsable([ana]), "v1");
+  assert.equal(eleccionInicialResponsable([ana, luis]), "");
+  assert.equal(eleccionInicialResponsable([]), OTRA_PERSONA);
+  // Al corregir: el veterinario que coincide (sin importar mayúsculas) o «otra persona» si era alguien que no está en el equipo.
+  assert.equal(eleccionInicialResponsable([ana, luis], "luis peña"), "v2");
+  assert.equal(eleccionInicialResponsable([ana, luis], "Don Pedro"), OTRA_PERSONA);
+  // El nombre que se guarda es el del veterinario elegido o lo escrito.
+  assert.equal(nombreResponsable([ana, luis], "v1", "ignorado"), "Dra. Ana Ruiz");
+  assert.equal(nombreResponsable([ana, luis], OTRA_PERSONA, "  Don Pedro "), "Don Pedro");
+  assert.equal(nombreResponsable([ana, luis], "", "algo"), "");
+});

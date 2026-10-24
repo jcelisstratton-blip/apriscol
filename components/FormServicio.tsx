@@ -6,12 +6,14 @@ import { Aviso } from "@/components/Aviso";
 import { Boton, clasesBoton } from "@/components/Boton";
 import { Campo, CLASE_INPUT } from "@/components/Campo";
 import { EndogamiaServicio } from "@/components/EndogamiaServicio";
+import { ResponsableProcedimiento } from "@/components/ResponsableProcedimiento";
 import { SelectorAnimal } from "@/components/SelectorAnimal";
 import { SelectorTarjetas } from "@/components/SelectorTarjetas";
 import { crearServicio, editarServicio } from "@/app/(app)/reproduccion/actions";
 import { formatoFecha, sumarDias } from "@/lib/fechas";
 import { ESCENA_TECNICA_INSEMINACION, ESCENA_TIPO_SERVICIO, ESCENA_TIPO_TRANSFERENCIA } from "@/lib/escenas-forms-b-reproduccion";
 import { DETALLE_TECNICA, DETALLE_TRANSFERENCIA, ETIQUETA_SERVICIO, ETIQUETA_TECNICA, ETIQUETA_TRANSFERENCIA, TECNICAS_INSEMINACION, TIPOS_SERVICIO, TIPOS_TRANSFERENCIA } from "@/lib/reproduccion";
+import type { VeterinarioRef } from "@/lib/veterinarios";
 import type { Especie, Servicio, TecnicaInseminacion, TipoServicio, TipoTransferencia } from "@/lib/tipos";
 
 type Macho = { id: string; numero_arete: string; nombre: string | null };
@@ -27,6 +29,7 @@ export function FormServicio({
   gestacionDias,
   hoy,
   umbral,
+  veterinarios,
   servicio,
   machoInicial,
   madreInicial,
@@ -39,6 +42,8 @@ export function FormServicio({
   hoy: string;
   /** Umbral de endogamia de la finca: con él se lee el nivel de la cría. */
   umbral: number;
+  /** Los veterinarios del equipo: quien hace una inseminación o una transferencia suele ser uno de ellos. */
+  veterinarios: VeterinarioRef[];
   servicio?: Servicio;
   machoInicial?: Macho | null;
   madreInicial?: Macho | null;
@@ -131,9 +136,13 @@ export function FormServicio({
         </>
       ) : null}
 
-      <Campo etiqueta={esIA ? "Técnico o inseminador" : esET ? "Técnico" : "Responsable"} ayuda={esIA || esET ? "Opcional. Quién hizo el procedimiento." : "Opcional. Quién hizo el servicio."}>
-        {(id) => <input id={id} name="responsable" defaultValue={servicio?.responsable ?? ""} maxLength={120} autoComplete="off" className={CLASE_INPUT} />}
-      </Campo>
+      {esIA || esET ? (
+        <ResponsableProcedimiento key={tipo} nombre="responsable" etiqueta={esIA ? "Técnico o inseminador" : "Técnico"} ayuda="Opcional. Quién hizo el procedimiento." veterinarios={veterinarios} inicial={servicio?.responsable} />
+      ) : (
+        <Campo etiqueta="Responsable" ayuda="Opcional. Quién hizo el servicio.">
+          {(id) => <input id={id} name="responsable" defaultValue={servicio?.responsable ?? ""} maxLength={120} autoComplete="off" className={CLASE_INPUT} />}
+        </Campo>
+      )}
 
       {prevista ? <Aviso tipo="info">Si queda gestante, el parto se espera hacia el {formatoFecha(prevista)} ({gestacionDias} días).</Aviso> : null}
 
