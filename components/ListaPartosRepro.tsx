@@ -10,10 +10,10 @@ import { ListaEscalable } from "@/components/ListaEscalable";
 import { crearClienteNavegador } from "@/lib/supabase/client";
 import { etiquetaAnimal } from "@/lib/animal";
 import { formatoFecha } from "@/lib/fechas";
-import { detalleParto, ETIQUETA_PARTO } from "@/lib/reproduccion";
+import { detalleParto, ETIQUETA_PARTO, resumenCrias } from "@/lib/reproduccion";
 import type { Parto } from "@/lib/tipos";
 
-type FilaParto = Parto & { madre?: { numero_arete: string; nombre: string | null } };
+type FilaParto = Parto & { madre?: { numero_arete: string; nombre: string | null }; crias?: { vivo: boolean }[] };
 
 /** Todos los partos de la finca (y abortos), del más reciente al más antiguo. Se registran desde la ficha de cada hembra. */
 export function ListaPartosRepro({ fincaId, puedeEditar }: { fincaId: string; puedeEditar: boolean }) {
@@ -38,6 +38,9 @@ export function ListaPartosRepro({ fincaId, puedeEditar }: { fincaId: string; pu
         const { data: animales } = await supabase.from("animales").select("id, numero_arete, nombre").in("id", [...new Set(filas.map((f) => f.madre_id))]);
         const porId = new Map((animales ?? []).map((a) => [a.id, a]));
         for (const f of filas) f.madre = porId.get(f.madre_id);
+        // Cuántas crías nacieron vivas y cuántas muertas: importa en cada parto.
+        const { data: crias } = await supabase.from("crias").select("parto_id, vivo").eq("finca_id", fincaId).in("parto_id", filas.map((f) => f.id));
+        for (const f of filas) f.crias = (crias ?? []).filter((c) => c.parto_id === f.id);
       }
       return { filas, total: count ?? 0 };
     },
@@ -60,7 +63,7 @@ export function ListaPartosRepro({ fincaId, puedeEditar }: { fincaId: string; pu
               {detalleParto(p) ? <span className="block text-sm text-humo [overflow-wrap:anywhere]">{detalleParto(p)}</span> : null}
               <span className="mt-1.5 flex flex-wrap gap-1.5">
                 <Insignia tono={p.tipo === "aborto" ? "alerta" : p.tipo === "normal" ? "musgo" : "aviso"}>{ETIQUETA_PARTO[p.tipo]}</Insignia>
-                {p.tipo !== "aborto" ? <Insignia>{`${p.numero_crias} ${p.numero_crias === 1 ? "cría" : "crías"}`}</Insignia> : null}
+                {p.tipo !== "aborto" ? <Insignia>{p.crias && p.crias.length > 0 ? resumenCrias(p.crias) : `${p.numero_crias} ${p.numero_crias === 1 ? "cría" : "crías"}`}</Insignia> : null}
               </span>
             </Link>
             {puedeEditar ? (

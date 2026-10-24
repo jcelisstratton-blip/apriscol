@@ -256,3 +256,15 @@ test("asistido por: el veterinario de la finca u otra persona, excluyentes", () 
   assert.equal(nombreAsistencia([ana, luis], { quien: "veterinario", veterinarioId: "", escrito: "" }), "");
   assert.equal(nombreAsistencia([ana, luis], { quien: "", veterinarioId: "v1", escrito: "algo" }), "");
 });
+
+import { resumenCrias } from "../lib/reproduccion.ts";
+
+test("crías de un parto: cuántas nacieron vivas y cuántas muertas", () => {
+  assert.equal(resumenCrias([]), "");
+  assert.equal(resumenCrias([{ vivo: true }]), "1 cría viva");
+  assert.equal(resumenCrias([{ vivo: false }]), "1 cría muerta");
+  assert.equal(resumenCrias([{ vivo: true }, { vivo: true }]), "2 crías vivas");
+  assert.equal(resumenCrias([{ vivo: false }, { vivo: false }]), "2 crías muertas");
+  assert.equal(resumenCrias([{ vivo: true }, { vivo: false }]), "2 crías · 1 viva · 1 muerta");
+  assert.equal(resumenCrias([{ vivo: true }, { vivo: true }, { vivo: false }]), "3 crías · 2 vivas · 1 muerta");
+});

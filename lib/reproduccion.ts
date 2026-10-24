@@ -110,6 +110,18 @@ export function detalleParto(p: { tipo: TipoParto; causa_aborto: CausaAborto | n
   return partes.length ? partes.join(" · ") : undefined;
 }
 
+/** Las crías de un parto en una línea: «1 cría viva», «2 crías · 1 viva · 1 muerta». Vacío si no hay crías (un aborto). */
+export function resumenCrias(crias: { vivo: boolean }[]): string {
+  const n = crias.length;
+  if (n === 0) return "";
+  const vivas = crias.filter((c) => c.vivo).length;
+  const muertas = n - vivas;
+  const texto = (k: number, f: string) => (k === 1 ? `1 ${f}` : `${k} ${f === "viva" ? "vivas" : "muertas"}`);
+  if (muertas === 0) return `${n === 1 ? "1 cría" : `${n} crías`} ${n === 1 ? "viva" : "vivas"}`;
+  if (vivas === 0) return `${n === 1 ? "1 cría" : `${n} crías`} ${n === 1 ? "muerta" : "muertas"}`;
+  return `${n} crías · ${texto(vivas, "viva")} · ${texto(muertas, "muerta")}`;
+}
+
 /** Partos totales en texto: «3 partos», «1 parto» o «Sin dato». */
 export const textoPartos = (n: number | null) => (n == null ? "Sin dato" : n === 1 ? "1 parto" : `${n} partos`);
 

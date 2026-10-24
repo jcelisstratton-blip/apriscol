@@ -24,7 +24,7 @@ const NUEVA: Fila = { sexo: "", vivo: true, peso: "", arete: "", nombre: "" };
  * complicaciones y observaciones, sin asistencia; parto asistido y cesárea, lo mismo más «Asistido por» (el veterinario de la finca u otra persona; en la cesárea,
  * además, las complicaciones quirúrgicas y el protocolo posoperatorio); aborto, sin crías ni pesos: causa aparente, «Asistido por» si lo hubo, complicaciones y
  * observaciones clínicas. Una cría viva con arete se crea también como
- * animal del hato, con su madre y su padre. Al corregir un parto cambian la fecha, el tipo y los datos clínicos; las crías se corrigen desde su ficha.
+ * animal del hato, con su madre y su padre. Al corregir un parto cambian la fecha, el tipo y los datos clínicos, y el sexo, el peso y el estado (viva o muerta) de las crías que aún no son animales del hato.
  */
 export function FormParto({
   hembraId,
@@ -53,6 +53,9 @@ export function FormParto({
   const [, iniciar] = useTransition();
   const [tipo, setTipo] = useState<TipoParto>(parto?.tipo ?? "normal");
   const [filas, setFilas] = useState<Fila[]>([{ ...NUEVA }]);
+  // Al corregir: las crías que todavía no son un animal del hato se pueden corregir aquí (sexo, peso y si nació viva o muerta); las que ya son animal, en su ficha.
+  const [edicion, setEdicion] = useState(() => (crias ?? []).map((c) => ({ id: c.id, animal: Boolean(c.animal_id), sexo: (c.sexo ?? "") as Fila["sexo"], vivo: c.vivo, peso: c.peso_nacer_kg == null ? "" : String(c.peso_nacer_kg).replace(".", ",") })));
+  const cambiarEdicion = (i: number, cambio: Partial<(typeof edicion)[number]>) => setEdicion((f) => f.map((x, k) => (k === i ? { ...x, ...cambio } : x)));
   const [causa, setCausa] = useState<CausaAborto | "">(parto?.causa_aborto ?? "");
   const esAborto = tipo === "aborto";
   const esCesarea = tipo === "cesarea";
@@ -71,6 +74,9 @@ export function FormParto({
           filas.map((x) => ({ sexo: x.sexo || null, vivo: x.vivo, peso: x.peso.trim() || undefined, arete: x.arete.trim() || undefined, nombre: x.nombre.trim() || undefined })),
         ),
       );
+    }
+    if (editando && edicion.some((x) => !x.animal)) {
+      datos.set("crias_edit", JSON.stringify(edicion.filter((x) => !x.animal).map((x) => ({ id: x.id, sexo: x.sexo || null, vivo: x.vivo, peso: x.peso.trim() || undefined }))));
     }
     iniciar(() => enviar(datos));
   };
@@ -138,17 +144,39 @@ export function FormParto({
       ) : null}
 
       {editando && crias && crias.length > 0 ? (
-        <div className="space-y-1 rounded-2xl bg-papel p-3.5 text-[0.9375rem] ring-1 ring-arena">
-          <p className="font-semibold">Crías de este parto</p>
-          {crias.map((c, i) => (
-            <p key={c.id} className="text-humo">
-              {i + 1}. {c.sexo === "hembra" ? "Hembra" : c.sexo === "macho" ? "Macho" : "Sexo sin registrar"} · {c.vivo ? "viva" : "no viva"}
-              {c.peso_nacer_kg != null ? ` · ${c.peso_nacer_kg.toLocaleString("es-CO")} kg` : ""}
-              {c.animal_id ? " · en el hato" : ""}
-            </p>
-          ))}
-          <p className="text-sm text-humo">Las crías se corrigen desde su propia ficha.</p>
-        </div>
+        <fieldset className="space-y-3">
+          <legend className="text-sm font-semibold">Crías de este parto ({crias.length})</legend>
+          {crias.map((c, i) => {
+            const x = edicion[i];
+            return (
+              <div key={c.id} className="space-y-3 rounded-2xl bg-papel p-3.5 ring-1 ring-arena">
+                <p className="font-semibold">Cría {i + 1}</p>
+                {c.animal_id ? (
+                  <p className="text-[0.9375rem] text-humo">
+                    {c.sexo === "hembra" ? "Hembra" : c.sexo === "macho" ? "Macho" : "Sexo sin registrar"} · {c.vivo ? "viva" : "muerta"}
+                    {c.peso_nacer_kg != null ? ` · ${c.peso_nacer_kg.toLocaleString("es-CO")} kg` : ""} · ya está en tu hato: se corrige desde su ficha.
+                  </p>
+                ) : (
+                  <>
+                    <Campo etiqueta="Sexo">
+                      {(id) => (
+                        <SelectorTarjetas id={id} valor={x.sexo} onCambio={(v) => cambiarEdicion(i, { sexo: v as Fila["sexo"] })} titulo="Sexo de la cría" opciones={[{ valor: "hembra", etiqueta: "Hembra", escena: ESCENA_SEXO.hembra }, { valor: "macho", etiqueta: "Macho", escena: ESCENA_SEXO.macho }]} />
+                      )}
+                    </Campo>
+                    <Campo etiqueta="Estado">
+                      {(id) => (
+                        <SelectorTarjetas id={id} valor={x.vivo ? "viva" : "muerta"} onCambio={(v) => v && cambiarEdicion(i, { vivo: v === "viva" })} titulo="Estado de la cría" opciones={[{ valor: "viva", etiqueta: "Viva", escena: ESCENA_ESTADO_CRIA.viva }, { valor: "muerta", etiqueta: "Muerta", escena: ESCENA_ESTADO_CRIA.muerta }]} />
+                      )}
+                    </Campo>
+                    <Campo etiqueta="Peso al nacer (kg)" ayuda="Opcional.">
+                      {(id) => <input id={id} value={x.peso} onChange={(e) => cambiarEdicion(i, { peso: e.target.value })} inputMode="decimal" autoComplete="off" placeholder="Ej. 3,2" className={CLASE_INPUT} />}
+                    </Campo>
+                  </>
+                )}
+              </div>
+            );
+          })}
+        </fieldset>
       ) : null}
 
       {esAborto ? (

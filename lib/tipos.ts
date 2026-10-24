@@ -1365,6 +1365,7 @@ export type Database = {
       agregar_semental_externo: { Args: { p_finca: string; p_lote: string; p_externo: unknown; p_num_hembras: number }; Returns: string };
       quitar_semental: { Args: { p_finca: string; p_lote: string; p_macho: string }; Returns: undefined };
       agregar_veterinario: { Args: { p_finca: string; p_nombre: string; p_tarjeta: string; p_telefono: string }; Returns: { id: string; nombre: string; tarjeta_profesional: string | null }[] };
+      corregir_crias: { Args: { p_finca: string; p_parto: string; p_crias: unknown }; Returns: number };
       veterinarios_finca: { Args: { p_finca: string }; Returns: { id: string; nombre: string; tarjeta_profesional: string | null }[] };
       registrar_persona: { Args: { p_finca: string; p_persona: unknown; p_email?: string | null; p_rol?: string | null }; Returns: unknown };
       importar_animales_lote: {
