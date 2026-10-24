@@ -1,12 +1,26 @@
 import { Baby, CircleHelp, CircleOff, Hand, HandHelping, Handshake, Heart, HeartCrack, House, Microscope, ScanLine, Scissors, Snowflake, Stethoscope, Syringe, Truck } from "lucide-react";
 import { ESC, escena, type EscenaDef } from "@/lib/escenas";
-import type { MetodoDiagnostico, ResultadoDiagnostico, TipoParto, TipoServicio } from "@/lib/tipos";
+import type { MetodoDiagnostico, ResultadoDiagnostico, TecnicaInseminacion, TipoParto, TipoServicio, TipoTransferencia } from "@/lib/tipos";
 
 /** Cómo se hizo el servicio a una hembra. */
 export const ESCENA_TIPO_SERVICIO: Record<TipoServicio, EscenaDef> = {
   monta_natural: escena(Heart, "arcilla", House),
   inseminacion: escena(Syringe, "musgo", Snowflake),
   transferencia_embrionaria: escena(Microscope, "ocre", Baby),
+};
+
+/** Técnica de una inseminación. */
+export const ESCENA_TECNICA_INSEMINACION: Record<TecnicaInseminacion, EscenaDef> = {
+  cervical: escena(Syringe, "musgo"),
+  transcervical: escena(ScanLine, "oliva", Syringe),
+  laparoscopica: escena(Scissors, "ocre", Microscope),
+};
+
+/** Estado del embrión al transferirlo. */
+export const ESCENA_TIPO_TRANSFERENCIA: Record<TipoTransferencia, EscenaDef> = {
+  fresco: escena(Baby, "oliva"),
+  vitrificado: escena(Snowflake, "musgo", Microscope),
+  congelado: escena(Snowflake, "ocre"),
 };
 
 /** Qué pasó en un parto. */

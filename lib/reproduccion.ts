@@ -1,11 +1,27 @@
 import { diasHasta } from "@/lib/fechas";
-import type { EstadoRepro, MetodoDiagnostico, ResultadoDiagnostico, TipoParto, TipoServicio } from "@/lib/tipos";
+import type { EstadoRepro, MetodoDiagnostico, ResultadoDiagnostico, TecnicaInseminacion, TipoParto, TipoServicio, TipoTransferencia } from "@/lib/tipos";
 
 export const TIPOS_SERVICIO: TipoServicio[] = ["monta_natural", "inseminacion", "transferencia_embrionaria"];
 export const ETIQUETA_SERVICIO: Record<TipoServicio, string> = {
   monta_natural: "Monta natural",
   inseminacion: "Inseminación",
   transferencia_embrionaria: "Transferencia de embrión",
+};
+
+export const TECNICAS_INSEMINACION: TecnicaInseminacion[] = ["cervical", "transcervical", "laparoscopica"];
+export const ETIQUETA_TECNICA: Record<TecnicaInseminacion, string> = { cervical: "Cervical", transcervical: "Transcervical", laparoscopica: "Laparoscópica" };
+export const DETALLE_TECNICA: Record<TecnicaInseminacion, string> = {
+  cervical: "El semen se deposita a la entrada del cuello uterino.",
+  transcervical: "Se pasa el cuello uterino y se deposita dentro del útero.",
+  laparoscopica: "Con cirugía menor, directo en el útero.",
+};
+
+export const TIPOS_TRANSFERENCIA: TipoTransferencia[] = ["fresco", "vitrificado", "congelado"];
+export const ETIQUETA_TRANSFERENCIA: Record<TipoTransferencia, string> = { fresco: "Fresco", vitrificado: "Vitrificado", congelado: "Congelado" };
+export const DETALLE_TRANSFERENCIA: Record<TipoTransferencia, string> = {
+  fresco: "Se transfiere recién recolectado.",
+  vitrificado: "Congelado ultrarrápido, listo para descongelar.",
+  congelado: "Congelación lenta tradicional.",
 };
 
 export const METODOS_DIAGNOSTICO: MetodoDiagnostico[] = ["ecografia", "palpacion", "otro"];

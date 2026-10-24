@@ -26,9 +26,10 @@ export default async function PaginaEditarServicio({ params }: { params: Promise
   if (!puedeEscribir(rol, "reproduccion", finca.plan)) redirect(`/hato/${servicio.hembra_id}`);
   const { data: animal } = await supabase.from("animales").select("id, numero_arete, nombre, especie").eq("id", servicio.hembra_id).eq("finca_id", finca.id).maybeSingle();
   if (!animal) notFound();
-  const [ajustes, macho] = await Promise.all([
+  const [ajustes, macho, madre] = await Promise.all([
     obtenerAjustes(),
     servicio.macho_id ? supabase.from("animales").select("id, numero_arete, nombre").eq("id", servicio.macho_id).eq("finca_id", finca.id).maybeSingle() : Promise.resolve({ data: null }),
+    servicio.madre_genetica_id ? supabase.from("animales").select("id, numero_arete, nombre").eq("id", servicio.madre_genetica_id).eq("finca_id", finca.id).maybeSingle() : Promise.resolve({ data: null }),
   ]);
 
   return (
@@ -38,7 +39,7 @@ export default async function PaginaEditarServicio({ params }: { params: Promise
       </Link>
       <Encabezado titulo="Editar servicio" subtitulo={etiquetaAnimal(animal)} />
       <div className="space-y-8 lg:max-w-xl">
-        <FormServicio fincaId={finca.id} hembraId={animal.id} especie={animal.especie} gestacionDias={ajustes.especie[animal.especie].gestacion_dias} hoy={hoyBogota()} servicio={servicio} machoInicial={macho.data} />
+        <FormServicio fincaId={finca.id} hembraId={animal.id} especie={animal.especie} gestacionDias={ajustes.especie[animal.especie].gestacion_dias} hoy={hoyBogota()} servicio={servicio} machoInicial={macho.data} madreInicial={madre.data} />
         {puedeGestionar(rol) ? (
           <EliminarRegistro
             etiqueta="Eliminar este servicio"
