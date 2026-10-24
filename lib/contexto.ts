@@ -21,13 +21,18 @@ export type Contexto = {
 
 const ESTADOS: EstadoPlan[] = ["vigente", "por_vencer", "gracia", "bloqueada", "pendiente"];
 
-/** Usuario autenticado (o redirige a /login). Una consulta por petición. */
+/**
+ * Usuario autenticado (o redirige a entrar de nuevo). Una verificación por petición.
+ * Se leen las «claims» del JWT, que se validan con las llaves públicas del proyecto sin ir a Supabase en cada pantalla (`getUser()` hacía un viaje
+ * de red por cada clic). Es lo mismo que ya hace el filtro de entrada (`proxy.ts`), y la base valida el mismo JWT en cada consulta (RLS).
+ */
 export const obtenerUsuario = cache(async () => {
   const supabase = await crearClienteServidor();
-  const { data } = await supabase.auth.getUser();
-  // Sin usuario (o con una sesión que el servidor ya no reconoce) se pasa por /auth/salir, que borra las cookies: un simple /login volvía a «/» en bucle.
-  if (!data.user) redirect(RUTA_SALIR);
-  return { id: data.user.id, email: data.user.email ?? "" };
+  const { data } = await supabase.auth.getClaims();
+  const claims = data?.claims;
+  // Sin usuario (o con una sesión que ya no sirve) se pasa por /auth/salir, que borra las cookies: un simple /login podía volver a «/» en bucle.
+  if (!claims?.sub) redirect(RUTA_SALIR);
+  return { id: claims.sub, email: typeof claims.email === "string" ? claims.email : "" };
 });
 
 /** Fincas del usuario con su rol; sin fincas no hay panel, solo onboarding. */

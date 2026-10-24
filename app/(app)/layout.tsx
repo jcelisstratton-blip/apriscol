@@ -10,12 +10,12 @@ import { visibilidadMenu } from "@/lib/menu";
  * Cada pantalla decide cómo aprovechar el ancho (columnas, rejillas); si no hace nada, se ve como en el celular.
  */
 export default async function LayoutApp({ children }: { children: React.ReactNode }) {
-  const { user, perfil, finca, fincas, rol, vigencia: estado } = await obtenerContexto();
+  // La pregunta «¿es superadmin?» solo necesita al usuario: se hace a la vez que el contexto de la finca, no después.
+  const [{ user, perfil, finca, fincas, rol, vigencia: estado }, esSuperadmin] = await Promise.all([obtenerContexto(), esAdminPlataforma()]);
   // Plan vencido hace más de la semana de gracia: no se usa la app, solo se descargan los datos y se pide la renovación (/plan-vencido).
   if (estado === "bloqueada") redirect("/plan-vencido");
   // Finca adicional que aún espera la confirmación de su pago: solo se ve cuánto cuesta y cómo pagar (/activar-finca).
   if (estado === "pendiente") redirect("/activar-finca");
-  const esSuperadmin = await esAdminPlataforma();
 
   return (
     <>
