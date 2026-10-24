@@ -16,12 +16,27 @@ export const metadata: Metadata = { title: "Más" };
 
 const FILA = "flex min-h-14 items-center gap-3.5 px-1 py-2";
 
+/** Una fila de la lista de «Más»: icono, nombre y flecha. */
+function Fila({ href, Icono, texto, ocre = false }: { href: string; Icono: typeof Baby; texto: string; ocre?: boolean }) {
+  return (
+    <Link href={href} className={FILA}>
+      <Icono className={`size-5 ${ocre ? "text-ocre" : "text-musgo"}`} strokeWidth={1.75} />
+      <span className="flex-1 font-semibold">{texto}</span>
+      <ChevronRight className="size-5 text-humo" strokeWidth={1.75} />
+    </Link>
+  );
+}
+
 export default async function PaginaMas({ searchParams }: { searchParams: Promise<{ guardado?: string }> }) {
   const { guardado } = await searchParams;
   const { user, perfil, finca, fincas, rol } = await obtenerContexto();
   const nombre = perfil?.nombre || user.email;
   const ubicacion = [finca.municipio, finca.departamento].filter(Boolean).join(", ");
   const admin = await esAdminPlataforma();
+  const verReportes = reportesVisibles((m) => puedeVer(rol, m, finca.plan)).length > 0 || puedeVer(rol, "contabilidad", finca.plan);
+  const verProyecciones = puedeGestionar(rol) && puedeVer(rol, "proyecciones", finca.plan);
+  const verManejo = (["reproduccion", "carne", "sanidad", "corrales"] as const).some((m) => puedeVer(rol, m, finca.plan));
+  const verDinero = puedeVer(rol, "contabilidad", finca.plan) || verReportes || verProyecciones;
 
   return (
     <>
@@ -74,134 +89,59 @@ export default async function PaginaMas({ searchParams }: { searchParams: Promis
           </div>
         </Tarjeta>
 
-        <Tarjeta className="divide-y divide-arena py-1.5!">
-          {admin ? (
-            <Link href="/admin" className={FILA}>
-              <ShieldCheck className="size-5 text-ocre" strokeWidth={1.75} />
-              <span className="flex-1 font-semibold">Panel superadmin</span>
-              <ChevronRight className="size-5 text-humo" strokeWidth={1.75} />
-            </Link>
-          ) : null}
-          {puedeVer(rol, "reproduccion", finca.plan) ? (
-            <Link href="/reproduccion" className={FILA}>
-              <Baby className="size-5 text-musgo" strokeWidth={1.75} />
-              <span className="flex-1 font-semibold">Reproducción</span>
-              <ChevronRight className="size-5 text-humo" strokeWidth={1.75} />
-            </Link>
-          ) : null}
-          {puedeVer(rol, "carne", finca.plan) ? (
-            <Link href="/carne" className={FILA}>
-              <Beef className="size-5 text-musgo" strokeWidth={1.75} />
-              <span className="flex-1 font-semibold">Carne</span>
-              <ChevronRight className="size-5 text-humo" strokeWidth={1.75} />
-            </Link>
-          ) : null}
-          {puedeVer(rol, "sanidad", finca.plan) ? (
-            <Link href="/sanidad" className={FILA}>
-              <Syringe className="size-5 text-musgo" strokeWidth={1.75} />
-              <span className="flex-1 font-semibold">Sanidad</span>
-              <ChevronRight className="size-5 text-humo" strokeWidth={1.75} />
-            </Link>
-          ) : null}
-          {puedeVer(rol, "contabilidad", finca.plan) ? (
-            <Link href="/costos" className={FILA}>
-              <Wallet className="size-5 text-musgo" strokeWidth={1.75} />
-              <span className="flex-1 font-semibold">Costos</span>
-              <ChevronRight className="size-5 text-humo" strokeWidth={1.75} />
-            </Link>
-          ) : null}
-          {reportesVisibles((m) => puedeVer(rol, m, finca.plan)).length > 0 || puedeVer(rol, "contabilidad", finca.plan) ? (
-            <Link href="/reportes" className={FILA}>
-              <FileBarChart2 className="size-5 text-musgo" strokeWidth={1.75} />
-              <span className="flex-1 font-semibold">Reportes</span>
-              <ChevronRight className="size-5 text-humo" strokeWidth={1.75} />
-            </Link>
-          ) : null}
-          {puedeGestionar(rol) && puedeVer(rol, "proyecciones", finca.plan) ? (
-            <Link href="/proyecciones" className={FILA}>
-              <TrendingUp className="size-5 text-musgo" strokeWidth={1.75} />
-              <span className="flex-1 font-semibold">Proyecciones</span>
-              <ChevronRight className="size-5 text-humo" strokeWidth={1.75} />
-            </Link>
-          ) : null}
-          {puedeVer(rol, "corrales", finca.plan) ? (
-            <Link href="/corrales" className={FILA}>
-              <Fence className="size-5 text-musgo" strokeWidth={1.75} />
-              <span className="flex-1 font-semibold">Corrales</span>
-              <ChevronRight className="size-5 text-humo" strokeWidth={1.75} />
-            </Link>
-          ) : null}
-          <Link href="/hato/endogamia" className={FILA}>
-            <GitFork className="size-5 text-musgo" strokeWidth={1.75} />
-            <span className="flex-1 font-semibold">Endogamia del hato</span>
-            <ChevronRight className="size-5 text-humo" strokeWidth={1.75} />
-          </Link>
-          {puedeVer(rol, "ferias", finca.plan) ? (
-            <Link href="/ferias" className={FILA}>
-              <Trophy className="size-5 text-musgo" strokeWidth={1.75} />
-              <span className="flex-1 font-semibold">Premios</span>
-              <ChevronRight className="size-5 text-humo" strokeWidth={1.75} />
-            </Link>
-          ) : null}
-          {puedeVer(rol, "contabilidad", finca.plan) ? (
-            <Link href="/mas/productos" className={FILA}>
-              <Package className="size-5 text-musgo" strokeWidth={1.75} />
-              <span className="flex-1 font-semibold">Productos y terceros</span>
-              <ChevronRight className="size-5 text-humo" strokeWidth={1.75} />
-            </Link>
-          ) : null}
-          <Link href="/mas/ajustes" className={FILA}>
-            <SlidersHorizontal className="size-5 text-musgo" strokeWidth={1.75} />
-            <span className="flex-1 font-semibold">Ajustes de la finca</span>
-            <ChevronRight className="size-5 text-humo" strokeWidth={1.75} />
-          </Link>
-          {puedeGestionar(rol) || puedeVer(rol, "contabilidad", finca.plan) ? (
-            <Link href="/mas/miembros" className={FILA}>
-              <Users className="size-5 text-musgo" strokeWidth={1.75} />
-              <span className="flex-1 font-semibold">Equipo</span>
-              <ChevronRight className="size-5 text-humo" strokeWidth={1.75} />
-            </Link>
-          ) : null}
-          <Link href="/mas/referidos" className={FILA}>
-            <Gift className="size-5 text-ocre" strokeWidth={1.75} />
-            <span className="flex-1 font-semibold">Referidos</span>
-            <ChevronRight className="size-5 text-humo" strokeWidth={1.75} />
-          </Link>
-          {rol === "propietario" ? (
-            <Link href="/mas/plan" className={FILA}>
-              <Rocket className="size-5 text-ocre" strokeWidth={1.75} />
-              <span className="flex-1 font-semibold">{finca.plan !== "hacienda" ? "Cambiar el plan de esta finca" : "Plan de esta finca"}</span>
-              <ChevronRight className="size-5 text-humo" strokeWidth={1.75} />
-            </Link>
-          ) : null}
-          {rol === "propietario" ? (
-            <Link href="/mas/exportar" className={FILA}>
-              <Download className="size-5 text-musgo" strokeWidth={1.75} />
-              <span className="flex-1 font-semibold">Exportar los datos de la finca</span>
-              <ChevronRight className="size-5 text-humo" strokeWidth={1.75} />
-            </Link>
-          ) : null}
-          <Link href="/onboarding" className={FILA}>
-            <Plus className="size-5 text-musgo" strokeWidth={1.75} />
-            <span className="flex-1 font-semibold">Agregar otra finca</span>
-            <ChevronRight className="size-5 text-humo" strokeWidth={1.75} />
-          </Link>
-          <Link href="/cambiar-clave" className={FILA}>
-            <KeyRound className="size-5 text-musgo" strokeWidth={1.75} />
-            <span className="flex-1 font-semibold">Cambiar contraseña</span>
-            <ChevronRight className="size-5 text-humo" strokeWidth={1.75} />
-          </Link>
-          <Link href="/terminos" className={FILA}>
-            <FileText className="size-5 text-musgo" strokeWidth={1.75} />
-            <span className="flex-1 font-semibold">Términos y privacidad</span>
-            <ChevronRight className="size-5 text-humo" strokeWidth={1.75} />
-          </Link>
-          <form action={cerrarSesion}>
-            <button type="submit" className={`${FILA} w-full text-left`}>
-              <LogOut className="size-5 text-rojo" strokeWidth={1.75} />
-              <span className="flex-1 font-semibold text-rojo">Cerrar sesión</span>
-            </button>
-          </form>
+        {/* Lo mismo que el menú del computador, en el mismo orden: Hoy, Hato y Leche son pestañas de abajo; aquí va el resto, agrupado por tipo de cosa. */}
+        {verManejo ? (
+          <Tarjeta titulo="Producción y manejo">
+            <div className="divide-y divide-arena">
+              {puedeVer(rol, "reproduccion", finca.plan) ? <Fila href="/reproduccion" Icono={Baby} texto="Reproducción" /> : null}
+              {puedeVer(rol, "carne", finca.plan) ? <Fila href="/carne" Icono={Beef} texto="Carne" /> : null}
+              {puedeVer(rol, "sanidad", finca.plan) ? <Fila href="/sanidad" Icono={Syringe} texto="Sanidad" /> : null}
+              {puedeVer(rol, "corrales", finca.plan) ? <Fila href="/corrales" Icono={Fence} texto="Corrales" /> : null}
+            </div>
+          </Tarjeta>
+        ) : null}
+
+        {verDinero ? (
+          <Tarjeta titulo="Dinero y análisis">
+            <div className="divide-y divide-arena">
+              {puedeVer(rol, "contabilidad", finca.plan) ? <Fila href="/costos" Icono={Wallet} texto="Costos" /> : null}
+              {verReportes ? <Fila href="/reportes" Icono={FileBarChart2} texto="Reportes" /> : null}
+              {verProyecciones ? <Fila href="/proyecciones" Icono={TrendingUp} texto="Proyecciones" /> : null}
+              {puedeVer(rol, "contabilidad", finca.plan) ? <Fila href="/mas/productos" Icono={Package} texto="Productos y terceros" /> : null}
+            </div>
+          </Tarjeta>
+        ) : null}
+
+        <Tarjeta titulo="Genealogía">
+          <div className="divide-y divide-arena">
+            <Fila href="/hato/endogamia" Icono={GitFork} texto="Endogamia del hato" />
+            {puedeVer(rol, "ferias", finca.plan) ? <Fila href="/ferias" Icono={Trophy} texto="Premios" /> : null}
+          </div>
+        </Tarjeta>
+
+        <Tarjeta titulo="Mi finca">
+          <div className="divide-y divide-arena">
+            <Fila href="/mas/ajustes" Icono={SlidersHorizontal} texto="Ajustes de la finca" />
+            {puedeGestionar(rol) || puedeVer(rol, "contabilidad", finca.plan) ? <Fila href="/mas/miembros" Icono={Users} texto="Equipo" /> : null}
+            <Fila href="/mas/referidos" Icono={Gift} texto="Referidos" ocre />
+            {rol === "propietario" ? <Fila href="/mas/plan" Icono={Rocket} texto={finca.plan !== "hacienda" ? "Cambiar el plan de esta finca" : "Plan de esta finca"} ocre /> : null}
+            {rol === "propietario" ? <Fila href="/mas/exportar" Icono={Download} texto="Exportar los datos de la finca" /> : null}
+            <Fila href="/onboarding" Icono={Plus} texto="Agregar otra finca" />
+          </div>
+        </Tarjeta>
+
+        <Tarjeta titulo="Mi cuenta">
+          <div className="divide-y divide-arena">
+            {admin ? <Fila href="/admin" Icono={ShieldCheck} texto="Panel superadmin" ocre /> : null}
+            <Fila href="/cambiar-clave" Icono={KeyRound} texto="Cambiar contraseña" />
+            <Fila href="/terminos" Icono={FileText} texto="Términos y privacidad" />
+            <form action={cerrarSesion}>
+              <button type="submit" className={`${FILA} w-full text-left`}>
+                <LogOut className="size-5 text-rojo" strokeWidth={1.75} />
+                <span className="flex-1 font-semibold text-rojo">Cerrar sesión</span>
+              </button>
+            </form>
+          </div>
         </Tarjeta>
       </div>
     </>
