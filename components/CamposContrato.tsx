@@ -9,7 +9,7 @@ import { textoPrecio } from "@/lib/productos";
 import type { FormaPago, Persona, Vinculacion } from "@/lib/tipos";
 
 /**
- * Los campos del contrato de una persona: nombre, cargo, cómo está vinculada, cómo y cuánto se le paga, y desde cuándo. Los usan el formulario de
+ * Los campos del contrato de una persona: nombre, cargo (si no hay perfil que lo defina), cómo está vinculada, cómo y cuánto se le paga, y desde cuándo. Los usan el formulario de
  * invitar (aparecen al elegir el rol) y el de corregir a una persona (con su estado y observaciones). No se pide documento de identidad.
  */
 export function CamposContrato({
@@ -26,7 +26,7 @@ export function CamposContrato({
   /** Al corregir: si sigue trabajando, fecha de retiro y observaciones. */
   conEstado?: boolean;
   nombreSugerido?: string;
-  /** Los datos propios del perfil (`CamposPerfil`): van justo después del cargo, antes del contrato. */
+  /** Los datos propios del perfil (`CamposPerfil`): van justo después del nombre, antes del contrato. Con perfil el cargo no se pregunta: sale del perfil. */
   perfil?: React.ReactNode;
 }) {
   const [vinculacion, setVinculacion] = useState<Vinculacion>(persona?.vinculacion ?? "laboral");
@@ -44,9 +44,11 @@ export function CamposContrato({
       <Campo etiqueta="Nombre">
         {(id) => <input id={id} name="nombre" defaultValue={persona?.nombre ?? nombreSugerido ?? ""} required maxLength={120} autoComplete="off" enterKeyHint="next" placeholder="Ej. Ana Gómez" className={CLASE_INPUT} />}
       </Campo>
-      <Campo etiqueta="Cargo (opcional)">
-        {(id) => <input id={id} name="cargo" defaultValue={persona?.cargo ?? ""} maxLength={60} autoComplete="off" enterKeyHint="next" placeholder="Ej. Ordeñadora, veterinario, jornalero" className={CLASE_INPUT} />}
-      </Campo>
+      {perfil ? null : (
+        <Campo etiqueta="Cargo (opcional)">
+          {(id) => <input id={id} name="cargo" defaultValue={persona?.cargo ?? ""} maxLength={60} autoComplete="off" enterKeyHint="next" placeholder="Ej. Ordeñadora, veterinario, jornalero" className={CLASE_INPUT} />}
+        </Campo>
+      )}
 
       {perfil}
 

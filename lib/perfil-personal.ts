@@ -65,6 +65,8 @@ export type EntradaPerfil = {
   curso_manipulacion?: string;
   curso_manipulacion_vence?: string;
   labor_principal?: string;
+  /** Solo con «Otra labor»: qué hace. Es lo único que se escribe como cargo. */
+  cargo?: string;
 };
 
 export type DatosPerfil = {
@@ -153,6 +155,8 @@ export function perfilPorRol(rol: PerfilEquipo, e: EntradaPerfil, exigir: boolea
   } else {
     const labor = dentro(e.labor_principal, LABORES);
     if (exigir && !labor) return { error: "Elige la labor principal de la persona." };
+    if (exigir && labor === "otra" && !vacio(e.cargo)) return { error: "Escribe qué labor hace la persona." };
+    if (vacio(e.cargo) && vacio(e.cargo)!.length > 60) return { error: "La labor es muy larga (máximo 60 letras)." };
     datos.labor_principal = labor ?? null;
   }
   return { datos };
@@ -174,4 +178,18 @@ export function resumenPerfil(rol: PerfilEquipo, p: Partial<DatosPerfil>): strin
   }
   if (p.experiencia_anios != null) partes.push(p.experiencia_anios === 1 ? "1 año de experiencia" : `${p.experiencia_anios} años de experiencia`);
   return partes.filter(Boolean).join(" · ");
+}
+
+const NOMBRE_PERFIL: Record<Exclude<PerfilEquipo, "ninguno">, string> = { administrador: "Administrador", ordenador: "Ordeñador", veterinario: "Veterinario", contador: "Contador" };
+
+/**
+ * El cargo sale del perfil elegido, no se pregunta: un veterinario es «Veterinario»; un contador, «Contador público» o «Auxiliar contable»; quien trabaja sin
+ * acceso a la app, su labor (o la que escribió si eligió «Otra labor»). Si el perfil no lo define (una persona antigua sin labor), se conserva el cargo que ya tenía.
+ */
+export function cargoDelPerfil(rol: PerfilEquipo, datos: Pick<DatosPerfil, "tipo_contador" | "labor_principal">, escrito?: string, actual?: string | null): string | null {
+  if (rol === "contador") return datos.tipo_contador ? ETIQUETA_TIPO_CONTADOR[datos.tipo_contador] : NOMBRE_PERFIL.contador;
+  if (rol !== "ninguno") return NOMBRE_PERFIL[rol];
+  if (datos.labor_principal === "otra") return vacio(escrito) ?? ETIQUETA_LABOR.otra;
+  if (datos.labor_principal) return ETIQUETA_LABOR[datos.labor_principal];
+  return actual ?? null;
 }

@@ -188,7 +188,7 @@ test("parto: cada tipo pide y guarda solo lo suyo", () => {
   assert.deepEqual(nor.datos, { complicaciones: null, observaciones: "Cría atravesada", causa_aborto: null, responsable_quirurgico: null, protocolo_posoperatorio: null });
 });
 
-import { perfilPorRol, resumenPerfil } from "../lib/perfil-personal.ts";
+import { cargoDelPerfil, perfilPorRol, resumenPerfil } from "../lib/perfil-personal.ts";
 
 test("equipo: cada perfil pide y guarda solo lo suyo", () => {
   // Veterinario: tarjeta profesional y teléfono obligatorios al agregarlo.
@@ -216,4 +216,19 @@ test("equipo: cada perfil pide y guarda solo lo suyo", () => {
   assert.match(perfilPorRol("ninguno", {}, true).error, /labor/);
   assert.equal(perfilPorRol("ninguno", { labor_principal: "potreros" }, true).datos.labor_principal, "potreros");
   assert.equal(resumenPerfil("veterinario", { tarjeta_profesional: "MV-1234", especialidades: ["sanidad"], experiencia_anios: 8 }), "T.P. MV-1234 · Sanidad · 8 años de experiencia");
+});
+
+test("equipo: el cargo sale del perfil y no se pregunta", () => {
+  const sin = { tipo_contador: null, labor_principal: null };
+  assert.equal(cargoDelPerfil("veterinario", sin, "lo que sea"), "Veterinario");
+  assert.equal(cargoDelPerfil("ordenador", sin), "Ordeñador");
+  assert.equal(cargoDelPerfil("administrador", sin), "Administrador");
+  assert.equal(cargoDelPerfil("contador", { tipo_contador: "publico", labor_principal: null }), "Contador público");
+  assert.equal(cargoDelPerfil("contador", { tipo_contador: "auxiliar", labor_principal: null }), "Auxiliar contable");
+  // Sin acceso a la app: su labor; con «Otra labor», la que escribió; sin labor (persona antigua), el cargo que ya tenía.
+  assert.equal(cargoDelPerfil("ninguno", { tipo_contador: null, labor_principal: "potreros" }), "Potreros y cercas");
+  assert.equal(cargoDelPerfil("ninguno", { tipo_contador: null, labor_principal: "otra" }, "Esquilador"), "Esquilador");
+  assert.equal(cargoDelPerfil("ninguno", sin, undefined, "Jornalero"), "Jornalero");
+  assert.match(perfilPorRol("ninguno", { labor_principal: "otra" }, true).error, /labor/);
+  assert.ok(perfilPorRol("ninguno", { labor_principal: "otra", cargo: "Esquilador" }, true).datos);
 });

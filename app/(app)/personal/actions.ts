@@ -13,7 +13,7 @@ import { soporteValido } from "@/lib/soportes";
 import { formasDe } from "@/lib/nomina";
 import type { FormaPago, Vinculacion } from "@/lib/tipos";
 import { opcional } from "@/lib/validacion";
-import { perfilPorRol, type EntradaPerfil } from "@/lib/perfil-personal";
+import { cargoDelPerfil, perfilPorRol, type EntradaPerfil } from "@/lib/perfil-personal";
 
 export type EstadoForm = { error?: string } | undefined;
 type Resultado = { ok: true } | { ok: false; error: string };
@@ -92,11 +92,11 @@ export async function editarPersona(_: EstadoForm, form: FormData): Promise<Esta
   if (problema) return { error: problema };
   const supabase = await crearClienteServidor();
   // Los datos del perfil dependen del perfil que ya tiene la persona (no se cambia al corregirla); no se exigen para no bloquear a quien ya estaba registrado.
-  const { data: actual } = await supabase.from("personal").select("rol").eq("id", d.persona_id).eq("finca_id", finca.id).maybeSingle();
+  const { data: actual } = await supabase.from("personal").select("rol, cargo").eq("id", d.persona_id).eq("finca_id", finca.id).maybeSingle();
   if (!actual) return { error: "No encontramos a esa persona." };
   const perfil = perfilPorRol(actual.rol ?? "ninguno", Object.fromEntries(form) as EntradaPerfil, false);
   if ("error" in perfil) return { error: perfil.error };
-  const { data, error } = await supabase.from("personal").update({ ...filaPersona(d), ...perfil.datos }).eq("id", d.persona_id).eq("finca_id", finca.id).select("id");
+  const { data, error } = await supabase.from("personal").update({ ...filaPersona(d), ...perfil.datos, cargo: cargoDelPerfil(actual.rol ?? "ninguno", perfil.datos, d.cargo, actual.cargo) }).eq("id", d.persona_id).eq("finca_id", finca.id).select("id");
   if (error) return { error: errorPersona(error.message) };
   if (!data || data.length === 0) return { error: "No encontramos a esa persona." };
   refrescar();

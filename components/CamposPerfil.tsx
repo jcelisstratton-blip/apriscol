@@ -127,6 +127,11 @@ export function CamposPerfil({ rol, persona }: { rol: PerfilEquipo; persona?: Pe
           <Campo etiqueta="Labor principal">
             {(id) => <SelectorTarjetas id={id} nombre="labor_principal" valor={labor} onCambio={setLabor} titulo="Labor principal" opciones={LABORES.map((l) => ({ valor: l, etiqueta: ETIQUETA_LABOR[l], detalle: DETALLE_LABOR[l], escena: ESCENA_LABOR[l] }))} />}
           </Campo>
+          {labor === "otra" ? (
+            <Campo etiqueta="¿Qué labor hace?">
+              {(id) => <input id={id} name="cargo" defaultValue={persona?.labor_principal === "otra" ? (persona?.cargo ?? "") : ""} required maxLength={60} autoComplete="off" placeholder="Ej. Esquilador" className={CLASE_INPUT} />}
+            </Campo>
+          ) : null}
           <Campo etiqueta="Años de experiencia" ayuda="Opcional.">
             {(id) => <input id={id} name="experiencia_anios" inputMode="numeric" defaultValue={persona?.experiencia_anios ?? ""} maxLength={2} autoComplete="off" placeholder="Ej. 2" className={CLASE_INPUT} />}
           </Campo>

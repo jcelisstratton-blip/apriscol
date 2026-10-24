@@ -11,7 +11,7 @@ import type { FormaPago, Vinculacion } from "@/lib/tipos";
 import { mensajeAmigable } from "@/lib/mensaje-amigable";
 import { urlDelSitio } from "@/lib/sitio";
 import { opcional } from "@/lib/validacion";
-import { perfilPorRol } from "@/lib/perfil-personal";
+import { cargoDelPerfil, perfilPorRol } from "@/lib/perfil-personal";
 
 export type EstadoInvitar = { error?: string; enlace?: string; email?: string; persona?: string } | undefined;
 
@@ -80,7 +80,7 @@ export async function invitar(_: EstadoInvitar, form: FormData): Promise<EstadoI
     p_finca: finca.id,
     p_persona: {
       nombre: d.nombre,
-      cargo: d.cargo ?? null,
+      cargo: cargoDelPerfil(d.rol, perfil.datos, d.cargo),
       vinculacion: d.vinculacion,
       forma_pago: d.forma_pago,
       valor_base: d.valor_base,
