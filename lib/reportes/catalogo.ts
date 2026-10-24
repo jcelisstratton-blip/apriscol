@@ -1,6 +1,6 @@
 import { ESCENA_FILTRO, ESCENA_REPORTE } from "@/lib/escenas-reportes";
-import { CC_ALTA, CC_BAJA, DIAS_MINIMOS_GDP, DIAS_PARTO_PROXIMO, DIAS_SIN_PESAR, EDAD_DESTETE_MESES } from "@/lib/reportes/calculos";
-import { DIAS_REPETIR_DX_DESDE, DIAS_REPETIR_DX_HASTA } from "@/lib/reproduccion";
+import { CC_ALTA, CC_BAJA, DIAS_MINIMOS_GDP, DIAS_SIN_PESAR, EDAD_DESTETE_MESES } from "@/lib/reportes/calculos";
+import { DIAS_PARTO_PROXIMO, DIAS_REPETIR_DX_DESDE, DIAS_REPETIR_DX_HASTA } from "@/lib/reproduccion";
 import type { FiltroDef, GrupoReporte, OpcionFiltro, ReporteDef, ReporteId } from "@/lib/reportes/tipos";
 import type { Especie, ModuloApp } from "@/lib/tipos";
 

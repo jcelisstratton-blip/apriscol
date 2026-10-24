@@ -128,9 +128,17 @@ verdad por todas sus ramas** (con datos, vacía, con un animal, con otro periodo
 
 `page.tsx` arma la cabecera, el aviso de retiro, «Datos» y las notas; cada tarjeta restante es un componente de servidor en `fichas/` (`TarjetaLactancia`, `TarjetaReproduccion`, `TarjetaCalidadLeche`, `TarjetaCrecimiento`, `TarjetasGenealogia`, `TarjetaSanidad`, `TarjetaUbicacion`, `TarjetaCostos`, `TarjetaPremios`, `TarjetaSalida`) que **carga sus propios datos** y devuelve `null` si no aplica al rol, plan o estado del animal. Tarjeta nueva ⇒ archivo nuevo en `fichas/` que recibe `c: CtxFicha`, y una línea en `page.tsx`; nunca más consultas apiladas en la página.
 
+## Una sola definición (no se copia lo que ya existe)
+
+Antes de escribir un helper o una regla, buscar si ya existe. Lo que ya tiene casa única:
+- **Leer muchas filas:** `lib/consultas.ts` (`traerTodo`, `paginar`, `enTramos`). PostgREST corta cada respuesta en 1000: un `.limit(2000)` suelto deja una lista «completa» truncada en silencio. Nunca otro bucle de páginas.
+- **Buscar texto sin tildes:** `lib/texto.ts` (`sinTildes`). **Descargar un Excel:** `lib/archivos.ts` (`respuestaExcel`, `cabecerasExcel`).
+- **Reglas de seguimiento reproductivo** (parto próximo o atrasado, último tercio, por secar, por confirmar o repetir el diagnóstico, resultado de un servicio): `lib/reproduccion.ts`. **De sanidad** (revisión de pezuñas atrasada, FAMACHA por desparasitar): `lib/sanidad.ts` y `lib/famacha.ts`. El Resumen, la ficha, los programadores y los reportes **llaman** esas funciones; si la regla cambia, cambia ahí y los números nunca se contradicen. Tienen sus pruebas en `tests/compartido.test.mjs`.
+- **Días entre fechas:** `diasHasta` / `diasDesde` de `lib/fechas.ts`.
+
 ## Verificación antes de dar algo por hecho
 
-`npx tsc --noEmit` · `npm run lint` · `npm test` · `npm run tipos:verificar` · `npm run build` · auditoría de celular de arriba · pruebas de RLS con usuarios
+`npx tsc --noEmit` · `npm run lint` · `npm test` · `npm run tipos:verificar` · `npm run build` (los cinco corren en el CI) · auditoría de celular de arriba · pruebas de RLS con usuarios
 simulados (propietario / ordeñador / ajeno) cuando se toque una política.
 
 ## Tipos y espejos TypeScript ↔ SQL

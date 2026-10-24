@@ -1,8 +1,8 @@
-import { ETIQUETA_SERVICIO, TIPOS_SERVICIO } from "@/lib/reproduccion";
-import { NOTA_TRUNCADO, cargarAnimales, col, hrefAnimal, pasaEspecie, tituloAnimal, traerTodo } from "@/lib/reportes/base";
+import { ETIQUETA_SERVICIO, TIPOS_SERVICIO, resultadoServicio, servicioPreno, servicioResuelto, type ResultadoServicio } from "@/lib/reproduccion";
+import { NOTA_TRUNCADO, cargarAnimales, col, hrefAnimal, pasaEspecie, tituloAnimal } from "@/lib/reportes/base";
+import { traerTodo } from "@/lib/consultas";
 import type { AnimalBase, ContextoReporte } from "@/lib/reportes/base";
-import { proporcion, resultadoServicio, servicioPreno, servicioResuelto, suma } from "@/lib/reportes/calculos";
-import type { ResultadoServicio } from "@/lib/reportes/calculos";
+import { proporcion, suma } from "@/lib/reportes/calculos";
 import { cifra, porcentaje } from "@/lib/reportes/formato";
 import type { DiagnosticoBase, ServicioBase } from "@/lib/reportes/informes/repro-comun";
 import type { FilaReporte, Indicador, ResultadoReporte } from "@/lib/reportes/tipos";

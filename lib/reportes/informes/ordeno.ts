@@ -1,9 +1,11 @@
 import { nombreTipo } from "@/lib/animal";
-import { diasHasta, sumarDias } from "@/lib/fechas";
-import { ETIQUETA_ESTADO } from "@/lib/reproduccion";
-import { COLUMNAS_ANIMAL, NOTA_TRUNCADO, cargarAnimales, col, hrefAnimal, pasaEspecie, tituloAnimal, traerTodo, valoresAnimal } from "@/lib/reportes/base";
+import { sumarDias } from "@/lib/fechas";
+import { ETIQUETA_ESTADO, porSecar as debeSecarse } from "@/lib/reproduccion";
+import { COLUMNAS_ANIMAL, NOTA_TRUNCADO, cargarAnimales, col, hrefAnimal, pasaEspecie, tituloAnimal, valoresAnimal } from "@/lib/reportes/base";
+import { traerTodo } from "@/lib/consultas";
 import type { AnimalBase, ContextoReporte } from "@/lib/reportes/base";
-import { compararArete, diasDesde, promedio, suma } from "@/lib/reportes/calculos";
+import { compararArete, promedio, suma } from "@/lib/reportes/calculos";
+import { diasDesde } from "@/lib/fechas";
 import { cifra } from "@/lib/reportes/formato";
 import type { FilaReporte, Indicador, ResultadoReporte, TonoFila } from "@/lib/reportes/tipos";
 import type { LactanciaResumen, ReproHembra } from "@/lib/tipos";
@@ -47,7 +49,7 @@ export function construirOrdeno(d: DatosOrdeno): ResultadoReporte {
       const lac = ultimaLactancia.get(a.id);
       const enOrdeno = Boolean(lac && !lac.fecha_secado);
       const r = d.repro?.get(a.id);
-      const porSecar = enOrdeno && r?.estado === "gestante" && Boolean(r.fecha_prevista_parto) && diasHasta(r.fecha_prevista_parto!, d.hoy) <= d.secadoDiasAntes;
+      const porSecar = r ? debeSecarse({ estado: r.estado, fecha_prevista_parto: r.fecha_prevista_parto, en_lactancia: enOrdeno }, d.hoy, d.secadoDiasAntes) : false;
       const p = d.produccion.get(a.id);
       const total = p ? Number(p.litros_tanque) + Number(p.litros_descartados) : 0;
       return { a, lac, enOrdeno, r, porSecar, p, total, diario: p && p.dias > 0 ? total / p.dias : null };

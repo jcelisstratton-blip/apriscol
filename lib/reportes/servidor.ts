@@ -5,7 +5,7 @@ import { hoyBogota } from "@/lib/fechas";
 import { esPeriodo, rangoPeriodo, type Periodo } from "@/lib/periodos";
 import { puedeVer } from "@/lib/permisos";
 import { crearClienteServidor } from "@/lib/supabase/server";
-import type { ContextoReporte } from "@/lib/reportes/base";
+import { limitarFilas, type ContextoReporte } from "@/lib/reportes/base";
 import { definicionReporte, filtrosDe, leerFiltros, textoFiltros } from "@/lib/reportes/catalogo";
 import { generarReporte } from "@/lib/reportes/generar";
 import type { FiltroDef, ReporteDef, ReporteId, ResultadoReporte } from "@/lib/reportes/tipos";
@@ -25,15 +25,17 @@ export type ReporteListo = {
   /** El periodo en palabras, o `null` si el reporte no se mira por fechas. */
   periodoTexto: string | null;
   hoy: string;
+  /** Cuántas filas tiene el reporte completo (la pantalla puede mostrar menos). */
+  totalFilas: number;
 };
 
 const TEXTO_PERIODO: Record<Periodo, string> = { todo: "todo el historial", anio: "este año", "12m": "últimos 12 meses", "6m": "últimos 6 meses", "3m": "últimos 3 meses", rango: "entre fechas" };
 
 /**
  * Lee los filtros de la dirección, comprueba que la persona puede ver ese reporte y lo arma con su sesión (la base decide qué filas ve).
- * Devuelve `null` si su rol o su plan no ven el módulo del reporte.
+ * Devuelve `null` si su rol o su plan no ven el módulo del reporte. Con `completo` trae todas las filas (para el Excel); sin él, solo las de la pantalla.
  */
-export async function prepararReporte(id: ReporteId, params: Record<string, string | undefined>): Promise<ReporteListo | null> {
+export async function prepararReporte(id: ReporteId, params: Record<string, string | undefined>, opciones: { completo?: boolean } = {}): Promise<ReporteListo | null> {
   const { finca, rol } = await obtenerContexto();
   const def = definicionReporte(id);
   if (!puedeVer(rol, def.modulo, finca.plan)) return null;
@@ -55,7 +57,9 @@ export async function prepararReporte(id: ReporteId, params: Record<string, stri
     rango,
     puede: (modulo) => puedeVer(rol, modulo, finca.plan),
   };
-  const resultado = await generarReporte(id, contexto);
+  const completo = await generarReporte(id, contexto);
+  // La pantalla recibe un máximo de filas (el celular no aguanta miles); el Excel lleva todas.
+  const resultado = opciones.completo ? completo : limitarFilas(completo);
 
   return {
     def,
@@ -67,6 +71,7 @@ export async function prepararReporte(id: ReporteId, params: Record<string, stri
     fechas,
     periodoTexto: def.periodo ? (rango.desde || rango.hasta ? `${TEXTO_PERIODO[periodo]}` : TEXTO_PERIODO.todo) : null,
     hoy,
+    totalFilas: completo.filas.length,
   };
 }
 

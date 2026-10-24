@@ -13,8 +13,8 @@ import { telefonoWhatsApp } from "@/lib/cobranza";
 import { perfilDePersona, resumenPerfil, type DatosPerfil } from "@/lib/perfil-personal";
 import { ETIQUETA_FORMA_PAGO, ETIQUETA_VINCULACION, UNIDAD_PAGO } from "@/lib/nomina";
 import type { Persona } from "@/lib/tipos";
+import { sinTildes } from "@/lib/texto";
 
-const sinTildes = (t: string) => t.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 
 /** Las personas de la finca: quién es, cómo está vinculada, cómo y cuánto se le paga. Con buscador cuando la lista crece. */
 export function ListaPersonal({ personal, puedeEditar }: { personal: Persona[]; puedeEditar: boolean }) {

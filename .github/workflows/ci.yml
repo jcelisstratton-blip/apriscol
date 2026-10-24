@@ -9,6 +9,7 @@ jobs:
     env:
       NEXT_PUBLIC_SUPABASE_URL: https://ci.supabase.co
       NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_ci
+      NEXT_PUBLIC_SITE_URL: http://localhost:3000
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -20,3 +21,4 @@ jobs:
       - run: npm run lint
       - run: npm test
       - run: npm run tipos:verificar
+      - run: npm run build

@@ -6,9 +6,9 @@ import { ChevronRight } from "lucide-react";
 import { CampoBusqueda } from "@/components/CampoBusqueda";
 import { ListaPorTramos } from "@/components/ListaPorTramos";
 import { etiquetaAnimal } from "@/lib/animal";
+import { sinTildes } from "@/lib/texto";
 
 type Fila = { id: string; numero_arete: string; nombre: string | null };
-const sinTildes = (t: string) => t.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 
 /** Los animales que recibieron un evento: cada uno lleva a su ficha. Con buscador cuando son muchos. */
 export function ListaAnimalesEvento({ animales }: { animales: Fila[] }) {

@@ -2,7 +2,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import ExcelJS from "exceljs";
-import { ETIQUETA_CATEGORIA, avanceGestacion, bandaCondicion, categoriaAnimal, etapaGestacion, gananciaDiariaG, mesesEntre, resultadoServicio, servicioPreno, servicioResuelto, situacionDiagnostico } from "../lib/reportes/calculos.ts";
+import { ETIQUETA_CATEGORIA, bandaCondicion, categoriaAnimal, gananciaDiariaG, mesesEntre } from "../lib/reportes/calculos.ts";
+import { avanceGestacion, etapaGestacion, resultadoServicio, servicioPreno, servicioResuelto, situacionDiagnostico } from "../lib/reproduccion.ts";
 import { cifra, porcentaje, textoCelda } from "../lib/reportes/formato.ts";
 import { FILTRO_ESPECIE, REPORTES, filtrosDe, leerFiltros, reportesVisibles, textoFiltros } from "../lib/reportes/catalogo.ts";
 import { ESCENA_FILTRO, ESCENA_REPORTE } from "../lib/escenas-reportes.ts";
@@ -19,6 +20,7 @@ import { construirPeso } from "../lib/reportes/informes/peso.ts";
 import { construirRetiro } from "../lib/reportes/informes/retiro.ts";
 import { construirSanidad } from "../lib/reportes/informes/sanidad.ts";
 import { construirLibroReporte, nombreArchivoReporte } from "../lib/reportes/excel.ts";
+import { MAX_FILAS_PANTALLA, limitarFilas } from "../lib/reportes/base.ts";
 
 const hoy = "2026-10-24";
 const dias = (a, b) => Math.round((Date.UTC(...b) - Date.UTC(...a)) / 86_400_000);
@@ -244,7 +246,7 @@ test("gestantes: plazo del parto, crías esperadas, último tercio y por secar",
   const animales = mapa(["g1", "g2", "g3"].map((id) => animal(id)));
   const g = (id, ultimo_servicio, fecha_prevista_parto, extra = {}) => ({ animal_id: id, estado: "gestante", especie: "caprino", ultimo_servicio, fecha_prevista_parto, servicio_id: `s-${id}`, en_lactancia: false, ...extra });
   const repro = [g("g1", "2026-07-01", "2026-11-28"), g("g2", "2026-03-01", "2026-07-29"), g("g3", "2026-06-01", "2026-10-29", { en_lactancia: true })];
-  const d = { hoy, ventana: "todos", ultimoTercioDia: 100, secadoDiasAntes: 60, repro, animales, servicios: new Map(), fetos: new Map([["s-g1", 2]]), truncado: false };
+  const d = { hoy, ventana: "todos", ajustes: { ultimo_tercio_dia: 100, secado_dias_antes_parto: 60 }, repro, animales, servicios: new Map(), fetos: new Map([["s-g1", 2]]), truncado: false };
   const r = construirGestantes(d);
   assert.deepEqual(ids(r), ["g2", "g3", "g1"], "por fecha de parto: la atrasada primero");
   assert.equal(indicador(r, "Gestantes"), "3");
@@ -534,4 +536,18 @@ test("Excel: fechas y números de verdad, formatos, filtros y hoja de indicadore
   assert.equal(hi.getCell("A4").value, "Partos");
   assert.equal(hi.getCell("B4").value, "2");
   assert.equal(nombreArchivoReporte("Finca: La/Loma", "Partos del periodo", hoy), "Finca- La-Loma - Partos del periodo - 2026-10-24.xlsx");
+});
+
+test("pantalla: con miles de filas se muestran las primeras con un aviso y las cifras siguen siendo las de todo; con pocas no cambia nada", () => {
+  const filas = Array.from({ length: 3500 }, (_, i) => ({ id: `f${i}`, titulo: `A-${i}`, valores: {} }));
+  const completo = { columnas: [], filas, indicadores: [{ etiqueta: "Animales activos", valor: "3.500" }], notas: ["otra nota"] };
+  const r = limitarFilas(completo);
+  assert.equal(r.filas.length, MAX_FILAS_PANTALLA);
+  assert.equal(r.filas[0].id, "f0", "se quedan las primeras: las más importantes");
+  assert.match(r.notas[0], /primeras 2\.000 de 3\.500 filas/);
+  assert.equal(r.notas[1], "otra nota", "las notas que ya había se conservan");
+  assert.equal(r.indicadores[0].valor, "3.500");
+  assert.equal(completo.filas.length, 3500, "el resultado completo (el del Excel) no se toca");
+  const poco = { ...completo, filas: filas.slice(0, 50) };
+  assert.equal(limitarFilas(poco), poco);
 });

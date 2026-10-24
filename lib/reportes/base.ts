@@ -1,7 +1,8 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { traerTodo } from "@/lib/consultas";
 import type { AjustesCompletos } from "@/lib/ajustes";
 import { etiquetaAnimal } from "@/lib/animal";
-import type { Columna } from "@/lib/reportes/tipos";
+import type { Columna, ResultadoReporte } from "@/lib/reportes/tipos";
 import type { Animal, Database, Especie, ModuloApp } from "@/lib/tipos";
 
 export type Cliente = SupabaseClient<Database>;
@@ -19,33 +20,6 @@ export type ContextoReporte = {
   /** Si el rol y el plan de la persona ven un módulo (para columnas que dependen de otro módulo). */
   puede: (modulo: ModuloApp) => boolean;
 };
-
-/** PostgREST corta cada respuesta en 1000 filas: se pide por páginas. */
-const PAGINA = 1000;
-/** Tope de filas por consulta: más allá, el reporte avisa que está incompleto en vez de colgarse. */
-export const TOPE_FILAS = 20_000;
-
-type Respuesta<T> = { data: T[] | null; error: { message: string } | null };
-
-/** Trae todas las filas de una consulta, página por página. Cada consulta debe llevar un orden estable (`order`) para que las páginas no se repitan. */
-export async function traerTodo<T>(pagina: (desde: number, hasta: number) => PromiseLike<Respuesta<T>>, tope = TOPE_FILAS): Promise<{ filas: T[]; truncado: boolean }> {
-  const filas: T[] = [];
-  for (let desde = 0; desde < tope; desde += PAGINA) {
-    const { data, error } = await pagina(desde, desde + PAGINA - 1);
-    if (error) throw new Error(error.message);
-    const lote = data ?? [];
-    filas.push(...lote);
-    if (lote.length < PAGINA) return { filas, truncado: false };
-  }
-  return { filas, truncado: true };
-}
-
-/** Parte una lista en tramos (las consultas con `in (...)` no admiten direcciones larguísimas). */
-export function enTramos<T>(lista: T[], tamano = 100): T[][] {
-  const tramos: T[][] = [];
-  for (let i = 0; i < lista.length; i += tamano) tramos.push(lista.slice(i, i + tamano));
-  return tramos;
-}
 
 export type AnimalBase = Pick<Animal, "id" | "numero_arete" | "nombre" | "especie" | "sexo" | "estado" | "fecha_nacimiento" | "raza_id" | "lote_id" | "vocacion" | "uso_macho" | "partos_previos">;
 
@@ -68,6 +42,24 @@ export const pasaEspecie = (c: Pick<ContextoReporte, "filtros">, especie: Especi
 
 export const tituloAnimal = etiquetaAnimal;
 export const hrefAnimal = (id: string, ancla = "") => `/hato/${id}${ancla}`;
+
+/** Cuántas filas se mandan a la pantalla. Más allá, el listado es demasiado pesado para el celular: se avisa y el Excel lleva todas. */
+export const MAX_FILAS_PANTALLA = 2000;
+
+/**
+ * Deja en pantalla solo las primeras filas (los reportes ya vienen ordenados por lo más importante: lo más atrasado, lo más urgente) y lo dice en una nota.
+ * Los indicadores se calcularon con todas, así que siguen siendo los de todo el hato.
+ */
+export function limitarFilas(resultado: ResultadoReporte, max = MAX_FILAS_PANTALLA): ResultadoReporte {
+  const total = resultado.filas.length;
+  if (total <= max) return resultado;
+  const n = new Intl.NumberFormat("es-CO");
+  return {
+    ...resultado,
+    filas: resultado.filas.slice(0, max),
+    notas: [`Se muestran las primeras ${n.format(max)} de ${n.format(total)} filas, las más importantes primero. El buscador busca solo en esas: usa los filtros o descarga el Excel para verlas todas.`, ...resultado.notas],
+  };
+}
 
 /** Una nota estándar cuando una consulta llegó al tope de filas. */
 export const NOTA_TRUNCADO = "El hato es muy grande y este reporte quedó incompleto en pantalla. Descarga el Excel para verlo entero.";

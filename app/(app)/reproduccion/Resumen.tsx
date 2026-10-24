@@ -10,11 +10,8 @@ import type { AjustesCompletos } from "@/lib/ajustes";
 import { animalesPorIds } from "@/lib/animal-etiquetas";
 import { etiquetaAnimal } from "@/lib/animal";
 import { diasHasta, formatoFecha, hoyBogota } from "@/lib/fechas";
-import { DIAS_PARTO_ATRASADO, DIAS_REPETIR_DX_DESDE, DIAS_REPETIR_DX_HASTA, enObservacion, plazoParto, ventanaRepetirDx } from "@/lib/reproduccion";
+import { DIAS_PARTO_ATRASADO, DIAS_PARTO_PROXIMO, DIAS_REPETIR_DX_DESDE, DIAS_REPETIR_DX_HASTA, enObservacion, enUltimoTercio, partoAtrasado, partoProximo, plazoParto, porConfirmar as debeConfirmarse, porRepetir as debeRepetirse, porSecar as debeSecarse, ventanaRepetirDx } from "@/lib/reproduccion";
 import type { ReproHembra } from "@/lib/tipos";
-
-/** Cuántos días hacia adelante cuenta como «parto próximo». */
-const DIAS_PROXIMOS = 45;
 
 /** Lo que más importa de la reproducción de toda la finca: quiénes están gestantes y cuándo paren, y qué servicios hay que confirmar. */
 export async function Resumen({
@@ -34,26 +31,16 @@ export async function Resumen({
   const { data } = await supabase.from("v_repro_hembras").select("*").eq("finca_id", fincaId).limit(2000);
   const filas = (data ?? []) as ReproHembra[];
 
-  const enGestacion = filas.filter((f) => f.estado === "gestante" || f.estado === "servida");
-  const proximos = enGestacion
-    .filter((f) => f.fecha_prevista_parto && diasHasta(f.fecha_prevista_parto, hoy) >= -DIAS_PARTO_ATRASADO && diasHasta(f.fecha_prevista_parto, hoy) <= DIAS_PROXIMOS)
-    .sort((a, b) => a.fecha_prevista_parto!.localeCompare(b.fecha_prevista_parto!));
-  const atrasados = enGestacion.filter((f) => f.fecha_prevista_parto && diasHasta(f.fecha_prevista_parto, hoy) < -DIAS_PARTO_ATRASADO);
-  const porConfirmar = filas
-    .filter((f) => f.estado === "servida" && !enObservacion(f) && f.ultimo_servicio && diasHasta(hoy, f.ultimo_servicio) >= general.dx_prenez_dia_desde)
-    .sort((a, b) => a.ultimo_servicio!.localeCompare(b.ultimo_servicio!));
+  const ventana = { desde: general.dx_prenez_dia_desde, hasta: general.dx_prenez_dia_hasta };
+  const proximos = filas.filter((f) => partoProximo(f, hoy)).sort((a, b) => a.fecha_prevista_parto!.localeCompare(b.fecha_prevista_parto!));
+  const atrasados = filas.filter((f) => partoAtrasado(f, hoy));
+  const porConfirmar = filas.filter((f) => debeConfirmarse(f, hoy, ventana)).sort((a, b) => a.ultimo_servicio!.localeCompare(b.ultimo_servicio!));
   // Diagnóstico dudoso: sigue en observación y toca repetir la prueba entre 14 y 21 días después.
-  const porRepetir = filas
-    .filter((f) => enObservacion(f) && diasHasta(hoy, f.fecha_diagnostico!) >= DIAS_REPETIR_DX_DESDE)
-    .sort((a, b) => a.fecha_diagnostico!.localeCompare(b.fecha_diagnostico!));
+  const porRepetir = filas.filter((f) => debeRepetirse(f, hoy, ventana)).sort((a, b) => a.fecha_diagnostico!.localeCompare(b.fecha_diagnostico!));
   // Gestantes confirmadas que ya entraron al último tercio (aún sin parir): conviene reforzar la alimentación.
-  const ultimoTercio = filas
-    .filter((f) => f.estado === "gestante" && f.ultimo_servicio && f.fecha_prevista_parto && diasHasta(hoy, f.ultimo_servicio) >= general.ultimo_tercio_dia && diasHasta(f.fecha_prevista_parto, hoy) >= 0)
-    .sort((a, b) => a.fecha_prevista_parto!.localeCompare(b.fecha_prevista_parto!));
+  const ultimoTercio = filas.filter((f) => enUltimoTercio(f, hoy, general.ultimo_tercio_dia)).sort((a, b) => a.fecha_prevista_parto!.localeCompare(b.fecha_prevista_parto!));
   // Hembras en lactancia con parto confirmado en camino: llegó el momento de secarlas.
-  const porSecar = filas
-    .filter((f) => f.estado === "gestante" && f.en_lactancia && f.fecha_prevista_parto && diasHasta(f.fecha_prevista_parto, hoy) <= general.secado_dias_antes_parto)
-    .sort((a, b) => a.fecha_prevista_parto!.localeCompare(b.fecha_prevista_parto!));
+  const porSecar = filas.filter((f) => debeSecarse(f, hoy, general.secado_dias_antes_parto)).sort((a, b) => a.fecha_prevista_parto!.localeCompare(b.fecha_prevista_parto!));
   const gestantes = filas.filter((f) => f.estado === "gestante").length;
   const sinDatos = filas.filter((f) => f.estado === "sin_datos").length;
   const enMonta = filas.filter((f) => f.empadronamiento_id).length;
@@ -70,7 +57,7 @@ export async function Resumen({
     ["Gestantes", String(gestantes)],
     ["Servidas por confirmar", String(filas.filter((f) => f.estado === "servida" && !enObservacion(f)).length)],
     ["En observación", String(filas.filter(enObservacion).length)],
-    [`Partos en ${DIAS_PROXIMOS} días`, String(proximos.length)],
+    [`Partos en ${DIAS_PARTO_PROXIMO} días`, String(proximos.length)],
     ["Partos atrasados", String(atrasados.length)],
   ];
 
@@ -101,7 +88,7 @@ export async function Resumen({
 
       <Tarjeta titulo="Próximos partos">
         {proximos.length === 0 ? (
-          <p className="text-[0.9375rem] text-humo">No hay partos previstos en los próximos {DIAS_PROXIMOS} días. La fecha sale del servicio (hoy: {formatoFecha(hoy)}).</p>
+          <p className="text-[0.9375rem] text-humo">No hay partos previstos en los próximos {DIAS_PARTO_PROXIMO} días. La fecha sale del servicio (hoy: {formatoFecha(hoy)}).</p>
         ) : (
           <ul className="divide-y divide-arena">
             {proximos.slice(0, 15).map((f) => {

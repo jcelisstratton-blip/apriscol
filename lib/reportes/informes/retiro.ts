@@ -1,7 +1,8 @@
 import { nombreTipo } from "@/lib/animal";
 import { diasHasta } from "@/lib/fechas";
 import { ETIQUETA_EVENTO } from "@/lib/sanidad";
-import { COLUMNAS_ANIMAL, NOTA_TRUNCADO, cargarAnimales, col, enTramos, hrefAnimal, pasaEspecie, tituloAnimal, valoresAnimal } from "@/lib/reportes/base";
+import { COLUMNAS_ANIMAL, NOTA_TRUNCADO, cargarAnimales, col, hrefAnimal, pasaEspecie, tituloAnimal, valoresAnimal } from "@/lib/reportes/base";
+import { enTramos } from "@/lib/consultas";
 import type { AnimalBase, ContextoReporte } from "@/lib/reportes/base";
 import { compararArete } from "@/lib/reportes/calculos";
 import { cifra } from "@/lib/reportes/formato";

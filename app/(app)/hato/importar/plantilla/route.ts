@@ -5,6 +5,7 @@ import { puedeEscribir } from "@/lib/permisos";
 import { opcionesImportar } from "@/lib/importar-animales-servidor";
 import { construirPlantillaAnimales } from "@/lib/importar-animales-excel";
 import type { RazaRef } from "@/lib/importar-animales";
+import { respuestaExcel } from "@/lib/archivos";
 
 export const dynamic = "force-dynamic";
 
@@ -23,11 +24,5 @@ export async function GET() {
     reproduccion: opciones.reproduccion,
     ubicaciones: opciones.ubicaciones,
   });
-  return new NextResponse(new Uint8Array(archivo), {
-    headers: {
-      "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      "Content-Disposition": `attachment; filename="Plantilla de animales - Apriscol.xlsx"`,
-      "Cache-Control": "no-store",
-    },
-  });
+  return respuestaExcel(archivo, "Plantilla de animales - Apriscol.xlsx");
 }

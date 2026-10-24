@@ -4,8 +4,8 @@ import { Insignia } from "@/components/Insignia";
 import { Tarjeta } from "@/components/Tarjeta";
 import { puedeEscribir, puedeVer } from "@/lib/permisos";
 import { clasesBoton } from "@/components/Boton";
-import { diasHasta, formatoFecha, hoyBogota } from "@/lib/fechas";
-import { detalleParto, enObservacion, resumenCrias, ETIQUETA_ESTADO, ETIQUETA_FETOS, ETIQUETA_INDICADOR, ETIQUETA_METODO, ETIQUETA_OBSERVACION, ETIQUETA_VIABILIDAD, ventanaRepetirDx, ETIQUETA_PARTO, ETIQUETA_RESULTADO, ETIQUETA_SERVICIO, plazoParto, textoPartos, TONO_ESTADO } from "@/lib/reproduccion";
+import { diasDesde, formatoFecha, hoyBogota } from "@/lib/fechas";
+import { detalleParto, enObservacion, resumenCrias, ETIQUETA_ESTADO, ETIQUETA_FETOS, ETIQUETA_INDICADOR, ETIQUETA_METODO, ETIQUETA_OBSERVACION, ETIQUETA_VIABILIDAD, ventanaRepetirDx, ETIQUETA_PARTO, ETIQUETA_RESULTADO, ETIQUETA_SERVICIO, plazoParto, porConfirmar, textoPartos, TONO_ESTADO } from "@/lib/reproduccion";
 import { PartosPrevios } from "@/components/PartosPrevios";
 import type { DiagnosticoGestacion } from "@/lib/tipos";
 import type { CtxFicha } from "./contexto";
@@ -83,8 +83,8 @@ export async function TarjetaReproduccion({ c, sinCrear }: { c: CtxFicha; sinCre
               El último diagnóstico fue dudoso. Conviene repetirlo entre el {formatoFecha(ventanaRepetirDx(repro.fecha_diagnostico).desde)} y el {formatoFecha(ventanaRepetirDx(repro.fecha_diagnostico).hasta)}.
             </Aviso>
           ) : null}
-          {repro.estado === "servida" && !enObservacion(repro) && repro.ultimo_servicio && diasHasta(hoyBogota(), repro.ultimo_servicio) >= ajustes.general.dx_prenez_dia_desde ? (
-            <Aviso tipo="atencion">Ya pasaron {diasHasta(hoyBogota(), repro.ultimo_servicio)} días del servicio: conviene confirmar con un diagnóstico si quedó gestante.</Aviso>
+          {porConfirmar(repro, hoyBogota(), { desde: ajustes.general.dx_prenez_dia_desde, hasta: ajustes.general.dx_prenez_dia_hasta }) ? (
+            <Aviso tipo="atencion">Ya pasaron {diasDesde(repro.ultimo_servicio!, hoyBogota())} días del servicio: conviene confirmar con un diagnóstico si quedó gestante.</Aviso>
           ) : null}
           {animal.estado === "activo" ? <PartosPrevios animalId={id} previos={animal.partos_previos} registrados={repro.partos_registrados} puedeEditar={puedeEscribir(rol, "hato", finca.plan)} /> : null}
         </div>

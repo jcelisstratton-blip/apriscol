@@ -10,11 +10,11 @@ import { ListaPorTramos } from "@/components/ListaPorTramos";
 import { useToast } from "@/components/Toast";
 import { programarOrdeno, programarOrdenoLote } from "@/app/(app)/hato/actions";
 import { ETIQUETA_TURNO, TURNOS, turnosDe, type Turno } from "@/lib/ordeno";
+import { sinTildes } from "@/lib/texto";
 
 export type HembraEnLeche = { id: string; etiqueta: string; turnos: string[] | null };
 
 const MIN_PARA_BUSCAR = 8;
-const sinTildes = (t: string) => t.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 
 /**
  * El programa del ordeño: qué hembras en leche se ordeñan y en qué turnos (mañana, tarde, noche). Cada toque se guarda al instante, y de

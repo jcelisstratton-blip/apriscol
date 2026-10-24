@@ -1,4 +1,4 @@
-import { diasHasta } from "@/lib/fechas";
+import { diasDesde } from "@/lib/fechas";
 import type { SexoAnimal } from "@/lib/tipos";
 
 /**
@@ -41,60 +41,6 @@ export function categoriaAnimal(a: { sexo: SexoAnimal; fecha_nacimiento: string 
   if (meses < edadServicioMeses) return "levante";
   return a.sexo === "hembra" ? "hembra_adulta" : "macho_adulto";
 }
-
-/** Días entre una fecha pasada y hoy (positivo si ya pasó). */
-export const diasDesde = (fecha: string, hoy: string) => -diasHasta(fecha, hoy);
-
-// ───────────────────────── Reproducción ─────────────────────────
-/** Cuántos días hacia adelante cuenta un parto como «próximo». */
-export const DIAS_PARTO_PROXIMO = 45;
-
-export type Etapa = "primer_tercio" | "segundo_tercio" | "ultimo_tercio";
-export const ETIQUETA_ETAPA: Record<Etapa, string> = { primer_tercio: "Primer tercio", segundo_tercio: "Segundo tercio", ultimo_tercio: "Último tercio" };
-
-/** En qué parte de la gestación va una hembra. El último tercio empieza el día que la finca definió en sus Ajustes. */
-export function etapaGestacion(diasGestados: number, gestacionDias: number, ultimoTercioDia: number): Etapa {
-  if (diasGestados >= ultimoTercioDia) return "ultimo_tercio";
-  if (diasGestados >= Math.floor(gestacionDias / 3)) return "segundo_tercio";
-  return "primer_tercio";
-}
-
-export type SituacionDiagnostico = "pronto" | "toca" | "atrasado";
-
-/**
- * Qué toca con una hembra servida que aún no tiene diagnóstico: todavía es pronto, ya toca (dentro de la ventana de la finca) o el
- * diagnóstico va tarde. `dias` son los días desde el servicio; la ventana (desde, hasta) sale de los Ajustes.
- */
-export function situacionDiagnostico(dias: number, desde: number, hasta: number): SituacionDiagnostico {
-  if (dias < desde) return "pronto";
-  if (dias <= hasta) return "toca";
-  return "atrasado";
-}
-
-/** Cuántos días de gestación lleva y cuántos dura en total, a partir de la fecha del servicio y la fecha prevista de parto. */
-export function avanceGestacion(servicio: string, prevista: string, hoy: string): { gestados: number; total: number } {
-  return { gestados: Math.max(0, diasDesde(servicio, hoy)), total: Math.max(1, diasHasta(prevista, servicio)) };
-}
-
-/** Qué pasó con un servicio, para medir la tasa de preñez de un reproductor o de un tipo de servicio. */
-export type ResultadoServicio = "parto" | "aborto" | "gestante" | "vacia" | "pendiente";
-
-/**
- * El resultado de un servicio: lo que registró el parto manda sobre el diagnóstico (si parió, quedó preñada aunque nunca se diagnosticara);
- * sin parto, vale el último diagnóstico. Un diagnóstico dudoso o ninguno deja el servicio pendiente.
- */
-export function resultadoServicio(parto: "normal" | "asistido" | "cesarea" | "aborto" | null, ultimoDiagnostico: "gestante" | "vacia" | "dudoso" | null): ResultadoServicio {
-  if (parto === "aborto") return "aborto";
-  if (parto) return "parto";
-  if (ultimoDiagnostico === "gestante") return "gestante";
-  if (ultimoDiagnostico === "vacia") return "vacia";
-  return "pendiente";
-}
-
-/** Un servicio «resuelto» es el que ya se sabe si preñó o no; la tasa de preñez solo cuenta esos. */
-export const servicioResuelto = (r: ResultadoServicio) => r !== "pendiente";
-/** Quedó preñada: parió, abortó o está confirmada gestante. */
-export const servicioPreno = (r: ResultadoServicio) => r === "parto" || r === "aborto" || r === "gestante";
 
 // ───────────────────────── Peso y condición corporal ─────────────────────────
 /** Días sin pesar a partir de los cuales un animal se marca. */

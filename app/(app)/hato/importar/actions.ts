@@ -18,6 +18,7 @@ import {
   type RazaRef,
   type ResultadoValidacion,
 } from "@/lib/importar-animales";
+import { traerTodo } from "@/lib/consultas";
 
 export type RevisionImportacion =
   | { error: string }
@@ -43,18 +44,13 @@ async function procesar(form: FormData): Promise<{ error: string } | { resultado
   if (eRazas) return { error: mensajeAmigable(eRazas.message) };
 
   // El hato actual, por tramos (PostgREST corta cada respuesta en 1000): sirve para detectar aretes repetidos y para resolver padres.
-  const existentes: AnimalExistente[] = [];
-  for (let desde = 0; ; desde += 1000) {
-    const { data, error } = await supabase
-      .from("animales")
-      .select("numero_arete, sexo, especie, fecha_nacimiento")
-      .eq("finca_id", finca.id)
-      .is("deleted_at", null)
-      .order("id")
-      .range(desde, desde + 999);
-    if (error) return { error: mensajeAmigable(error.message) };
-    existentes.push(...(data as AnimalExistente[]));
-    if (data.length < 1000) break;
+  let existentes: AnimalExistente[];
+  try {
+    existentes = (
+      await traerTodo<AnimalExistente>((d, h) => supabase.from("animales").select("numero_arete, sexo, especie, fecha_nacimiento").eq("finca_id", finca.id).is("deleted_at", null).order("id").range(d, h))
+    ).filas;
+  } catch (e) {
+    return { error: mensajeAmigable(e instanceof Error ? e.message : "No se pudo leer el hato.") };
   }
 
   const opciones = await opcionesImportar(supabase, finca, rol);

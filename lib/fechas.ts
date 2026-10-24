@@ -37,6 +37,12 @@ export function diasHasta(iso: string, hoy = hoyBogota()): number {
   return Math.round((new Date(`${iso}T12:00:00Z`).getTime() - new Date(`${hoy}T12:00:00Z`).getTime()) / 86_400_000);
 }
 
+/** Días que pasaron desde una fecha hasta hoy (positivo si ya pasó, negativo si aún no llega). */
+export function diasDesde(iso: string, hoy = hoyBogota()): number {
+  // Al revés de `diasHasta` (y no «-diasHasta») para que el mismo día dé 0 y no -0, que se vería «-0».
+  return diasHasta(hoy, iso);
+}
+
 export function litros(n: number | null | undefined): string {
   return new Intl.NumberFormat("es-CO", { minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(n ?? 0);
 }

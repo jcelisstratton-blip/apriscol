@@ -1,9 +1,11 @@
 import { nombreTipo } from "@/lib/animal";
 import { edadTexto } from "@/lib/fechas";
 import { ETIQUETA_ESTADO } from "@/lib/reproduccion";
-import { COLUMNAS_ANIMAL, NOTA_TRUNCADO, col, hrefAnimal, tituloAnimal, traerTodo, valoresAnimal } from "@/lib/reportes/base";
+import { COLUMNAS_ANIMAL, NOTA_TRUNCADO, col, hrefAnimal, tituloAnimal, valoresAnimal } from "@/lib/reportes/base";
+import { traerTodo } from "@/lib/consultas";
 import type { AnimalBase, ContextoReporte } from "@/lib/reportes/base";
-import { EDAD_DESTETE_MESES, compararArete, diasDesde, mesesEntre, promedio } from "@/lib/reportes/calculos";
+import { EDAD_DESTETE_MESES, compararArete, mesesEntre, promedio } from "@/lib/reportes/calculos";
+import { diasDesde } from "@/lib/fechas";
 import { cifra } from "@/lib/reportes/formato";
 import { cargarReproBase } from "@/lib/reportes/informes/repro-comun";
 import type { FilaReporte, Indicador, ResultadoReporte, TonoFila } from "@/lib/reportes/tipos";
