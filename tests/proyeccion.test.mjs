@@ -418,3 +418,56 @@ test("Excel: hojas de resumen, mes a mes, supuestos, escenarios y riesgos con n�
   const rie = wb.getWorksheet("Riesgos");
   assert.ok(rie.rowCount > 10);
 });
+
+import { repartirMachos } from "../lib/proyeccion/motor.ts";
+import { costosSinRestar } from "../lib/proyeccion/vista.ts";
+
+test("machos sin uso: solo se cuentan como sementales los que hacen falta y el resto se vende en el primer mes", () => {
+  assert.deepEqual(repartirMachos({ vientres: 65, sementales: 0, machosSinUso: 33 }, 25), { sementales: 3, paraVenta: 30 });
+  assert.deepEqual(repartirMachos({ vientres: 65, sementales: 2, machosSinUso: 33 }, 25), { sementales: 3, paraVenta: 32 });
+  assert.deepEqual(repartirMachos({ vientres: 65, sementales: 5, machosSinUso: 4 }, 25), { sementales: 5, paraVenta: 4 });
+  assert.deepEqual(repartirMachos({ vientres: 10, sementales: 0, machosSinUso: 1 }, 25), { sementales: 1, paraVenta: 0 });
+  assert.deepEqual(repartirMachos({ vientres: 65, sementales: 1 }, 25), { sementales: 1, paraVenta: 0 });
+});
+
+test("machos sin uso: el simulador los vende, el balance cierra y los costos bajan frente a mantenerlos como sementales", () => {
+  const con = inicio({ vientres: 65, sementales: 0, machosSinUso: 33, cohortes: [] });
+  const p = simular(con, REFERENCIAS, 24);
+  assert.ok(descuadreBalance(p) < 1e-6);
+  assert.equal(p.meses[0].sementales, 3);
+  assert.ok(p.meses[0].ventasAnimales > 25, `se venden ${p.meses[0].ventasAnimales}`);
+  const todosSementales = simular({ ...con, sementales: 33, machosSinUso: 0 }, REFERENCIAS, 24);
+  assert.ok(totales(p).costos < totales(todosSementales).costos);
+  assert.ok(totales(p).flujo > totales(todosSementales).flujo);
+  // con 1 hembra por semental se mantienen todos
+  assert.equal(simular(con, { ...REFERENCIAS, hembras_por_semental: 5 }, 12).meses[0].sementales, 13);
+});
+
+test("base: machos adultos sin uso no se cuentan como sementales, los reproductores marcados sí", () => {
+  const animales = [];
+  for (let i = 0; i < 65; i++) animales.push({ id: `h${i}`, sexo: "hembra", estado: "activo", fecha_nacimiento: null, uso_macho: null });
+  for (let i = 0; i < 33; i++) animales.push({ id: `m${i}`, sexo: "macho", estado: "activo", fecha_nacimiento: null, uso_macho: i === 0 ? "reproductor" : null });
+  const b = armarBase(datos({ animales }));
+  assert.equal(b.hato.sementales, 1);
+  assert.equal(b.hato.machosSinUso, 32);
+  assert.equal(b.hato.total, 98);
+  const p = simular(b.inicio, b.base, 24, b.gestacionDias);
+  assert.ok(descuadreBalance(p) < 1e-6);
+  assert.equal(p.meses[0].sementales, 3);
+});
+
+test("carne y leche avisan lo que no restan y el resultado completo", () => {
+  const p = simular(inicio(), { ...REFERENCIAS, hembras_ordenadas_pct: 100 }, 12);
+  const b = porAnio(p)[0];
+  assert.equal(costosSinRestar(b, "todo"), null);
+  const carne = costosSinRestar(b, "carne");
+  const leche = costosSinRestar(b, "leche");
+  assert.ok(Math.abs(carne.sinRestar - (b.costos - b.costoAlimentoCeba)) < 1e-6);
+  assert.ok(Math.abs(leche.sinRestar - (b.costos - b.costoAlimentoLactancia)) < 1e-6);
+  assert.equal(carne.resultadoCompleto, b.flujo);
+  // la cuenta cierra: (ingresos − alimento de la línea) − lo que no resta = resultado completo, sumando las dos líneas
+  const margenCarne = b.ingresosCarne - b.costoAlimentoCeba;
+  const margenLeche = b.ingresosLeche - b.costoAlimentoLactancia;
+  const compartidos = b.costos - b.costoAlimentoCeba - b.costoAlimentoLactancia;
+  assert.ok(Math.abs(margenCarne + margenLeche - compartidos - b.flujo) < 1e-3);
+});

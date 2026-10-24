@@ -45,8 +45,8 @@ export function columnasAlimento(e: Enfoque): ColumnaMes[] {
 }
 
 export function columnasDinero(e: Enfoque): ColumnaMes[] {
-  if (e === "leche") return [c("ing", "Ingresos por leche", "pesos", (m) => m.ingresosLeche, true), c("ali", "Alimento extra por lactancia", "pesos", (m) => m.costoAlimentoLactancia, true), c("mar", "Queda sobre ese alimento", "pesos", (m) => m.ingresosLeche - m.costoAlimentoLactancia, true)];
-  if (e === "carne") return [c("ing", "Ingresos por carne", "pesos", (m) => m.ingresosCarne, true), c("ali", "Alimento de crías y levante", "pesos", (m) => m.costoAlimentoCeba, true), c("mar", "Queda sobre ese alimento", "pesos", (m) => m.ingresosCarne - m.costoAlimentoCeba, true)];
+  if (e === "leche") return [c("ing", "Ingresos por leche", "pesos", (m) => m.ingresosLeche, true), c("ali", "Alimento extra por lactancia", "pesos", (m) => m.costoAlimentoLactancia, true), c("mar", "Ingresos menos ese alimento", "pesos", (m) => m.ingresosLeche - m.costoAlimentoLactancia, true)];
+  if (e === "carne") return [c("ing", "Ingresos por carne", "pesos", (m) => m.ingresosCarne, true), c("ali", "Alimento de crías y levante", "pesos", (m) => m.costoAlimentoCeba, true), c("mar", "Ingresos menos ese alimento", "pesos", (m) => m.ingresosCarne - m.costoAlimentoCeba, true)];
   return [
     c("carne", "Ingresos por carne", "pesos", (m) => m.ingresosCarne, true),
     c("leche", "Ingresos por leche", "pesos", (m) => m.ingresosLeche, true),
@@ -67,7 +67,7 @@ export function lineasResumen(e: Enfoque): LineaResumen[] {
       l("Litros de leche", "n0", (b) => b.litros),
       l("Ingresos por leche", "pesos", (b) => b.ingresosLeche),
       l("Alimento extra por lactancia", "pesos", (b) => b.costoAlimentoLactancia),
-      l("Queda sobre ese alimento", "pesos", (b) => b.ingresosLeche - b.costoAlimentoLactancia, true),
+      l("Ingresos menos el alimento extra de lactancia", "pesos", (b) => b.ingresosLeche - b.costoAlimentoLactancia, true),
       l("Reproductoras al final", "n0", (b) => b.vientres),
     ];
   }
@@ -78,7 +78,7 @@ export function lineasResumen(e: Enfoque): LineaResumen[] {
       l("Kilos vendidos", "n0", (b) => b.kgVendidos),
       l("Ingresos por carne", "pesos", (b) => b.ingresosCarne),
       l("Alimento de crías y levante", "pesos", (b) => b.costoAlimentoCeba),
-      l("Queda sobre ese alimento", "pesos", (b) => b.ingresosCarne - b.costoAlimentoCeba, true),
+      l("Ingresos menos el alimento de crías y levante", "pesos", (b) => b.ingresosCarne - b.costoAlimentoCeba, true),
     ];
   }
   return [
@@ -95,6 +95,12 @@ export function lineasResumen(e: Enfoque): LineaResumen[] {
 
 export const NOTA_ENFOQUE: Record<Enfoque, string | null> = {
   todo: null,
-  carne: "El alimento base de las reproductoras, la sanidad y el personal sirven a la carne y a la leche a la vez, así que aquí no se reparten: se compara la carne solo con el alimento de crías y levante. El resultado completo está en «Todo».",
-  leche: "El alimento base de las reproductoras, la sanidad y el personal sirven a la carne y a la leche a la vez, así que aquí no se reparten: se compara la leche solo con el alimento extra que pide la lactancia. El resultado completo está en «Todo».",
+  carne: "Esta vista no resta el alimento base de las reproductoras y los sementales, ni la sanidad, ni los costos fijos: sirven a la carne y a la leche a la vez y no se reparten. Solo se compara la carne con el alimento de crías y levante. El resultado completo de la finca está en «Todo».",
+  leche: "Esta vista no resta el alimento base de las reproductoras y los sementales, ni la sanidad, ni los costos fijos: sirven a la carne y a la leche a la vez y no se reparten. Solo se compara la leche con el alimento extra que pide la lactancia. El resultado completo de la finca está en «Todo».",
 };
+
+/** Lo que una vista de carne o de leche deja sin restar (los costos compartidos) y el resultado completo del mismo periodo; nulo en «Todo». */
+export function costosSinRestar(b: Pick<Bloque, "costos" | "costoAlimentoCeba" | "costoAlimentoLactancia" | "flujo">, e: Enfoque): { sinRestar: number; resultadoCompleto: number } | null {
+  if (e === "todo") return null;
+  return { sinRestar: b.costos - (e === "carne" ? b.costoAlimentoCeba : b.costoAlimentoLactancia), resultadoCompleto: b.flujo };
+}

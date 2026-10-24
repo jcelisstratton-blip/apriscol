@@ -17,7 +17,7 @@ export const ETIQUETA_GRUPO_SUPUESTO: Record<GrupoSupuesto, string> = {
 export type ClaveSupuesto =
   | "partos_por_hembra_anio" | "prolificidad" | "proporcion_hembras_pct" | "prenez_servidas_pct"
   | "mortalidad_lactancia_pct" | "mortalidad_levante_pct" | "mortalidad_adultos_pct" | "descarte_vientres_pct"
-  | "retencion_hembras_pct" | "crecimiento_hato_pct" | "destete_meses" | "edad_venta_meses" | "edad_entrada_vientres_meses"
+  | "hembras_por_semental" | "retencion_hembras_pct" | "crecimiento_hato_pct" | "destete_meses" | "edad_venta_meses" | "edad_entrada_vientres_meses"
   | "lactancia_meses"
   | "peso_venta_kg" | "precio_kg_vivo" | "peso_descarte_kg" | "castigo_descarte_pct"
   | "litros_dia" | "hembras_ordenadas_pct" | "precio_litro" | "seca_litros_pct"
@@ -56,6 +56,7 @@ export const DEFINICIONES: DefinicionSupuesto[] = [
   { clave: "mortalidad_levante_pct", grupo: "hato", etiqueta: "Mortalidad en levante y ceba", detalle: "De cada 100 animales destetados, cuántos mueren antes de venderse.", unidad: "pct", min: 0, max: 30, decimales: 1, referencia: 3 },
   { clave: "mortalidad_adultos_pct", grupo: "hato", etiqueta: "Mortalidad de reproductoras al año", detalle: "De cada 100 hembras reproductoras, cuántas mueren en un año.", unidad: "pct", min: 0, max: 30, decimales: 1, referencia: 2 },
   { clave: "descarte_vientres_pct", grupo: "hato", etiqueta: "Descarte de reproductoras al año", detalle: "De cada 100 hembras reproductoras, cuántas se sacan del hato por edad, mala producción o problemas.", unidad: "pct", min: 0, max: 50, decimales: 1, referencia: 12 },
+  { clave: "hembras_por_semental", grupo: "hato", etiqueta: "Hembras por cada semental", detalle: "Cuántas hembras atiende un macho reproductor. Si tienes machos sin uso definido, solo se cuentan como sementales los que hagan falta con esta relación; los demás se toman como animales de carne.", unidad: "n", min: 5, max: 100, decimales: 0, referencia: 25 },
   { clave: "retencion_hembras_pct", grupo: "hato", etiqueta: "Hembras que se dejan de reemplazo", detalle: "De cada 100 hembras nacidas, cuántas se crían para entrar al hato reproductor.", unidad: "pct", min: 0, max: 100, decimales: 0, referencia: 20 },
   { clave: "crecimiento_hato_pct", grupo: "hato", etiqueta: "Crecimiento del hato reproductor al año", detalle: "0 mantiene el número de reproductoras; un valor positivo lo hace crecer, uno negativo lo reduce.", unidad: "pct", min: -50, max: 200, decimales: 0, referencia: 0 },
   { clave: "destete_meses", grupo: "hato", etiqueta: "Edad al destete", detalle: "Hasta qué edad la cría es lactante.", unidad: "meses", min: 1, max: 6, decimales: 0, referencia: 3 },

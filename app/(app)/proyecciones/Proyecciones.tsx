@@ -16,7 +16,7 @@ import type { BaseProyeccion, Procedencia } from "@/lib/proyeccion/base";
 import type { Entrada } from "@/lib/proyeccion/analisis";
 import type { EscenarioGuardado } from "@/lib/proyeccion/escenarios";
 import { NOMBRE_ESCENARIO_BASE } from "@/lib/proyeccion/escenarios";
-import { porAnio, simular, type Aviso as AvisoProyeccion, type Estacion, type Mes } from "@/lib/proyeccion/motor";
+import { porAnio, repartirMachos, simular, type Aviso as AvisoProyeccion, type Estacion, type Mes } from "@/lib/proyeccion/motor";
 import {
   aplicarAjustes,
   DEFINICIONES,
@@ -35,6 +35,7 @@ import {
   columnasAlimento,
   columnasDinero,
   columnasHato,
+  costosSinRestar,
   etiquetaMes,
   formatear,
   lineasResumen,
@@ -241,7 +242,7 @@ export function Proyecciones(p: PropsProyecciones) {
         <Aviso tipo="atencion">Todavía no hay animales activos en tu hato, así que no hay con qué proyectar. Registra tus animales y vuelve.</Aviso>
       ) : (
         <>
-          {pestana === "resumen" ? <Resumen hoy={p.hoy} p={p} proyeccion={proyeccion} bloques={bloques} enfoque={enfoque} /> : null}
+          {pestana === "resumen" ? <Resumen hoy={p.hoy} p={p} supuestos={supuestos} proyeccion={proyeccion} bloques={bloques} enfoque={enfoque} /> : null}
           {pestana === "hato" ? <TablaMeses hoy={p.hoy} meses={proyeccion.meses} columnas={columnasHato(enfoque)} titulo="Hato mes a mes" /> : null}
           {pestana === "alimento" ? (
             <div className="space-y-3">
@@ -264,7 +265,7 @@ export function Proyecciones(p: PropsProyecciones) {
           {pestana === "dinero" ? <Dinero hoy={p.hoy} proyeccion={proyeccion} enfoque={enfoque} /> : null}
         </>
       )}
-      {verEnfoque && NOTA_ENFOQUE[enfoque] && !sinHato ? <Aviso tipo="info">{NOTA_ENFOQUE[enfoque]}</Aviso> : null}
+      {verEnfoque && pestana !== "resumen" && NOTA_ENFOQUE[enfoque] && !sinHato ? <Aviso tipo="info">{NOTA_ENFOQUE[enfoque]}</Aviso> : null}
 
       {pestana === "comparar" ? <Comparar escenarios={escenarios} ajustesPantalla={ajustes} hayCambios={!sinCambios} activoId={activoId} base={p.base} entrada={analisis} /> : null}
       {pestana === "riesgos" && !sinHato ? <Riesgos entrada={analisis} supuestos={supuestos} /> : null}
@@ -275,15 +276,29 @@ export function Proyecciones(p: PropsProyecciones) {
   );
 }
 
-function Resumen({ hoy, p, proyeccion, bloques, enfoque }: { hoy: string; p: PropsProyecciones; proyeccion: ReturnType<typeof simular>; bloques: ReturnType<typeof porAnio>; enfoque: Enfoque }) {
+function Resumen({ hoy, p, supuestos, proyeccion, bloques, enfoque }: { hoy: string; p: PropsProyecciones; supuestos: Supuestos; proyeccion: ReturnType<typeof simular>; bloques: ReturnType<typeof porAnio>; enfoque: Enfoque }) {
   const lineas = lineasResumen(enfoque);
+  const machos = repartirMachos(p.inicio, supuestos.hembras_por_semental);
+  const compartidos = bloques[0] ? costosSinRestar(bloques[0], enfoque) : null;
   const serie = proyeccion.meses.map((m) => (enfoque === "carne" ? m.ingresosCarne - m.costoAlimentoCeba : enfoque === "leche" ? m.ingresosLeche - m.costoAlimentoLactancia : m.flujo));
-  const tituloSerie = enfoque === "todo" ? "Lo que queda cada mes" : "Lo que queda cada mes sobre el alimento de esta línea";
+  const tituloSerie = enfoque === "todo" ? "Lo que queda cada mes" : "Ingresos menos el alimento de esta línea, mes a mes";
   return (
     <div className="space-y-4">
       <p className="text-sm text-humo [overflow-wrap:anywhere]">
-        Hoy tienes {Math.round(p.hato.vientres)} reproductoras, {Math.round(p.hato.sementales)} {p.hato.sementales === 1 ? "semental" : "sementales"}, {Math.round(p.hato.crias)} crías y {Math.round(p.hato.levante)} animales en levante.
+        Hoy tienes {Math.round(p.hato.vientres)} reproductoras, {Math.round(machos.sementales)} {Math.round(machos.sementales) === 1 ? "semental" : "sementales"}
+        {machos.paraVenta > 0 ? `, ${Math.round(machos.paraVenta)} ${Math.round(machos.paraVenta) === 1 ? "macho que se toma como carne" : "machos que se toman como carne"}` : ""}, {Math.round(p.hato.crias)} crías y {Math.round(p.hato.levante)} animales en levante.
       </p>
+      {p.hato.machosSinUso > 0 ? (
+        <Aviso tipo="atencion">
+          Tienes {p.hato.machosSinUso} {p.hato.machosSinUso === 1 ? "macho" : "machos"} sin uso definido. Se cuentan como sementales los que hacen falta (uno por cada {Math.round(supuestos.hembras_por_semental)} reproductoras: {Math.round(machos.sementales)}) y
+          {machos.paraVenta > 0 ? ` los otros ${Math.round(machos.paraVenta)} como animales de carne que se venden en el primer mes` : " ninguno sobra"}. Para que sea exacto, marca en la ficha de cada macho si es reproductor o de carne; la relación de hembras por semental la cambias en «Supuestos».
+        </Aviso>
+      ) : null}
+      {compartidos ? (
+        <Aviso tipo="atencion">
+          Ojo: en el primer año esta vista no resta {formatear("pesos", compartidos.sinRestar)} de costos compartidos (alimento base de reproductoras y sementales, sanidad y costos fijos), que sirven a la carne y a la leche. Con todo restado, la finca queda en {formatear("pesos", compartidos.resultadoCompleto)}: míralo en «Todo».
+        </Aviso>
+      ) : null}
       <Avisos avisos={proyeccion.avisos} />
       <div className="grid grid-cols-1 gap-3 lg:grid-cols-3 lg:items-start">
         {bloques.map((b) => (

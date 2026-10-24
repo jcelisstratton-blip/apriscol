@@ -14,7 +14,10 @@ export const DIAS_MES = 30.4;
 export type Inicio = {
   /** Hembras reproductoras. */
   vientres: number;
+  /** Machos que ya se sabe que son reproductores (uso «reproductor»). */
   sementales: number;
+  /** Machos adultos sin uso definido: solo los que hagan falta se cuentan como sementales; el resto se toma como carne. */
+  machosSinUso?: number;
   /** Hembras reproductoras que hoy están en lactancia. */
   lactantes: number;
   /** Los animales jóvenes por edad en meses: los machos se venderán y las hembras se dejan de reemplazo. */
@@ -87,6 +90,14 @@ export function mesesGestacion(gestacionDias: number) {
   return Math.max(1, Math.ceil(gestacionDias / DIAS_MES));
 }
 
+/** Cuántos de los machos de hoy se cuentan como sementales y cuántos se toman como animales de carne (1 semental por cada `hembrasPorSemental` reproductoras). */
+export function repartirMachos(inicio: Pick<Inicio, "vientres" | "sementales" | "machosSinUso">, hembrasPorSemental: number): { sementales: number; paraVenta: number } {
+  const sinUso = inicio.machosSinUso ?? 0;
+  const faltan = Math.max(0, Math.ceil(inicio.vientres / Math.max(1, hembrasPorSemental)) - inicio.sementales);
+  const toman = Math.min(sinUso, faltan);
+  return { sementales: inicio.sementales + toman, paraVenta: sinUso - toman };
+}
+
 export function simular(inicio: Inicio, s: Supuestos, horizonte: number, gestacionDias = 150, estacion?: Estacion): Proyeccion {
   const G = mesesGestacion(gestacionDias);
   const destete = Math.max(1, Math.round(s.destete_meses));
@@ -112,8 +123,11 @@ export function simular(inicio: Inicio, s: Supuestos, horizonte: number, gestaci
     .filter((c) => c.machos + c.hembras > 0)
     .map((c) => ({ edad: Math.max(0, Math.round(c.edad)), m: c.machos, hv: 0, hr: c.hembras }));
 
+  const { sementales, paraVenta } = repartirMachos(inicio, s.hembras_por_semental);
+  // Los machos sin uso que no hacen falta como sementales salen a la venta en el primer mes.
+  if (paraVenta > 0) cohortes.push({ edad: edadVenta - 1, m: paraVenta, hv: 0, hr: 0 });
+
   let V = vientres0;
-  const sementales = inicio.sementales;
   const partosPasados: number[] = [];
   const avisos: Aviso[] = [];
   const meses: Mes[] = [];

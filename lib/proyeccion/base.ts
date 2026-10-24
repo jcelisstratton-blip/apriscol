@@ -1,4 +1,4 @@
-import { DIAS_MES, mesesGestacion, type Estacion, type Inicio } from "@/lib/proyeccion/motor";
+import { DIAS_MES, mesesGestacion, repartirMachos, type Estacion, type Inicio } from "@/lib/proyeccion/motor";
 import { CLAVES, DEFINICION, REFERENCIAS, type ClaveSupuesto, type OrigenSupuesto, type Supuestos } from "@/lib/proyeccion/supuestos";
 
 /**
@@ -53,7 +53,7 @@ export type BaseProyeccion = {
   /** La época del año, para encarecer el alimento y bajar la leche en los meses secos. */
   estacion: Estacion;
   /** El hato de hoy, para mostrarlo. */
-  hato: { vientres: number; sementales: number; crias: number; levante: number; total: number; lactantes: number };
+  hato: { vientres: number; sementales: number; machosSinUso: number; crias: number; levante: number; total: number; lactantes: number };
 };
 
 export const edadMeses = (nacimiento: string | null, hoy: string): number | null => {
@@ -83,6 +83,7 @@ export function armarBase(d: DatosFinca): BaseProyeccion {
   const activos = d.animales.filter((a) => a.estado === "activo");
   let vientres = 0;
   let sementales = 0;
+  let machosSinUso = 0;
   const jovenes = new Map<number, { machos: number; hembras: number }>();
   const sumarJoven = (edad: number, sexo: "macho" | "hembra") => {
     const c = jovenes.get(edad) ?? { machos: 0, hembras: 0 };
@@ -100,7 +101,10 @@ export function armarBase(d: DatosFinca): BaseProyeccion {
       } else sumarJoven(edad, "hembra");
     } else if (a.uso_macho === "carne") {
       sumarJoven(edad ?? Math.round(base.edad_venta_meses) - 1, "macho");
-    } else if (edad === null || edad >= 12) sementales += 1;
+    } else if (edad === null || edad >= 12) {
+      if (a.uso_macho === "reproductor") sementales += 1;
+      else machosSinUso += 1;
+    }
     else sumarJoven(edad, "macho");
   }
 
@@ -180,9 +184,10 @@ export function armarBase(d: DatosFinca): BaseProyeccion {
   const meses = d.mesesConCostos;
   const crias = [...jovenes.entries()].filter(([e]) => e < base.destete_meses).reduce((s, [, c]) => s + c.machos + c.hembras, 0);
   const levante = [...jovenes.entries()].filter(([e]) => e >= base.destete_meses).reduce((s, [, c]) => s + c.machos + c.hembras, 0);
-  const totalAnimales = vientres + sementales + crias + levante;
+  const totalAnimales = vientres + sementales + machosSinUso + crias + levante;
+  const { sementales: sementalesEfectivos } = repartirMachos({ vientres, sementales, machosSinUso }, base.hembras_por_semental);
   if (meses >= 3 && totalAnimales > 0) {
-    const msDia = vientres * base.ms_vientre_seco + lactantes * Math.max(0, base.ms_vientre_lactando - base.ms_vientre_seco) + sementales * base.ms_semental + crias * base.ms_cria + levante * base.ms_levante;
+    const msDia = vientres * base.ms_vientre_seco + lactantes * Math.max(0, base.ms_vientre_lactando - base.ms_vientre_seco) + sementalesEfectivos * base.ms_semental + crias * base.ms_cria + levante * base.ms_levante;
     const alimentacion = total((r) => ["concentrado", "forraje", "sales_suplementos", "leche_maternizada"].includes(r));
     const muestra = `${meses} ${meses === 1 ? "mes" : "meses"} con costos`;
     if (alimentacion > 0 && msDia > 0) poner("costo_kg_ms", alimentacion / meses / (msDia * DIAS_MES), muestra);
@@ -195,7 +200,7 @@ export function armarBase(d: DatosFinca): BaseProyeccion {
   if (d.capacidad > 0) poner("capacidad_max_animales", d.capacidad, "Capacidad de tus corrales");
 
   const cohortes = [...jovenes.entries()].map(([edad, c]) => ({ edad, machos: c.machos, hembras: c.hembras })).sort((a, b) => a.edad - b.edad);
-  const inicio: Inicio = { vientres, sementales, lactantes: Math.min(lactantes, vientres), cohortes, gestantesPorMes, servidasPorMes };
+  const inicio: Inicio = { vientres, sementales, machosSinUso, lactantes: Math.min(lactantes, vientres), cohortes, gestantesPorMes, servidasPorMes };
   const estacion: Estacion = { mesHoy: Number(d.hoy.slice(5, 7)), mesesLluvia: d.mesesLluvia ?? [] };
-  return { base, procedencia, inicio, gestacionDias: d.gestacionDias, estacion, hato: { vientres, sementales, crias, levante, total: totalAnimales, lactantes: inicio.lactantes } };
+  return { base, procedencia, inicio, gestacionDias: d.gestacionDias, estacion, hato: { vientres, sementales, machosSinUso, crias, levante, total: totalAnimales, lactantes: inicio.lactantes } };
 }
