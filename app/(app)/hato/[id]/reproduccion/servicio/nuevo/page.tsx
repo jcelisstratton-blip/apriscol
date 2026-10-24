@@ -34,7 +34,7 @@ export default async function PaginaServicioNuevo({ params }: { params: Promise<
       </Link>
       <Encabezado titulo="Registrar servicio" subtitulo={etiquetaAnimal(animal)} />
       <div className="lg:max-w-xl">
-        <FormServicio fincaId={finca.id} hembraId={id} especie={animal.especie} gestacionDias={ajustes.especie[animal.especie].gestacion_dias} hoy={hoyBogota()} solicitud={randomUUID()} />
+        <FormServicio fincaId={finca.id} hembraId={id} especie={animal.especie} gestacionDias={ajustes.especie[animal.especie].gestacion_dias} hoy={hoyBogota()} umbral={finca.umbral_endogamia} solicitud={randomUUID()} />
       </div>
     </>
   );

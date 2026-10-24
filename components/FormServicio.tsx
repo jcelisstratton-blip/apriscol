@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Aviso } from "@/components/Aviso";
 import { Boton, clasesBoton } from "@/components/Boton";
 import { Campo, CLASE_INPUT } from "@/components/Campo";
+import { EndogamiaServicio } from "@/components/EndogamiaServicio";
 import { SelectorAnimal } from "@/components/SelectorAnimal";
 import { SelectorTarjetas } from "@/components/SelectorTarjetas";
 import { crearServicio, editarServicio } from "@/app/(app)/reproduccion/actions";
@@ -25,6 +26,7 @@ export function FormServicio({
   especie,
   gestacionDias,
   hoy,
+  umbral,
   servicio,
   machoInicial,
   madreInicial,
@@ -35,6 +37,8 @@ export function FormServicio({
   especie: Especie;
   gestacionDias: number;
   hoy: string;
+  /** Umbral de endogamia de la finca: con él se lee el nivel de la cría. */
+  umbral: number;
   servicio?: Servicio;
   machoInicial?: Macho | null;
   madreInicial?: Macho | null;
@@ -88,6 +92,8 @@ export function FormServicio({
         </button>
       </div>
 
+      {esET ? null : <EndogamiaServicio umbral={umbral} machoId={macho?.id ?? null} parejaId={hembraId} parejaEs="la hembra" sinPedigri={externo ? "El macho" : null} />}
+
       {esIA ? (
         <>
           <Campo etiqueta="Código o banco de la pajilla / lote del semen">
@@ -115,6 +121,7 @@ export function FormServicio({
             </button>
             <p className="text-sm text-humo">La hembra a la que se le hace el servicio es la receptora, la que gesta.</p>
           </div>
+          <EndogamiaServicio umbral={umbral} machoId={macho?.id ?? null} parejaId={madre?.id ?? null} parejaEs="la madre genética" sinPedigri={externo ? "El padre genético" : madreExterna ? "La madre genética" : null} />
           <Campo etiqueta="Identificación del embrión / lote" ayuda="Código del embrión, fresco o congelado.">
             {(id) => <input id={id} name="embrion_codigo" defaultValue={servicio?.embrion_codigo ?? ""} maxLength={60} autoComplete="off" required className={CLASE_INPUT} />}
           </Campo>
