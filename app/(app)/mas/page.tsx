@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Baby, Beef, Download, ChevronRight, Fence, FileText, GitFork, Gift, KeyRound, LogOut, MapPin, Package, Pencil, Plus, Rocket, ShieldCheck, SlidersHorizontal, Syringe, Trophy, Users, Wallet } from "lucide-react";
+import { Baby, Beef, Download, ChevronRight, Fence, FileBarChart2, FileText, GitFork, Gift, KeyRound, LogOut, MapPin, Package, Pencil, Plus, Rocket, ShieldCheck, SlidersHorizontal, Syringe, Trophy, Users, Wallet } from "lucide-react";
 import { Encabezado } from "@/components/Encabezado";
 import { AvisoGuardado } from "@/components/AvisoGuardado";
 import { FincaSelector } from "@/components/FincaSelector";
@@ -9,6 +9,7 @@ import { Tarjeta } from "@/components/Tarjeta";
 import { esAdminPlataforma, obtenerContexto } from "@/lib/contexto";
 import { nombrePlan } from "@/lib/planes";
 import { ETIQUETA_ROL, puedeGestionar, puedeVer } from "@/lib/permisos";
+import { reportesVisibles } from "@/lib/reportes/catalogo";
 import { cerrarSesion } from "@/app/login/actions";
 
 export const metadata: Metadata = { title: "Más" };
@@ -106,6 +107,13 @@ export default async function PaginaMas({ searchParams }: { searchParams: Promis
             <Link href="/costos" className={FILA}>
               <Wallet className="size-5 text-musgo" strokeWidth={1.75} />
               <span className="flex-1 font-semibold">Costos</span>
+              <ChevronRight className="size-5 text-humo" strokeWidth={1.75} />
+            </Link>
+          ) : null}
+          {reportesVisibles((m) => puedeVer(rol, m, finca.plan)).length > 0 || puedeVer(rol, "contabilidad", finca.plan) ? (
+            <Link href="/reportes" className={FILA}>
+              <FileBarChart2 className="size-5 text-musgo" strokeWidth={1.75} />
+              <span className="flex-1 font-semibold">Reportes</span>
               <ChevronRight className="size-5 text-humo" strokeWidth={1.75} />
             </Link>
           ) : null}
