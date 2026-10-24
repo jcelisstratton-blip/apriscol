@@ -12,8 +12,9 @@ import { leerNumero } from "@/lib/numeros";
 import { soporteValido } from "@/lib/soportes";
 import { formasDe } from "@/lib/nomina";
 import type { FormaPago, Vinculacion } from "@/lib/tipos";
+import type { VeterinarioRef } from "@/lib/veterinarios";
 import { opcional } from "@/lib/validacion";
-import { cargoDelPerfil, perfilPorRol, type EntradaPerfil } from "@/lib/perfil-personal";
+import { cargoDelPerfil, perfilDePersona, perfilPorRol, type EntradaPerfil } from "@/lib/perfil-personal";
 
 export type EstadoForm = { error?: string } | undefined;
 type Resultado = { ok: true } | { ok: false; error: string };
@@ -92,15 +93,35 @@ export async function editarPersona(_: EstadoForm, form: FormData): Promise<Esta
   if (problema) return { error: problema };
   const supabase = await crearClienteServidor();
   // Los datos del perfil dependen del perfil que ya tiene la persona (no se cambia al corregirla); no se exigen para no bloquear a quien ya estaba registrado.
-  const { data: actual } = await supabase.from("personal").select("rol, cargo").eq("id", d.persona_id).eq("finca_id", finca.id).maybeSingle();
+  const { data: actual } = await supabase.from("personal").select("rol, cargo, es_veterinario").eq("id", d.persona_id).eq("finca_id", finca.id).maybeSingle();
   if (!actual) return { error: "No encontramos a esa persona." };
-  const perfil = perfilPorRol(actual.rol ?? "ninguno", Object.fromEntries(form) as EntradaPerfil, false);
+  const perfil = perfilPorRol(perfilDePersona(actual), Object.fromEntries(form) as EntradaPerfil, false);
   if ("error" in perfil) return { error: perfil.error };
-  const { data, error } = await supabase.from("personal").update({ ...filaPersona(d), ...perfil.datos, cargo: cargoDelPerfil(actual.rol ?? "ninguno", perfil.datos, d.cargo, actual.cargo) }).eq("id", d.persona_id).eq("finca_id", finca.id).select("id");
+  const { data, error } = await supabase.from("personal").update({ ...filaPersona(d), ...perfil.datos, cargo: cargoDelPerfil(perfilDePersona(actual), perfil.datos, d.cargo, actual.cargo) }).eq("id", d.persona_id).eq("finca_id", finca.id).select("id");
   if (error) return { error: errorPersona(error.message) };
   if (!data || data.length === 0) return { error: "No encontramos a esa persona." };
   refrescar();
   redirect(DIRECCION_PERSONAS);
+}
+
+/**
+ * Agrega un veterinario al equipo desde el formulario de un procedimiento: queda como prestación de servicios, sin valor definido (se ajusta después en Equipo)
+ * y sin acceso a la app. Pide lo esencial de un veterinario: nombre, tarjeta profesional y teléfono. Solo el propietario o un administrador.
+ */
+export async function agregarVeterinario(entrada: { nombre: string; tarjeta: string; telefono: string }): Promise<{ ok: true; veterinario: VeterinarioRef } | { ok: false; error: string }> {
+  const { finca, rol } = await obtenerContexto();
+  if (!puedeGestionar(rol) || !puedeEscribir(rol, "contabilidad", finca.plan)) return { ok: false, error: "Solo el propietario o un administrador puede agregar veterinarios al equipo." };
+  const nombre = (entrada.nombre ?? "").trim();
+  if (!nombre) return { ok: false, error: "Escribe el nombre del veterinario." };
+  if (nombre.length > 120) return { ok: false, error: "El nombre es muy largo (máximo 120 letras)." };
+  const perfil = perfilPorRol("veterinario", { tarjeta_profesional: entrada.tarjeta, telefono: entrada.telefono }, true);
+  if ("error" in perfil) return { ok: false, error: perfil.error };
+  const supabase = await crearClienteServidor();
+  const { data, error } = await supabase.rpc("agregar_veterinario", { p_finca: finca.id, p_nombre: nombre, p_tarjeta: perfil.datos.tarjeta_profesional ?? "", p_telefono: perfil.datos.telefono ?? "" });
+  const fila = Array.isArray(data) ? data[0] : null;
+  if (error || !fila) return { ok: false, error: errorPersona(error?.message ?? "No se pudo agregar al veterinario.") };
+  revalidatePath("/mas/miembros");
+  return { ok: true, veterinario: { id: fila.id, nombre: fila.nombre, tarjeta_profesional: fila.tarjeta_profesional } };
 }
 
 /** Elimina a una persona que no tiene pagos. Con pagos se da por retirada (se edita), para que su historial no se pierda. */

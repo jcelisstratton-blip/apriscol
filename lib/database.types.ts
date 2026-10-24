@@ -3206,6 +3206,7 @@ export type Database = {
       }
       partos: {
         Row: {
+          asistido_por: string | null
           causa_aborto: string | null
           client_request_id: string | null
           complicaciones: string | null
@@ -3224,6 +3225,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          asistido_por?: string | null
           causa_aborto?: string | null
           client_request_id?: string | null
           complicaciones?: string | null
@@ -3242,6 +3244,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          asistido_por?: string | null
           causa_aborto?: string | null
           client_request_id?: string | null
           complicaciones?: string | null
@@ -3360,6 +3363,7 @@ export type Database = {
       }
       personal: {
         Row: {
+          es_veterinario: boolean
           acreditaciones: string | null
           curso_manipulacion: boolean | null
           curso_manipulacion_vence: string | null
@@ -3389,6 +3393,7 @@ export type Database = {
           vinculacion: string
         }
         Insert: {
+          es_veterinario?: boolean
           acreditaciones?: string | null
           curso_manipulacion?: boolean | null
           curso_manipulacion_vence?: string | null
@@ -3418,6 +3423,7 @@ export type Database = {
           vinculacion: string
         }
         Update: {
+          es_veterinario?: boolean
           acreditaciones?: string | null
           curso_manipulacion?: boolean | null
           curso_manipulacion_vence?: string | null
@@ -6053,6 +6059,10 @@ export type Database = {
       registrar_animal: {
         Args: { p_animal: Json; p_fecha_ultimo_parto?: string; p_finca: string }
         Returns: string
+      }
+      agregar_veterinario: {
+        Args: { p_finca: string; p_nombre: string; p_tarjeta: string; p_telefono: string }
+        Returns: { id: string; nombre: string; tarjeta_profesional: string }[]
       }
       veterinarios_finca: {
         Args: { p_finca: string }

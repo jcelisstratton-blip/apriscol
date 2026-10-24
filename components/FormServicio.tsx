@@ -6,7 +6,7 @@ import { Aviso } from "@/components/Aviso";
 import { Boton, clasesBoton } from "@/components/Boton";
 import { Campo, CLASE_INPUT } from "@/components/Campo";
 import { EndogamiaServicio } from "@/components/EndogamiaServicio";
-import { ResponsableProcedimiento } from "@/components/ResponsableProcedimiento";
+import { AsistidoPor } from "@/components/AsistidoPor";
 import { SelectorAnimal } from "@/components/SelectorAnimal";
 import { SelectorTarjetas } from "@/components/SelectorTarjetas";
 import { crearServicio, editarServicio } from "@/app/(app)/reproduccion/actions";
@@ -30,6 +30,7 @@ export function FormServicio({
   hoy,
   umbral,
   veterinarios,
+  puedeAgregarVeterinario,
   servicio,
   machoInicial,
   madreInicial,
@@ -44,6 +45,7 @@ export function FormServicio({
   umbral: number;
   /** Los veterinarios del equipo: quien hace una inseminación o una transferencia suele ser uno de ellos. */
   veterinarios: VeterinarioRef[];
+  puedeAgregarVeterinario: boolean;
   servicio?: Servicio;
   machoInicial?: Macho | null;
   madreInicial?: Macho | null;
@@ -137,7 +139,7 @@ export function FormServicio({
       ) : null}
 
       {esIA || esET ? (
-        <ResponsableProcedimiento key={tipo} nombre="responsable" etiqueta={esIA ? "Técnico o inseminador" : "Técnico"} ayuda="Opcional. Quién hizo el procedimiento." veterinarios={veterinarios} inicial={servicio?.responsable} />
+        <AsistidoPor key={tipo} nombre="responsable" ayuda="Opcional." veterinarios={veterinarios} puedeAgregar={puedeAgregarVeterinario} inicial={servicio?.responsable} />
       ) : (
         <Campo etiqueta="Responsable" ayuda="Opcional. Quién hizo el servicio.">
           {(id) => <input id={id} name="responsable" defaultValue={servicio?.responsable ?? ""} maxLength={120} autoComplete="off" className={CLASE_INPUT} />}

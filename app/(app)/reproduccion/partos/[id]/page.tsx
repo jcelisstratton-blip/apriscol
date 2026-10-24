@@ -6,7 +6,7 @@ import { EliminarRegistro } from "@/components/EliminarRegistro";
 import { Encabezado } from "@/components/Encabezado";
 import { FormParto } from "@/components/FormParto";
 import { obtenerContexto } from "@/lib/contexto";
-import { veterinariosDeLaFinca } from "@/lib/veterinarios-servidor";
+import { cargarVeterinarios } from "@/lib/veterinarios-servidor";
 import { crearClienteServidor } from "@/lib/supabase/server";
 import { puedeEscribir, puedeGestionar } from "@/lib/permisos";
 import { etiquetaAnimal } from "@/lib/animal";
@@ -30,7 +30,7 @@ export default async function PaginaEditarParto({ params }: { params: Promise<{ 
   ]);
   if (!animal) notFound();
 
-  const veterinarios = await veterinariosDeLaFinca(supabase, finca.id);
+  const { veterinarios, puedeAgregar: puedeAgregarVeterinario } = await cargarVeterinarios(supabase, finca, rol);
 
   return (
     <>
@@ -39,7 +39,7 @@ export default async function PaginaEditarParto({ params }: { params: Promise<{ 
       </Link>
       <Encabezado titulo="Editar parto" subtitulo={etiquetaAnimal(animal)} />
       <div className="space-y-8 lg:max-w-xl">
-        <FormParto hembraId={animal.id} veterinarios={veterinarios} hoy={hoyBogota()} parto={parto} crias={crias ?? []} />
+        <FormParto hembraId={animal.id} veterinarios={veterinarios} puedeAgregarVeterinario={puedeAgregarVeterinario} hoy={hoyBogota()} parto={parto} crias={crias ?? []} />
         {puedeGestionar(rol) ? (
           <EliminarRegistro
             etiqueta="Eliminar este parto"

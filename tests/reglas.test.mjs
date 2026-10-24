@@ -171,21 +171,26 @@ test("reproducción: un diagnóstico dudoso deja a la hembra en observación y s
 import { datosPorTipoParto } from "../lib/parto-reglas.ts";
 
 test("parto: cada tipo pide y guarda solo lo suyo", () => {
-  // Cesárea: el responsable de la cirugía es obligatorio.
+  // Cesárea y parto asistido: quién asistió es obligatorio (el veterinario de la finca u otra persona).
   assert.match(datosPorTipoParto({ tipo: "cesarea" }).error, /cesárea/);
-  const ces = datosPorTipoParto({ tipo: "cesarea", responsable_quirurgico: "Dra. Ruiz", protocolo_posoperatorio: "Penicilina 3 días", causa_aborto: "infecciosa" });
-  assert.equal(ces.datos.responsable_quirurgico, "Dra. Ruiz");
+  assert.match(datosPorTipoParto({ tipo: "asistido" }).error, /asistió/);
+  const ces = datosPorTipoParto({ tipo: "cesarea", asistido_por: "Dra. Ruiz", protocolo_posoperatorio: "Penicilina 3 días", causa_aborto: "infecciosa" });
+  assert.equal(ces.datos.asistido_por, "Dra. Ruiz");
   assert.equal(ces.datos.protocolo_posoperatorio, "Penicilina 3 días");
   assert.equal(ces.datos.causa_aborto, null, "una cesárea no guarda causa de aborto");
-  // Aborto: la causa es obligatoria y no guarda datos de cirugía.
+  const asi = datosPorTipoParto({ tipo: "asistido", asistido_por: "Don Pedro", protocolo_posoperatorio: "no aplica" });
+  assert.equal(asi.datos.asistido_por, "Don Pedro");
+  assert.equal(asi.datos.protocolo_posoperatorio, null, "el protocolo posoperatorio es solo de la cesárea");
+  // Aborto: la causa es obligatoria; quién asistió es opcional y no guarda datos de cirugía.
   assert.match(datosPorTipoParto({ tipo: "aborto" }).error, /causa/);
-  const ab = datosPorTipoParto({ tipo: "aborto", causa_aborto: "nutricional", responsable_quirurgico: "X", complicaciones: "Retención de placenta" });
+  const ab = datosPorTipoParto({ tipo: "aborto", causa_aborto: "nutricional", complicaciones: "Retención de placenta", protocolo_posoperatorio: "x" });
   assert.equal(ab.datos.causa_aborto, "nutricional");
-  assert.equal(ab.datos.responsable_quirurgico, null);
-  assert.equal(ab.datos.complicaciones, "Retención de placenta");
-  // Normal y asistido: solo complicaciones y observaciones.
-  const nor = datosPorTipoParto({ tipo: "asistido", observaciones: "Cría atravesada", responsable_quirurgico: "X", causa_aborto: "toxica" });
-  assert.deepEqual(nor.datos, { complicaciones: null, observaciones: "Cría atravesada", causa_aborto: null, responsable_quirurgico: null, protocolo_posoperatorio: null });
+  assert.equal(ab.datos.asistido_por, null);
+  assert.equal(ab.datos.protocolo_posoperatorio, null);
+  assert.equal(datosPorTipoParto({ tipo: "aborto", causa_aborto: "toxica", asistido_por: "Dra. Ruiz" }).datos.asistido_por, "Dra. Ruiz");
+  // Parto normal: sin asistencia, solo complicaciones y observaciones.
+  const nor = datosPorTipoParto({ tipo: "normal", observaciones: "Todo bien", asistido_por: "X", causa_aborto: "toxica" });
+  assert.deepEqual(nor.datos, { complicaciones: null, observaciones: "Todo bien", causa_aborto: null, asistido_por: null, protocolo_posoperatorio: null });
 });
 
 import { cargoDelPerfil, perfilPorRol, resumenPerfil } from "../lib/perfil-personal.ts";
@@ -233,20 +238,21 @@ test("equipo: el cargo sale del perfil y no se pregunta", () => {
   assert.ok(perfilPorRol("ninguno", { labor_principal: "otra", cargo: "Esquilador" }, true).datos);
 });
 
-import { eleccionInicialResponsable, nombreResponsable, OTRA_PERSONA } from "../lib/veterinarios.ts";
+import { estadoInicialAsistencia, nombreAsistencia } from "../lib/veterinarios.ts";
 
-test("responsable de un procedimiento: el veterinario de la finca o el nombre de otra persona", () => {
+test("asistido por: el veterinario de la finca u otra persona, excluyentes", () => {
   const ana = { id: "v1", nombre: "Dra. Ana Ruiz", tarjeta_profesional: "MV-1" };
   const luis = { id: "v2", nombre: "Luis Peña", tarjeta_profesional: null };
-  // Nuevo: con un solo veterinario ya viene elegido; con varios no se adivina; sin veterinarios solo se escribe el nombre.
-  assert.equal(eleccionInicialResponsable([ana]), "v1");
-  assert.equal(eleccionInicialResponsable([ana, luis]), "");
-  assert.equal(eleccionInicialResponsable([]), OTRA_PERSONA);
-  // Al corregir: el veterinario que coincide (sin importar mayúsculas) o «otra persona» si era alguien que no está en el equipo.
-  assert.equal(eleccionInicialResponsable([ana, luis], "luis peña"), "v2");
-  assert.equal(eleccionInicialResponsable([ana, luis], "Don Pedro"), OTRA_PERSONA);
-  // El nombre que se guarda es el del veterinario elegido o lo escrito.
-  assert.equal(nombreResponsable([ana, luis], "v1", "ignorado"), "Dra. Ana Ruiz");
-  assert.equal(nombreResponsable([ana, luis], OTRA_PERSONA, "  Don Pedro "), "Don Pedro");
-  assert.equal(nombreResponsable([ana, luis], "", "algo"), "");
+  // Nuevo: con veterinarios ya viene «Veterinario» (con uno solo, ese elegido); sin veterinarios no se adivina nada.
+  assert.deepEqual(estadoInicialAsistencia([ana]), { quien: "veterinario", veterinarioId: "v1", escrito: "" });
+  assert.deepEqual(estadoInicialAsistencia([ana, luis]), { quien: "veterinario", veterinarioId: "", escrito: "" });
+  assert.deepEqual(estadoInicialAsistencia([]), { quien: "", veterinarioId: "", escrito: "" });
+  // Al corregir: el veterinario que coincide (sin importar mayúsculas) o «otra persona» con el nombre escrito.
+  assert.deepEqual(estadoInicialAsistencia([ana, luis], "luis peña"), { quien: "veterinario", veterinarioId: "v2", escrito: "" });
+  assert.deepEqual(estadoInicialAsistencia([ana, luis], "Don Pedro"), { quien: "otra", veterinarioId: "", escrito: "Don Pedro" });
+  // El nombre que se guarda sale de una sola de las dos opciones.
+  assert.equal(nombreAsistencia([ana, luis], { quien: "veterinario", veterinarioId: "v1", escrito: "ignorado" }), "Dra. Ana Ruiz");
+  assert.equal(nombreAsistencia([ana, luis], { quien: "otra", veterinarioId: "v1", escrito: "  Don Pedro " }), "Don Pedro");
+  assert.equal(nombreAsistencia([ana, luis], { quien: "veterinario", veterinarioId: "", escrito: "" }), "");
+  assert.equal(nombreAsistencia([ana, luis], { quien: "", veterinarioId: "v1", escrito: "algo" }), "");
 });

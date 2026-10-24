@@ -6,7 +6,7 @@ import { Plus, Trash2 } from "lucide-react";
 import { Aviso } from "@/components/Aviso";
 import { Boton, clasesBoton } from "@/components/Boton";
 import { Campo, CLASE_INPUT } from "@/components/Campo";
-import { ResponsableProcedimiento } from "@/components/ResponsableProcedimiento";
+import { AsistidoPor } from "@/components/AsistidoPor";
 import { SelectorTarjetas } from "@/components/SelectorTarjetas";
 import { crearParto, editarParto } from "@/app/(app)/reproduccion/actions";
 import { formatoFecha } from "@/lib/fechas";
@@ -20,9 +20,10 @@ type Fila = { sexo: "hembra" | "macho" | ""; vivo: boolean; peso: string; arete:
 const NUEVA: Fila = { sexo: "", vivo: true, peso: "", arete: "", nombre: "" };
 
 /**
- * Registrar el parto de una hembra. El formulario se adapta al tipo de evento: parto normal o asistido, crías (una fila por cría: gemelos y
- * trillizos), complicaciones y observaciones; cesárea, lo mismo más el médico veterinario que operó, las complicaciones quirúrgicas y el protocolo
- * posoperatorio; aborto, sin crías ni pesos: causa aparente, complicaciones y observaciones clínicas. Una cría viva con arete se crea también como
+ * Registrar el parto de una hembra. El formulario se adapta al tipo de evento: parto normal, crías (una fila por cría: gemelos y trillizos),
+ * complicaciones y observaciones, sin asistencia; parto asistido y cesárea, lo mismo más «Asistido por» (el veterinario de la finca u otra persona; en la cesárea,
+ * además, las complicaciones quirúrgicas y el protocolo posoperatorio); aborto, sin crías ni pesos: causa aparente, «Asistido por» si lo hubo, complicaciones y
+ * observaciones clínicas. Una cría viva con arete se crea también como
  * animal del hato, con su madre y su padre. Al corregir un parto cambian la fecha, el tipo y los datos clínicos; las crías se corrigen desde su ficha.
  */
 export function FormParto({
@@ -32,6 +33,7 @@ export function FormParto({
   parto,
   crias,
   veterinarios,
+  puedeAgregarVeterinario,
   solicitud,
 }: {
   hembraId: string;
@@ -41,8 +43,9 @@ export function FormParto({
   parto?: Parto;
   /** Al corregir: las crías que ya tiene (solo lectura). */
   crias?: Cria[];
-  /** Los veterinarios del equipo: quien hace una cesárea suele ser uno de ellos. */
+  /** Los veterinarios del equipo: quien asiste un parto difícil suele ser uno de ellos. */
   veterinarios: VeterinarioRef[];
+  puedeAgregarVeterinario: boolean;
   solicitud?: string;
 }) {
   const editando = Boolean(parto);
@@ -159,8 +162,8 @@ export function FormParto({
         </div>
       ) : null}
 
-      {esCesarea ? (
-        <ResponsableProcedimiento nombre="responsable_quirurgico" etiqueta="Médico veterinario o responsable de la cirugía" ayuda="Quién hizo la cesárea." veterinarios={veterinarios} inicial={parto?.responsable_quirurgico} requerido />
+      {tipo !== "normal" ? (
+        <AsistidoPor key={tipo} nombre="asistido_por" veterinarios={veterinarios} puedeAgregar={puedeAgregarVeterinario} inicial={parto?.asistido_por ?? parto?.responsable_quirurgico} requerido={tipo === "asistido" || tipo === "cesarea"} />
       ) : null}
 
       <Campo etiqueta={esCesarea ? "Complicaciones quirúrgicas" : "Complicaciones"} ayuda="Opcional.">

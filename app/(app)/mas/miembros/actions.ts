@@ -67,7 +67,8 @@ export async function invitar(_: EstadoInvitar, form: FormData): Promise<EstadoI
   const datos = esquema.safeParse(Object.fromEntries(form));
   if (!datos.success) return { error: datos.error.issues[0]?.message };
   const d = datos.data;
-  const conAcceso = d.rol !== "ninguno";
+  // Un veterinario puede quedar en el equipo sin correo (uno externo que no usa la app): se ofrece en los procedimientos pero no se invita.
+  const conAcceso = d.rol !== "ninguno" && !(d.rol === "veterinario" && !d.email);
   if (conAcceso && !d.email) return { error: "Escribe el correo con el que se va a registrar." };
   if (!formasDe(d.vinculacion as Vinculacion).includes(d.forma_pago as FormaPago)) return { error: "Con contrato de trabajo se paga por mes o por jornal." };
 
@@ -86,6 +87,7 @@ export async function invitar(_: EstadoInvitar, form: FormData): Promise<EstadoI
       valor_base: d.valor_base,
       fecha_ingreso: d.fecha_ingreso ?? null,
       ...perfil.datos,
+      es_veterinario: d.rol === "veterinario",
     },
     p_email: conAcceso ? (d.email ?? null) : null,
     p_rol: conAcceso ? d.rol : null,
