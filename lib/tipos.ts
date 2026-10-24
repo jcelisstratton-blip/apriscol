@@ -5,7 +5,7 @@ export type SexoAnimal = "hembra" | "macho";
 export type Vocacion = "leche" | "carne" | "doble";
 export type RolFinca = "propietario" | "administrador" | "ordenador" | "veterinario" | "contador";
 export type ModuloApp =
-  | "hato" | "genealogia" | "leche" | "carne" | "sanidad" | "reproduccion" | "nutricion" | "ambiente" | "contabilidad" | "ferias" | "corrales";
+  | "hato" | "genealogia" | "leche" | "carne" | "sanidad" | "reproduccion" | "nutricion" | "ambiente" | "contabilidad" | "ferias" | "corrales" | "proyecciones";
 export type PlanId = "cria" | "hato" | "profesional" | "hacienda";
 export type UsoMacho = "reproductor" | "carne";
 export type Jornada = "manana" | "tarde" | "noche" | "unico";
@@ -1345,6 +1345,7 @@ export type Database = {
       reglas_ceba: Tabla<Omit<ReglaCeba, "personalizada"> & { finca_id: string; created_by: string | null; created_at: string; updated_at: string }, "finca_id" | "especie">;
       pesajes: Tabla<Pesaje, "finca_id" | "animal_id" | "peso_kg">;
       empadronamientos: Tabla<Omit<Empadronamiento, "machos" | "hembras" | "excepciones">, "finca_id" | "especie" | "nombre" | "fecha_fin_prevista" | "edad_min_meses" | "peso_min_kg">;
+      proyecciones: Tabla<Proyeccion, "finca_id" | "nombre">;
       lotes: Tabla<{ id: string; finca_id: string; nombre: string; descripcion: string | null; created_at: string; updated_at: string }, "finca_id" | "nombre">;
       ubicaciones: Tabla<Ubicacion, "finca_id" | "tipo" | "nombre">;
       movimientos_animales: Tabla<MovimientoAnimal, "finca_id" | "animal_id" | "ubicacion_id" | "desde">;
@@ -1567,4 +1568,16 @@ export type Database = {
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;
   };
+};
+
+/** Un escenario de Proyecciones: solo guarda lo que la persona cambió frente a los valores de su finca (`ajustes`). */
+export type Proyeccion = {
+  id: string;
+  finca_id: string;
+  nombre: string;
+  horizonte_meses: number;
+  ajustes: Record<string, number>;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
 };

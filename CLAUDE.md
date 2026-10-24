@@ -97,6 +97,7 @@ El detalle de cada módulo vive en `docs/modulos/`. Léelo antes de cambiar su c
 - [`docs/modulos/sanidad-corrales.md`](docs/modulos/sanidad-corrales.md) — Sanidad y corrales: Sanidad; Corrales, instalaciones y rotación
 - [`docs/modulos/contabilidad.md`](docs/modulos/contabilidad.md) — Compras, ventas, costos y nómina: Compras, ventas y costos
 - [`docs/modulos/reportes.md`](docs/modulos/reportes.md) — Reportes: listados de toda la finca (inventario, reproducción, producción, sanidad), filtros como tarjetas y Excel
+- [`docs/modulos/proyecciones.md`](docs/modulos/proyecciones.md) — Proyecciones: simulador mes a mes del hato, el alimento y el dinero (carne y leche), solo propietario y administrador, plan Profesional
 - [`docs/modulos/referidos.md`](docs/modulos/referidos.md) — Referidos: Referidos
 - [`docs/modulos/presentacion-planes.md`](docs/modulos/presentacion-planes.md) — Pantalla de entrada, legales y planes: Pantalla de entrada
 

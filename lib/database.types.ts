@@ -3796,6 +3796,47 @@ export type Database = {
           },
         ]
       }
+      proyecciones: {
+        Row: {
+          ajustes: Json
+          created_at: string
+          created_by: string | null
+          finca_id: string
+          horizonte_meses: number
+          id: string
+          nombre: string
+          updated_at: string
+        }
+        Insert: {
+          ajustes?: Json
+          created_at?: string
+          created_by?: string | null
+          finca_id: string
+          horizonte_meses?: number
+          id?: string
+          nombre: string
+          updated_at?: string
+        }
+        Update: {
+          ajustes?: Json
+          created_at?: string
+          created_by?: string | null
+          finca_id?: string
+          horizonte_meses?: number
+          id?: string
+          nombre?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proyecciones_finca_id_fkey"
+            columns: ["finca_id"]
+            isOneToOne: false
+            referencedRelation: "fincas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pruebas_sanitarias: {
         Row: {
           animal_id: string
@@ -6241,6 +6282,7 @@ export type Database = {
         | "contabilidad"
         | "ferias"
         | "corrales"
+        | "proyecciones"
       rol_finca:
         | "propietario"
         | "administrador"
@@ -6389,6 +6431,7 @@ export const Constants = {
         "contabilidad",
         "ferias",
         "corrales",
+        "proyecciones",
       ],
       rol_finca: [
         "propietario",

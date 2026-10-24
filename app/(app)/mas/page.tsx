@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Baby, Beef, Download, ChevronRight, Fence, FileBarChart2, FileText, GitFork, Gift, KeyRound, LogOut, MapPin, Package, Pencil, Plus, Rocket, ShieldCheck, SlidersHorizontal, Syringe, Trophy, Users, Wallet } from "lucide-react";
+import { Baby, Beef, Download, ChevronRight, Fence, FileBarChart2, FileText, GitFork, Gift, KeyRound, LogOut, MapPin, Package, Pencil, Plus, Rocket, ShieldCheck, SlidersHorizontal, Syringe, TrendingUp, Trophy, Users, Wallet } from "lucide-react";
 import { Encabezado } from "@/components/Encabezado";
 import { AvisoGuardado } from "@/components/AvisoGuardado";
 import { FincaSelector } from "@/components/FincaSelector";
@@ -114,6 +114,13 @@ export default async function PaginaMas({ searchParams }: { searchParams: Promis
             <Link href="/reportes" className={FILA}>
               <FileBarChart2 className="size-5 text-musgo" strokeWidth={1.75} />
               <span className="flex-1 font-semibold">Reportes</span>
+              <ChevronRight className="size-5 text-humo" strokeWidth={1.75} />
+            </Link>
+          ) : null}
+          {puedeGestionar(rol) && puedeVer(rol, "proyecciones", finca.plan) ? (
+            <Link href="/proyecciones" className={FILA}>
+              <TrendingUp className="size-5 text-musgo" strokeWidth={1.75} />
+              <span className="flex-1 font-semibold">Proyecciones</span>
               <ChevronRight className="size-5 text-humo" strokeWidth={1.75} />
             </Link>
           ) : null}

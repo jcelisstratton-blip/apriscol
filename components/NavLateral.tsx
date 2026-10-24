@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { Baby, Beef, Droplets, Fence, FileBarChart2, GitFork, Home, KeyRound, LogOut, MapPin, PawPrint, Rocket, Settings, ShieldCheck, SlidersHorizontal, Syringe, Trophy, Users, Wallet, Zap } from "lucide-react";
+import { Baby, Beef, Droplets, Fence, FileBarChart2, GitFork, Home, KeyRound, LogOut, MapPin, PawPrint, Rocket, Settings, ShieldCheck, SlidersHorizontal, Syringe, TrendingUp, Trophy, Users, Wallet, Zap } from "lucide-react";
 import { FincaSelector } from "@/components/FincaSelector";
 import { HojaAlGrano } from "@/components/HojaAlGrano";
 import { Marca } from "@/components/Marca";
@@ -32,6 +32,7 @@ export function NavLateral({
   verCarne,
   verRepro,
   verReportes,
+  verProyecciones,
   verEquipo,
   verPlan,
   planMejorable,
@@ -52,6 +53,8 @@ export function NavLateral({
   verRepro: boolean;
   /** Hay al menos un reporte que la persona puede abrir. */
   verReportes: boolean;
+  /** Propietario o administrador con el plan que incluye Proyecciones. */
+  verProyecciones: boolean;
   verEquipo: boolean;
   /** El propietario ve su plan en el menú principal. */
   verPlan: boolean;
@@ -72,6 +75,7 @@ export function NavLateral({
     ...(verCorrales ? [{ href: "/corrales", etiqueta: "Corrales", Icono: Fence }] : []),
     ...(verCostos ? [{ href: "/costos", etiqueta: "Costos", Icono: Wallet }] : []),
     ...(verReportes ? [{ href: "/reportes", etiqueta: "Reportes", Icono: FileBarChart2 }] : []),
+    ...(verProyecciones ? [{ href: "/proyecciones", etiqueta: "Proyecciones", Icono: TrendingUp }] : []),
     // Lo que mira o hace sobre todo el hato va aquí; lo que es de un solo animal vive en su ficha.
     { href: "/hato/endogamia", etiqueta: "Endogamia", Icono: GitFork },
     ...(verPremios ? [{ href: "/ferias", etiqueta: "Premios", Icono: Trophy }] : []),

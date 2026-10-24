@@ -35,6 +35,7 @@ export default async function LayoutApp({ children }: { children: React.ReactNod
         verCarne={puedeVer(rol, "carne", finca.plan)}
         verRepro={puedeVer(rol, "reproduccion", finca.plan)}
         verReportes={reportesVisibles((m) => puedeVer(rol, m, finca.plan)).length > 0 || puedeVer(rol, "contabilidad", finca.plan)}
+        verProyecciones={puedeGestionar(rol) && puedeVer(rol, "proyecciones", finca.plan)}
         verEquipo={puedeGestionar(rol) || puedeVer(rol, "contabilidad", finca.plan)}
         verPlan={rol === "propietario"}
         planMejorable={finca.plan !== "hacienda"}
