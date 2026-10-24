@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { ChevronLeft } from "lucide-react";
+import { Aviso } from "@/components/Aviso";
 import { Encabezado } from "@/components/Encabezado";
 import { FormPrograma, type DatosPrograma } from "@/components/FormPrograma";
 import { obtenerContexto } from "@/lib/contexto";
@@ -69,8 +70,9 @@ export default async function PaginaProgramar({ searchParams }: { searchParams: 
       <Link href={animalFijo ? `/hato/${animalFijo.id}#sanidad` : "/hato?vista=sanidad"} className="-ml-2 mt-3 inline-flex min-h-11 items-center gap-1 rounded-full px-2 text-[0.9375rem] font-semibold text-musgo">
         <ChevronLeft className="size-5" strokeWidth={2} /> {animalFijo ? (animalFijo.nombre ?? animalFijo.numero_arete) : "Hato"}
       </Link>
-      <Encabezado titulo={id ? "Editar la programación" : "Programar sanidad"} subtitulo={animalFijo ? etiquetaAnimal(animalFijo) : finca.nombre} />
+      <Encabezado titulo={id ? "Editar la programación" : "Programar una aplicación"} subtitulo={animalFijo ? etiquetaAnimal(animalFijo) : finca.nombre} />
       <div className="lg:max-w-xl">
+        {!id ? <Aviso tipo="info" className="mb-4">Planea una aplicación para otro día. Cuando llegue, la registras con un toque desde «Aplicar» y queda en el historial de cada animal.</Aviso> : null}
         <FormPrograma
           fincaId={finca.id}
           especies={finca.especies}

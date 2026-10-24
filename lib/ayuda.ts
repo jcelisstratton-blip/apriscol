@@ -46,7 +46,8 @@ export const AYUDA_IMPORTAR: Ayuda = {
 export const ayudaSanidad = (a: Pick<AjustesFinca, "podologia_inspeccion_dias" | "pediluvio_dias" | "pediluvio_dias_lluvia">): Ayuda => ({
   titulo: "Sanidad del hato",
   puntos: [
-    { titulo: "Programar y aplicar", texto: "Programa una vacuna, desparasitación, tratamiento o pediluvio para los animales que aplican; cuando llega el día lo aplicas y queda en el historial de cada uno." },
+    { titulo: "Registrar o programar", texto: "Registra una aplicación cuando ya la hiciste o la vas a hacer ahora (un tratamiento del día, una urgencia). Prográmala cuando sea para otro día o para varios animales: cuando llegue, tocas «Aplicar» y queda en el historial de cada uno. No hace falta programar antes de registrar." },
+    { titulo: "Próxima dosis", texto: "Si al registrar una aplicación pones una «próxima fecha», ese animal queda con su refuerzo pendiente. Para planear con antelación a varios animales a la vez, usa «Programar una aplicación»." },
     { titulo: "Retiro", texto: "Si un producto tiene días de retiro, la leche y la carne de ese animal no se pueden vender hasta que pasen." },
     {
       titulo: "FAMACHA",

@@ -142,6 +142,12 @@ export function FormPrograma({
       <Campo etiqueta="Para cuándo" ayuda="El día en que se va a aplicar. Ese día te aparece en Hato → Sanidad y en Hoy.">
         {(id) => <input id={id} name="fecha_programada" type="date" value={fecha} min={editando ? undefined : hoy} max={sumarDias(hoy, 730)} onChange={(e) => setFecha(e.target.value)} required className={CLASE_INPUT} />}
       </Campo>
+      {!editando && fecha === hoy ? (
+        <Aviso tipo="info">
+          ¿Ya la aplicaste o la vas a aplicar ahora?{" "}
+          <Link href={animalDe ? `/hato/sanidad/nuevo?animal=${animalDe}` : "/hato/sanidad/nuevo"} className="font-semibold text-musgo underline underline-offset-4">Regístrala directamente</Link>.
+        </Aviso>
+      ) : null}
       {pasada ? <Aviso tipo="atencion">Esta fecha ya pasó: la programación quedará vencida hasta que se aplique.</Aviso> : null}
 
       <Campo etiqueta="Animales" ayuda="Los animales a los que aplica. Puedes sumar un grupo entero (hembras, en lactancia, gestantes, crías, sin podología…) o buscar de a uno.">

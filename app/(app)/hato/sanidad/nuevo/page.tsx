@@ -122,6 +122,12 @@ export default async function PaginaEventoNuevo({ searchParams }: { searchParams
       </Link>
       <Encabezado titulo={programaId ? "Aplicar lo programado" : refuerzo ? "Aplicar la siguiente dosis" : "Registrar una aplicación"} subtitulo={animalFijo ? etiquetaAnimal(animalFijo) : finca.nombre} />
       <div className="lg:max-w-xl">
+        {!programaId && !refuerzo ? (
+          <p className="mb-4 text-[0.9375rem] text-humo">
+            ¿Es para otro día o para varios animales?{" "}
+            <Link href={animalFijo ? `/hato/sanidad/programar?animal=${animalFijo.id}` : "/hato/sanidad/programar"} className="font-semibold text-musgo underline underline-offset-4">Prográmala</Link>.
+          </p>
+        ) : null}
         <FormEvento
           fincaId={finca.id}
           especies={finca.especies}

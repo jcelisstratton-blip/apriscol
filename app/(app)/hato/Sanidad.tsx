@@ -66,19 +66,21 @@ export async function Sanidad({
   const botones = puedeEditar ? (
     <div className="grid grid-cols-1 gap-2 min-[420px]:grid-cols-2">
       <Link href="/hato/sanidad/programar" className={clasesBoton("primario")}>
-        <CalendarClock className="size-5" strokeWidth={2} aria-hidden="true" /> Programar
+        <CalendarClock className="size-5" strokeWidth={2} aria-hidden="true" /> Programar una aplicación
       </Link>
       <Link href="/hato/sanidad/nuevo" className={clasesBoton("secundario")}>
         <Plus className="size-5" strokeWidth={2.2} aria-hidden="true" /> Registrar una aplicación
       </Link>
     </div>
   ) : null;
+  const notaBotones = puedeEditar ? <p className="-mt-2 text-[0.8125rem] text-humo">Programa lo que se aplicará otro día o a varios animales; registra lo que aplicas ahora o ya aplicaste.</p> : null;
 
   return (
     <div className="space-y-4">
       <AvisoGuardado activo={guardado} />
       <AyudaModulo ayuda={ayudaSanidad(ajustes)} />
       {botones}
+      {notaBotones}
 
       {programas.length === 0 && refuerzos.length === 0 ? (
         <EstadoVacio
