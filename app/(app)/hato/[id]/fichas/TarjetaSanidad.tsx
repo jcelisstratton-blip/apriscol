@@ -116,7 +116,7 @@ export async function TarjetaSanidad({ c }: { c: CtxFicha }) {
         <div className="mt-3 space-y-3">
           <div>
             <Link href={`/hato/sanidad/nuevo?animal=${id}`} className={clasesBoton("primario")}>
-              <Plus className="size-5" strokeWidth={2.2} aria-hidden="true" /> Registrar lo aplicado
+              <Plus className="size-5" strokeWidth={2.2} aria-hidden="true" /> Registrar una aplicación
             </Link>
             <p className="mt-1.5 text-[0.8125rem] text-humo">Vacuna, desparasitación, tratamiento, podología, pediluvio o cirugía: eliges cuál en el siguiente paso.</p>
           </div>
