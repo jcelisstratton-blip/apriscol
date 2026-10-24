@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Plus } from "lucide-react";
+import { CalendarClock, Plus } from "lucide-react";
 import { Insignia } from "@/components/Insignia";
 import { Tarjeta } from "@/components/Tarjeta";
 import { puedeEscribir, puedeVer } from "@/lib/permisos";
@@ -118,12 +118,15 @@ export async function TarjetaSanidad({ c }: { c: CtxFicha }) {
             <Link href={`/hato/sanidad/nuevo?animal=${id}`} className={clasesBoton("primario")}>
               <Plus className="size-5" strokeWidth={2.2} aria-hidden="true" /> Registrar una aplicación
             </Link>
-            <p className="mt-1.5 text-[0.8125rem] text-humo">Vacuna, desparasitación, tratamiento, podología, pediluvio o cirugía: eliges cuál en el siguiente paso.</p>
+            <p className="mt-1.5 text-[0.8125rem] text-humo">La apliqué o la voy a aplicar ahora.</p>
+          </div>
+          <div>
+            <Link href={`/hato/sanidad/programar?animal=${id}`} className={clasesBoton("secundario")}>
+              <CalendarClock className="size-5" strokeWidth={2} aria-hidden="true" /> Programar una aplicación
+            </Link>
+            <p className="mt-1.5 text-[0.8125rem] text-humo">Para más adelante, o para varios animales a la vez.</p>
           </div>
           <div className="grid grid-cols-1 gap-2 min-[420px]:grid-cols-2">
-            <Link href={`/hato/sanidad/programar?animal=${id}`} className={clasesBoton("secundario")}>
-              Programar una aplicación
-            </Link>
             <Link href={`/sanidad/pruebas/nueva?animal=${id}`} className={clasesBoton("secundario")}>
               Prueba diagnóstica
             </Link>
