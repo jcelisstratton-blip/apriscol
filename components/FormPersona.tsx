@@ -6,6 +6,7 @@ import { Aviso } from "@/components/Aviso";
 import { Boton, clasesBoton } from "@/components/Boton";
 import { CamposContrato } from "@/components/CamposContrato";
 import { CamposPerfil } from "@/components/CamposPerfil";
+import { perfilDePersona } from "@/lib/perfil-personal";
 import { crearPersona, editarPersona } from "@/app/(app)/personal/actions";
 import type { Persona } from "@/lib/tipos";
 
@@ -27,7 +28,7 @@ export function FormPersona({ hoy, persona, tienePagos = false }: { hoy: string;
   return (
     <form onSubmit={alEnviar} className="space-y-6">
       {persona ? <input type="hidden" name="persona_id" value={persona.id} /> : null}
-      <CamposContrato hoy={hoy} persona={persona} tienePagos={tienePagos} conEstado perfil={<CamposPerfil rol={persona?.rol ?? "ninguno"} persona={persona} />} />
+      <CamposContrato hoy={hoy} persona={persona} tienePagos={tienePagos} conEstado perfil={<CamposPerfil rol={persona ? perfilDePersona(persona) : "ninguno"} persona={persona} />} />
       {estado?.error ? <Aviso tipo="error">{estado.error}</Aviso> : null}
       <div className="space-y-2">
         <Boton type="submit" pendiente={pendiente} cargando="Guardando…">

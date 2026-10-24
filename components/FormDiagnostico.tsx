@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Aviso } from "@/components/Aviso";
 import { Boton, clasesBoton } from "@/components/Boton";
 import { Campo, CLASE_INPUT } from "@/components/Campo";
-import { ResponsableProcedimiento } from "@/components/ResponsableProcedimiento";
+import { AsistidoPor } from "@/components/AsistidoPor";
 import { Selector } from "@/components/Selector";
 import { SelectorTarjetas } from "@/components/SelectorTarjetas";
 import { crearDiagnostico, editarDiagnostico } from "@/app/(app)/reproduccion/actions";
@@ -29,6 +29,7 @@ export function FormDiagnostico({
   servicio,
   gestacionDias,
   veterinarios,
+  puedeAgregarVeterinario,
   diagnostico,
 }: {
   hembraId: string;
@@ -39,6 +40,7 @@ export function FormDiagnostico({
   gestacionDias: number;
   /** Los veterinarios del equipo: quien diagnostica suele ser uno de ellos. */
   veterinarios: VeterinarioRef[];
+  puedeAgregarVeterinario: boolean;
   diagnostico?: DiagnosticoGestacion;
 }) {
   const editando = Boolean(diagnostico);
@@ -120,7 +122,7 @@ export function FormDiagnostico({
         </>
       ) : null}
 
-      <ResponsableProcedimiento nombre="responsable" etiqueta="Quién lo hizo" ayuda="Opcional." veterinarios={veterinarios} inicial={diagnostico?.responsable} />
+      <AsistidoPor nombre="responsable" ayuda="Opcional." veterinarios={veterinarios} puedeAgregar={puedeAgregarVeterinario} inicial={diagnostico?.responsable} />
 
       {resultado === "gestante" && servicio ? (
         <Aviso tipo="info">La hembra pasa a «Gestante» y el parto se espera hacia el {formatoFecha(sumarDias(servicio.fecha, gestacionDias))} ({gestacionDias} días desde el servicio).</Aviso>

@@ -6,7 +6,7 @@ import { EliminarRegistro } from "@/components/EliminarRegistro";
 import { Encabezado } from "@/components/Encabezado";
 import { FormDiagnostico } from "@/components/FormDiagnostico";
 import { obtenerContexto } from "@/lib/contexto";
-import { veterinariosDeLaFinca } from "@/lib/veterinarios-servidor";
+import { cargarVeterinarios } from "@/lib/veterinarios-servidor";
 import { obtenerAjustes } from "@/lib/ajustes-servidor";
 import { crearClienteServidor } from "@/lib/supabase/server";
 import { puedeEscribir, puedeGestionar } from "@/lib/permisos";
@@ -30,7 +30,7 @@ export default async function PaginaEditarDiagnostico({ params }: { params: Prom
   const ajustes = await obtenerAjustes();
   const { data: servicio } = diagnostico.servicio_id ? await supabase.from("servicios").select("id, fecha").eq("id", diagnostico.servicio_id).eq("finca_id", finca.id).maybeSingle() : { data: null };
 
-  const veterinarios = await veterinariosDeLaFinca(supabase, finca.id);
+  const { veterinarios, puedeAgregar: puedeAgregarVeterinario } = await cargarVeterinarios(supabase, finca, rol);
 
   return (
     <>
@@ -39,7 +39,7 @@ export default async function PaginaEditarDiagnostico({ params }: { params: Prom
       </Link>
       <Encabezado titulo="Editar diagnóstico" subtitulo={etiquetaAnimal(animal)} />
       <div className="space-y-8 lg:max-w-xl">
-        <FormDiagnostico hembraId={animal.id} veterinarios={veterinarios} hoy={hoyBogota()} servicio={servicio} gestacionDias={ajustes.especie[animal.especie].gestacion_dias} diagnostico={diagnostico} />
+        <FormDiagnostico hembraId={animal.id} veterinarios={veterinarios} puedeAgregarVeterinario={puedeAgregarVeterinario} hoy={hoyBogota()} servicio={servicio} gestacionDias={ajustes.especie[animal.especie].gestacion_dias} diagnostico={diagnostico} />
         {puedeGestionar(rol) ? (
           <EliminarRegistro
             etiqueta="Eliminar este diagnóstico"

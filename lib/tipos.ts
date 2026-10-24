@@ -270,8 +270,11 @@ export type Parto = {
   observaciones: string | null;
   /** Solo aborto: causa aparente. */
   causa_aborto: CausaAborto | null;
-  /** Solo cesárea: médico veterinario que operó y protocolo posoperatorio (fármacos). */
+  /** Quién asistió (parto asistido, cesárea o aborto; el normal no lo lleva): el veterinario de la finca u otra persona. */
+  asistido_por: string | null;
+  /** En desuso: lo reemplaza `asistido_por` (se retira en una migración aparte). */
   responsable_quirurgico: string | null;
+  /** Solo cesárea: protocolo posoperatorio y fármacos. */
   protocolo_posoperatorio: string | null;
   client_request_id: string | null;
   created_by: string | null;
@@ -530,6 +533,8 @@ export type Persona = {
   curso_manipulacion: boolean | null;
   curso_manipulacion_vence: string | null;
   labor_principal: string | null;
+  /** Se ofrece como veterinario de la finca al registrar un procedimiento (tenga o no acceso a la app). */
+  es_veterinario: boolean;
   created_at: string;
   updated_at: string;
 };
@@ -1359,6 +1364,7 @@ export type Database = {
       eliminar_empadronamiento: { Args: { p_finca: string; p_lote: string }; Returns: undefined };
       agregar_semental_externo: { Args: { p_finca: string; p_lote: string; p_externo: unknown; p_num_hembras: number }; Returns: string };
       quitar_semental: { Args: { p_finca: string; p_lote: string; p_macho: string }; Returns: undefined };
+      agregar_veterinario: { Args: { p_finca: string; p_nombre: string; p_tarjeta: string; p_telefono: string }; Returns: { id: string; nombre: string; tarjeta_profesional: string | null }[] };
       veterinarios_finca: { Args: { p_finca: string }; Returns: { id: string; nombre: string; tarjeta_profesional: string | null }[] };
       registrar_persona: { Args: { p_finca: string; p_persona: unknown; p_email?: string | null; p_rol?: string | null }; Returns: unknown };
       importar_animales_lote: {

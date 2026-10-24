@@ -300,7 +300,7 @@ const camposClinicosParto = {
   complicaciones: texto(1000, "Las complicaciones son muy largas."),
   observaciones: texto(1000, "Las observaciones son muy largas."),
   causa_aborto: opcional(z.enum(CAUSAS_ABORTO as [string, ...string[]], "Elige la causa aparente del aborto.")),
-  responsable_quirurgico: texto(120, "El nombre del responsable de la cirugía es muy largo."),
+  asistido_por: texto(120, "El nombre de quien asistió es muy largo."),
   protocolo_posoperatorio: texto(1000, "El protocolo posoperatorio es muy largo."),
 };
 

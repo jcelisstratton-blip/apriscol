@@ -193,3 +193,7 @@ export function cargoDelPerfil(rol: PerfilEquipo, datos: Pick<DatosPerfil, "tipo
   if (datos.labor_principal) return ETIQUETA_LABOR[datos.labor_principal];
   return actual ?? null;
 }
+
+/** El perfil de una persona del equipo: su rol en la app; si no tiene acceso, «veterinario» cuando se ofrece como tal (un veterinario externo) o «ninguno». */
+export const perfilDePersona = (p: { rol: string | null; es_veterinario: boolean }): PerfilEquipo =>
+  (p.rol as PerfilEquipo | null) ?? (p.es_veterinario ? "veterinario" : "ninguno");

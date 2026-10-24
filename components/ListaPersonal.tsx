@@ -10,7 +10,7 @@ import { ListaPorTramos } from "@/components/ListaPorTramos";
 import { pesos } from "@/lib/ferias";
 import { ETIQUETA_ROL } from "@/lib/permisos";
 import { telefonoWhatsApp } from "@/lib/cobranza";
-import { resumenPerfil, type DatosPerfil } from "@/lib/perfil-personal";
+import { perfilDePersona, resumenPerfil, type DatosPerfil } from "@/lib/perfil-personal";
 import { ETIQUETA_FORMA_PAGO, ETIQUETA_VINCULACION, UNIDAD_PAGO } from "@/lib/nomina";
 import type { Persona } from "@/lib/tipos";
 
@@ -43,7 +43,7 @@ export function ListaPersonal({ personal, puedeEditar }: { personal: Persona[]; 
                 <div className="min-w-0">
                   <p className="font-bold [overflow-wrap:anywhere]">{p.nombre}</p>
                   {p.cargo ? <p className="text-sm text-humo [overflow-wrap:anywhere]">{p.cargo}</p> : null}
-                  {resumenPerfil(p.rol ?? "ninguno", p as unknown as Partial<DatosPerfil>) ? <p className="text-sm text-humo [overflow-wrap:anywhere]">{resumenPerfil(p.rol ?? "ninguno", p as unknown as Partial<DatosPerfil>)}</p> : null}
+                  {resumenPerfil(perfilDePersona(p), p as unknown as Partial<DatosPerfil>) ? <p className="text-sm text-humo [overflow-wrap:anywhere]">{resumenPerfil(perfilDePersona(p), p as unknown as Partial<DatosPerfil>)}</p> : null}
                 </div>
                 <p className="shrink-0 text-right font-display text-lg font-semibold tabular-nums">{pesos(Number(p.valor_base))}</p>
               </div>

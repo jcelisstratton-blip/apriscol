@@ -104,11 +104,10 @@ export function plazoParto(prevista: string, hoy: string): PlazoParto {
   return { texto: `Pare en ${d} días`, tono: "ok" };
 }
 
-/** Lo propio del evento en una línea: la causa de un aborto, o quién operó una cesárea. */
-export function detalleParto(p: { tipo: TipoParto; causa_aborto: CausaAborto | null; responsable_quirurgico: string | null }): string | undefined {
-  if (p.tipo === "aborto" && p.causa_aborto) return `Causa ${ETIQUETA_CAUSA[p.causa_aborto].toLowerCase()}`;
-  if (p.tipo === "cesarea" && p.responsable_quirurgico) return `Operó ${p.responsable_quirurgico}`;
-  return undefined;
+/** Lo propio del evento en una línea: la causa de un aborto y quién asistió. */
+export function detalleParto(p: { tipo: TipoParto; causa_aborto: CausaAborto | null; asistido_por: string | null }): string | undefined {
+  const partes = [p.tipo === "aborto" && p.causa_aborto && `Causa ${ETIQUETA_CAUSA[p.causa_aborto].toLowerCase()}`, p.asistido_por && `Asistió ${p.asistido_por}`].filter(Boolean);
+  return partes.length ? partes.join(" · ") : undefined;
 }
 
 /** Partos totales en texto: «3 partos», «1 parto» o «Sin dato». */

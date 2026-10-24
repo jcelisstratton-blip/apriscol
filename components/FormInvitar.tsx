@@ -33,6 +33,9 @@ type Perfil = Exclude<RolFinca, "propietario"> | "ninguno";
 export function FormInvitar({ hoy, puedeInvitar, conContrato = true }: { hoy: string; puedeInvitar: boolean; conContrato?: boolean }) {
   const [estado, enviar, pendiente] = useActionState(invitar, undefined);
   const [rol, setRol] = useState<Perfil | "">(puedeInvitar ? "" : "ninguno");
+  const [correo, setCorreo] = useState("");
+  // Un veterinario puede quedar en el equipo sin correo (uno externo que no usa la app): no se invita, pero se ofrece en los procedimientos.
+  const sinInvitacion = rol === "ninguno" || (rol === "veterinario" && !correo.trim());
   // Sin el módulo de personal (planes por debajo de Profesional) no hay contrato ni «Sin acceso»: solo se invita.
   const toast = useToast();
 
@@ -75,15 +78,18 @@ export function FormInvitar({ hoy, puedeInvitar, conContrato = true }: { hoy: st
         )}
       </Campo>
       {rol && rol !== "ninguno" ? (
-        <Campo etiqueta="Correo de la persona" ayuda="Debe registrarse con este mismo correo.">
-          {(id) => <input id={id} name="email" type="email" inputMode="email" autoCapitalize="none" required className={CLASE_INPUT} placeholder="nombre@correo.com" />}
+        <Campo
+          etiqueta={rol === "veterinario" ? "Correo de la persona (opcional)" : "Correo de la persona"}
+          ayuda={rol === "veterinario" ? "Si lo escribes, podrá entrar a la app con ese correo. Si no, solo queda en tu equipo para elegirlo al registrar procedimientos." : "Debe registrarse con este mismo correo."}
+        >
+          {(id) => <input id={id} name="email" type="email" inputMode="email" autoCapitalize="none" required={rol !== "veterinario"} value={correo} onChange={(e) => setCorreo(e.target.value)} className={CLASE_INPUT} placeholder="nombre@correo.com" />}
         </Campo>
       ) : null}
       {rol && conContrato ? <CamposContrato key={rol === "ninguno" ? "sin" : "con"} hoy={hoy} perfil={<CamposPerfil key={rol} rol={rol} />} /> : null}
       {estado?.error ? <Aviso tipo="error">{estado.error}</Aviso> : null}
       {rol ? (
-        <Boton type="submit" pendiente={pendiente} cargando={rol === "ninguno" ? "Guardando…" : "Creando invitación…"}>
-          {rol === "ninguno" ? "Guardar persona" : "Crear invitación"}
+        <Boton type="submit" pendiente={pendiente} cargando={sinInvitacion ? "Guardando…" : "Creando invitación…"}>
+          {sinInvitacion ? "Guardar persona" : "Crear invitación"}
         </Boton>
       ) : null}
       {estado?.persona ? <Aviso tipo="exito">{estado.persona} quedó en tu equipo. Ya puedes registrarle pagos.</Aviso> : null}
