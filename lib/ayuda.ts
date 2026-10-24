@@ -141,3 +141,15 @@ export const AYUDA_COSTOS: Ayuda = {
   ],
   enlace: { href: "/hato?vista=gastos", texto: "Registrar compras" },
 };
+
+export const AYUDA_PROYECCIONES: Ayuda = {
+  titulo: "Cómo funcionan las proyecciones",
+  puntos: [
+    { titulo: "Parte de tu hato de hoy", texto: "Cuenta tus reproductoras, tus sementales y tus crías por edad, y usa las fechas previstas de parto que ya registraste para los primeros meses." },
+    { titulo: "De dónde sale cada número", texto: "«De tu finca» es un promedio de tus propios registros (verás de cuántos). «Referencia» es un valor típico mientras tu finca no tiene datos suficientes. «Tu ajuste» es el que cambiaste tú." },
+    { titulo: "Cámbialos y mira qué pasa", texto: "En «Supuestos» puedes cambiar cualquier número y todo se recalcula al instante. Guarda tus ajustes para verlos la próxima vez." },
+    { titulo: "Carne y leche, por separado", texto: "Elige «Carne» o «Leche» arriba para mirar cada una sola, o «Todo» para el resultado completo con todos los costos." },
+    { titulo: "Es una estimación, no una promesa", texto: "El simulador no sabe de sequías, enfermedades ni cambios del mercado. Úsalo para comparar caminos y detectar problemas a tiempo (falta de espacio, de reemplazos o de caja)." },
+  ],
+  enlace: { href: "/mas/ajustes", texto: "Ajustes de la finca" },
+};

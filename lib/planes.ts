@@ -63,6 +63,7 @@ export const PLANES: Plan[] = [
       "Carne y ceba: pesos, lotes y alimento",
       "Costo por litro, por animal, por lote y por especie",
       "Reportes en Excel: costos y hato, con las fechas que elijas",
+      "Proyecciones a 12, 24 o 36 meses: hato, alimento y dinero (carne y leche)",
       "Controles de calidad con constancia (leche y carne)",
       "Soportes de gastos: facturas en PDF o foto",
     ],
@@ -102,7 +103,7 @@ export const planesSuperiores = (actual: PlanId): Plan[] => PLANES.filter((p) =>
 
 /** Desde qué plan se incluye cada módulo. Espejo de private.modulo_rango; la autoridad real es la base (RLS). */
 export function moduloEnPlan(plan: PlanId, modulo: ModuloApp): boolean {
-  const desde = ["carne", "contabilidad"].includes(modulo) ? 3 : ["corrales", "ferias", "nutricion", "ambiente"].includes(modulo) ? 2 : 1;
+  const desde = ["carne", "contabilidad", "proyecciones"].includes(modulo) ? 3 : ["corrales", "ferias", "nutricion", "ambiente"].includes(modulo) ? 2 : 1;
   return rangoPlan(plan) >= desde;
 }
 
@@ -113,6 +114,7 @@ export const SERVICIOS_PLAN = {
   costoAnimal: { desde: "profesional", nombre: "Costo por animal, lote y especie" },
   calidad: { desde: "profesional", nombre: "Controles de calidad con constancia" },
   soportes: { desde: "profesional", nombre: "Soportes de gastos (facturas)" },
+  proyecciones: { desde: "profesional", nombre: "Proyecciones del hato, el alimento y el dinero" },
 } as const satisfies Record<string, { desde: PlanId; nombre: string }>;
 export type ServicioPlan = keyof typeof SERVICIOS_PLAN;
 
