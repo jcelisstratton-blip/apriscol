@@ -6064,6 +6064,10 @@ export type Database = {
         Args: { p_finca: string; p_nombre: string; p_tarjeta: string; p_telefono: string }
         Returns: { id: string; nombre: string; tarjeta_profesional: string }[]
       }
+      corregir_crias: {
+        Args: { p_crias: Json; p_finca: string; p_parto: string }
+        Returns: number
+      }
       veterinarios_finca: {
         Args: { p_finca: string }
         Returns: { id: string; nombre: string; tarjeta_profesional: string }[]

@@ -403,7 +403,10 @@ const esquemaEdicionParto = z.object({
   ...camposClinicosParto,
 });
 
-/** Corrige la fecha, el tipo y los datos clínicos de un parto (las crías se corrigen desde su ficha). Pasar de aborto a parto (o al revés) cambia la lactancia: en ese caso se elimina y se registra de nuevo. */
+/** Una cría que se corrige: sexo, peso y si nació viva o muerta (solo las que todavía no son un animal del hato). */
+const esquemaCriaEdicion = esquemaCria.pick({ sexo: true, vivo: true, peso: true }).extend({ id: z.uuid() });
+
+/** Corrige la fecha, el tipo y los datos clínicos de un parto, y el sexo, el peso y el estado (viva o muerta) de sus crías que aún no son animales del hato. Pasar de aborto a parto (o al revés) cambia la lactancia: en ese caso se elimina y se registra de nuevo. */
 export async function editarParto(_: EstadoForm, form: FormData): Promise<EstadoForm> {
   const p = await permiso("editar partos");
   if (!p.ok) return { error: p.error };
@@ -414,10 +417,31 @@ export async function editarParto(_: EstadoForm, form: FormData): Promise<Estado
   if (futura) return { error: futura };
   const clinico = datosPorTipoParto(d);
   if ("error" in clinico) return { error: clinico.error };
+  let criasEditadas: z.infer<typeof esquemaCriaEdicion>[] = [];
+  const bruto = form.get("crias_edit");
+  if (typeof bruto === "string" && bruto) {
+    let json: unknown;
+    try {
+      json = JSON.parse(bruto);
+    } catch {
+      return { error: "No se entendieron los datos de las crías. Revísalos." };
+    }
+    const r = z.array(esquemaCriaEdicion).max(MAX_CRIAS).safeParse(json);
+    if (!r.success) return { error: r.error.issues[0]?.message ?? "Revisa los datos de las crías." };
+    criasEditadas = r.data;
+  }
   const supabase = await crearClienteServidor();
   const { data: actual } = await supabase.from("partos").select("id, tipo, servicio_id").eq("id", d.parto_id).eq("finca_id", p.finca.id).eq("madre_id", d.madre_id).maybeSingle();
   if (!actual) return { error: "No encontramos ese parto." };
   if ((actual.tipo === "aborto") !== (d.tipo === "aborto")) return { error: "No se puede cambiar un parto a aborto (ni al revés): elimina el registro y créalo de nuevo." };
+  if (criasEditadas.length > 0) {
+    const { error: errorCrias } = await supabase.rpc("corregir_crias", {
+      p_finca: p.finca.id,
+      p_parto: d.parto_id,
+      p_crias: criasEditadas.map((x) => ({ id: x.id, sexo: x.sexo ?? null, peso: x.peso ?? null, vivo: x.vivo })),
+    });
+    if (errorCrias) return { error: mensajeAmigable(errorCrias.message) };
+  }
   const { error } = await supabase.from("partos").update({ fecha: d.fecha, tipo: d.tipo as never, ...clinico.datos }).eq("id", d.parto_id).eq("finca_id", p.finca.id);
   if (error) return { error: mensajeAmigable(error.message) };
   revalidatePath("/reproduccion");
