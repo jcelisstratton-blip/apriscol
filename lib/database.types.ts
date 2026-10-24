@@ -3243,7 +3243,6 @@ export type Database = {
           numero_crias: number
           observaciones: string | null
           protocolo_posoperatorio: string | null
-          responsable_quirurgico: string | null
           servicio_id: string | null
           tipo: string
           updated_at: string
@@ -3262,7 +3261,6 @@ export type Database = {
           numero_crias?: number
           observaciones?: string | null
           protocolo_posoperatorio?: string | null
-          responsable_quirurgico?: string | null
           servicio_id?: string | null
           tipo?: string
           updated_at?: string
@@ -3281,7 +3279,6 @@ export type Database = {
           numero_crias?: number
           observaciones?: string | null
           protocolo_posoperatorio?: string | null
-          responsable_quirurgico?: string | null
           servicio_id?: string | null
           tipo?: string
           updated_at?: string

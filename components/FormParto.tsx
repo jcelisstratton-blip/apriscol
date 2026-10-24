@@ -191,7 +191,7 @@ export function FormParto({
       ) : null}
 
       {tipo !== "normal" ? (
-        <AsistidoPor key={tipo} nombre="asistido_por" veterinarios={veterinarios} puedeAgregar={puedeAgregarVeterinario} inicial={parto?.asistido_por ?? parto?.responsable_quirurgico} requerido={tipo === "asistido" || tipo === "cesarea"} />
+        <AsistidoPor key={tipo} nombre="asistido_por" veterinarios={veterinarios} puedeAgregar={puedeAgregarVeterinario} inicial={parto?.asistido_por} requerido={tipo === "asistido" || tipo === "cesarea"} />
       ) : null}
 
       <Campo etiqueta={esCesarea ? "Complicaciones quirúrgicas" : "Complicaciones"} ayuda="Opcional.">
