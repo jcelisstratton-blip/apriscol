@@ -1,4 +1,5 @@
 import { FMT } from "@/lib/excel-estilo";
+import { limpiarNombreArchivo } from "@/lib/excel-estilo";
 
 /**
  * Exportación completa de una finca a Excel: qué hojas lleva, cómo se llaman las columnas y cómo se escribe cada valor. Sin dependencias de
@@ -183,6 +184,6 @@ export function aCelda(columna: string, valor: unknown): ValorCelda {
 export const nombreHoja = (n: string) => n.replace(/[[\]:*?/\\]/g, "-").slice(0, 31);
 
 export function nombreArchivoFinca(finca: string, hoy: string): string {
-  const limpio = finca.replace(/[\\/:*?"<>|\u0000-\u001f]/g, "-").replace(/\s+/g, " ").trim() || "Finca";
+  const limpio = limpiarNombreArchivo(finca) || "Finca";
   return `${limpio} - Datos de la finca - ${hoy}.xlsx`;
 }

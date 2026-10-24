@@ -1,5 +1,5 @@
 import ExcelJS from "exceljs";
-import { COLOR, FMT } from "@/lib/excel-estilo";
+import { COLOR, FMT, aFechaExcel, escribirEncabezados, escribirTitulo, limpiarNombreArchivo, textoFecha } from "@/lib/excel-estilo";
 import { ETIQUETA_GRUPO_COSTO, ETIQUETA_ORIGEN, ETIQUETA_RUBRO, GRUPOS_COSTO, grupoDe } from "@/lib/costos";
 import { ETIQUETA_LINEA, ETIQUETA_ORIGEN_VENTA, LINEAS } from "@/lib/ventas";
 import { REPORTES, type ReporteId } from "@/lib/costos-reportes";
@@ -54,15 +54,7 @@ const FMT_FECHA = FMT.fecha;
 const FMT_LITROS = FMT.litros;
 const FMT_PCT = FMT.porcentaje;
 
-const aFecha = (iso: string | null | undefined): Date | null => {
-  if (!iso) return null;
-  const [a, m, d] = iso.slice(0, 10).split("-").map(Number);
-  return new Date(Date.UTC(a, m - 1, d));
-};
-const textoFecha = (iso: string) => {
-  const [a, m, d] = iso.split("-");
-  return `${d}/${m}/${a}`;
-};
+const aFecha = (iso: string | null | undefined): Date | null => (iso ? aFechaExcel(iso) : null);
 const mesTexto = (iso: string) => {
   const [a, m] = iso.split("-").map(Number);
   return `${["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"][m - 1]} ${a}`;
@@ -72,34 +64,16 @@ type Col = { titulo: string; ancho: number; formato?: string; alinear?: "left" |
 
 /** Las cinco filas del título (finca, reporte, periodo, filtros, fecha de generación) y la fila de encabezados; devuelve la primera fila de datos. */
 function encabezado(ws: ExcelJS.Worksheet, d: DatosReporte, titulo: string, cols: Col[]): number {
-  const n = cols.length;
   ws.columns = cols.map((c) => ({ width: c.ancho }));
-  const linea = (fila: number, texto: string, opciones: { size?: number; bold?: boolean; color?: string } = {}) => {
-    ws.mergeCells(fila, 1, fila, n);
-    const celda = ws.getCell(fila, 1);
-    celda.value = texto;
-    celda.font = { name: "Calibri", size: opciones.size ?? 11, bold: opciones.bold ?? false, color: { argb: opciones.color ?? "FF1F1B16" } };
-    celda.alignment = { vertical: "middle", horizontal: "left", wrapText: true };
-  };
-  linea(1, d.finca, { size: 16, bold: true, color: COLOR.musgo });
-  linea(2, titulo, { size: 13, bold: true });
-  linea(3, `Periodo: del ${textoFecha(d.desde)} al ${textoFecha(d.hasta)} (${d.periodoTexto})`);
-  linea(4, d.filtros.length > 0 ? `Filtros: ${d.filtros.join(" · ")}` : "Filtros: ninguno");
-  linea(5, `Generado el ${textoFecha(d.generado.toISOString().slice(0, 10))}`, { color: "FF6B6457" });
-  ws.getRow(1).height = 24;
+  escribirTitulo(ws, cols.length, [
+    { texto: d.finca, size: 16, bold: true, color: COLOR.musgo },
+    { texto: titulo, size: 13, bold: true },
+    { texto: `Periodo: del ${textoFecha(d.desde)} al ${textoFecha(d.hasta)} (${d.periodoTexto})` },
+    { texto: d.filtros.length > 0 ? `Filtros: ${d.filtros.join(" · ")}` : "Filtros: ninguno" },
+    { texto: `Generado el ${textoFecha(d.generado.toISOString().slice(0, 10))}`, color: COLOR.humo },
+  ]);
   const fila = 7;
-  const r = ws.getRow(fila);
-  cols.forEach((c, i) => {
-    const celda = r.getCell(i + 1);
-    celda.value = c.titulo;
-    celda.font = { name: "Calibri", bold: true, color: { argb: "FFFFFFFF" } };
-    celda.fill = { type: "pattern", pattern: "solid", fgColor: { argb: COLOR.musgo } };
-    celda.alignment = { vertical: "middle", horizontal: c.alinear ?? (c.formato ? "right" : "left"), wrapText: true };
-  });
-  r.height = 30;
-  ws.views = [{ state: "frozen", ySplit: fila, xSplit: 0 }];
-  ws.pageSetup = { orientation: "landscape", fitToPage: true, fitToWidth: 1, fitToHeight: 0, paperSize: 9 };
-  ws.headerFooter = { oddFooter: "&L&A&RPágina &P de &N" };
+  escribirEncabezados(ws, fila, cols.map((c) => ({ titulo: c.titulo, derecha: (c.alinear ?? (c.formato ? "right" : "left")) === "right" })));
   return fila + 1;
 }
 
@@ -361,6 +335,5 @@ export async function construirLibro(reporte: ReporteId, d: DatosReporte): Promi
 /** El nombre del archivo: finca, reporte y fechas («La yulianca - Gastos por rubro - 2026-01-01 a 2026-10-13.xlsx»), sin caracteres que un sistema de archivos rechace. */
 export function nombreArchivo(finca: string, reporte: ReporteId, desde: string, hasta: string): string {
   const titulo = REPORTES.find((r) => r.id === reporte)?.titulo ?? "Reporte";
-  const limpio = (t: string) => t.replace(/[\\/:*?"<>|\u0000-\u001f]/g, "-").replace(/\s+/g, " ").trim();
-  return `${limpio(finca)} - ${titulo} - ${desde} a ${hasta}.xlsx`;
+  return `${limpiarNombreArchivo(finca)} - ${titulo} - ${desde} a ${hasta}.xlsx`;
 }
