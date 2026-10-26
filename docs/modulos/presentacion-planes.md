@@ -13,3 +13,12 @@ Movido desde `CLAUDE.md`; sigue siendo ley del repo. Si cambia el proceso, se ac
 **«Al grano»** (`components/HojaAlGrano.tsx`, antes «Registrar»): una hoja con buscador y filtros (Todo / Registrar / Abrir) que lleva en un toque a todo lo que se puede hacer o abrir en la app. El catálogo está en `lib/atajos.ts` y se filtra por rol y por plan (`atajosPara`). **Pantalla nueva con menú, pestaña o botón de «crear» ⇒ se agrega su atajo ahí** (con su módulo, y su servicio si es de un plan superior); lo que es de un animal sin elegirlo manda al Hato para escoger el animal.
 
 **Portada de entrada:** «Qué cubre» es un carrusel de tarjetas (`components/presentacion/CarruselCubre.tsx`): dedo en el celular; flechas, teclado y arrastre con mouse en el computador.
+
+## «Qué resuelve»: sigue el orden del menú
+
+La sección «Qué resuelve» de la pantalla de entrada se arma desde `lib/menu.ts` (mismos grupos y mismo orden: cada día, Producción y manejo,
+Dinero y análisis, Genealogía, Mi finca) y los textos de cada opción viven en `lib/presentacion.ts` (`CONTENIDO`). Una opción nueva del menú
+sin su texto hace fallar `tests/presentacion.test.mjs`; las que no se describen aparte (`OMITIDAS`) llevan su razón. «Productos y terceros» va
+como tarjeta propia dentro de «Dinero y análisis». La etiqueta «Desde <plan>» sale de `lib/planes.ts`, y la cifra de reportes suma los listados
+del hato (`lib/reportes/catalogo.ts`) y los de costos (`lib/costos-reportes.ts`). Proyecciones se presenta siempre como un cálculo con
+supuestos ajustables, nunca como un resultado prometido.

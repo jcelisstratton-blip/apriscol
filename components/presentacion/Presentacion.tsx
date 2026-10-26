@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, Check, ChevronDown, Droplets, FlaskConical, Layers, Moon, PawPrint, Smartphone, Tags, Trophy, Users, Warehouse, Beef, Hand, Keyboard, Download, Sprout, Building2, UserPlus } from "lucide-react";
+import { ArrowRight, Check, ChevronDown, Droplets, FlaskConical, Layers, Moon, PawPrint, Smartphone, Tags, Users, Warehouse, Hand, Keyboard, Download, Building2, UserPlus } from "lucide-react";
 import { CarruselCubre } from "@/components/presentacion/CarruselCubre";
 import { Planes } from "@/components/presentacion/Planes";
 import { PLANES, usd } from "@/lib/planes";
@@ -7,8 +7,9 @@ import { PieLegal } from "@/components/legal/PieLegal";
 import { Isotipo, Marca } from "@/components/Marca";
 import { Escena } from "@/components/TarjetaOpcion";
 import { REPORTES } from "@/lib/costos-reportes";
+import { REPORTES as REPORTES_HATO } from "@/lib/reportes/catalogo";
+import { etiquetaDePlan, gruposDeFunciones } from "@/lib/presentacion";
 import { RUBROS } from "@/lib/costos";
-import { ESCENA_HATO, type EscenaDef } from "@/lib/escenas";
 import { ETIQUETA_ROL } from "@/lib/permisos";
 
 /** El rótulo pequeño de cada sección: monoespaciado, en mayúsculas y con el ocre de la marca. */
@@ -43,22 +44,14 @@ function Paso({ n, icono, titulo, texto }: { n: string; icono: React.ReactNode; 
   );
 }
 
-type Funcion = { n: string; escena: EscenaDef; titulo: string; lema: string; puntos: string[] };
-const FUNCIONES: Funcion[] = [
-  { n: "01", escena: ESCENA_HATO.todos, titulo: "Hato y genealogía", lema: "Cada animal, con su historia", puntos: ["Ficha con foto, edad, estado y padres", "La endogamia se calcula antes de cruzar", "Trae tus animales del libro genealógico"] },
-  { n: "02", escena: ESCENA_HATO.ordeno, titulo: "Leche", lema: "Del ordeño al tanque", puntos: ["Ordeño por jornada y por turnos", "Calidad, despachos y frío del tanque", "La leche en retiro se marca como descartada"] },
-  { n: "03", escena: ESCENA_HATO.sanidad, titulo: "Sanidad", lema: "Vacunas, tratamientos y retiros", puntos: ["Programa para un lote y aplica el día que toca", "FAMACHA y pediluvio por animal", "Periodos de retiro de leche y de carne"] },
-  { n: "04", escena: ESCENA_HATO.empadronamiento, titulo: "Reproducción", lema: "Monta, gestación y partos", puntos: ["Temporada de monta con control de endogamia", "Fecha prevista de parto de cada hembra", "Partos, crías y lactancias al día"] },
-  { n: "05", escena: ESCENA_HATO.corrales, titulo: "Corrales", lema: "Cada animal en su sitio", puntos: ["No deja llenar un corral de más", "Rotación de potreros con días de descanso", "Cuarentena de los animales que llegan"] },
-  { n: "06", escena: ESCENA_HATO.gastos, titulo: "Compras y ventas", lema: "Cuánto cuesta y cuánto deja", puntos: ["Compras y ventas por lista: eliges, no escribes", "Por pagar y por cobrar, y costo por litro y por animal", "Reportes en Excel por las fechas que quieras"] },
-];
+const GRUPOS = gruposDeFunciones();
 
 const PASOS = [
   { n: "01", icono: <PawPrint className="size-5" strokeWidth={1.75} />, titulo: "Registra", texto: "El animal, con su arete, su raza y sus padres." },
   { n: "02", icono: <Droplets className="size-5" strokeWidth={1.75} />, titulo: "Mide", texto: "Litros por jornada, peso y ganancia diaria." },
   { n: "03", icono: <FlaskConical className="size-5" strokeWidth={1.75} />, titulo: "Cuida", texto: "Vacunas, tratamientos, pruebas y retiros." },
   { n: "04", icono: <Layers className="size-5" strokeWidth={1.75} />, titulo: "Reproduce", texto: "Monta, gestación, parto y cría." },
-  { n: "05", icono: <Tags className="size-5" strokeWidth={1.75} />, titulo: "Decide", texto: "Costos, resultado y reportes en Excel." },
+  { n: "05", icono: <Tags className="size-5" strokeWidth={1.75} />, titulo: "Decide", texto: "Costos, reportes y proyecciones." },
 ];
 
 const PREGUNTAS: { p: string; r: string }[] = [
@@ -68,7 +61,7 @@ const PREGUNTAS: { p: string; r: string }[] = [
   { p: "¿Quién ve la información de mi finca?", r: "Solo quienes tú invites. Los datos están separados por finca, y cada persona ve únicamente lo que le toca según su rol." },
   { p: "¿Puedo invitar al ordeñador, al veterinario y al contador?", r: "Sí. El ordeñador registra leche, el veterinario maneja sanidad, reproducción y corrales, y el contador ve y registra compras, ventas, personal y costos." },
   { p: "¿Cuánto cuesta?", r: `Hay cuatro planes, de ${usd(PLANES[0].mensual)} a ${usd(PLANES[PLANES.length - 1].mensual)} al mes, según los servicios que uses, sin importar cuántos animales tengas. Pagando por año tienes 20 % de descuento. Los ves completos en la sección Planes.` },
-  { p: "¿Puedo sacar reportes?", r: "Los reportes de costos se descargan en Excel con el periodo que elijas, y el archivo lleva el nombre de la finca, del reporte y las fechas." },
+  { p: "¿Puedo sacar reportes?", r: `Sí. Hay ${REPORTES_HATO.length} listados del hato (quién está vacía, gestante o por parir, ordeño, peso, retiros, sanidad pendiente) y ${REPORTES.length} de costos y ventas. Los ves en pantalla y, en el plan Profesional, los descargas en Excel con el periodo que elijas; el archivo lleva el nombre de la finca, del reporte y las fechas.` },
 ];
 
 /**
@@ -82,7 +75,7 @@ export function Presentacion({ modo, formulario }: { modo: "login" | "registro";
     ["2", "especies: cabras y ovejas"],
     ["9", "áreas del manejo en una sola app"],
     [String(RUBROS.length), "rubros de compra para saber cuánto cuesta cada litro"],
-    [String(REPORTES.length), "reportes que se descargan en Excel"],
+    [String(REPORTES.length + REPORTES_HATO.length), "reportes del hato y de las cuentas, listos para Excel"],
   ];
 
   return (
@@ -134,7 +127,7 @@ export function Presentacion({ modo, formulario }: { modo: "login" | "registro";
                 "Cada animal con su historia: genealogía, endogamia, leche y sanidad",
                 "Avisa los periodos de retiro: la leche tratada no llega al tanque",
                 "Corrales con cupo, rotación de potreros y cuarentena",
-                "Compras, ventas, personal y costos por litro y por animal, y reportes en Excel por cualquier fecha",
+                "Compras, ventas, personal y costos por litro y por animal, reportes en Excel y proyecciones a 3 años",
               ].map((t) => (
                 <li key={t} className="flex items-start gap-2.5">
                   <Check className="mt-1 size-4 shrink-0 text-musgo" strokeWidth={2.6} aria-hidden="true" />
@@ -172,52 +165,45 @@ export function Presentacion({ modo, formulario }: { modo: "login" | "registro";
           </dl>
         </section>
 
-        {/* Qué resuelve */}
-        <Seccion id="que-resuelve" rotulo="Qué resuelve" titulo="Todo lo que necesitas para manejar tu aprisco, en un vistazo">
-          <ul className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
-            {FUNCIONES.map((f) => (
-              <li key={f.n} className="flex min-w-0 flex-col overflow-hidden rounded-3xl bg-papel ring-1 ring-arena">
-                <div className="relative">
-                  <Escena escena={f.escena} alto="h-28" grande />
-                  <span className="absolute left-4 top-3 font-mono text-xs font-semibold text-tinta/60">{f.n}</span>
+        {/* Qué resuelve: en el mismo orden y con los mismos grupos del menú */}
+        <Seccion id="que-resuelve" rotulo="Qué resuelve" titulo="Todo lo que necesitas para manejar tu aprisco, en el orden en que lo vas a usar" texto="Es el mismo orden del menú de la app: lo que haces cada día, el manejo, el dinero, la genealogía y tu finca.">
+          <div className="space-y-10">
+            {GRUPOS.map((g) => (
+              <div key={g.id} aria-labelledby={`grupo-${g.id}`}>
+                <div className="mb-4 max-w-2xl">
+                  <p className="font-mono text-[0.6875rem] font-semibold uppercase tracking-[0.18em] text-humo">{g.rotulo}</p>
+                  <h3 id={`grupo-${g.id}`} className="mt-1 font-display text-2xl font-semibold leading-tight tracking-tight">{g.titulo}</h3>
+                  <p className="mt-1 text-[0.9375rem] text-humo">{g.texto}</p>
                 </div>
-                <div className="flex flex-1 flex-col p-4">
-                  <p className="font-mono text-[0.6875rem] font-semibold uppercase tracking-[0.14em] text-ocre">{f.titulo}</p>
-                  <h3 className="mt-1 font-display text-xl font-semibold leading-tight">{f.lema}</h3>
-                  <ul className="mt-3 space-y-1.5 text-[0.9375rem] text-humo">
-                    {f.puntos.map((p) => (
-                      <li key={p} className="flex items-start gap-2">
-                        <Check className="mt-1 size-3.5 shrink-0 text-musgo" strokeWidth={2.6} aria-hidden="true" />
-                        <span>{p}</span>
+                <ul className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
+                  {g.tarjetas.map((f) => {
+                    const plan = etiquetaDePlan(f);
+                    return (
+                      <li key={f.href} className="flex min-w-0 flex-col overflow-hidden rounded-3xl bg-papel ring-1 ring-arena">
+                        <div className="relative">
+                          <Escena escena={f.escena} alto="h-28" grande />
+                          {plan ? <span className="absolute right-3 top-3 rounded-full bg-papel/90 px-2.5 py-0.5 text-[0.6875rem] font-semibold text-ocre ring-1 ring-arena">{plan}</span> : null}
+                        </div>
+                        <div className="flex flex-1 flex-col p-4">
+                          <p className="font-mono text-[0.6875rem] font-semibold uppercase tracking-[0.14em] text-ocre">{f.rotulo}</p>
+                          <h4 className="mt-1 font-display text-xl font-semibold leading-tight">{f.lema}</h4>
+                          <ul className="mt-3 space-y-1.5 text-[0.9375rem] text-humo">
+                            {f.puntos.map((p) => (
+                              <li key={p} className="flex items-start gap-2">
+                                <Check className="mt-1 size-3.5 shrink-0 text-musgo" strokeWidth={2.6} aria-hidden="true" />
+                                <span className="min-w-0 [overflow-wrap:anywhere]">{p}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
                       </li>
-                    ))}
-                  </ul>
-                </div>
-              </li>
+                    );
+                  })}
+                </ul>
+              </div>
             ))}
-          </ul>
-
-          <div className="mt-3 rounded-3xl bg-papel p-4 ring-1 ring-arena sm:p-5">
-            <div className="flex flex-wrap items-center gap-2">
-              <p className="font-mono text-[0.6875rem] font-semibold uppercase tracking-[0.18em] text-humo">Y además</p>
-              <span className="rounded-full bg-musgo/12 px-2.5 py-0.5 text-[0.6875rem] font-semibold uppercase tracking-wider text-musgo">Incluido</span>
-            </div>
-            <ul className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
-              {[
-                [<Beef key="b" className="size-5" strokeWidth={1.75} />, "Carne y ceba", "Pesos, lotes, candidatos y rendimiento de la canal."],
-                [<Trophy key="t" className="size-5" strokeWidth={1.75} />, "Premios y ferias", "El palmarés de cada animal y de toda la finca."],
-                [<Sprout key="s" className="size-5" strokeWidth={1.75} />, "Simular cruzas", "Mira la endogamia de una pareja antes de montarla."],
-              ].map(([icono, t, d]) => (
-                <li key={t as string} className="flex items-start gap-3">
-                  <span className="grid size-10 shrink-0 place-items-center rounded-2xl bg-musgo/10 text-musgo">{icono}</span>
-                  <span className="min-w-0">
-                    <span className="block font-semibold">{t as string}</span>
-                    <span className="block text-sm text-humo">{d as string}</span>
-                  </span>
-                </li>
-              ))}
-            </ul>
           </div>
+          <p className="mt-6 max-w-2xl text-sm text-humo">Las proyecciones son un cálculo con tus datos y los supuestos que ajustas: te ayudan a decidir, no prometen un resultado.</p>
         </Seccion>
 
         {/* Tu equipo */}
