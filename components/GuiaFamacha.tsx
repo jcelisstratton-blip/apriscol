@@ -43,7 +43,7 @@ export function GuiaFamacha() {
                     {FAMACHA[n].color} · {FAMACHA[n].texto}
                   </span>
                   <span className="block text-humo">{FAMACHA[n].detalle}</span>
-                  <span className="block">{FAMACHA[n].accion}</span>
+                  <span className="block"><span className="font-semibold">Qué hacer: </span>{FAMACHA[n].accion}</span>
                 </span>
               </li>
             ))}
