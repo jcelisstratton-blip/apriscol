@@ -5,6 +5,8 @@ import Link from "next/link";
 import { Aviso } from "@/components/Aviso";
 import { Boton, clasesBoton } from "@/components/Boton";
 import { Campo, CLASE_INPUT } from "@/components/Campo";
+import { GuiaFamacha } from "@/components/GuiaFamacha";
+import { OjoFamacha } from "@/components/OjoFamacha";
 import { crearFamacha, editarFamacha } from "@/app/(app)/sanidad/actions";
 import { FAMACHA, PUNTAJES_FAMACHA } from "@/lib/famacha";
 import type { EvaluacionFamacha } from "@/lib/tipos";
@@ -35,6 +37,7 @@ export function FormFamacha({ animalId, hoy, evaluacion }: { animalId: string; h
       <div className="space-y-2">
         <p className="text-sm font-semibold" id="famacha-titulo">Color de la mucosa del ojo</p>
         <p className="text-[0.8125rem] text-humo">Baja el párpado inferior y compara el color con la tarjeta FAMACHA.</p>
+        <GuiaFamacha />
         <div role="radiogroup" aria-labelledby="famacha-titulo" className="grid grid-cols-1 gap-2">
           {PUNTAJES_FAMACHA.map((n) => {
             const f = FAMACHA[n];
@@ -49,17 +52,32 @@ export function FormFamacha({ animalId, hoy, evaluacion }: { animalId: string; h
                 className={`flex min-h-14 w-full items-center gap-3 rounded-2xl px-3 py-2 text-left ring-1 transition ${activo ? "bg-musgo/10 ring-2 ring-musgo" : "bg-papel ring-arena hover:bg-lana"}`}
               >
                 <span className={`grid size-9 shrink-0 place-items-center rounded-full font-display text-lg font-semibold ${COLOR_PUNTO[f.tono]}`}>{n}</span>
-                <span className="min-w-0">
+                <span className="min-w-0 flex-1">
                   <span className="block font-semibold">{f.color}</span>
                   <span className="block text-sm text-humo">{f.texto}</span>
                 </span>
+                <OjoFamacha puntaje={n} className="w-14 shrink-0" />
               </button>
             );
           })}
         </div>
       </div>
 
-      {elegido ? <Aviso tipo={elegido.tono === "alerta" ? "atencion" : "info"}>{elegido.accion}</Aviso> : null}
+      {elegido && puntaje ? (
+        <div aria-live="polite" className="space-y-3 rounded-2xl bg-papel p-3 ring-1 ring-arena">
+          <div className="flex items-center gap-3">
+            <OjoFamacha puntaje={puntaje} className="w-24 shrink-0" />
+            <div className="min-w-0 text-[0.9375rem] [overflow-wrap:anywhere]">
+              <p className="font-semibold">Lo que ves</p>
+              <p className="text-humo">{elegido.detalle}</p>
+            </div>
+          </div>
+          <Aviso tipo={elegido.tono === "alerta" ? "atencion" : "info"}>
+            <span className="font-semibold">Qué hacer: </span>
+            {elegido.accion}
+          </Aviso>
+        </div>
+      ) : null}
 
       <Campo etiqueta="Fecha">
         {(id) => <input id={id} name="fecha" type="date" defaultValue={evaluacion?.fecha ?? hoy} max={hoy} required className={CLASE_INPUT} />}

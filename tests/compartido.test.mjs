@@ -6,7 +6,7 @@ import { sinTildes } from "../lib/texto.ts";
 import { cabecerasExcel, nombreAscii } from "../lib/archivos.ts";
 import { diasDesde } from "../lib/fechas.ts";
 import { conRevisionAtrasada, plazosRevisionPezuna, revisionAtrasada } from "../lib/sanidad.ts";
-import { contarFamacha } from "../lib/famacha.ts";
+import { contarFamacha, FAMACHA, PUNTAJES_FAMACHA, GUIA_FAMACHA } from "../lib/famacha.ts";
 import { enUltimoTercio, partoAtrasado, partoProximo, porConfirmar, porRepetir, porSecar, seguimientoServida } from "../lib/reproduccion.ts";
 
 const hoy = "2026-10-24";
@@ -133,6 +133,16 @@ test("FAMACHA: cuenta por desparasitar y por vigilar; lo ya tratado no cuenta", 
   const f = (puntaje, desparasitado_en = null) => ({ puntaje, ultima_fecha: "2026-10-10", desparasitado_en });
   assert.deepEqual(contarFamacha([f(4), f(5), f(3), f(5, "2026-10-12"), f(3, "2026-10-12"), f(1)]), { desparasitar: 2, vigilar: 1 });
   assert.deepEqual(contarFamacha([]), { desparasitar: 0, vigilar: 0 });
+});
+
+test("FAMACHA: cada puntaje trae su descripción, su acción y su color para la guía del formulario", () => {
+  for (const n of PUNTAJES_FAMACHA) {
+    const f = FAMACHA[n];
+    assert.ok(f.color && f.texto && f.detalle && f.accion, `puntaje ${n}`);
+    assert.match(f.mucosa, /^#[0-9a-f]{6}$/i);
+  }
+  assert.equal(new Set(PUNTAJES_FAMACHA.map((n) => FAMACHA[n].mucosa)).size, 5, "cinco colores distintos");
+  assert.ok(GUIA_FAMACHA.pasos.length >= 3 && GUIA_FAMACHA.notas.length >= 3);
 });
 
 // ───────────────────────── Reproducción: seguimiento ─────────────────────────
