@@ -6,13 +6,28 @@ export const DIAS_EDAD_FAMACHA = 90;
 export const PUNTAJES_FAMACHA = [1, 2, 3, 4, 5] as const;
 
 /** Cómo se ve la mucosa del ojo en cada puntaje, y qué hacer. */
-export const FAMACHA: Record<number, { color: string; texto: string; tono: "ok" | "neutro" | "aviso" | "alerta"; accion: string }> = {
-  1: { color: "Rojo intenso", texto: "Sin anemia", tono: "ok", accion: "No necesita desparasitante." },
-  2: { color: "Rojo rosado", texto: "Sin anemia", tono: "ok", accion: "No necesita desparasitante." },
-  3: { color: "Rosado", texto: "Anemia leve", tono: "aviso", accion: "Vigílalo: evalúalo de nuevo en una o dos semanas. Desparasita si está flaco, recién parido o en lactancia." },
-  4: { color: "Rosado pálido", texto: "Anemia", tono: "alerta", accion: "Conviene desparasitarlo." },
-  5: { color: "Blanco", texto: "Anemia grave", tono: "alerta", accion: "Desparasítalo ya y consulta al veterinario: está en riesgo." },
+export const FAMACHA: Record<number, { color: string; texto: string; tono: "ok" | "neutro" | "aviso" | "alerta"; accion: string; detalle: string; mucosa: string }> = {
+  1: { color: "Rojo intenso", texto: "Sin anemia", tono: "ok", detalle: "Rojo vivo o rosado muy oscuro. Mucosa sana y bien irrigada.", mucosa: "#c4303b", accion: "No necesita desparasitante." },
+  2: { color: "Rojo rosado", texto: "Sin anemia", tono: "ok", detalle: "Rosado, un poco menos intenso de lo normal, pero todavía con buen color.", mucosa: "#e0626f", accion: "No necesita desparasitante." },
+  3: { color: "Rosado", texto: "Anemia leve", tono: "aviso", detalle: "Se nota más pálido, con menos rojo. Es el punto en que hay que decidir con otros datos.", mucosa: "#ec9ca0", accion: "Vigílalo: evalúalo de nuevo en una o dos semanas. Desparasita si está flaco, recién parido o en lactancia." },
+  4: { color: "Rosado pálido", texto: "Anemia", tono: "alerta", detalle: "Casi blanco, con muy poco rosado y se le ven los vasos finos.", mucosa: "#f3cdc8", accion: "Conviene desparasitarlo." },
+  5: { color: "Blanco", texto: "Anemia grave", tono: "alerta", detalle: "Nada de rosado. Mala irrigación de sangre.", mucosa: "#f6f1ea", accion: "Desparasítalo ya y consulta al veterinario: está en riesgo." },
 };
+
+/** Cómo revisar bien el ojo: los pasos y las notas que acompañan a la tarjeta de colores. */
+export const GUIA_FAMACHA = {
+  pasos: [
+    "Revisa con luz natural. La sombra o una luz amarilla cambian el color.",
+    "Sujeta bien al animal y baja con el pulgar el párpado de abajo, sin apretar el ojo.",
+    "Mira el color de la parte interna del párpado y compáralo con la escala.",
+    "Si dudas entre dos puntajes, repite la revisión con calma y con buena luz.",
+  ],
+  notas: [
+    "Úsalo junto con otros datos: condición corporal, apetito, rendimiento y, si puedes, el coprológico (conteo de huevos en el estiércol).",
+    "Es más útil para detectar la anemia que causa la lombriz del cuajar (Haemonchus contortus) y debe ser parte de un plan completo contra parásitos.",
+    "Cada animal es distinto. Ante la duda, consulta al veterinario o a alguien con experiencia en ganado.",
+  ],
+} as const;
 
 export type EstadoFamacha = { clave: "al_dia" | "vigilar" | "desparasitar" | "tratado"; texto: string; tono: "ok" | "neutro" | "aviso" | "alerta" };
 
