@@ -139,4 +139,5 @@ $m$;
     print("animales", len(filas), "bajas_pre", len(bajas_pre), "movs", len(movs), "caps", cap)
 
 
-main()
+if __name__ == "__main__":
+    main()
