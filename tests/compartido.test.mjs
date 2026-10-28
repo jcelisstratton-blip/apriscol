@@ -306,3 +306,45 @@ test("trazabilidad: hitos en orden de fecha y edad en texto", () => {
   assert.equal(textoEdad("2026-03-01", "2026-06-01"), "3 meses");
   assert.equal(textoEdad("2026-03-01", "2026-02-01"), "aún no había nacido");
 });
+
+import { etapaDe, porcentajePesoAdulto, pesoAdultoReferencia, avisosMezcla, contarEtapas } from "../lib/etapas.ts";
+const CRIT = { desteteDias: 60, servicioEdadMeses: 7, servicioPesoPct: 65, pesoAdultoKg: 50 };
+test("etapas: lactante, levante y lista para monta según edad y peso relativo", () => {
+  assert.equal(etapaDe({ sexo: "hembra", edadDias: 30, pesoKg: 8 }, CRIT), "lactante");
+  assert.equal(etapaDe({ sexo: "hembra", edadDias: 150, pesoKg: 20 }, CRIT), "levante_hembra");
+  // 7 meses pero sin el 65 % del peso adulto (32,5 kg): sigue en levante.
+  assert.equal(etapaDe({ sexo: "hembra", edadDias: 230, pesoKg: 28 }, CRIT), "levante_hembra");
+  assert.equal(etapaDe({ sexo: "hembra", edadDias: 230, pesoKg: 34 }, CRIT), "lista_monta");
+  // Sin peso o sin referencia solo cuenta la edad.
+  assert.equal(etapaDe({ sexo: "hembra", edadDias: 230, pesoKg: null }, CRIT), "lista_monta");
+  assert.equal(etapaDe({ sexo: "hembra", edadDias: 230, pesoKg: 10 }, { ...CRIT, pesoAdultoKg: null }), "lista_monta");
+  assert.equal(etapaDe({ sexo: "hembra", edadDias: 400, pesoKg: 30, tienePartos: true }, CRIT), "hembra_adulta");
+  assert.equal(etapaDe({ sexo: "hembra", edadDias: 800, pesoKg: 45 }, CRIT), "hembra_adulta");
+  assert.equal(etapaDe({ sexo: "hembra", edadDias: null, pesoKg: 45 }, CRIT), null);
+});
+test("etapas: los machos se separan desde el destete", () => {
+  assert.equal(etapaDe({ sexo: "macho", edadDias: 40, pesoKg: 9 }, CRIT), "lactante");
+  assert.equal(etapaDe({ sexo: "macho", edadDias: 120, pesoKg: 22 }, CRIT), "levante_macho");
+  assert.equal(etapaDe({ sexo: "macho", edadDias: 120, pesoKg: 22, enLoteCeba: true }, CRIT), "ceba");
+  assert.equal(etapaDe({ sexo: "macho", edadDias: 120, pesoKg: 22, usoMacho: "carne" }, CRIT), "ceba");
+  assert.equal(etapaDe({ sexo: "macho", edadDias: 900, pesoKg: 70, usoMacho: "reproductor" }, CRIT), "reproductor");
+  assert.equal(etapaDe({ sexo: "macho", edadDias: 900, pesoKg: 70 }, CRIT), "macho_adulto");
+  assert.equal(porcentajePesoAdulto(28, 45), 62);
+  assert.equal(porcentajePesoAdulto(28, null), null);
+  assert.equal(pesoAdultoReferencia(42, [1, 2, 3]), 42);
+  assert.equal(pesoAdultoReferencia(null, [40, 50]), null);
+  assert.equal(pesoAdultoReferencia(null, [40, 50, 45]), 45);
+});
+test("etapas: avisos de mezcla en un corral (nunca bloquean; maternidad no avisa)", () => {
+  const o = (etapa, sexo, pesoKg = null) => ({ etapa, sexo, pesoKg });
+  const claves = (x, uso = "general") => avisosMezcla(x, uso, 1.5).map((a) => a.clave);
+  assert.deepEqual(claves([o("lactante", "hembra"), o("hembra_adulta", "hembra")]), ["lactantes_con_grandes"]);
+  assert.deepEqual(claves([o("lactante", "hembra"), o("hembra_adulta", "hembra")], "maternidad"), []);
+  assert.deepEqual(claves([o("levante_macho", "macho"), o("levante_hembra", "hembra")]), ["machos_con_hembras"]);
+  // Un reproductor con hembras, o cualquier macho en un corral de monta, es normal.
+  assert.deepEqual(claves([o("reproductor", "macho"), o("hembra_adulta", "hembra")]), []);
+  assert.deepEqual(claves([o("levante_macho", "macho"), o("hembra_adulta", "hembra")], "reproductoras"), []);
+  assert.deepEqual(claves([o("hembra_adulta", "hembra", 60), o("levante_hembra", "hembra", 25)]), ["pesos_distintos"]);
+  assert.deepEqual(claves([o("hembra_adulta", "hembra", 40), o("levante_hembra", "hembra", 30)]), []);
+  assert.deepEqual(contarEtapas([{ etapa: "ceba" }, { etapa: "lactante" }, { etapa: "ceba" }, { etapa: null }]), [{ etapa: "lactante", n: 1 }, { etapa: "ceba", n: 2 }]);
+});

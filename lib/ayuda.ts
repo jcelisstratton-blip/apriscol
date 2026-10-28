@@ -18,6 +18,7 @@ export const AYUDA_CORRALES: Ayuda = {
   puntos: [
     { titulo: "Instalaciones", texto: "Crea tus corrales y potreros y dile a la app cuántos animales caben en cada uno." },
     { titulo: "Cupo", texto: "Si un corral está lleno, la app no deja meter más animales: así se evita el hacinamiento, que causa estrés, peleas y enfermedades." },
+    { titulo: "Etapas y mezcla", texto: "Cada animal tiene su etapa (lactante, levante, lista para monta, ceba, adulto) según su edad y su peso frente al peso adulto de tu finca. La app avisa, sin bloquear, si un corral mezcla lactantes con animales ya destetados, machos destetados con hembras o pesos muy distintos. Los machos se separan después de la lactancia." },
     { titulo: "Mover", texto: "Mueve uno, varios o todo un lote. Cada animal guarda por dónde ha pasado, y si te equivocas puedes corregir el movimiento." },
     {
       titulo: "Rotación de potreros",

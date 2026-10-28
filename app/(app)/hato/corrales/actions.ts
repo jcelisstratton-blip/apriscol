@@ -5,7 +5,10 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { crearClienteServidor } from "@/lib/supabase/server";
 import { obtenerContexto } from "@/lib/contexto";
-import { puedeEscribir, puedeGestionar } from "@/lib/permisos";
+import { puedeEscribir, puedeGestionar, puedeVer } from "@/lib/permisos";
+import { obtenerAjustes } from "@/lib/ajustes-servidor";
+import { avisosMezcla } from "@/lib/etapas";
+import { cargarEtapas, ocupantesDe } from "@/lib/etapas-servidor";
 import { mensajeAmigable } from "@/lib/mensaje-amigable";
 import { hoyBogota } from "@/lib/fechas";
 import { leerNumero } from "@/lib/numeros";
@@ -156,6 +159,25 @@ export async function moverAnimales(_: EstadoForm, form: FormData): Promise<Esta
   revalidatePath("/");
   for (const a of ids.slice(0, 50)) revalidatePath(`/hato/${a}`);
   redirect(d.animal ? `/hato/${d.animal}?guardado=1#ubicacion` : d.volver ? `/hato/corrales/${d.volver}?guardado=1` : `${DIRECCION_CORRALES}&guardado=1`);
+}
+
+/**
+ * Qué conviene revisar antes de mover estos animales a una instalación: mezcla de lactantes con destetados, machos destetados con hembras y mucha diferencia de
+ * peso, contando a quienes ya están ahí y a quienes llegan. Son recomendaciones: nunca bloquean el movimiento.
+ */
+export async function avisosDeMezcla(destinoId: string, animalIds: string[]): Promise<{ avisos: string[] }> {
+  const { finca, rol } = await obtenerContexto();
+  if (!puedeVer(rol, "corrales", finca.plan)) return { avisos: [] };
+  if (!ID_UUID.safeParse(destinoId).success || animalIds.length === 0 || animalIds.length > 1000 || !animalIds.every((i) => ID_UUID.safeParse(i).success)) return { avisos: [] };
+  const supabase = await crearClienteServidor();
+  const { data: destino } = await supabase.from("ubicaciones").select("id, uso").eq("id", destinoId).eq("finca_id", finca.id).maybeSingle();
+  if (!destino) return { avisos: [] };
+  const yaAhi = await ocupantesDe(supabase, finca.id, destinoId);
+  const ajustes = await obtenerAjustes();
+  const etapas = await cargarEtapas(supabase, finca.id, ajustes, [...yaAhi, ...animalIds], hoyBogota());
+  const quedan = [...new Set([...yaAhi, ...animalIds])].map((id) => etapas.get(id)).filter((e): e is NonNullable<typeof e> => Boolean(e));
+  const avisos = avisosMezcla(quedan.map((e) => ({ etapa: e.etapa, sexo: e.sexo, pesoKg: e.pesoKg })), destino.uso, ajustes.general.corral_razon_peso);
+  return { avisos: avisos.map((a) => a.texto) };
 }
 
 // ───────────────────────── Corregir un movimiento ─────────────────────────
