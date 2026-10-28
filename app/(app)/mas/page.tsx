@@ -34,8 +34,8 @@ export default async function PaginaMas({ searchParams }: { searchParams: Promis
   const ubicacion = [finca.municipio, finca.departamento].filter(Boolean).join(", ");
   const admin = await esAdminPlataforma();
   const visibilidad = visibilidadMenu(rol, finca.plan);
-  // Hoy y Hato son pestañas de la barra de abajo; el resto del menú, igual que en el computador, va aquí por grupos.
-  const grupos = menuPrincipal(visibilidad).filter((g) => g.id !== "inicio");
+  // Hoy y Hato son pestañas de la barra de abajo; lo demás del primer grupo (Novedades) sí va aquí.
+  const grupos = menuPrincipal(visibilidad).map((g) => (g.id === "inicio" ? { ...g, entradas: g.entradas.filter((e) => e.href !== "/" && e.href !== "/hato") } : g)).filter((g) => g.entradas.length > 0);
   const entradasFinca = menuFinca(visibilidad);
 
   return (

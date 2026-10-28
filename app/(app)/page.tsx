@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ChevronRight, Droplets, Rabbit } from "lucide-react";
+import { ChevronRight, Droplets, Inbox, Rabbit } from "lucide-react";
 import { Encabezado } from "@/components/Encabezado";
 import { EstadoVacio } from "@/components/EstadoVacio";
 import { FincaSelector } from "@/components/FincaSelector";
@@ -17,7 +17,7 @@ import { esBaja } from "@/lib/produccion";
 import { EnlaceBoton } from "@/components/Boton";
 import { obtenerContexto } from "@/lib/contexto";
 import { crearClienteServidor } from "@/lib/supabase/server";
-import { puedeEscribir, puedeVer } from "@/lib/permisos";
+import { puedeEscribir, puedeVer, revisaNovedades } from "@/lib/permisos";
 import { diasHasta, formatoFecha, hoyBogota, litros, sumarDias } from "@/lib/fechas";
 import { etiquetaAnimal, saludo } from "@/lib/animal";
 import { pesos } from "@/lib/ferias";
@@ -136,6 +136,11 @@ export default async function PaginaHoy({ searchParams }: { searchParams: Promis
     ? await cargarSemaforos({ supabase, fincaId: finca.id, rol, plan: finca.plan, hoy, ajustes: await obtenerAjustes() }).catch(() => null)
     : null;
 
+  // Novedades nuevas del equipo (solo quien las revisa); si falla no debe tumbar la pantalla de inicio.
+  const novedadesNuevas = revisaNovedades(rol) && puedeVer(rol, "novedades", finca.plan)
+    ? await supabase.from("novedades").select("id", { count: "exact", head: true }).eq("finca_id", finca.id).eq("estado", "nueva").then((r) => r.count ?? 0, () => 0)
+    : 0;
+
   const nombrePila = (perfil?.nombre ?? "").split(" ")[0];
 
   return (
@@ -187,6 +192,19 @@ export default async function PaginaHoy({ searchParams }: { searchParams: Promis
                 </Link>
               ) : null}
             </section>
+          ) : null}
+
+          {novedadesNuevas > 0 ? (
+            <Link href="/novedades" className="flex min-h-14 items-center justify-between gap-3 rounded-3xl bg-papel px-4 py-3 ring-1 ring-arena">
+              <span className="flex min-w-0 items-center gap-3">
+                <Inbox className="size-6 shrink-0 text-musgo" strokeWidth={1.75} aria-hidden="true" />
+                <span className="min-w-0">
+                  <span className="block font-bold">{novedadesNuevas} {novedadesNuevas === 1 ? "novedad nueva" : "novedades nuevas"}</span>
+                  <span className="block text-sm text-humo">Lo que el equipo contó de los animales</span>
+                </span>
+              </span>
+              <ChevronRight className="size-5 shrink-0 text-humo" strokeWidth={2} aria-hidden="true" />
+            </Link>
           ) : null}
 
           {senalesHoy ? <ResumenSemaforos senales={senalesHoy} /> : null}

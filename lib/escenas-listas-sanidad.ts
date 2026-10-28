@@ -1,6 +1,6 @@
-import { Carrot, CircleHelp, Flame, FlaskConical, Hourglass, LayoutDashboard, Microscope, Package, Pill, ShieldAlert, ShieldCheck, TestTube } from "lucide-react";
+import { Bug, Carrot, CircleHelp, Eye, Flame, FlaskConical, Hourglass, LayoutDashboard, Microscope, Package, Pill, ShieldAlert, ShieldCheck, TestTube } from "lucide-react";
 import { ESC, escena, type EscenaDef } from "@/lib/escenas";
-import type { ResultadoPrueba, TipoProducto } from "@/lib/tipos";
+import type { Novedad, ResultadoPrueba, TipoProducto } from "@/lib/tipos";
 
 /** Cada tipo de producto veterinario del catálogo, con su escena. */
 export const ESCENA_PRODUCTO: Record<TipoProducto, EscenaDef> = {
@@ -38,4 +38,12 @@ export const ESCENA_TODOS_COPROLOGICOS: EscenaDef = escena(LayoutDashboard, "mus
 export const ESCENA_MUESTRA: Record<"limpia" | "contaminada", EscenaDef> = {
   limpia: escena(ShieldCheck, "oliva", Microscope),
   contaminada: escena(ShieldAlert, "arcilla", TestTube),
+};
+
+/** Lo que se puede contar en una novedad: los mismos botones de la ficha en Sanidad. */
+export const ESCENA_TIPO_NOVEDAD: Record<Novedad["tipo"], EscenaDef> = {
+  aplicacion: ESC.sanidad,
+  prueba: ESC.laboratorio,
+  coprologico: escena(Microscope, "oliva", Bug),
+  famacha: escena(Eye, "ocre", Pill),
 };

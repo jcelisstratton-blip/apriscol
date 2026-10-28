@@ -1,5 +1,5 @@
-import { Activity, Baby, Beef, Download, Droplets, Fence, FileBarChart2, Gift, GitFork, Home, MapPin, Package, PawPrint, Plus, Rocket, SlidersHorizontal, Syringe, TrendingUp, Trophy, Users, Wallet, type LucideIcon } from "lucide-react";
-import { puedeGestionar, puedeVer } from "@/lib/permisos";
+import { Inbox, Activity, Baby, Beef, Download, Droplets, Fence, FileBarChart2, Gift, GitFork, Home, MapPin, Package, PawPrint, Plus, Rocket, SlidersHorizontal, Syringe, TrendingUp, Trophy, Users, Wallet, type LucideIcon } from "lucide-react";
+import { puedeGestionar, puedeVer, revisaNovedades } from "@/lib/permisos";
 import { reportesVisibles } from "@/lib/reportes/catalogo";
 import { areasSemaforo } from "@/lib/semaforos";
 import type { PlanId, RolFinca } from "@/lib/tipos";
@@ -14,6 +14,10 @@ export type GrupoMenu = { id: string; titulo?: string; entradas: EntradaMenu[] }
 
 /** Qué ve la persona: sale de su rol y del plan de la finca. */
 export type VisibilidadMenu = {
+  /** Puede enviar o revisar novedades (lo primero del menú). */
+  novedades: boolean;
+  /** Revisa todas las novedades (propietario, administrador, veterinario): para los demás es «Mis novedades». */
+  revisaNovedades: boolean;
   /** Tiene al menos un área de semáforos (según su rol y plan). */
   semaforos: boolean;
   leche: boolean;
@@ -39,6 +43,8 @@ export type VisibilidadMenu = {
 export function visibilidadMenu(rol: RolFinca, plan: PlanId): VisibilidadMenu {
   const ve = (m: Parameters<typeof puedeVer>[1]) => puedeVer(rol, m, plan);
   return {
+    novedades: ve("novedades"),
+    revisaNovedades: revisaNovedades(rol),
     semaforos: areasSemaforo(rol, plan).length > 0,
     leche: ve("leche"),
     repro: ve("reproduccion"),
@@ -63,6 +69,8 @@ export function menuPrincipal(v: VisibilidadMenu): GrupoMenu[] {
     {
       id: "inicio",
       entradas: [
+        // Lo primero del menú: lo que el equipo cuenta de los animales (quien lo revisa, todo; el ordeñador, lo suyo).
+        ...(v.novedades ? [{ href: "/novedades", etiqueta: v.revisaNovedades ? "Novedades" : "Mis novedades", Icono: Inbox }] : []),
         { href: "/", etiqueta: "Hoy", Icono: Home },
         { href: "/hato", etiqueta: "Hato", Icono: PawPrint },
       ],

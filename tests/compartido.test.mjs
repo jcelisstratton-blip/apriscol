@@ -365,3 +365,23 @@ test("coprológico: una muestra contaminada (del piso) no cuenta en la prueba de
   // Los exámenes anteriores (sin dato) cuentan como antes.
   assert.equal(eficaciaDesparasitante([f("antes", 1000, null), f("despues", 10, undefined)]).reduccion, 99);
 });
+
+import { faltaEnNovedad, fechaDeNovedad, resumenNovedad, direccionParaRegistrar } from "../lib/novedades.ts";
+test("novedades: cada tipo pide lo suyo, todo por selección", () => {
+  assert.match(faltaEnNovedad({}), /qué quieres contar/);
+  assert.match(faltaEnNovedad({ tipo: "aplicacion" }), /qué se aplicó/);
+  assert.equal(faltaEnNovedad({ tipo: "aplicacion", categoria_producto: "vacuna" }), null);
+  assert.match(faltaEnNovedad({ tipo: "prueba", prueba: "cmt" }), /cómo salió/);
+  assert.equal(faltaEnNovedad({ tipo: "prueba", prueba: "cmt", resultado_prueba: "positivo" }), null);
+  assert.match(faltaEnNovedad({ tipo: "coprologico" }), /muestra/);
+  assert.match(faltaEnNovedad({ tipo: "famacha" }), /puntaje/);
+  assert.equal(faltaEnNovedad({ tipo: "famacha", puntaje: 4 }), null);
+});
+test("novedades: la fecha sale de tres opciones y el resumen se lee en una frase", () => {
+  assert.equal(fechaDeNovedad("hoy", "2026-10-28"), "2026-10-28");
+  assert.equal(fechaDeNovedad("ayer", "2026-10-28"), "2026-10-27");
+  assert.equal(fechaDeNovedad("antes_de_ayer", "2026-10-01"), "2026-09-29");
+  assert.equal(resumenNovedad({ tipo: "aplicacion", categoria_producto: "antibiotico", producto_nombre: "Penicilina", via: "intramuscular", lote: "ANT-1", prueba: null, resultado_prueba: null, tipo_muestra: null, puntaje: null }), "Aplicación · Antibiótico · Penicilina · intramuscular · lote ANT-1");
+  assert.match(resumenNovedad({ tipo: "coprologico", categoria_producto: null, producto_nombre: null, via: null, lote: null, prueba: null, resultado_prueba: null, tipo_muestra: "contaminada", puntaje: null }), /contaminada \(recogida del piso\)/);
+  assert.equal(direccionParaRegistrar({ tipo: "aplicacion", animal_id: "a1", categoria_producto: "vacuna" }), "/hato/sanidad/nuevo?animal=a1&tipo=vacunacion");
+});
