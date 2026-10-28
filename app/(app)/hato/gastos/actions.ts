@@ -10,9 +10,10 @@ import { mensajeAmigable } from "@/lib/mensaje-amigable";
 import { hoyBogota, sumarDias } from "@/lib/fechas";
 import { leerNumero } from "@/lib/numeros";
 import { soporteValido } from "@/lib/soportes";
-import { DESTINOS, RUBROS } from "@/lib/costos";
+import { DESTINOS, RUBROS, RUBROS_CON_LOTE, RUBROS_LOTE_OBLIGATORIO } from "@/lib/costos";
 import { DIRECCION_GASTOS } from "@/lib/hato";
 import { opcional } from "@/lib/validacion";
+import { moduloEnPlan } from "@/lib/planes";
 
 export type EstadoForm = { error?: string } | undefined;
 type Resultado = { ok: true } | { ok: false; error: string };
@@ -29,6 +30,10 @@ const esquema = z
     /** Proveedor elegido de la lista y producto elegido del catálogo (lo que se compró). */
     tercero_id: opcional(ID_UUID),
     producto_id: opcional(ID_UUID),
+    /** Medicamento o vacuna: el producto veterinario, su lote y cuándo vence (el veterinario lo elige al aplicarlo). */
+    producto_vet_id: opcional(ID_UUID),
+    lote_producto: opcional(z.string().trim().max(60, "El lote es muy largo (máximo 60 letras).")),
+    lote_vencimiento: opcional(z.iso.date("La fecha de vencimiento del lote no es válida.")),
     cantidad: opcional(numero("La cantidad debe ser un número.").pipe(z.number().positive("La cantidad debe ser mayor que cero.").max(9_999_999_999, "La cantidad es muy grande."))),
     unidad: opcional(z.string().trim().max(20, "La unidad es muy larga.")),
     monto: numero("Escribe cuánto costó (solo números).").pipe(z.number().positive("El valor debe ser mayor que cero.").max(99_999_999_999, "El valor es demasiado grande. Revísalo.")),
@@ -63,6 +68,10 @@ function fila(d: Datos, proveedor: string | null) {
     proveedor,
     tercero_id: d.tercero_id ?? null,
     producto_id: d.producto_id ?? null,
+    // El lote solo existe en las compras de medicamentos y vacunas; en las demás se descarta.
+    producto_vet_id: RUBROS_CON_LOTE.includes(d.rubro as never) ? (d.producto_vet_id ?? null) : null,
+    lote_producto: RUBROS_CON_LOTE.includes(d.rubro as never) ? (d.lote_producto ?? null) : null,
+    lote_vencimiento: RUBROS_CON_LOTE.includes(d.rubro as never) && d.lote_producto ? (d.lote_vencimiento ?? null) : null,
     cantidad: d.cantidad ?? null,
     unidad: d.cantidad != null ? (d.unidad ?? null) : null,
     monto: d.monto,
@@ -93,7 +102,7 @@ function revisar(d: Datos, fincaId: string): string | null {
  * Resuelve lo que se eligió de las listas: el nombre del proveedor (se guarda también como texto, para lo que lee lo anterior) y que el producto sea de la
  * finca, de compra y del mismo rubro. Devuelve el nombre del proveedor o un error en lenguaje llano.
  */
-async function resolverListas(supabase: Awaited<ReturnType<typeof crearClienteServidor>>, fincaId: string, d: Datos): Promise<{ proveedor: string | null } | { error: string }> {
+async function resolverListas(supabase: Awaited<ReturnType<typeof crearClienteServidor>>, fincaId: string, d: Datos, exigirLote: boolean): Promise<{ proveedor: string | null } | { error: string }> {
   let proveedor = d.proveedor ?? null;
   if (d.tercero_id) {
     const { data } = await supabase.from("finca_terceros").select("nombre").eq("id", d.tercero_id).eq("finca_id", fincaId).maybeSingle();
@@ -104,6 +113,16 @@ async function resolverListas(supabase: Awaited<ReturnType<typeof crearClienteSe
     const { data } = await supabase.from("finca_productos").select("tipo, rubro").eq("id", d.producto_id).eq("finca_id", fincaId).maybeSingle();
     if (!data || data.tipo !== "compra") return { error: "No encontramos ese producto. Elígelo de nuevo." };
     if (data.rubro !== d.rubro) return { error: "Ese producto no corresponde a ese rubro. Elígelo de nuevo." };
+  }
+  if (RUBROS_CON_LOTE.includes(d.rubro as never) && d.producto_vet_id) {
+    const { data } = await supabase.from("productos_veterinarios").select("id").eq("id", d.producto_vet_id).eq("finca_id", fincaId).maybeSingle();
+    if (!data) return { error: "No encontramos ese producto veterinario. Elígelo de nuevo." };
+  }
+  if (d.lote_producto && !d.producto_vet_id) return { error: "Elige de qué producto veterinario es el lote." };
+  if (d.producto_vet_id && !d.lote_producto && RUBROS_CON_LOTE.includes(d.rubro as never)) return { error: "Escribe el lote del producto." };
+  // Al registrar la compra de una vacuna o un medicamento, el lote es obligatorio: sin él el veterinario no tiene qué elegir al aplicarlo.
+  if (exigirLote && RUBROS_LOTE_OBLIGATORIO.includes(d.rubro as never) && (!d.producto_vet_id || !d.lote_producto)) {
+    return { error: "Indica de qué producto veterinario es y su lote: el veterinario lo elegirá al aplicarlo." };
   }
   return { proveedor };
 }
@@ -132,7 +151,7 @@ export async function crearGasto(_: EstadoForm, form: FormData): Promise<EstadoF
   if (d.rubro === "mano_obra") return { error: "Los pagos al personal se registran en Personal, para que se cuenten una sola vez como mano de obra." };
 
   const supabase = await crearClienteServidor();
-  const listas = await resolverListas(supabase, finca.id, d);
+  const listas = await resolverListas(supabase, finca.id, d, moduloEnPlan(finca.plan, "sanidad"));
   if ("error" in listas) return { error: listas.error };
   const { error } = await supabase.from("gastos").insert({ finca_id: finca.id, ...fila(d, listas.proveedor), client_request_id: d.client_request_id ?? null });
   // Doble toque: ya se guardó.
@@ -154,7 +173,7 @@ export async function editarGasto(_: EstadoForm, form: FormData): Promise<Estado
   if (problema) return { error: problema };
 
   const supabase = await crearClienteServidor();
-  const listas = await resolverListas(supabase, finca.id, d);
+  const listas = await resolverListas(supabase, finca.id, d, false);
   if ("error" in listas) return { error: listas.error };
   const { data, error } = await supabase.from("gastos").update(fila(d, listas.proveedor)).eq("id", d.gasto_id).eq("finca_id", finca.id).select("id");
   if (error) return { error: mensajeAmigable(error.message) };

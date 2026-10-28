@@ -5,7 +5,7 @@ import { ChevronLeft } from "lucide-react";
 import { EliminarRegistro } from "@/components/EliminarRegistro";
 import { Encabezado } from "@/components/Encabezado";
 import { FormGasto } from "@/components/FormGasto";
-import { servicioEnPlan } from "@/lib/planes";
+import { moduloEnPlan, servicioEnPlan } from "@/lib/planes";
 import { obtenerContexto } from "@/lib/contexto";
 import { obtenerProductos, obtenerTerceros } from "@/lib/catalogos-servidor";
 import { crearClienteServidor } from "@/lib/supabase/server";
@@ -29,6 +29,8 @@ export default async function PaginaGastoEditar({ params, searchParams }: { para
   if (!puedeEscribir(rol, "contabilidad", finca.plan)) redirect("/hato?vista=gastos");
 
   const [productos, terceros] = await Promise.all([obtenerProductos(), obtenerTerceros()]);
+  const conSanidad = moduloEnPlan(finca.plan, "sanidad");
+  const { data: productosVet } = conSanidad ? await supabase.from("productos_veterinarios").select("id, nombre").eq("finca_id", finca.id).or(`activo.eq.true,id.eq.${gasto.producto_vet_id ?? "00000000-0000-0000-0000-000000000000"}`).order("nombre").limit(500) : { data: [] };
   const [animal, { data: ubicaciones }, { data: lotes }] = await Promise.all([
     gasto.animal_id ? supabase.from("animales").select("id, numero_arete, nombre").eq("id", gasto.animal_id).eq("finca_id", finca.id).maybeSingle().then((r) => r.data) : Promise.resolve(null),
     supabase.from("ubicaciones").select("id, nombre, activa").eq("finca_id", finca.id).order("nombre").limit(300),
@@ -58,6 +60,8 @@ export default async function PaginaGastoEditar({ params, searchParams }: { para
           animalDe={atrasAnimal ?? undefined}
           productos={productos.filter((p) => p.tipo === "compra" && (p.activo || p.id === gasto.producto_id))}
           terceros={terceros}
+          productosVet={productosVet ?? []}
+          conSanidad={conSanidad}
         />
         {puedeGestionar(rol) ? (
           <EliminarRegistro

@@ -5,7 +5,7 @@ import { notFound, redirect } from "next/navigation";
 import { ChevronLeft } from "lucide-react";
 import { Encabezado } from "@/components/Encabezado";
 import { FormGasto } from "@/components/FormGasto";
-import { servicioEnPlan } from "@/lib/planes";
+import { moduloEnPlan, servicioEnPlan } from "@/lib/planes";
 import { obtenerContexto } from "@/lib/contexto";
 import { obtenerProductos, obtenerTerceros } from "@/lib/catalogos-servidor";
 import { crearClienteServidor } from "@/lib/supabase/server";
@@ -40,6 +40,8 @@ export default async function PaginaGastoNuevo({ searchParams }: { searchParams:
     supabase.from("ubicaciones").select("id, nombre").eq("finca_id", finca.id).eq("activa", true).order("nombre").limit(300),
     supabase.from("lotes_ceba").select("id, nombre").eq("finca_id", finca.id).is("cerrado_en", null).order("nombre").limit(300),
   ]);
+  const conSanidad = moduloEnPlan(finca.plan, "sanidad");
+  const { data: productosVet } = conSanidad ? await supabase.from("productos_veterinarios").select("id, nombre").eq("finca_id", finca.id).eq("activo", true).order("nombre").limit(500) : { data: [] };
   const rubroInicial = (RUBROS as string[]).includes(sp.rubro ?? "") ? (sp.rubro as RubroGasto) : undefined;
   const destinoInicial =
     sp.lote && ID_UUID.test(sp.lote) && (lotes ?? []).some((l) => l.id === sp.lote)
@@ -69,6 +71,8 @@ export default async function PaginaGastoNuevo({ searchParams }: { searchParams:
           solicitud={randomUUID()}
           productos={productos.filter((p) => p.tipo === "compra" && p.activo)}
           terceros={terceros}
+          productosVet={productosVet ?? []}
+          conSanidad={conSanidad}
         />
       </div>
     </>

@@ -50,6 +50,9 @@ export type DatosEvento = {
   anestesia?: string | null;
 };
 
+/** Un lote de un producto veterinario, tal como lo dejó la compra. */
+export type LoteDisponible = { gasto_id: string; producto_id: string; lote: string; vencimiento: string | null; comprado: string };
+
 const NUEVO_PRODUCTO = "otro";
 const coma = (n: number | null | undefined) => (n === null || n === undefined ? "" : String(n).replace(".", ","));
 const entero = (v: string) => (/^\d{1,3}$/.test(v.trim()) ? Number(v) : 0);
@@ -72,6 +75,8 @@ export function FormEvento({
   solicitud,
   veterinarios,
   puedeAgregarVeterinario,
+  lotes,
+  puedeComprar,
 }: {
   fincaId: string;
   especies: Especie[];
@@ -90,6 +95,10 @@ export function FormEvento({
   /** Los veterinarios del equipo: quien aplica o hace un procedimiento suele ser uno de ellos. */
   veterinarios: VeterinarioRef[];
   puedeAgregarVeterinario: boolean;
+  /** Los lotes que registró quien compró (`lotes_sanidad`): el lote se elige de aquí, nunca se escribe. */
+  lotes: LoteDisponible[];
+  /** Quien puede registrar compras ve el enlace para agregar el lote que falta. */
+  puedeComprar: boolean;
 }) {
   const editando = Boolean(datos?.id);
   const [estado, enviar, pendiente] = useActionState(editando ? editarEvento : crearEvento, undefined);
@@ -115,6 +124,7 @@ export function FormEvento({
   const [unidad, setUnidad] = useState(datos?.unidad_dosis ?? "");
   const [via, setVia] = useState<ViaAplicacion | "">(datos?.via ?? "");
   const [proxima, setProxima] = useState(datos?.proxima_fecha ?? "");
+  const [loteGasto, setLoteGasto] = useState(datos?.id && datos.lote_producto ? "actual" : "");
   const [animales, setAnimales] = useState<AnimalElegido[]>(animalesIniciales);
 
   const r = REGLAS[tipo];
@@ -126,6 +136,7 @@ export function FormEvento({
   const dosisVisible = conProducto && r.dosisVisible;
   const detallesDeProducto = conProducto && !r.dosisVisible;
   const detallesAbiertos = Boolean(datos && (datos.costo || (detallesDeProducto && (datos.dosis || datos.via))));
+  const lotesDelProducto = lotes.filter((l) => l.producto_id === productoId);
   const retiroAbierto = Boolean(datos && (datos.retiro_leche_dias > 0 || datos.retiro_carne_dias > 0));
 
   // Un tratamiento de varios días: el retiro empieza después de la última dosis.
@@ -141,6 +152,9 @@ export function FormEvento({
 
   const elegirProducto = (v: string) => {
     setProductoId(v);
+    // El lote es de un producto: al cambiar de producto se elige de nuevo (con un solo lote disponible, ya queda elegido).
+    const delProducto = lotes.filter((l) => l.producto_id === v);
+    setLoteGasto(delProducto.length === 1 ? delProducto[0].gasto_id : datos?.id && datos.lote_producto && v === datos.producto_id ? "actual" : "");
     const p = productos.find((x) => x.id === v);
     if (!p) return;
     // El catálogo propone lo habitual del producto (retiro y unidad); todo se puede cambiar en esta aplicación.
@@ -411,18 +425,39 @@ export function FormEvento({
         <AsistidoPor nombre="responsable" etiqueta={r.etiquetaVeterinario} ayuda={vet === "requerido" ? undefined : "Opcional."} veterinarios={veterinarios} puedeAgregar={puedeAgregarVeterinario} inicial={datos?.responsable} requerido={vet === "requerido"} />
       )}
 
-      {conProducto && r.lote ? (
+      {conProducto && r.lote && (productoId !== NUEVO_PRODUCTO && productoId !== "" ? true : Boolean(datos?.id && datos.lote_producto)) ? (
         <div className="space-y-3 rounded-3xl border border-arena p-4">
-          <div className="grid grid-cols-1 gap-4 min-[420px]:grid-cols-2">
-            <Campo etiqueta="Lote del producto" ayuda="Está en el frasco o la caja. Sirve para rastrear el producto si hay un problema.">
-              {(id) => <input id={id} name="lote_producto" defaultValue={datos?.lote_producto ?? ""} maxLength={60} autoComplete="off" className={CLASE_INPUT} placeholder="Número o nombre del lote" />}
-            </Campo>
-            <Campo etiqueta="Vence el lote" ayuda="Opcional.">
-              {(id) => <input id={id} name="fecha_vencimiento" type="date" defaultValue={datos?.fecha_vencimiento ?? ""} className={CLASE_INPUT} />}
-            </Campo>
-          </div>
+          <Campo etiqueta="Lote del producto" ayuda="Se elige de los lotes que el administrador registró al comprar. Sirve para rastrear el producto si hay un problema.">
+            {(id) => (
+              <Selector
+                id={id}
+                nombre="lote_gasto_id"
+                valor={loteGasto}
+                onCambio={(v) => setLoteGasto(String(v))}
+                titulo="¿Qué lote usaste?"
+                placeholder={lotesDelProducto.length === 0 && !(datos?.id && datos.lote_producto) ? "No hay lotes registrados" : "Elegir lote"}
+                permitirVacio
+                opciones={[
+                  ...(datos?.id && datos.lote_producto && (productoId === datos.producto_id || productoId === NUEVO_PRODUCTO || productoId === "")
+                    ? [{ valor: "actual", etiqueta: datos.lote_producto, detalle: `El que ya tenía el registro${datos.fecha_vencimiento ? ` · vence ${formatoFecha(datos.fecha_vencimiento, { day: "numeric", month: "short", year: "numeric" })}` : ""}` }]
+                    : []),
+                  ...lotesDelProducto.map((l) => ({ valor: l.gasto_id, etiqueta: l.lote, detalle: `Comprado el ${formatoFecha(l.comprado, { day: "numeric", month: "short", year: "numeric" })}${l.vencimiento ? ` · vence ${formatoFecha(l.vencimiento, { day: "numeric", month: "short", year: "numeric" })}` : ""}` })),
+                ]}
+              />
+            )}
+          </Campo>
+          {lotesDelProducto.length === 0 && productoId !== NUEVO_PRODUCTO && productoId !== "" ? (
+            <Aviso tipo="atencion">
+              Este producto todavía no tiene lotes registrados. {puedeComprar ? (
+                <>Agrégalo al <Link href="/hato/gastos/nuevo" className="font-semibold underline">registrar la compra</Link>.</>
+              ) : (
+                "Pídele al administrador que registre el lote al comprarlo."
+              )}
+            </Aviso>
+          ) : null}
         </div>
       ) : null}
+
 
       <details open={detallesAbiertos} className="group rounded-3xl border border-arena p-4">
         <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between font-semibold">

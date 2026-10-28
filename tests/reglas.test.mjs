@@ -330,3 +330,10 @@ test("sanidad: todo tipo que lleva producto pide el lote del producto", () => {
   assert.equal(datosPorTipoEvento("podologia", { categoria: "recorte" }, false).limpiar?.lote, true);
   assert.equal(datosPorTipoEvento("podologia", { categoria: "recorte", producto: "Oxitetraciclina", dosis: 2, via: "topica" }, false).limpiar?.lote, false);
 });
+
+import { RUBROS_CON_LOTE, RUBROS_LOTE_OBLIGATORIO } from "../lib/costos.ts";
+test("compras: vacunas, desparasitantes y medicamentos exigen lote; podología lo permite", () => {
+  for (const r of ["vacunas_desparasitantes", "tratamientos"]) assert.ok(RUBROS_LOTE_OBLIGATORIO.includes(r) && RUBROS_CON_LOTE.includes(r), r);
+  assert.ok(RUBROS_CON_LOTE.includes("podologia") && !RUBROS_LOTE_OBLIGATORIO.includes("podologia"));
+  assert.ok(!RUBROS_CON_LOTE.includes("alimento_concentrado") && !RUBROS_CON_LOTE.includes("mano_obra"));
+});

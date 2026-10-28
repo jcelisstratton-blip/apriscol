@@ -40,6 +40,7 @@ export default async function PaginaEditarEvento({ params }: { params: Promise<{
   }
 
   const { veterinarios, puedeAgregar: puedeAgregarVeterinario } = await cargarVeterinarios(supabase, finca, rol);
+  const { data: lotes } = await supabase.rpc("lotes_sanidad", { p_finca: finca.id });
 
   return (
     <>
@@ -56,6 +57,8 @@ export default async function PaginaEditarEvento({ params }: { params: Promise<{
           animalesIniciales={animales}
           veterinarios={veterinarios}
           puedeAgregarVeterinario={puedeAgregarVeterinario}
+          lotes={lotes ?? []}
+          puedeComprar={puedeEscribir(rol, "contabilidad", finca.plan)}
           datos={{
             id: e.id,
             tipo: e.tipo,

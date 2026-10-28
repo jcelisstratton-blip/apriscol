@@ -32,6 +32,7 @@ export default async function PaginaEventoNuevo({ searchParams }: { searchParams
   const hoy = hoyBogota();
 
   const { veterinarios, puedeAgregar: puedeAgregarVeterinario } = await cargarVeterinarios(supabase, finca, rol);
+  const { data: lotes } = await supabase.rpc("lotes_sanidad", { p_finca: finca.id });
   const { data: productos } = await supabase.from("productos_veterinarios").select("*").eq("finca_id", finca.id).eq("activo", true).order("nombre").limit(500);
 
   let animalFijo: { id: string; numero_arete: string; nombre: string | null } | undefined;
@@ -140,6 +141,8 @@ export default async function PaginaEventoNuevo({ searchParams }: { searchParams
           solicitud={randomUUID()}
           veterinarios={veterinarios}
           puedeAgregarVeterinario={puedeAgregarVeterinario}
+          lotes={lotes ?? []}
+          puedeComprar={puedeEscribir(rol, "contabilidad", finca.plan)}
         />
       </div>
     </>
