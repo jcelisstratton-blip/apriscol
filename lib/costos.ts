@@ -2,6 +2,10 @@ import type { DestinoGasto, OrigenCosto, RubroCosto, RubroGasto } from "@/lib/ti
 
 /** Los grupos de gasto (el documento «Componentes de gastos del aprisco») y los rubros de cada uno. */
 export type GrupoGasto = "alimentacion" | "sanidad" | "reproduccion" | "logistica" | "operacion";
+/** Compras de medicamentos y vacunas: llevan el producto veterinario y su lote, que el veterinario elige al aplicarlo. */
+export const RUBROS_CON_LOTE: RubroGasto[] = ["vacunas_desparasitantes", "tratamientos", "podologia"];
+/** En estas el lote es obligatorio al registrar la compra (vacunas, desparasitantes y medicamentos). */
+export const RUBROS_LOTE_OBLIGATORIO: RubroGasto[] = ["vacunas_desparasitantes", "tratamientos"];
 export const GRUPOS: GrupoGasto[] = ["alimentacion", "sanidad", "reproduccion", "logistica", "operacion"];
 export const ETIQUETA_GRUPO: Record<GrupoGasto, string> = {
   alimentacion: "Alimentación",

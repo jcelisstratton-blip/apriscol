@@ -439,6 +439,10 @@ export type Gasto = {
   tercero_id: string | null;
   /** Producto del catálogo de compras. Nulo en los gastos escritos a mano («otro»). */
   producto_id: string | null;
+  /** Si es un medicamento o vacuna: de qué producto veterinario es, su lote y cuándo vence (lo elige el veterinario al aplicarlo). */
+  producto_vet_id: string | null;
+  lote_producto: string | null;
+  lote_vencimiento: string | null;
   cantidad: number | null;
   unidad: string | null;
   monto: number;
@@ -1391,6 +1395,7 @@ export type Database = {
       quitar_semental: { Args: { p_finca: string; p_lote: string; p_macho: string }; Returns: undefined };
       agregar_veterinario: { Args: { p_finca: string; p_nombre: string; p_tarjeta: string; p_telefono: string }; Returns: { id: string; nombre: string; tarjeta_profesional: string | null }[] };
       corregir_crias: { Args: { p_finca: string; p_parto: string; p_crias: unknown }; Returns: number };
+      lotes_sanidad: { Args: { p_finca: string }; Returns: { gasto_id: string; producto_id: string; lote: string; vencimiento: string | null; comprado: string }[] };
       veterinarios_finca: { Args: { p_finca: string }; Returns: { id: string; nombre: string; tarjeta_profesional: string | null }[] };
       registrar_persona: { Args: { p_finca: string; p_persona: unknown; p_email?: string | null; p_rol?: string | null }; Returns: unknown };
       importar_animales_lote: {

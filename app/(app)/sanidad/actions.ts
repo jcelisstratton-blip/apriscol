@@ -30,8 +30,8 @@ const esquemaEvento = z.object({
   fecha: z.iso.date("Indica la fecha."),
   producto_id: opcional(z.string()),
   producto_nombre: opcional(z.string().trim().max(120, "El nombre del producto es muy largo.")),
-  lote_producto: opcional(z.string().trim().max(60, "El lote es muy largo.")),
-  fecha_vencimiento: opcional(z.iso.date("La fecha de vencimiento del lote no es válida.")),
+  /** El lote no se escribe: se elige entre los que el administrador registró al comprar (id de la compra), o «actual» para conservar el que ya tenía el registro. */
+  lote_gasto_id: opcional(z.string().trim().max(40)),
   dosis: numero(z.coerce.number("La dosis debe ser un número.").positive("La dosis debe ser mayor que cero.").max(99999)),
   unidad_dosis: opcional(z.string().trim().max(20)),
   via: opcional(z.enum(VIAS as [string, ...string[]])),
@@ -86,6 +86,23 @@ async function leerEvento(form: FormData, fincaId: string, supabase: Cliente, ex
   if (EVENTO_CON_PRODUCTO.includes(d.tipo as never) && !nombre) return { error: "Indica el producto que se aplicó." } as const;
 
   // Cada tipo pide y guarda lo suyo: se validan sus datos y lo que no le corresponde (dosis y retiro de un pediluvio, por ejemplo) se descarta.
+  // El lote se elige de los que registró quien compró; quien aplica nunca lo digita.
+  let lote = "";
+  let loteVence = "";
+  if (d.lote_gasto_id === "actual") {
+    if (!d.evento_id) return { error: "Ese lote no es válido. Elígelo de nuevo." } as const;
+    const { data: previo } = await supabase.from("eventos_sanitarios").select("lote_producto, fecha_vencimiento").eq("id", d.evento_id).eq("finca_id", fincaId).maybeSingle();
+    lote = previo?.lote_producto ?? "";
+    loteVence = previo?.fecha_vencimiento ?? "";
+  } else if (d.lote_gasto_id) {
+    if (!ID_UUID.safeParse(d.lote_gasto_id).success || !productoId) return { error: "Elige primero el producto y luego su lote." } as const;
+    const { data: lotes } = await supabase.rpc("lotes_sanidad", { p_finca: fincaId });
+    const elegido = (lotes ?? []).find((l) => l.gasto_id === d.lote_gasto_id && l.producto_id === productoId);
+    if (!elegido) return { error: "Ese lote ya no está disponible (venció o no es de este producto). Elige otro." } as const;
+    lote = elegido.lote;
+    loteVence = elegido.vencimiento ?? "";
+  }
+
   const entrada: EntradaEvento = {
     categoria: d.categoria, motivo: d.motivo, etapa: d.etapa, dias_tratamiento: d.dias_tratamiento, cojera: d.cojera, concentracion_pct: d.concentracion_pct,
     minutos: d.minutos, anestesia: d.anestesia, diagnostico: d.diagnostico, responsable: d.responsable, producto: nombre, dosis: d.dosis, via: d.via,
@@ -99,8 +116,8 @@ async function leerEvento(form: FormData, fincaId: string, supabase: Cliente, ex
     tipo: d.tipo,
     producto_id: productoId ?? "",
     producto_nombre: nombre ?? "",
-    lote_producto: limpiar.lote ? "" : (d.lote_producto ?? ""),
-    fecha_vencimiento: limpiar.lote ? "" : (d.fecha_vencimiento ?? ""),
+    lote_producto: limpiar.lote ? "" : lote,
+    fecha_vencimiento: limpiar.lote ? "" : loteVence,
     dosis: limpiar.dosis ? "" : (d.dosis ?? ""),
     unidad_dosis: !limpiar.dosis && d.dosis ? (d.unidad_dosis ?? "") : "",
     via: limpiar.dosis ? "" : (d.via ?? ""),

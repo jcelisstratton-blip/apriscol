@@ -11,7 +11,7 @@ import { SelectorTarjetas } from "@/components/SelectorTarjetas";
 import { SelectorTercero } from "@/components/SelectorTercero";
 import { SubirSoporte } from "@/components/SubirSoporte";
 import { crearGasto, editarGasto } from "@/app/(app)/hato/gastos/actions";
-import { DESTINOS, DETALLE_DESTINO, DETALLE_GRUPO, ETIQUETA_DESTINO, ETIQUETA_GRUPO, ETIQUETA_PAGO, ETIQUETA_RUBRO, GRUPO_DE, GRUPOS, RUBROS_DE, UNIDADES_GASTO, UNIDAD_SUGERIDA, type EstadoPago, type GrupoGasto } from "@/lib/costos";
+import { DESTINOS, DETALLE_DESTINO, DETALLE_GRUPO, ETIQUETA_DESTINO, ETIQUETA_GRUPO, ETIQUETA_PAGO, ETIQUETA_RUBRO, GRUPO_DE, GRUPOS, RUBROS_CON_LOTE, RUBROS_DE, RUBROS_LOTE_OBLIGATORIO, UNIDADES_GASTO, UNIDAD_SUGERIDA, type EstadoPago, type GrupoGasto } from "@/lib/costos";
 import { ESCENA_DESTINO_GASTO, ESCENA_ESPECIE, ESCENA_GRUPO_GASTO, ESCENA_PAGO, ESCENA_RUBRO } from "@/lib/escenas-costos";
 import { pesos } from "@/lib/ferias";
 import { leerNumero } from "@/lib/numeros";
@@ -42,6 +42,8 @@ export function FormGasto({
   conSoporte = true,
   productos,
   terceros,
+  productosVet,
+  conSanidad,
 }: {
   fincaId: string;
   especies: Especie[];
@@ -62,6 +64,10 @@ export function FormGasto({
   productos: Producto[];
   /** Los proveedores y compradores de la finca. */
   terceros: Tercero[];
+  /** Los productos veterinarios de la finca: a qué producto pertenece el lote de una vacuna o un medicamento. */
+  productosVet: { id: string; nombre: string }[];
+  /** El plan incluye Sanidad: solo entonces las compras de medicamentos piden producto veterinario y lote. */
+  conSanidad: boolean;
 }) {
   const editando = Boolean(gasto);
   const [estado, enviar, pendiente] = useActionState(editando ? editarGasto : crearGasto, undefined);
@@ -86,6 +92,9 @@ export function FormGasto({
   const [pago, setPago] = useState<EstadoPago>(gasto ? (gasto.pagado_en ? "pagado" : "por_pagar") : "pagado");
   const [subiendo, setSubiendo] = useState(false);
 
+  const [productoVet, setProductoVet] = useState(gasto?.producto_vet_id ?? "");
+  const [loteProducto, setLoteProducto] = useState(gasto?.lote_producto ?? "");
+  const [loteVence, setLoteVence] = useState(gasto?.lote_vencimiento ?? "");
   const delGrupo = grupo ? comprasDeGrupo(productos, grupo) : [];
   const elegido = productos.find((p) => p.id === producto);
   const usaLista = Boolean(elegido);
@@ -128,6 +137,8 @@ export function FormGasto({
     if (!unidad && sugerida) setUnidad(sugerida);
   };
 
+  const pideLote = conSanidad && Boolean(rubro) && RUBROS_LOTE_OBLIGATORIO.includes(rubro as RubroGasto);
+  const conLote = conSanidad && Boolean(rubro) && RUBROS_CON_LOTE.includes(rubro as RubroGasto);
   const falta =
     !grupo ? "Elige en qué se gastó."
     : !producto ? "Elige qué compraste."
@@ -135,6 +146,8 @@ export function FormGasto({
     : usaLista && !(cant && cant > 0) ? "Escribe cuánto compraste."
     : usaLista && !(precioNum && precioNum > 0) ? "Escribe el precio de cada unidad."
     : !usaLista && !total ? "Escribe cuánto costó."
+    : pideLote && !editando && !productoVet ? "Elige de qué producto veterinario es, para que el veterinario pueda elegir su lote."
+    : pideLote && !editando && !loteProducto.trim() ? "Escribe el lote (está en el frasco o la caja)."
     : destino === "especie" && !especie ? "Elige si es de las cabras o de las ovejas."
     : destino === "ubicacion" && !ubicacion ? "Elige el corral o potrero."
     : destino === "lote" && !lote ? "Elige el lote de ceba."
@@ -253,6 +266,25 @@ export function FormGasto({
         <Campo etiqueta="Proveedor (opcional)">
           {(id) => <SelectorTercero id={id} nombre="tercero_id" tipo="proveedor" terceros={terceros} valor={tercero} onCambio={(v) => setTercero(v)} titulo="¿A quién se la compraste?" placeholder="Elegir o agregar" />}
         </Campo>
+      ) : null}
+
+      {conLote ? (
+        <div className="space-y-4 rounded-3xl border border-arena p-4">
+          <p className="text-sm text-humo">Con esto el veterinario elige el lote al aplicar el producto: no lo escribe.</p>
+          <Campo etiqueta="¿De qué producto veterinario es?" ayuda={productosVet.length === 0 ? "Aún no hay productos veterinarios. Créalos en Sanidad → Productos." : undefined}>
+            {(id) => (
+              <Selector id={id} nombre="producto_vet_id" valor={productoVet} onCambio={(v) => setProductoVet(String(v))} titulo="¿Qué producto veterinario?" placeholder="Elegir producto" permitirVacio={!pideLote || editando} opciones={productosVet.map((p) => ({ valor: p.id, etiqueta: p.nombre }))} />
+            )}
+          </Campo>
+          <div className="grid grid-cols-1 gap-4 min-[420px]:grid-cols-2">
+            <Campo etiqueta="Lote" ayuda="Número o nombre del lote, como está en el frasco.">
+              {(id) => <input id={id} name="lote_producto" value={loteProducto} onChange={(e) => setLoteProducto(e.target.value)} maxLength={60} autoComplete="off" className={CLASE_INPUT} placeholder="Ej. L2411-07" />}
+            </Campo>
+            <Campo etiqueta="Vence el lote" ayuda="Opcional. Un lote vencido ya no se ofrece.">
+              {(id) => <input id={id} name="lote_vencimiento" type="date" value={loteVence} onChange={(e) => setLoteVence(e.target.value)} className={CLASE_INPUT} />}
+            </Campo>
+          </div>
+        </div>
       ) : null}
 
       <Campo etiqueta="¿A quién se carga?" ayuda="Para saber cuánto cuesta cada animal, cada lote y cada litro. Lo de toda la finca queda como gasto general.">

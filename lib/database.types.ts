@@ -2121,7 +2121,10 @@ export type Database = {
           finca_id: string
           id: string
           lote_id: string | null
+          lote_producto: string | null
+          lote_vencimiento: string | null
           monto: number
+          producto_vet_id: string | null
           observaciones: string | null
           pagado_en: string | null
           producto_id: string | null
@@ -2147,7 +2150,10 @@ export type Database = {
           finca_id: string
           id?: string
           lote_id?: string | null
+          lote_producto?: string | null
+          lote_vencimiento?: string | null
           monto: number
+          producto_vet_id?: string | null
           observaciones?: string | null
           pagado_en?: string | null
           producto_id?: string | null
@@ -2173,7 +2179,10 @@ export type Database = {
           finca_id?: string
           id?: string
           lote_id?: string | null
+          lote_producto?: string | null
+          lote_vencimiento?: string | null
           monto?: number
+          producto_vet_id?: string | null
           observaciones?: string | null
           pagado_en?: string | null
           producto_id?: string | null
@@ -6064,6 +6073,16 @@ export type Database = {
       importar_libro_lote: {
         Args: { p_entidad?: string; p_lote: Json }
         Returns: Json
+      }
+      lotes_sanidad: {
+        Args: { p_finca: string }
+        Returns: {
+          comprado: string
+          gasto_id: string
+          lote: string
+          producto_id: string
+          vencimiento: string
+        }[]
       }
       leche_balance: {
         Args: { p_desde: string; p_finca: string; p_hasta: string }
