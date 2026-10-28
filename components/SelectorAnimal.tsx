@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { Fragment, useCallback, useState } from "react";
 import { ChevronDown, X } from "lucide-react";
 import { Sheet } from "@/components/Sheet";
 import { CampoBusqueda } from "@/components/CampoBusqueda";
@@ -8,10 +8,11 @@ import { Aviso } from "@/components/Aviso";
 import { Cargando } from "@/components/Cargando";
 import { CLASE_INPUT } from "@/components/Campo";
 import { crearClienteNavegador } from "@/lib/supabase/client";
-import { etiquetaAnimal } from "@/lib/animal";
+import { EncabezadoLista } from "@/components/EncabezadoLista";
+import { agruparPorTipo, etiquetaAnimal } from "@/lib/animal";
 import type { Especie, SexoAnimal } from "@/lib/tipos";
 
-type Resultado = { id: string; numero_arete: string; nombre: string | null; especie?: Especie; estado?: string; fecha_nacimiento?: string | null };
+type Resultado = { id: string; numero_arete: string; nombre: string | null; especie?: Especie; sexo?: SexoAnimal; estado?: string; fecha_nacimiento?: string | null };
 
 /** Elegir un animal del hato (por ejemplo, el padre o la madre) con búsqueda en la hoja inferior. */
 export function SelectorAnimal({
@@ -53,7 +54,7 @@ export function SelectorAnimal({
       const limpio = texto.replace(/[%,()*\\]/g, " ").trim();
       let q = crearClienteNavegador()
         .from("animales")
-        .select("id, numero_arete, nombre, especie, estado, fecha_nacimiento")
+        .select("id, numero_arete, nombre, especie, sexo, estado, fecha_nacimiento")
         .eq("finca_id", fincaId)
         .is("deleted_at", null);
       if (sexo) q = q.eq("sexo", sexo);
@@ -101,23 +102,31 @@ export function SelectorAnimal({
           {resultados === null && !error ? <Cargando texto="Buscando…" /> : null}
           {resultados?.length === 0 ? <p className="py-6 text-center text-sm text-humo">No hay animales que coincidan.</p> : null}
           <ul className="-mx-2 space-y-0.5">
-            {resultados?.map((r) => (
-              <li key={r.id}>
-                <button
-                  type="button"
-                  onClick={() => {
-                    onCambio(r);
-                    setAbierta(false);
-                  }}
-                  className="flex min-h-12 w-full items-center rounded-xl px-3 text-left font-medium hover:bg-arena/60"
-                >
-                  <span className="min-w-0">
-                    {etiquetaAnimal(r)}
-                    {r.estado && r.estado !== "activo" ? <span className="ml-2 text-sm font-normal text-humo">{r.estado[0].toUpperCase() + r.estado.slice(1)}</span> : null}
-                  </span>
-                </button>
-              </li>
-            ))}
+            {(() => {
+              const grupos = agruparPorTipo(resultados ?? []);
+              return grupos.map((g) => (
+                <Fragment key={g.titulo ?? "otros"}>
+                  {g.titulo && grupos.length > 1 ? <EncabezadoLista titulo={g.titulo} /> : null}
+                  {g.items.map((r) => (
+                <li key={r.id}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onCambio(r);
+                      setAbierta(false);
+                    }}
+                    className="flex min-h-12 w-full items-center rounded-xl px-3 text-left font-medium hover:bg-arena/60"
+                  >
+                    <span className="min-w-0">
+                      {etiquetaAnimal(r)}
+                      {r.estado && r.estado !== "activo" ? <span className="ml-2 text-sm font-normal text-humo">{r.estado[0].toUpperCase() + r.estado.slice(1)}</span> : null}
+                    </span>
+                  </button>
+                </li>
+                  ))}
+                </Fragment>
+              ));
+            })()}
           </ul>
         </div>
       </Sheet>
