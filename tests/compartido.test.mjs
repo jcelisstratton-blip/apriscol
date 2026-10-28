@@ -211,3 +211,11 @@ test("Ceba: una cría con solo el peso al nacer no aparece; un animal pesado de 
   assert.deepEqual(entraEnCeba({ lote_id: "lote-0", n_pesajes: 1, fecha_ultimo: "2026-10-01" }, abiertos, reciente), { entra: true, enLoteAbierto: false });
   assert.equal(entraEnCeba({ lote_id: "lote-0", n_pesajes: 0, fecha_ultimo: "2026-10-01" }, abiertos, reciente).entra, false);
 });
+
+test("invitación: solo se ofrece aceptar con el correo invitado; con otra sesión se explica y se deja cambiar de cuenta", async () => {
+  const { estadoInvitacion } = await import("../lib/invitacion.ts");
+  const resumen = { email: "Vet@Correo.com", rol: "veterinario", finca_nombre: "El Mirador" };
+  assert.deepEqual(estadoInvitacion(resumen, "vet@correo.com "), { tipo: "lista", invitado: "Vet@Correo.com" }, "no importan mayúsculas ni espacios");
+  assert.deepEqual(estadoInvitacion(resumen, "propietario@correo.com"), { tipo: "otro_correo", invitado: "Vet@Correo.com", sesion: "propietario@correo.com" });
+  assert.deepEqual(estadoInvitacion(null, "vet@correo.com"), { tipo: "no_valida" }, "vencida, usada o inexistente");
+});
