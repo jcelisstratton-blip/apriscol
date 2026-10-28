@@ -5,6 +5,8 @@ import { ChevronLeft } from "lucide-react";
 import { EliminarRegistro } from "@/components/EliminarRegistro";
 import { Encabezado } from "@/components/Encabezado";
 import { FormParto } from "@/components/FormParto";
+import { Tarjeta } from "@/components/Tarjeta";
+import { animalesPorIds } from "@/lib/animal-etiquetas";
 import { obtenerContexto } from "@/lib/contexto";
 import { cargarVeterinarios } from "@/lib/veterinarios-servidor";
 import { crearClienteServidor } from "@/lib/supabase/server";
@@ -30,6 +32,7 @@ export default async function PaginaEditarParto({ params }: { params: Promise<{ 
   ]);
   if (!animal) notFound();
 
+  const hijas = await animalesPorIds(supabase, finca.id, (crias ?? []).map((c) => c.animal_id).filter((x): x is string => !!x));
   const { veterinarios, puedeAgregar: puedeAgregarVeterinario } = await cargarVeterinarios(supabase, finca, rol);
 
   return (
@@ -39,6 +42,27 @@ export default async function PaginaEditarParto({ params }: { params: Promise<{ 
       </Link>
       <Encabezado titulo="Editar parto" subtitulo={etiquetaAnimal(animal)} />
       <div className="space-y-8 lg:max-w-xl">
+        {(crias ?? []).length > 0 ? (
+          <Tarjeta titulo="Trazabilidad de las crías">
+            <p className="mb-2 text-sm text-humo">De quién nació cada una, dónde está hoy, dónde estaba en un día determinado y todo lo que le ha pasado.</p>
+            <ul className="divide-y divide-arena">
+              {(crias ?? []).map((c, i) => {
+                const a = hijas.find((h) => h.id === c.animal_id);
+                return (
+                  <li key={c.id}>
+                    <Link href={`/reproduccion/crias/${c.id}`} className="flex min-h-12 items-center justify-between gap-3 py-2">
+                      <span className="min-w-0 [overflow-wrap:anywhere]">
+                        <span className="block font-semibold">{a ? etiquetaAnimal(a) : `Cría ${i + 1} (sin arete)`}</span>
+                        <span className="block text-sm text-humo">{c.vivo ? "Nació viva" : "Nació muerta"}{c.sexo ? ` · ${c.sexo === "hembra" ? "Hembra" : "Macho"}` : ""}</span>
+                      </span>
+                      <span className="shrink-0 text-sm font-semibold text-musgo">Ver trazabilidad</span>
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          </Tarjeta>
+        ) : null}
         <FormParto hembraId={animal.id} veterinarios={veterinarios} puedeAgregarVeterinario={puedeAgregarVeterinario} hoy={hoyBogota()} parto={parto} crias={crias ?? []} />
         {puedeGestionar(rol) ? (
           <EliminarRegistro

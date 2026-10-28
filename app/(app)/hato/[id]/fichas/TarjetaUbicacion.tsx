@@ -19,6 +19,7 @@ export async function TarjetaUbicacion({ c }: { c: CtxFicha }) {
         supabase.from("movimientos_animales").select("id", { count: "exact", head: true }).eq("animal_id", id).eq("finca_id", finca.id),
       ])
     : [{ data: [] }, { data: null }, { count: 0 }];
+  const { data: criaDe } = puedeVer(rol, "reproduccion", finca.plan) ? await supabase.from("crias").select("id").eq("animal_id", id).eq("finca_id", finca.id).maybeSingle() : { data: null };
   const nombresUbicacion: Record<string, string> = Object.fromEntries((ubicacionesFinca.data ?? []).map((u) => [u.id, u.nombre]));
   if (!(verCorrales && (animal.estado === "activo" || (totalMovimientos.count ?? 0) > 0))) return null;
 
@@ -45,6 +46,11 @@ export async function TarjetaUbicacion({ c }: { c: CtxFicha }) {
       ) : (
         <p className="text-[0.9375rem] text-humo">Ya no está en ninguna instalación.</p>
       )}
+      {criaDe ? (
+        <Link href={`/reproduccion/crias/${criaDe.id}`} className="mt-3 inline-flex min-h-11 items-center text-sm font-semibold text-musgo underline-offset-4 hover:underline">
+          Ver trazabilidad desde el nacimiento
+        </Link>
+      ) : null}
       {(totalMovimientos.count ?? 0) > 0 ? (
         <div className="mt-3">
           <p className="mb-1.5 text-sm font-semibold">Por dónde ha pasado</p>

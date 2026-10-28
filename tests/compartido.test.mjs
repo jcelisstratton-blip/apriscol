@@ -277,3 +277,32 @@ test("coprológico: la prueba de eficacia compara promedios de los animales con 
   // Un animal sin examen «después» no cuenta.
   assert.equal(eficaciaDesparasitante([...filas([1000], [10]), { animal_id: "x", momento: "antes", hpg: 5000 }]).n, 1);
 });
+
+import { estanciaEn, ordenarHitos, textoEdad, diasEntre } from "../lib/trazabilidad.ts";
+test("trazabilidad: dónde estaba en una fecha según sus movimientos", () => {
+  const m = [
+    { ubicacion_id: "maternidad", desde: "2026-03-01", hasta: "2026-03-20" },
+    { ubicacion_id: "crias", desde: "2026-03-20", hasta: "2026-06-01" },
+    { ubicacion_id: "levante", desde: "2026-06-01", hasta: null },
+  ];
+  assert.equal(estanciaEn(m, "2026-02-28"), null);
+  assert.equal(estanciaEn(m, "2026-03-01").ubicacion_id, "maternidad");
+  assert.equal(estanciaEn(m, "2026-03-19").ubicacion_id, "maternidad");
+  // El día del traslado ya está en la nueva instalación.
+  assert.equal(estanciaEn(m, "2026-03-20").ubicacion_id, "crias");
+  assert.equal(estanciaEn(m, "2026-10-28").ubicacion_id, "levante");
+});
+
+test("trazabilidad: hitos en orden de fecha y edad en texto", () => {
+  const h = ordenarHitos([
+    { clave: "b", fecha: "2026-03-02", tipo: "peso", titulo: "Pesaje" },
+    { clave: "a", fecha: "2026-03-01", tipo: "ubicacion", titulo: "Entró" },
+    { clave: "n", fecha: "2026-03-01", tipo: "nacimiento", titulo: "Nació" },
+  ]);
+  assert.deepEqual(h.map((x) => x.clave), ["n", "a", "b"]);
+  assert.equal(diasEntre("2026-03-01", "2026-03-11"), 10);
+  assert.equal(textoEdad("2026-03-01", "2026-03-02"), "1 día");
+  assert.equal(textoEdad("2026-03-01", "2026-03-11"), "10 días");
+  assert.equal(textoEdad("2026-03-01", "2026-06-01"), "3 meses");
+  assert.equal(textoEdad("2026-03-01", "2026-02-01"), "aún no había nacido");
+});
