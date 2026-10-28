@@ -427,32 +427,39 @@ export function FormEvento({
 
       {conProducto && r.lote && (productoId !== NUEVO_PRODUCTO && productoId !== "" ? true : Boolean(datos?.id && datos.lote_producto)) ? (
         <div className="space-y-3 rounded-3xl border border-arena p-4">
-          <Campo etiqueta="Lote del producto" ayuda="Se elige de los lotes que el administrador registró al comprar. Sirve para rastrear el producto si hay un problema.">
-            {(id) => (
-              <Selector
-                id={id}
-                nombre="lote_gasto_id"
-                valor={loteGasto}
-                onCambio={(v) => setLoteGasto(String(v))}
-                titulo="¿Qué lote usaste?"
-                placeholder={lotesDelProducto.length === 0 && !(datos?.id && datos.lote_producto) ? "No hay lotes registrados" : "Elegir lote"}
-                permitirVacio
-                opciones={[
-                  ...(datos?.id && datos.lote_producto && (productoId === datos.producto_id || productoId === NUEVO_PRODUCTO || productoId === "")
-                    ? [{ valor: "actual", etiqueta: datos.lote_producto, detalle: `El que ya tenía el registro${datos.fecha_vencimiento ? ` · vence ${formatoFecha(datos.fecha_vencimiento, { day: "numeric", month: "short", year: "numeric" })}` : ""}` }]
-                    : []),
-                  ...lotesDelProducto.map((l) => ({ valor: l.gasto_id, etiqueta: l.lote, detalle: `Comprado el ${formatoFecha(l.comprado, { day: "numeric", month: "short", year: "numeric" })}${l.vencimiento ? ` · vence ${formatoFecha(l.vencimiento, { day: "numeric", month: "short", year: "numeric" })}` : ""}` })),
-                ]}
-              />
-            )}
-          </Campo>
-          {lotesDelProducto.length === 0 && productoId !== NUEVO_PRODUCTO && productoId !== "" ? (
-            <Aviso tipo="atencion">
-              Este producto todavía no tiene lotes registrados. {puedeComprar ? (
-                <>Agrégalo al <Link href="/hato/gastos/nuevo" className="font-semibold underline">registrar la compra</Link>.</>
-              ) : (
-                "Pídele al administrador que registre el lote al comprarlo."
+          {puedeComprar ? (
+            <div className="grid grid-cols-1 gap-4 min-[420px]:grid-cols-2">
+              <Campo etiqueta="Lote del producto" ayuda="Escribe el número o nombre del lote, como está en el frasco o la caja.">
+                {(id) => <input id={id} name="lote_producto" defaultValue={datos?.lote_producto ?? ""} maxLength={60} autoComplete="off" className={CLASE_INPUT} placeholder="Número o nombre del lote" />}
+              </Campo>
+              <Campo etiqueta="Vence el lote" ayuda="Opcional.">
+                {(id) => <input id={id} name="fecha_vencimiento" type="date" defaultValue={datos?.fecha_vencimiento ?? ""} className={CLASE_INPUT} />}
+              </Campo>
+            </div>
+          ) : (
+            <Campo etiqueta="Lote del producto" ayuda="Se elige de los lotes que el administrador registró al comprar. Sirve para rastrear el producto si hay un problema.">
+              {(id) => (
+                <Selector
+                  id={id}
+                  nombre="lote_gasto_id"
+                  valor={loteGasto}
+                  onCambio={(v) => setLoteGasto(String(v))}
+                  titulo="¿Qué lote usaste?"
+                  placeholder={lotesDelProducto.length === 0 && !(datos?.id && datos.lote_producto) ? "No hay lotes registrados" : "Elegir lote"}
+                  permitirVacio
+                  opciones={[
+                    ...(datos?.id && datos.lote_producto && (productoId === datos.producto_id || productoId === NUEVO_PRODUCTO || productoId === "")
+                      ? [{ valor: "actual", etiqueta: datos.lote_producto, detalle: `El que ya tenía el registro${datos.fecha_vencimiento ? ` · vence ${formatoFecha(datos.fecha_vencimiento, { day: "numeric", month: "short", year: "numeric" })}` : ""}` }]
+                      : []),
+                    ...lotesDelProducto.map((l) => ({ valor: l.gasto_id, etiqueta: l.lote, detalle: `Comprado el ${formatoFecha(l.comprado, { day: "numeric", month: "short", year: "numeric" })}${l.vencimiento ? ` · vence ${formatoFecha(l.vencimiento, { day: "numeric", month: "short", year: "numeric" })}` : ""}` })),
+                  ]}
+                />
               )}
+            </Campo>
+          )}
+          {!puedeComprar && lotesDelProducto.length === 0 && productoId !== NUEVO_PRODUCTO && productoId !== "" ? (
+            <Aviso tipo="atencion">
+              Este producto todavía no tiene lotes registrados. Pídele al administrador que registre el lote al comprarlo.
             </Aviso>
           ) : null}
         </div>

@@ -89,7 +89,7 @@ export const DETALLE_DESTINO: Record<DestinoGasto, string> = {
   finca: "Gastos generales, sin repartir",
   especie: "Se reparte entre cabras u ovejas",
   ubicacion: "Se reparte entre los que estaban ahí",
-  lote: "Se reparte entre los del lote",
+  lote: "Se reparte entre los animales de ese lote de ceba",
   animal: "Se suma a su costo",
 };
 

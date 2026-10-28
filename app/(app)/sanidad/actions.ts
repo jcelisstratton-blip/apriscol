@@ -30,6 +30,9 @@ const esquemaEvento = z.object({
   fecha: z.iso.date("Indica la fecha."),
   producto_id: opcional(z.string()),
   producto_nombre: opcional(z.string().trim().max(120, "El nombre del producto es muy largo.")),
+  /** Quien compra (propietario o administrador) puede escribir el lote al aplicar; el veterinario no: lo elige. */
+  lote_producto: opcional(z.string().trim().max(60, "El lote es muy largo.")),
+  fecha_vencimiento: opcional(z.iso.date("La fecha de vencimiento del lote no es válida.")),
   /** El lote no se escribe: se elige entre los que el administrador registró al comprar (id de la compra), o «actual» para conservar el que ya tenía el registro. */
   lote_gasto_id: opcional(z.string().trim().max(40)),
   dosis: numero(z.coerce.number("La dosis debe ser un número.").positive("La dosis debe ser mayor que cero.").max(99999)),
@@ -61,7 +64,7 @@ const esquemaEvento = z.object({
 type Cliente = Awaited<ReturnType<typeof crearClienteServidor>>;
 
 /** Valida el formulario de un evento y lo deja listo para la base: resuelve el producto elegido y verifica las fechas y los animales. */
-async function leerEvento(form: FormData, fincaId: string, supabase: Cliente, exigir: boolean) {
+async function leerEvento(form: FormData, fincaId: string, supabase: Cliente, exigir: boolean, puedeEscribirLote: boolean) {
   const datos = esquemaEvento.safeParse(Object.fromEntries(form));
   if (!datos.success) return { error: datos.error.issues[0]?.message ?? "Revisa los datos." } as const;
   const d = datos.data;
@@ -94,6 +97,9 @@ async function leerEvento(form: FormData, fincaId: string, supabase: Cliente, ex
     const { data: previo } = await supabase.from("eventos_sanitarios").select("lote_producto, fecha_vencimiento").eq("id", d.evento_id).eq("finca_id", fincaId).maybeSingle();
     lote = previo?.lote_producto ?? "";
     loteVence = previo?.fecha_vencimiento ?? "";
+  } else if (puedeEscribirLote && d.lote_producto) {
+    lote = d.lote_producto;
+    loteVence = d.fecha_vencimiento ?? "";
   } else if (d.lote_gasto_id) {
     if (!ID_UUID.safeParse(d.lote_gasto_id).success || !productoId) return { error: "Elige primero el producto y luego su lote." } as const;
     const { data: lotes } = await supabase.rpc("lotes_sanidad", { p_finca: fincaId });
@@ -144,7 +150,7 @@ export async function crearEvento(_: EstadoForm, form: FormData): Promise<Estado
   const { finca, rol } = await obtenerContexto();
   if (!puedeEscribir(rol, "sanidad", finca.plan)) return { error: "No tienes permiso para registrar sanidad en esta finca." };
   const supabase = await crearClienteServidor();
-  const leido = await leerEvento(form, finca.id, supabase, true);
+  const leido = await leerEvento(form, finca.id, supabase, true, puedeEscribir(rol, "contabilidad", finca.plan));
   if ("error" in leido) return { error: leido.error };
 
   const { data, error } = await supabase.rpc("guardar_evento_sanitario_detalle", { p_finca: finca.id, p_evento: null, p_datos: leido.payload, p_extra: leido.extra, p_animales: leido.ids });
@@ -172,7 +178,7 @@ export async function editarEvento(_: EstadoForm, form: FormData): Promise<Estad
   const { finca, rol } = await obtenerContexto();
   if (!puedeEscribir(rol, "sanidad", finca.plan)) return { error: "No tienes permiso para editar sanidad en esta finca." };
   const supabase = await crearClienteServidor();
-  const leido = await leerEvento(form, finca.id, supabase, false);
+  const leido = await leerEvento(form, finca.id, supabase, false, puedeEscribir(rol, "contabilidad", finca.plan));
   if ("error" in leido) return { error: leido.error };
   if (!leido.eventoId) return { error: "No encontramos ese registro." };
   const eventoLeido = leido.eventoId;
