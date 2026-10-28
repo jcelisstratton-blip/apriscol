@@ -5,11 +5,13 @@ import Link from "next/link";
 import { Inbox } from "lucide-react";
 import { AccionesNovedad } from "@/components/AccionesNovedad";
 import { CampoBusqueda } from "@/components/CampoBusqueda";
+import { EliminarRegistro } from "@/components/EliminarRegistro";
 import { EstadoVacio } from "@/components/EstadoVacio";
 import { Insignia } from "@/components/Insignia";
 import { ListaEscalable } from "@/components/ListaEscalable";
 import { FilaTarjetas, TarjetaOpcion } from "@/components/TarjetaOpcion";
 import { ESCENA_ESTADO_NOVEDAD, ESCENA_TODAS_NOVEDADES } from "@/lib/escenas-novedades";
+import { eliminarNovedad } from "@/app/(app)/novedades/actions";
 import { crearClienteNavegador } from "@/lib/supabase/client";
 import { etiquetaAnimal } from "@/lib/animal";
 import { formatoFecha } from "@/lib/fechas";
@@ -19,7 +21,7 @@ import type { Novedad } from "@/lib/tipos";
 type Fila = Novedad & { animal?: { numero_arete: string; nombre: string | null } };
 
 /** Las novedades de la finca (quien las revisa ve todas; el ordeñador, las suyas). Cada una dice quién la envió, sobre qué animal y qué contó. */
-export function ListaNovedades({ fincaId, reviso, estadoInicial }: { fincaId: string; reviso: boolean; estadoInicial: EstadoNovedad | "todas" }) {
+export function ListaNovedades({ fincaId, reviso, estadoInicial, usuarioId }: { fincaId: string; reviso: boolean; estadoInicial: EstadoNovedad | "todas"; /** Quién mira: puede eliminar las novedades que creó. */ usuarioId: string }) {
   const [busqueda, setBusqueda] = useState("");
   const [estado, setEstado] = useState<EstadoNovedad | "todas">(estadoInicial);
   const [version, setVersion] = useState(0);
@@ -80,6 +82,10 @@ export function ListaNovedades({ fincaId, reviso, estadoInicial }: { fincaId: st
             <p className="text-sm text-humo [overflow-wrap:anywhere]">
               Enviada por <span className="font-semibold text-tinta">{n.enviada_por_nombre}</span> · {hora(n.created_at)} · ocurrió el {formatoFecha(n.fecha, { day: "numeric", month: "short" })}
             </p>
+            {n.observaciones ? <p className="whitespace-pre-wrap text-sm [overflow-wrap:anywhere]">{n.observaciones}</p> : null}
+            {n.created_by === usuarioId ? (
+              <EliminarRegistro etiqueta="Eliminar mi novedad" resumen={resumenNovedad(n)} accion={async () => { const r = await eliminarNovedad(n.id); if (r.ok) setVersion((v) => v + 1); return r; }} destino="/novedades" mensaje="Novedad eliminada" />
+            ) : null}
             {reviso ? <AccionesNovedad id={n.id} estado={n.estado} registrar={direccionParaRegistrar(n)} alCambiar={() => setVersion((v) => v + 1)} /> : null}
           </div>
         )}

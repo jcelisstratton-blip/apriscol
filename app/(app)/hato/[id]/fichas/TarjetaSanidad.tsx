@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CalendarClock, Plus } from "lucide-react";
+import { CalendarClock, Inbox, Plus } from "lucide-react";
 import { Insignia } from "@/components/Insignia";
 import { Tarjeta } from "@/components/Tarjeta";
 import { puedeEscribir, puedeVer } from "@/lib/permisos";
@@ -141,6 +141,14 @@ export async function TarjetaSanidad({ c }: { c: CtxFicha }) {
             </Link>
             <p className="mt-1.5 text-[0.8125rem] text-humo">La apliqué o la voy a aplicar ahora.</p>
           </div>
+          {puedeEscribir(rol, "novedades", finca.plan) ? (
+            <div>
+              <Link href={`/novedades/nueva?animal=${id}`} className={clasesBoton("secundario")}>
+                <Inbox className="size-5" strokeWidth={2} aria-hidden="true" /> Crear una novedad
+              </Link>
+              <p className="mt-1.5 text-[0.8125rem] text-humo">Avisa al administrador y al veterinario, solo eligiendo opciones; no es un registro oficial.</p>
+            </div>
+          ) : null}
           <div>
             <Link href={`/hato/sanidad/programar?animal=${id}`} className={clasesBoton("secundario")}>
               <CalendarClock className="size-5" strokeWidth={2} aria-hidden="true" /> Programar una aplicación

@@ -621,6 +621,16 @@ export type Novedad = {
   animal_id: string;
   tipo: "aplicacion" | "prueba" | "coprologico" | "famacha";
   fecha: string;
+  /** Si es una aplicación: qué se hizo (vacunación, desparasitación…) y sus opciones, como en «Registrar una aplicación». */
+  tipo_evento: TipoEvento | null;
+  categoria: string | null;
+  etapa: string | null;
+  motivo: string | null;
+  cojera: number | null;
+  anestesia: string | null;
+  /** La única entrada de texto de una novedad. */
+  observaciones: string | null;
+  /** Solo en las novedades anteriores (tipo de producto). */
   categoria_producto: TipoProducto | null;
   producto_id: string | null;
   producto_nombre: string | null;

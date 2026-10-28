@@ -5,11 +5,12 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { crearClienteServidor } from "@/lib/supabase/server";
 import { obtenerContexto } from "@/lib/contexto";
-import { puedeEscribir, revisaNovedades } from "@/lib/permisos";
+import { puedeEscribir, puedeVer, revisaNovedades } from "@/lib/permisos";
 import { mensajeAmigable } from "@/lib/mensaje-amigable";
 import { hoyBogota } from "@/lib/fechas";
 import { CUANDO_NOVEDAD, ESTADOS_NOVEDAD, TIPOS_NOVEDAD, faltaEnNovedad, fechaDeNovedad, type CuandoNovedad } from "@/lib/novedades";
-import { RESULTADOS_PRUEBA, TIPOS_PRODUCTO, TIPOS_PRUEBA, VIAS } from "@/lib/sanidad";
+import { RESULTADOS_PRUEBA, TIPOS_EVENTO, TIPOS_PRUEBA, VIAS } from "@/lib/sanidad";
+import { ANESTESIAS, CATEGORIAS, COJERAS, ETAPAS, MOTIVOS, REGLAS } from "@/lib/sanidad-campos";
 import { TIPOS_MUESTRA } from "@/lib/coprologico";
 import type { Novedad } from "@/lib/tipos";
 import { opcional } from "@/lib/validacion";
@@ -24,7 +25,14 @@ const esquema = z.object({
   animal_id: z.uuid("Elige el animal."),
   tipo: enumDe(TIPOS_NOVEDAD, "Elige qué quieres contar."),
   cuando: enumDe(CUANDO_NOVEDAD.map((c) => c.valor), "Elige cuándo fue."),
-  categoria_producto: opcional(enumDe(TIPOS_PRODUCTO, "Elige qué se aplicó.")),
+  // Lo mismo que se elige en «Registrar una aplicación» (qué se hizo y sus opciones); la única entrada de texto son las observaciones.
+  tipo_evento: opcional(enumDe(TIPOS_EVENTO, "Elige qué se hizo.")),
+  categoria: opcional(z.string().trim().max(40)),
+  etapa: opcional(z.string().trim().max(20)),
+  motivo: opcional(z.string().trim().max(20)),
+  cojera: opcional(z.coerce.number().int().min(0).max(3)),
+  anestesia: opcional(z.string().trim().max(20)),
+  observaciones: opcional(z.string().trim().max(300, "Las observaciones son muy largas (máximo 300 letras).")),
   producto_id: opcional(z.uuid()),
   via: opcional(enumDe(VIAS, "Elige la vía.")),
   lote_gasto_id: opcional(z.uuid()),
@@ -42,19 +50,28 @@ export async function crearNovedad(_: EstadoForm, form: FormData): Promise<Estad
   const datos = esquema.safeParse(Object.fromEntries(form));
   if (!datos.success) return { error: datos.error.issues[0]?.message ?? "Revisa los datos." };
   const d = datos.data;
-  const falta = faltaEnNovedad({ tipo: d.tipo as Novedad["tipo"], categoria_producto: d.categoria_producto as Novedad["categoria_producto"], prueba: d.prueba as Novedad["prueba"], resultado_prueba: d.resultado_prueba as Novedad["resultado_prueba"], tipo_muestra: d.tipo_muestra as Novedad["tipo_muestra"], puntaje: d.puntaje });
+  const falta = faltaEnNovedad({ tipo: d.tipo as Novedad["tipo"], tipo_evento: d.tipo_evento as Novedad["tipo_evento"], prueba: d.prueba as Novedad["prueba"], resultado_prueba: d.resultado_prueba as Novedad["resultado_prueba"], tipo_muestra: d.tipo_muestra as Novedad["tipo_muestra"], puntaje: d.puntaje });
   if (falta) return { error: falta };
 
   const supabase = await crearClienteServidor();
   const { data: animal } = await supabase.from("animales").select("id").eq("id", d.animal_id).eq("finca_id", finca.id).eq("estado", "activo").is("deleted_at", null).maybeSingle();
   if (!animal) return { error: "No encontramos ese animal." };
 
-  // El producto y el lote se eligen de listas de la finca: se comprueba que existan y que correspondan al tipo elegido.
+  // Cada opción se comprueba contra la lista de «Registrar una aplicación»; el producto y el lote, contra los de la finca.
+  const opcionDe = (lista: { valor: string }[] | undefined, v: string | undefined) => !v || Boolean(lista?.some((o) => o.valor === v));
+  if (d.tipo === "aplicacion" && d.tipo_evento) {
+    const r = REGLAS[d.tipo_evento as keyof typeof REGLAS];
+    if (!opcionDe(CATEGORIAS[d.tipo_evento as keyof typeof CATEGORIAS], d.categoria)) return { error: "Esa opción no corresponde a lo que se hizo. Elígela de nuevo." };
+    if ((d.etapa && !r.etapa) || !opcionDe(ETAPAS, d.etapa)) return { error: "Elige la dosis de la lista." };
+    if ((d.motivo && !r.motivo) || !opcionDe(MOTIVOS, d.motivo)) return { error: "Elige el motivo de la lista." };
+    if ((d.anestesia && !r.anestesia) || !opcionDe(ANESTESIAS, d.anestesia)) return { error: "Elige la anestesia de la lista." };
+    if (d.cojera !== undefined && (!r.cojera || !COJERAS.some((c) => c.valor === String(d.cojera)))) return { error: "Elige cómo caminaba de la lista." };
+  }
   let productoNombre: string | null = null;
   let lote: string | null = null;
   if (d.tipo === "aplicacion" && d.producto_id) {
-    const { data: p } = await supabase.from("productos_veterinarios").select("id, nombre, tipo").eq("id", d.producto_id).eq("finca_id", finca.id).maybeSingle();
-    if (!p || p.tipo !== d.categoria_producto) return { error: "Ese producto no corresponde al tipo elegido. Elígelo de nuevo." };
+    const { data: p } = await supabase.from("productos_veterinarios").select("id, nombre").eq("id", d.producto_id).eq("finca_id", finca.id).maybeSingle();
+    if (!p) return { error: "No encontramos ese producto. Elígelo de nuevo." };
     productoNombre = p.nombre;
     if (d.lote_gasto_id) {
       const { data: lotes } = await supabase.rpc("lotes_sanidad", { p_finca: finca.id });
@@ -71,7 +88,13 @@ export async function crearNovedad(_: EstadoForm, form: FormData): Promise<Estad
     animal_id: d.animal_id,
     tipo: d.tipo as Novedad["tipo"],
     fecha: fechaDeNovedad(d.cuando as CuandoNovedad, hoyBogota()),
-    categoria_producto: aplicacion ? ((d.categoria_producto as Novedad["categoria_producto"]) ?? null) : null,
+    tipo_evento: aplicacion ? ((d.tipo_evento as Novedad["tipo_evento"]) ?? null) : null,
+    categoria: aplicacion ? (d.categoria ?? null) : null,
+    etapa: aplicacion ? (d.etapa ?? null) : null,
+    motivo: aplicacion ? (d.motivo ?? null) : null,
+    cojera: aplicacion ? (d.cojera ?? null) : null,
+    anestesia: aplicacion ? (d.anestesia ?? null) : null,
+    observaciones: d.observaciones ?? null,
     producto_id: aplicacion ? (d.producto_id ?? null) : null,
     producto_nombre: aplicacion ? productoNombre : null,
     via: aplicacion ? ((d.via as Novedad["via"]) ?? null) : null,
@@ -106,6 +129,21 @@ export async function marcarNovedad(id: string, estado: string): Promise<Resulta
     .select("animal_id");
   if (error) return { ok: false, error: mensajeAmigable(error.message) };
   if (!data || data.length === 0) return { ok: false, error: "No encontramos esa novedad." };
+  revalidatePath("/novedades");
+  revalidatePath("/");
+  revalidatePath(`/hato/${data[0].animal_id}`);
+  return { ok: true };
+}
+
+/** Elimina una novedad. Quien la creó puede eliminar la suya; el propietario y el administrador, cualquiera (lo exige también la base de datos). */
+export async function eliminarNovedad(id: string): Promise<Resultado> {
+  const { finca, rol } = await obtenerContexto();
+  if (!puedeVer(rol, "novedades", finca.plan)) return { ok: false, error: "No tienes permiso para eliminar novedades en esta finca." };
+  if (!z.uuid().safeParse(id).success) return { ok: false, error: "Novedad no válida." };
+  const supabase = await crearClienteServidor();
+  const { data, error } = await supabase.from("novedades").delete().eq("id", id).eq("finca_id", finca.id).select("animal_id");
+  if (error) return { ok: false, error: mensajeAmigable(error.message) };
+  if (!data || data.length === 0) return { ok: false, error: "Solo quien envió la novedad (o el propietario o el administrador) puede eliminarla." };
   revalidatePath("/novedades");
   revalidatePath("/");
   revalidatePath(`/hato/${data[0].animal_id}`);
