@@ -631,6 +631,7 @@ export type EventoResumen = {
   animales: number | null;
   primer_animal_id: string | null;
   primer_animal: string | null;
+  lote_producto: string | null;
 };
 
 /** Un evento visto desde un animal (vista `v_eventos_animal`). */
@@ -650,6 +651,7 @@ export type EventoDeAnimal = {
   proxima_fecha: string | null;
   diagnostico: string | null;
   created_at: string | null;
+  lote_producto: string | null;
 };
 
 /** Próxima dosis de un animal que aún no se ha aplicado (vista `v_sanidad_pendiente`). */

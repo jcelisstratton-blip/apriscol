@@ -15,6 +15,7 @@ export type EventoFila = {
   fecha: string;
   tipo: TipoEvento | null;
   producto_nombre: string | null;
+  lote_producto: string | null;
   evento_id: string;
   retiro_leche_hasta: string | null;
   retiro_carne_hasta: string | null;
@@ -44,6 +45,7 @@ export function HistorialSanidadAnimal({ eventos, pruebas, famacha = [], puedeEd
               <span className="block font-semibold [overflow-wrap:anywhere]">{nombreEvento(f)}</span>
               <span className="block text-sm text-humo">
                 {f.tipo ? ETIQUETA_EVENTO[f.tipo] : ""} · {formatoFecha(f.fecha, { day: "numeric", month: "short", year: "numeric" })}
+                {f.lote_producto ? ` · Lote ${f.lote_producto}` : ""}
               </span>
               {f.retiro_leche_hasta || f.retiro_carne_hasta ? (
                 <span className="mt-1 flex flex-wrap gap-1.5">

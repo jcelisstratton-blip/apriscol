@@ -125,7 +125,7 @@ export function FormEvento({
   const hayRetiro = retiroVisible || retiroPlegable;
   const dosisVisible = conProducto && r.dosisVisible;
   const detallesDeProducto = conProducto && !r.dosisVisible;
-  const detallesAbiertos = Boolean(datos && (datos.costo || (detallesDeProducto && (datos.dosis || datos.via || datos.lote_producto || datos.fecha_vencimiento))));
+  const detallesAbiertos = Boolean(datos && (datos.costo || (detallesDeProducto && (datos.dosis || datos.via))));
   const retiroAbierto = Boolean(datos && (datos.retiro_leche_dias > 0 || datos.retiro_carne_dias > 0));
 
   // Un tratamiento de varios días: el retiro empieza después de la última dosis.
@@ -411,9 +411,22 @@ export function FormEvento({
         <AsistidoPor nombre="responsable" etiqueta={r.etiquetaVeterinario} ayuda={vet === "requerido" ? undefined : "Opcional."} veterinarios={veterinarios} puedeAgregar={puedeAgregarVeterinario} inicial={datos?.responsable} requerido={vet === "requerido"} />
       )}
 
+      {conProducto && r.lote ? (
+        <div className="space-y-3 rounded-3xl border border-arena p-4">
+          <div className="grid grid-cols-1 gap-4 min-[420px]:grid-cols-2">
+            <Campo etiqueta="Lote del producto" ayuda="Está en el frasco o la caja. Sirve para rastrear el producto si hay un problema.">
+              {(id) => <input id={id} name="lote_producto" defaultValue={datos?.lote_producto ?? ""} maxLength={60} autoComplete="off" className={CLASE_INPUT} placeholder="Número o nombre del lote" />}
+            </Campo>
+            <Campo etiqueta="Vence el lote" ayuda="Opcional.">
+              {(id) => <input id={id} name="fecha_vencimiento" type="date" defaultValue={datos?.fecha_vencimiento ?? ""} className={CLASE_INPUT} />}
+            </Campo>
+          </div>
+        </div>
+      ) : null}
+
       <details open={detallesAbiertos} className="group rounded-3xl border border-arena p-4">
         <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between font-semibold">
-          <span className="min-w-0">{detallesDeProducto ? "Más detalles (dosis, lote, costo)" : "Más detalles (costo)"}</span>
+          <span className="min-w-0">{detallesDeProducto ? "Más detalles (dosis, costo)" : "Más detalles (costo)"}</span>
           <span className="shrink-0 pl-3 text-sm font-medium text-humo group-open:hidden">Mostrar</span>
           <span className="hidden shrink-0 pl-3 text-sm font-medium text-humo group-open:inline">Ocultar</span>
         </summary>
@@ -432,16 +445,6 @@ export function FormEvento({
                 {(id) => <SelectorTarjetas id={id} nombre="via" valor={via} onCambio={(v) => setVia(v as ViaAplicacion | "")} titulo="¿Por dónde se aplicó?" permitirVacio opciones={VIAS.map((v) => ({ valor: v, etiqueta: ETIQUETA_VIA[v], escena: ESCENA_VIA[v] }))} />}
               </Campo>
             </>
-          ) : null}
-          {conProducto && r.lote ? (
-            <div className="grid grid-cols-1 gap-4 min-[420px]:grid-cols-2">
-              <Campo etiqueta="Lote del producto" ayuda={tipo === "vacunacion" ? "Está en el frasco. Sirve si hay que rastrear un problema." : undefined}>
-                {(id) => <input id={id} name="lote_producto" defaultValue={datos?.lote_producto ?? ""} maxLength={60} autoComplete="off" className={CLASE_INPUT} />}
-              </Campo>
-              <Campo etiqueta="Vence el lote">
-                {(id) => <input id={id} name="fecha_vencimiento" type="date" defaultValue={datos?.fecha_vencimiento ?? ""} className={CLASE_INPUT} />}
-              </Campo>
-            </div>
           ) : null}
           <Campo etiqueta="Costo" ayuda="Opcional, en pesos.">
             {(id) => <input id={id} name="costo" defaultValue={coma(datos?.costo)} inputMode="decimal" autoComplete="off" className={CLASE_INPUT} placeholder="0" />}

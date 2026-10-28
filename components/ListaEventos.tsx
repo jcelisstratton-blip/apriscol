@@ -70,6 +70,7 @@ export function ListaEventos({ fincaId, puedeRegistrar, rango = { desde: null, h
                   {e.tipo ? ETIQUETA_EVENTO[e.tipo] : ""} · {formatoFecha(e.fecha, { day: "numeric", month: "short", year: "numeric" })}
                 </span>
                 <span className="block text-sm text-humo [overflow-wrap:anywhere]">{aQuien}</span>
+                {e.lote_producto ? <span className="block text-sm text-humo [overflow-wrap:anywhere]">Lote {e.lote_producto}</span> : null}
                 {retiroLeche || retiroCarne || e.proxima_fecha ? (
                   <span className="mt-1.5 flex flex-wrap gap-1.5">
                     {retiroLeche ? <Insignia tono="aviso">Leche hasta {formatoFecha(retiroLeche, { day: "numeric", month: "short" })}</Insignia> : null}

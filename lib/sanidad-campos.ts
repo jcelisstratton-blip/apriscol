@@ -185,7 +185,7 @@ export const REGLAS: Record<TipoEvento, ReglasTipo> = {
     producto: "segun_medicamento",
     dosisVisible: true,
     dosisObligatoria: false,
-    lote: false,
+    lote: true,
     retiro: "segun_medicamento",
     ayudaRetiro: RETIRO_ETIQUETA,
     proxima: {
@@ -205,7 +205,7 @@ export const REGLAS: Record<TipoEvento, ReglasTipo> = {
     producto: "opcional",
     dosisVisible: false,
     dosisObligatoria: false,
-    lote: false,
+    lote: true,
     retiro: "oculto",
     ayudaRetiro: "",
     proxima: {
@@ -225,7 +225,7 @@ export const REGLAS: Record<TipoEvento, ReglasTipo> = {
     producto: "opcional",
     dosisVisible: false,
     dosisObligatoria: false,
-    lote: false,
+    lote: true,
     retiro: "abierto",
     ayudaRetiro: RETIRO_ETIQUETA,
     proxima: {
@@ -353,7 +353,7 @@ export function datosPorTipoEvento(tipo: TipoEvento, e: EntradaEvento, exigir: b
     limpiar: {
       diagnostico: !r.diagnostico,
       dosis: tipo === "pediluvio" || sinMedicamento,
-      lote: !r.lote && (tipo === "pediluvio" || sinMedicamento),
+      lote: !r.lote || sinMedicamento,
       retiro: tipo === "pediluvio" || sinMedicamento,
     },
   };
