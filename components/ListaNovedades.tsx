@@ -13,15 +13,16 @@ import { FilaTarjetas, TarjetaOpcion } from "@/components/TarjetaOpcion";
 import { ESCENA_ESTADO_NOVEDAD, ESCENA_TODAS_NOVEDADES } from "@/lib/escenas-novedades";
 import { eliminarNovedad } from "@/app/(app)/novedades/actions";
 import { crearClienteNavegador } from "@/lib/supabase/client";
+import { atiendeNovedad } from "@/lib/permisos";
 import { etiquetaAnimal } from "@/lib/animal";
 import { formatoFecha } from "@/lib/fechas";
 import { ESTADOS_NOVEDAD, ETIQUETA_ESTADO_NOVEDAD, TONO_ESTADO_NOVEDAD, direccionParaRegistrar, resumenNovedad, type EstadoNovedad } from "@/lib/novedades";
-import type { Novedad } from "@/lib/tipos";
+import type { Novedad, RolFinca } from "@/lib/tipos";
 
 type Fila = Novedad & { animal?: { numero_arete: string; nombre: string | null } };
 
-/** Las novedades de la finca (quien las revisa ve todas; el ordeñador, las suyas). Cada una dice quién la envió, sobre qué animal y qué contó. */
-export function ListaNovedades({ fincaId, reviso, estadoInicial, usuarioId }: { fincaId: string; reviso: boolean; estadoInicial: EstadoNovedad | "todas"; /** Quién mira: puede eliminar las novedades que creó. */ usuarioId: string }) {
+/** Las novedades que le llegan a quien mira (o las suyas). Cada una dice quién la envió, sobre qué animal y qué contó. */
+export function ListaNovedades({ fincaId, rol, reviso, estadoInicial, usuarioId }: { fincaId: string; /** El perfil de quien mira: define cuáles novedades puede atender. */ rol: RolFinca; reviso: boolean; estadoInicial: EstadoNovedad | "todas"; /** Quién mira: puede eliminar las novedades que creó. */ usuarioId: string }) {
   const [busqueda, setBusqueda] = useState("");
   const [estado, setEstado] = useState<EstadoNovedad | "todas">(estadoInicial);
   const [version, setVersion] = useState(0);
@@ -43,9 +44,9 @@ export function ListaNovedades({ fincaId, reviso, estadoInicial, usuarioId }: { 
       const { data, count, error } = await q.order("created_at", { ascending: false }).range(desde, desde + cantidad - 1);
       if (error) throw new Error(error.message);
       const filas = (data ?? []) as Fila[];
-      const { data: animales } = await supabase.from("animales").select("id, numero_arete, nombre").in("id", [...new Set(filas.map((f) => f.animal_id))]);
+      const { data: animales } = await supabase.from("animales").select("id, numero_arete, nombre").in("id", [...new Set(filas.map((f) => f.animal_id).filter((x): x is string => x !== null))]);
       const porId = new Map((animales ?? []).map((a) => [a.id, a]));
-      for (const f of filas) f.animal = porId.get(f.animal_id);
+      for (const f of filas) f.animal = f.animal_id ? porId.get(f.animal_id) : undefined;
       return { filas, total: count ?? 0 };
     },
     [fincaId, busqueda, estado],
@@ -73,9 +74,11 @@ export function ListaNovedades({ fincaId, reviso, estadoInicial, usuarioId }: { 
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <p className="font-bold [overflow-wrap:anywhere]">{resumenNovedad(n)}</p>
-                <Link href={`/hato/${n.animal_id}`} className="block text-sm font-semibold text-musgo underline-offset-4 hover:underline [overflow-wrap:anywhere]">
-                  {n.animal ? etiquetaAnimal(n.animal) : "Animal"}
-                </Link>
+                {n.animal_id ? (
+                  <Link href={`/hato/${n.animal_id}`} className="block text-sm font-semibold text-musgo underline-offset-4 hover:underline [overflow-wrap:anywhere]">
+                    {n.animal ? etiquetaAnimal(n.animal) : "Animal"}
+                  </Link>
+                ) : null}
               </div>
               <Insignia tono={TONO_ESTADO_NOVEDAD[n.estado]}>{ETIQUETA_ESTADO_NOVEDAD[n.estado]}</Insignia>
             </div>
@@ -86,7 +89,7 @@ export function ListaNovedades({ fincaId, reviso, estadoInicial, usuarioId }: { 
             {n.created_by === usuarioId ? (
               <EliminarRegistro etiqueta="Eliminar mi novedad" resumen={resumenNovedad(n)} accion={async () => { const r = await eliminarNovedad(n.id); if (r.ok) setVersion((v) => v + 1); return r; }} destino="/novedades" mensaje="Novedad eliminada" />
             ) : null}
-            {reviso ? <AccionesNovedad id={n.id} estado={n.estado} registrar={direccionParaRegistrar(n)} alCambiar={() => setVersion((v) => v + 1)} /> : null}
+            {reviso && atiendeNovedad(rol, n.tipo) ? <AccionesNovedad id={n.id} estado={n.estado} registrar={direccionParaRegistrar(n)} textoRegistrar={n.tipo === "compra" ? "Registrar la compra" : undefined} alCambiar={() => setVersion((v) => v + 1)} /> : null}
           </div>
         )}
         vacio={
@@ -96,7 +99,7 @@ export function ListaNovedades({ fincaId, reviso, estadoInicial, usuarioId }: { 
             <EstadoVacio
               icono={<Inbox strokeWidth={1.5} />}
               titulo={reviso ? "No hay novedades" : "Todavía no has enviado novedades"}
-              descripcion={reviso ? "Cuando alguien del equipo cuente algo de un animal, aparecerá aquí con su nombre." : "Entra a la ficha de un animal y elige «Crear una novedad» para pedir una aplicación o una prueba diagnóstica."}
+              descripcion={reviso ? "Cuando alguien del equipo cuente algo de un animal, aparecerá aquí con su nombre." : "Elige «Crear una novedad» para avisar de algo que hay que comprar o de una dosis que hay que aplicar."}
             />
           )
         }

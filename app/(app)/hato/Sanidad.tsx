@@ -29,11 +29,14 @@ type GrupoRefuerzo = { evento_id: string; tipo: TipoEvento | null; producto_nomb
 export async function Sanidad({
   fincaId,
   puedeEditar,
+  puedeNovedad,
   guardado = false,
   cliente,
 }: {
   fincaId: string;
   puedeEditar: boolean;
+  /** Puede crear novedades (comprar): el veterinario. El administrador y el propietario las atienden. */
+  puedeNovedad: boolean;
   guardado?: boolean;
   /** Solo para pruebas: un cliente de base de datos en lugar del de la sesión. */
   cliente?: Awaited<ReturnType<typeof crearClienteServidor>>;
@@ -78,9 +81,11 @@ export async function Sanidad({
       <Link href="/hato/sanidad/coprologico/nuevo" className={clasesBoton("secundario")}>
         <Microscope className="size-5" strokeWidth={2} aria-hidden="true" /> Registrar un examen coprológico
       </Link>
-      <Link href="/novedades/nueva" className={clasesBoton("secundario")}>
-        <Inbox className="size-5" strokeWidth={2} aria-hidden="true" /> Crear una novedad
-      </Link>
+      {puedeNovedad ? (
+        <Link href="/novedades/nueva" className={clasesBoton("secundario")}>
+          <Inbox className="size-5" strokeWidth={2} aria-hidden="true" /> Crear una novedad
+        </Link>
+      ) : null}
     </div>
   ) : null;
   const notaBotones = puedeEditar ? <p className="-mt-2 text-[0.8125rem] text-humo">Programa lo que se aplicará otro día o a varios animales; registra lo que aplicas ahora o ya aplicaste.</p> : null;

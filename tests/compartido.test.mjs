@@ -368,7 +368,9 @@ test("coprológico: una muestra contaminada (del piso) no cuenta en la prueba de
 
 import { faltaEnNovedad, fechaDeNovedad, resumenNovedad, direccionParaRegistrar, productosParaTipo } from "../lib/novedades.ts";
 test("novedades: cada tipo pide lo suyo, todo por selección", () => {
-  assert.match(faltaEnNovedad({}), /qué quieres contar/);
+  assert.match(faltaEnNovedad({}), /qué quieres avisar/);
+  assert.match(faltaEnNovedad({ tipo: "compra" }), /qué hace falta comprar/);
+  assert.equal(faltaEnNovedad({ tipo: "compra", grupo_compra: "sanidad" }), null);
   assert.match(faltaEnNovedad({ tipo: "aplicacion" }), /qué se hizo/);
   assert.equal(faltaEnNovedad({ tipo: "aplicacion", tipo_evento: "vacunacion" }), null);
   assert.match(faltaEnNovedad({ tipo: "prueba", prueba: "cmt" }), /cómo salió/);
@@ -381,10 +383,13 @@ test("novedades: la fecha sale de tres opciones y el resumen se lee en una frase
   assert.equal(fechaDeNovedad("hoy", "2026-10-28"), "2026-10-28");
   assert.equal(fechaDeNovedad("ayer", "2026-10-28"), "2026-10-27");
   assert.equal(fechaDeNovedad("antes_de_ayer", "2026-10-01"), "2026-09-29");
-  const base = { tipo_evento: null, categoria: null, etapa: null, motivo: null, cojera: null, anestesia: null, categoria_producto: null, producto_nombre: null, via: null, lote: null, prueba: null, resultado_prueba: null, tipo_muestra: null, puntaje: null };
+  const base = { grupo_compra: null, compra_producto_nombre: null, tipo_evento: null, categoria: null, etapa: null, motivo: null, cojera: null, anestesia: null, categoria_producto: null, producto_nombre: null, via: null, lote: null, prueba: null, resultado_prueba: null, tipo_muestra: null, puntaje: null };
   assert.equal(resumenNovedad({ ...base, tipo: "aplicacion", tipo_evento: "vacunacion", categoria: "clostridiales", etapa: "primera", producto_nombre: "Clostridial", via: "subcutanea", lote: "CL7-1" }), "Vacunación · Clostridiosis y tétanos · Primera dosis · Clostridial · subcutánea · lote CL7-1");
-  assert.equal(resumenNovedad({ ...base, tipo: "aplicacion", categoria_producto: "antibiotico", producto_nombre: "Penicilina", via: "intramuscular", lote: "ANT-1" }), "Aplicación · Antibiótico · Penicilina · intramuscular · lote ANT-1");
+  assert.equal(resumenNovedad({ ...base, tipo: "aplicacion", categoria_producto: "antibiotico", producto_nombre: "Penicilina", via: "intramuscular", lote: "ANT-1" }), "Aplicar dosis · Antibiótico · Penicilina · intramuscular · lote ANT-1");
   assert.match(resumenNovedad({ ...base, tipo: "coprologico", tipo_muestra: "contaminada" }), /contaminada \(recogida del piso\)/);
+  assert.equal(resumenNovedad({ ...base, tipo: "compra", grupo_compra: "sanidad", compra_producto_nombre: "Ivermectina" }), "Comprar · Sanidad · Ivermectina");
+  assert.equal(resumenNovedad({ ...base, tipo: "compra", grupo_compra: "alimentacion" }), "Comprar · Alimentación · Otro producto");
+  assert.equal(direccionParaRegistrar({ tipo: "compra", animal_id: null, categoria_producto: null, tipo_evento: null }), "/hato/gastos/nuevo");
   assert.equal(direccionParaRegistrar({ tipo: "aplicacion", animal_id: "a1", categoria_producto: null, tipo_evento: "vacunacion" }), "/hato/sanidad/nuevo?animal=a1&tipo=vacunacion");
 });
 
@@ -394,4 +399,18 @@ test("novedades: el producto se ofrece según lo que se hizo", () => {
   assert.deepEqual(productosParaTipo("desparasitacion", p).map((x) => x.tipo), ["desparasitante"]);
   assert.deepEqual(productosParaTipo("tratamiento", p).map((x) => x.tipo), ["antibiotico", "vitamina"]);
   assert.equal(productosParaTipo("cirugia", p).length, 4);
+});
+
+import { atiendeNovedad, destinoNovedades, puedeEscribir, tiposNovedadQueCrea } from "../lib/permisos.ts";
+test("novedades: cada perfil crea y atiende solo lo suyo (espejo de la base)", () => {
+  assert.deepEqual(tiposNovedadQueCrea("ordenador"), ["compra", "aplicacion"]);
+  assert.deepEqual(tiposNovedadQueCrea("veterinario"), ["compra"]);
+  for (const rol of ["propietario", "administrador", "contador"]) assert.deepEqual(tiposNovedadQueCrea(rol), [], rol);
+  assert.ok(!puedeEscribir("propietario", "novedades") && !puedeEscribir("administrador", "novedades"));
+  assert.ok(puedeEscribir("propietario", "sanidad") && puedeEscribir("administrador", "contabilidad"));
+  assert.ok(atiendeNovedad("administrador", "compra") && !atiendeNovedad("administrador", "aplicacion"));
+  assert.ok(atiendeNovedad("veterinario", "aplicacion") && !atiendeNovedad("veterinario", "compra"));
+  assert.ok(atiendeNovedad("propietario", "compra") && atiendeNovedad("propietario", "aplicacion"));
+  assert.ok(!atiendeNovedad("ordenador", "compra") && !atiendeNovedad("contador", "aplicacion"));
+  assert.deepEqual(["propietario", "administrador", "veterinario", "ordenador"].map(destinoNovedades), ["todas", "compra", "no_compra", null]);
 });

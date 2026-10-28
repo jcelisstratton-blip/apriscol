@@ -5,10 +5,11 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { crearClienteServidor } from "@/lib/supabase/server";
 import { obtenerContexto } from "@/lib/contexto";
-import { puedeEscribir, puedeVer, revisaNovedades } from "@/lib/permisos";
+import { atiendeNovedad, puedeVer, tiposNovedadQueCrea, type TipoNovedadPermiso } from "@/lib/permisos";
 import { mensajeAmigable } from "@/lib/mensaje-amigable";
 import { hoyBogota } from "@/lib/fechas";
 import { CUANDO_NOVEDAD, ESTADOS_NOVEDAD, TIPOS_NOVEDAD_NUEVA, faltaEnNovedad, fechaDeNovedad, type CuandoNovedad } from "@/lib/novedades";
+import { GRUPO_DE, GRUPOS } from "@/lib/costos";
 import { RESULTADOS_PRUEBA, TIPOS_EVENTO, TIPOS_PRUEBA, VIAS } from "@/lib/sanidad";
 import { ANESTESIAS, CATEGORIAS, COJERAS, ETAPAS, MOTIVOS, REGLAS } from "@/lib/sanidad-campos";
 import { TIPOS_MUESTRA } from "@/lib/coprologico";
@@ -22,7 +23,9 @@ const enumDe = (valores: readonly string[], mensaje: string) => z.enum(valores a
 
 // Una novedad se arma solo eligiendo opciones: ningún campo es de texto libre.
 const esquema = z.object({
-  animal_id: z.uuid("Elige el animal."),
+  animal_id: opcional(z.uuid("Elige el animal.")),
+  grupo_compra: opcional(enumDe(GRUPOS, "Elige el grupo de la compra.")),
+  compra_producto_id: opcional(z.uuid()),
   tipo: enumDe(TIPOS_NOVEDAD_NUEVA, "Elige sobre qué es la novedad."),
   // Ya no se pregunta cuándo fue: la novedad es del día en que se envía.
   cuando: opcional(enumDe(CUANDO_NOVEDAD.map((c) => c.valor), "Elige cuándo fue.")),
@@ -44,19 +47,31 @@ const esquema = z.object({
   client_request_id: opcional(z.uuid()),
 });
 
-/** Envía una novedad sobre un animal. Quien la envía queda con su nombre; la ven el propietario, el administrador y el veterinario. */
+/** Envía una novedad: «Comprar» (llega al administrador) o «Aplicar dosis» sobre un animal (llega al veterinario). Quien la envía queda con su nombre. */
 export async function crearNovedad(_: EstadoForm, form: FormData): Promise<EstadoForm> {
   const { user, perfil, finca, rol } = await obtenerContexto();
-  if (!puedeEscribir(rol, "novedades", finca.plan)) return { error: "No tienes permiso para enviar novedades en esta finca." };
+  if (!puedeVer(rol, "novedades", finca.plan)) return { error: "No tienes permiso para enviar novedades en esta finca." };
   const datos = esquema.safeParse(Object.fromEntries(form));
   if (!datos.success) return { error: datos.error.issues[0]?.message ?? "Revisa los datos." };
   const d = datos.data;
-  const falta = faltaEnNovedad({ tipo: d.tipo as Novedad["tipo"], tipo_evento: d.tipo_evento as Novedad["tipo_evento"], prueba: d.prueba as Novedad["prueba"], resultado_prueba: d.resultado_prueba as Novedad["resultado_prueba"], tipo_muestra: d.tipo_muestra as Novedad["tipo_muestra"], puntaje: d.puntaje });
+  if (!tiposNovedadQueCrea(rol).includes(d.tipo as TipoNovedadPermiso)) return { error: "Tu perfil no envía ese tipo de novedad." };
+  const compra = d.tipo === "compra";
+  if (!compra && !d.animal_id) return { error: "Elige el animal." };
+  const falta = faltaEnNovedad({ tipo: d.tipo as Novedad["tipo"], grupo_compra: d.grupo_compra as Novedad["grupo_compra"], tipo_evento: d.tipo_evento as Novedad["tipo_evento"], prueba: d.prueba as Novedad["prueba"], resultado_prueba: d.resultado_prueba as Novedad["resultado_prueba"], tipo_muestra: d.tipo_muestra as Novedad["tipo_muestra"], puntaje: d.puntaje });
   if (falta) return { error: falta };
 
   const supabase = await crearClienteServidor();
-  const { data: animal } = await supabase.from("animales").select("id").eq("id", d.animal_id).eq("finca_id", finca.id).eq("estado", "activo").is("deleted_at", null).maybeSingle();
-  if (!animal) return { error: "No encontramos ese animal." };
+  if (!compra) {
+    const { data: animal } = await supabase.from("animales").select("id").eq("id", d.animal_id!).eq("finca_id", finca.id).eq("estado", "activo").is("deleted_at", null).maybeSingle();
+    if (!animal) return { error: "No encontramos ese animal." };
+  }
+  // El producto a comprar sale del catálogo de Compras de la finca y debe ser del grupo elegido; sin producto es «Otro producto» (se explica en las observaciones).
+  let compraProducto: string | null = null;
+  if (compra && d.compra_producto_id) {
+    const { data: p } = await supabase.from("finca_productos").select("id, nombre, rubro").eq("id", d.compra_producto_id).eq("finca_id", finca.id).eq("tipo", "compra").eq("activo", true).maybeSingle();
+    if (!p || !p.rubro || GRUPO_DE[p.rubro] !== d.grupo_compra) return { error: "Ese producto no es del grupo elegido. Elígelo de nuevo." };
+    compraProducto = p.nombre;
+  }
 
   // Cada opción se comprueba contra la lista de «Registrar una aplicación»; el producto y el lote, contra los de la finca.
   const opcionDe = (lista: { valor: string }[] | undefined, v: string | undefined) => !v || Boolean(lista?.some((o) => o.valor === v));
@@ -86,8 +101,11 @@ export async function crearNovedad(_: EstadoForm, form: FormData): Promise<Estad
   const aplicacion = d.tipo === "aplicacion";
   const { error } = await supabase.from("novedades").insert({
     finca_id: finca.id,
-    animal_id: d.animal_id,
+    animal_id: compra ? null : (d.animal_id ?? null),
     tipo: d.tipo as Novedad["tipo"],
+    grupo_compra: compra ? ((d.grupo_compra as Novedad["grupo_compra"]) ?? null) : null,
+    compra_producto_id: compra ? (d.compra_producto_id ?? null) : null,
+    compra_producto_nombre: compra ? compraProducto : null,
     fecha: fechaDeNovedad((d.cuando as CuandoNovedad | undefined) ?? "hoy", hoyBogota()),
     tipo_evento: aplicacion ? ((d.tipo_evento as Novedad["tipo_evento"]) ?? null) : null,
     categoria: aplicacion ? (d.categoria ?? null) : null,
@@ -112,16 +130,19 @@ export async function crearNovedad(_: EstadoForm, form: FormData): Promise<Estad
 
   revalidatePath("/novedades");
   revalidatePath("/");
-  revalidatePath(`/hato/${d.animal_id}`);
+  if (d.animal_id) revalidatePath(`/hato/${d.animal_id}`);
   redirect("/novedades?enviada=1");
 }
 
-/** Marca una novedad como vista o atendida. Solo quien las revisa (propietario, administrador, veterinario). */
+/** Marca una novedad como vista o atendida. Solo quien la atiende: las de comprar, el administrador y el propietario; las de aplicar dosis, el veterinario y el propietario. */
 export async function marcarNovedad(id: string, estado: string): Promise<Resultado> {
   const { user, finca, rol } = await obtenerContexto();
-  if (!revisaNovedades(rol) || !puedeEscribir(rol, "novedades", finca.plan)) return { ok: false, error: "Solo quien revisa las novedades puede cambiar su estado." };
+  if (!puedeVer(rol, "novedades", finca.plan)) return { ok: false, error: "Solo quien atiende las novedades puede cambiar su estado." };
   if (!z.uuid().safeParse(id).success || !(ESTADOS_NOVEDAD as string[]).includes(estado)) return { ok: false, error: "Novedad no válida." };
   const supabase = await crearClienteServidor();
+  const { data: actual } = await supabase.from("novedades").select("tipo").eq("id", id).eq("finca_id", finca.id).maybeSingle();
+  if (!actual) return { ok: false, error: "No encontramos esa novedad." };
+  if (!atiendeNovedad(rol, actual.tipo as Novedad["tipo"])) return { ok: false, error: "Esa novedad la atiende otro perfil." };
   const { data, error } = await supabase
     .from("novedades")
     .update({ estado: estado as Novedad["estado"], revisada_por: estado === "nueva" ? null : user.id, revisada_en: estado === "nueva" ? null : new Date().toISOString() })
@@ -132,7 +153,7 @@ export async function marcarNovedad(id: string, estado: string): Promise<Resulta
   if (!data || data.length === 0) return { ok: false, error: "No encontramos esa novedad." };
   revalidatePath("/novedades");
   revalidatePath("/");
-  revalidatePath(`/hato/${data[0].animal_id}`);
+  if (data[0].animal_id) revalidatePath(`/hato/${data[0].animal_id}`);
   return { ok: true };
 }
 
@@ -147,6 +168,6 @@ export async function eliminarNovedad(id: string): Promise<Resultado> {
   if (!data || data.length === 0) return { ok: false, error: "Solo quien envió la novedad (o el propietario o el administrador) puede eliminarla." };
   revalidatePath("/novedades");
   revalidatePath("/");
-  revalidatePath(`/hato/${data[0].animal_id}`);
+  if (data[0].animal_id) revalidatePath(`/hato/${data[0].animal_id}`);
   return { ok: true };
 }

@@ -7,7 +7,8 @@ export function puedeEscribir(rol: RolFinca, modulo: ModuloApp, plan: PlanId = "
   switch (rol) {
     case "propietario":
     case "administrador":
-      return true;
+      // Quien administra no crea novedades: las atiende (ver `atiendeNovedad`).
+      return modulo !== "novedades";
     case "ordenador":
       return modulo === "leche" || modulo === "novedades";
     case "veterinario":
@@ -32,9 +33,27 @@ export function puedeVer(rol: RolFinca, modulo: ModuloApp, plan: PlanId = "hacie
   }
 }
 
-/** Quién revisa TODAS las novedades (el resto solo ve las suyas): propietario, administrador y veterinario. */
+/** Quién atiende novedades (no solo las suyas): propietario, administrador y veterinario. Cada uno atiende las suyas según su destino (`atiendeNovedad`). */
 export function revisaNovedades(rol: RolFinca): boolean {
   return rol === "propietario" || rol === "administrador" || rol === "veterinario";
+}
+
+export type TipoNovedadPermiso = "compra" | "aplicacion" | "prueba" | "coprologico" | "famacha";
+
+/** Qué novedades puede CREAR cada perfil: el ordeñador, comprar y aplicar dosis; el veterinario, solo comprar; los demás ninguna. Espejo de `private.puede_crear_novedad`. */
+export function tiposNovedadQueCrea(rol: RolFinca): TipoNovedadPermiso[] {
+  return rol === "ordenador" ? ["compra", "aplicacion"] : rol === "veterinario" ? ["compra"] : [];
+}
+
+/** Qué novedades le llegan a un perfil para atender: `compra`, `no_compra` (aplicar dosis y las anteriores) o `todas`. Sirve para contar y filtrar. */
+export function destinoNovedades(rol: RolFinca): "compra" | "no_compra" | "todas" | null {
+  return rol === "propietario" ? "todas" : rol === "administrador" ? "compra" : rol === "veterinario" ? "no_compra" : null;
+}
+
+/** ¿Atiende (marca vista o atendida) una novedad de este tipo? Comprar: administrador y propietario; las demás (aplicar dosis…): veterinario y propietario. */
+export function atiendeNovedad(rol: RolFinca, tipo: TipoNovedadPermiso): boolean {
+  if (rol === "propietario") return true;
+  return tipo === "compra" ? rol === "administrador" : rol === "veterinario";
 }
 
 export function puedeGestionar(rol: RolFinca): boolean {

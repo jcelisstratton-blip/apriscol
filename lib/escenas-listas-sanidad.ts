@@ -1,4 +1,4 @@
-import { Bug, Carrot, CircleHelp, Eye, Flame, FlaskConical, Hourglass, LayoutDashboard, Microscope, Package, Pill, ShieldAlert, ShieldCheck, TestTube } from "lucide-react";
+import { Bug, Carrot, CircleHelp, Eye, Flame, FlaskConical, Hourglass, LayoutDashboard, Microscope, Package, Pill, ShoppingCart, ShieldAlert, ShieldCheck, TestTube } from "lucide-react";
 import { ESC, escena, type EscenaDef } from "@/lib/escenas";
 import type { Novedad, ResultadoPrueba, TipoProducto } from "@/lib/tipos";
 
@@ -42,6 +42,7 @@ export const ESCENA_MUESTRA: Record<"limpia" | "contaminada", EscenaDef> = {
 
 /** Lo que se puede contar en una novedad: los mismos botones de la ficha en Sanidad. */
 export const ESCENA_TIPO_NOVEDAD: Record<Novedad["tipo"], EscenaDef> = {
+  compra: escena(ShoppingCart, "ocre", Package),
   aplicacion: ESC.sanidad,
   prueba: ESC.laboratorio,
   coprologico: escena(Microscope, "oliva", Bug),
