@@ -43,3 +43,12 @@ export const ETIQUETA_ROL: Record<RolFinca, string> = {
   veterinario: "Veterinario",
   contador: "Contador",
 };
+
+/** Perfiles que se pueden invitar a la app (el propietario no se invita) y qué puede hacer cada uno. */
+export const ROLES_INVITABLES: Exclude<RolFinca, "propietario">[] = ["administrador", "ordenador", "veterinario", "contador"];
+export const DETALLE_ROL: Record<Exclude<RolFinca, "propietario">, string> = {
+  administrador: "Ve y edita todo, e invita personas",
+  ordenador: "Registra ordeños y consulta el hato",
+  veterinario: "Sanidad y reproducción",
+  contador: "Solo consulta leche y reportes",
+};

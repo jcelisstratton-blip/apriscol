@@ -5502,6 +5502,8 @@ export type Database = {
     }
     Functions: {
       aceptar_invitacion: { Args: { p_token: string }; Returns: string }
+      invitar_persona: { Args: { p_finca: string; p_persona: string; p_email: string; p_rol: string }; Returns: string }
+      renovar_invitacion: { Args: { p_id: string }; Returns: string }
       invitacion_resumen: { Args: { p_token: string }; Returns: { email: string; rol: Database["public"]["Enums"]["rol_finca"]; finca_nombre: string }[] }
       admin_activar_plan_finca: {
         Args: { p_finca: string; p_periodo?: string; p_plan: string }

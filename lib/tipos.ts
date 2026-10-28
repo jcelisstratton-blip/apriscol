@@ -1454,6 +1454,8 @@ export type Database = {
         Returns: string;
       };
       aceptar_invitacion: { Args: { p_token: string }; Returns: string };
+      invitar_persona: { Args: { p_finca: string; p_persona: string; p_email: string; p_rol: string }; Returns: string };
+      renovar_invitacion: { Args: { p_id: string }; Returns: string };
       invitacion_resumen: { Args: { p_token: string }; Returns: { email: string; rol: RolFinca; finca_nombre: string }[] };
       produccion_tendencia: {
         Args: { p_finca: string; p_hoy?: string | null };

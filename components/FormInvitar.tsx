@@ -1,27 +1,20 @@
 "use client";
 
 import { useActionState, useState, useTransition } from "react";
-import { Check, Copy, Share2, X } from "lucide-react";
+import { Check, X } from "lucide-react";
 import { Aviso } from "@/components/Aviso";
 import { Boton } from "@/components/Boton";
 import { Campo, CLASE_INPUT } from "@/components/Campo";
 import { CamposContrato } from "@/components/CamposContrato";
 import { CamposPerfil } from "@/components/CamposPerfil";
+import { EnlaceInvitacion } from "@/components/EnlaceInvitacion";
 import { SelectorTarjetas } from "@/components/SelectorTarjetas";
 import { useToast } from "@/components/Toast";
 import { invitar, revocarInvitacion } from "@/app/(app)/mas/miembros/actions";
 import { ESCENA_ROL } from "@/lib/escenas-forms-a-hato";
 import { ESCENA_ACTIVA } from "@/lib/escenas-costos";
-import { ETIQUETA_ROL } from "@/lib/permisos";
+import { DETALLE_ROL, ETIQUETA_ROL, ROLES_INVITABLES } from "@/lib/permisos";
 import type { RolFinca } from "@/lib/tipos";
-
-const ROLES_INVITABLES: Exclude<RolFinca, "propietario">[] = ["administrador", "ordenador", "veterinario", "contador"];
-const DETALLE: Record<(typeof ROLES_INVITABLES)[number], string> = {
-  administrador: "Ve y edita todo, e invita personas",
-  ordenador: "Registra ordeños y consulta el hato",
-  veterinario: "Sanidad y reproducción",
-  contador: "Solo consulta leche y reportes",
-};
 
 type Perfil = Exclude<RolFinca, "propietario"> | "ninguno";
 
@@ -37,29 +30,6 @@ export function FormInvitar({ hoy, puedeInvitar, conContrato = true }: { hoy: st
   // Un veterinario puede quedar en el equipo sin correo (uno externo que no usa la app): no se invita, pero se ofrece en los procedimientos.
   const sinInvitacion = rol === "ninguno" || (rol === "veterinario" && !correo.trim());
   // Sin el módulo de personal (planes por debajo de Profesional) no hay contrato ni «Sin acceso»: solo se invita.
-  const toast = useToast();
-
-  const copiar = async (enlace: string) => {
-    try {
-      await navigator.clipboard.writeText(enlace);
-      toast.exito("Enlace copiado");
-    } catch {
-      toast.error("No se pudo copiar. Mantén presionado el enlace para copiarlo.");
-    }
-  };
-
-  const compartir = async (enlace: string) => {
-    if (navigator.share) {
-      try {
-        await navigator.share({ title: "Invitación a Apriscol", text: "Te invito a mi finca en Apriscol:", url: enlace });
-      } catch {
-        /* la persona canceló */
-      }
-    } else {
-      await copiar(enlace);
-    }
-  };
-
   return (
     <form action={enviar} className="space-y-4">
       <Campo etiqueta="¿Qué perfil tendrá?">
@@ -71,7 +41,7 @@ export function FormInvitar({ hoy, puedeInvitar, conContrato = true }: { hoy: st
             onCambio={setRol}
             titulo="¿Qué puede hacer?"
             opciones={[
-              ...(puedeInvitar ? ROLES_INVITABLES.map((r) => ({ valor: r as Perfil, etiqueta: ETIQUETA_ROL[r], detalle: DETALLE[r], escena: ESCENA_ROL[r] })) : []),
+              ...(puedeInvitar ? ROLES_INVITABLES.map((r) => ({ valor: r as Perfil, etiqueta: ETIQUETA_ROL[r], detalle: DETALLE_ROL[r], escena: ESCENA_ROL[r] })) : []),
               ...(conContrato ? [{ valor: "ninguno" as Perfil, etiqueta: "Sin acceso a la app", detalle: "Trabaja en la finca y cobra, pero no entra", escena: ESCENA_ACTIVA.no }] : []),
             ]}
           />
@@ -96,15 +66,7 @@ export function FormInvitar({ hoy, puedeInvitar, conContrato = true }: { hoy: st
       {estado?.enlace ? (
         <div className="space-y-3 rounded-2xl bg-lana p-3.5">
           <Aviso tipo="exito">Invitación lista para {estado.email}{conContrato ? ", con su contrato guardado" : ""}. Compártele este enlace.</Aviso>
-          <p className="rounded-xl bg-papel px-3 py-2 text-sm [overflow-wrap:anywhere]">{estado.enlace}</p>
-          <div className="grid grid-cols-2 gap-2">
-            <Boton type="button" variante="secundario" onClick={() => copiar(estado.enlace!)}>
-              <Copy className="size-4" /> Copiar
-            </Boton>
-            <Boton type="button" onClick={() => compartir(estado.enlace!)}>
-              <Share2 className="size-4" /> Enviar
-            </Boton>
-          </div>
+          <EnlaceInvitacion enlace={estado.enlace} />
         </div>
       ) : null}
     </form>
