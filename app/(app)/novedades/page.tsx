@@ -11,7 +11,7 @@ import { ESTADOS_NOVEDAD, type EstadoNovedad } from "@/lib/novedades";
 export const metadata: Metadata = { title: "Novedades" };
 
 /**
- * Novedades: avisos informativos del equipo sobre los animales (una aplicación, una prueba, un coprológico, un FAMACHA), siempre con el nombre de quien los envió.
+ * Novedades: avisos informativos del equipo sobre los animales (una aplicación o una prueba diagnóstica), siempre con el nombre de quien los envió.
  * El propietario, el administrador y el veterinario ven todas y las marcan; el ordeñador ve las suyas. Es lo primero del menú para quien las revisa.
  */
 export default async function PaginaNovedades({ searchParams }: { searchParams: Promise<{ estado?: string; enviada?: string }> }) {

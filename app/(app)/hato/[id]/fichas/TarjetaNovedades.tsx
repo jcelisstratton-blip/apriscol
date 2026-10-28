@@ -54,7 +54,7 @@ export async function TarjetaNovedades({ c }: { c: CtxFicha }) {
           <Link href={`/novedades/nueva?animal=${id}`} className={clasesBoton("primario")}>
             <Inbox className="size-5" strokeWidth={2} aria-hidden="true" /> Crear una novedad
           </Link>
-          <p className="mt-1.5 text-[0.8125rem] text-humo">Cuéntales al administrador y al veterinario una aplicación, una prueba, un coprológico o un FAMACHA. Solo eliges opciones.</p>
+          <p className="mt-1.5 text-[0.8125rem] text-humo">Pídele al administrador y al veterinario una aplicación o una prueba diagnóstica. Solo eliges opciones.</p>
         </div>
       ) : null}
     </Tarjeta>

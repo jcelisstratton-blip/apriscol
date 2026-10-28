@@ -42,7 +42,7 @@ export const CONTENIDO: Record<string, ContenidoOpcion> = {
   "/novedades": {
     escena: escena(Inbox, "arcilla", CalendarCheck),
     lema: "Lo que el equipo cuenta de los animales",
-    puntos: ["El ordeñador o el veterinario envía una aplicación, una prueba, un coprológico o un FAMACHA solo eligiendo opciones", "Cada novedad dice quién la envió y la ven el administrador y el veterinario", "Se marca vista o atendida, o se registra de verdad en Sanidad"],
+    puntos: ["El ordeñador o el veterinario pide una aplicación o una prueba diagnóstica solo eligiendo opciones", "Cada novedad dice quién la envió y la ven el administrador y el veterinario", "Se marca vista o atendida, o se registra de verdad en Sanidad"],
   },
   "/semaforos": {
     escena: escena(Activity, "musgo", CalendarCheck),
