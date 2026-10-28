@@ -19,7 +19,7 @@ grupo con «Volver a los valores sugeridos»). Cada finca tiene **siempre** su f
 - **No son ajustables a propósito:** el bloqueo por periodo de retiro (es una salvaguarda sanitaria) y todo lo que fija la ley (recargos, retenciones, SMMLV): eso se
   define con su fuente oficial cuando se construya la nómina.
 - Conectados hoy: gestación (vistas `v_servicios`, `v_repro_hembras`, `candidatos_ceba`), criterios de la monta, diagnóstico de preñez, último tercio y secado
-  (Reproducción), ganancia mínima y peso de faena (Carne), límite de células somáticas y rangos de grasa y proteína (Leche), podología y pediluvio (Sanidad).
+  (Reproducción), plazos de los semáforos de partos y de hembras vacías sin servicio (`parto_preparar_dias`, `parto_vigilar_dias`, `vacia_aviso_dias`, `vacia_urgente_dias`; migración `20261028010406`, ver `semaforos.md`), ganancia mínima y peso de faena (Carne), límite de células somáticas y rangos de grasa y proteína (Leche), podología y pediluvio (Sanidad).
 
 ## Logo de la finca
 

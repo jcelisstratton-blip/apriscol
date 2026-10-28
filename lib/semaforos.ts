@@ -90,18 +90,17 @@ type Etiqueta = (animalId: string) => string;
 const fichaAnimal = (id: string, ancla?: string) => (ancla ? `/hato/${id}#${ancla}` : `/hato/${id}`);
 
 // ───────────────────────── Reproducción ─────────────────────────
-/** Desde cuántos días antes del parto conviene preparar la maternidad y la vacuna; y desde cuántos vigilarla a diario. */
-export const DIAS_PARTO_PREPARAR = 30;
-export const DIAS_PARTO_VIGILAR = 14;
+/** Desde cuántos días antes del parto conviene preparar la maternidad y la vacuna, y desde cuántos vigilarla a diario (Ajustes de la finca). */
+export type PlazosParto = { preparar: number; vigilar: number };
 
 const enGestacion = (f: Pick<ReproHembra, "estado">) => f.estado === "gestante" || f.estado === "servida";
 
-export function senalPartos(filas: ReproHembra[], hoy: string, etiqueta: Etiqueta): Senal {
+export function senalPartos(filas: ReproHembra[], hoy: string, plazos: PlazosParto, etiqueta: Etiqueta): Senal {
   const items: ItemSenal[] = [];
   for (const f of filas) {
     if (!enGestacion(f) || !f.fecha_prevista_parto) continue;
     const d = diasHasta(f.fecha_prevista_parto, hoy);
-    if (d > DIAS_PARTO_PREPARAR) continue;
+    if (d > plazos.preparar) continue;
     const estimada = f.estado === "servida" ? " · fecha estimada, sin confirmar" : "";
     let nivel: NivelItem = "ambar";
     let detalle: string;
@@ -112,7 +111,7 @@ export function senalPartos(filas: ReproHembra[], hoy: string, etiqueta: Etiquet
       detalle = `Debió parir hace ${dias(-d)}`;
     } else if (d === 0) {
       detalle = "Pare hoy";
-    } else if (d <= DIAS_PARTO_VIGILAR) {
+    } else if (d <= plazos.vigilar) {
       detalle = `Pare en ${dias(d)}: vigílala a diario`;
     } else {
       detalle = `Pare en ${dias(d)}: prepara la maternidad y la vacuna`;
@@ -124,8 +123,8 @@ export function senalPartos(filas: ReproHembra[], hoy: string, etiqueta: Etiquet
       id: "partos",
       area: "reproduccion",
       titulo: "Partos que se acercan",
-      queSignifica: "Hembras gestantes o servidas cuyo parto previsto llega en los próximos 30 días, o que ya pasó su fecha.",
-      regla: `Ámbar: faltan ${DIAS_PARTO_PREPARAR} días o menos (a ${DIAS_PARTO_VIGILAR} o menos, vigilarla a diario) o pasó hasta ${DIAS_PARTO_ATRASADO} días. Rojo: pasaron más de ${DIAS_PARTO_ATRASADO} días de su fecha sin parir.`,
+      queSignifica: `Hembras gestantes o servidas cuyo parto previsto llega en los próximos ${plazos.preparar} días, o que ya pasó su fecha.`,
+      regla: `Ámbar: faltan ${plazos.preparar} días o menos (a ${plazos.vigilar} o menos, vigilarla a diario) o pasó hasta ${DIAS_PARTO_ATRASADO} días. Rojo: pasaron más de ${DIAS_PARTO_ATRASADO} días de su fecha sin parir.`,
       accion: { texto: "Ver Reproducción", href: "/reproduccion" },
       nota: "Si la hembra solo está servida, la fecha es una estimación hasta que se confirme la gestación.",
     },
@@ -217,6 +216,115 @@ export function senalSecado(filas: ReproHembra[], hoy: string, secadoDiasAntes: 
       queSignifica: "Gestantes en ordeño que ya deben secarse, y gestantes que entraron al último tercio y necesitan más alimento.",
       regla: `Ámbar: faltan ${secadoDiasAntes} días o menos para parir y sigue en ordeño (secarla), o lleva ${ultimoTercioDia} días de gestación o más (reforzar). Rojo: faltan 7 días o menos y sigue en ordeño.`,
       accion: { texto: "Ver Reproducción", href: "/reproduccion" },
+    },
+    items,
+  );
+}
+
+/**
+ * Hembras que parieron y siguen vacías sin servirse: cada día abierto es leche y crías que se pierden. Cuenta desde el último parto (no desde un
+ * aborto). No cuenta las que ya están en una temporada de monta abierta (ya se están sirviendo).
+ */
+export function senalVaciaSinServicio(filas: ReproHembra[], hoy: string, avisoDias: number, urgenteDias: number, etiqueta: Etiqueta): Senal {
+  const items: ItemSenal[] = [];
+  for (const f of filas) {
+    if (f.estado !== "vacia" || !f.ultimo_parto || f.empadronamiento_id) continue;
+    const d = diasDesde(f.ultimo_parto, hoy);
+    if (d < avisoDias) continue;
+    items.push({
+      clave: `vacia-${f.animal_id}`,
+      etiqueta: etiqueta(f.animal_id),
+      detalle: `Parió el ${corta(f.ultimo_parto)} (hace ${dias(d)}) y sigue sin servirse`,
+      nivel: d >= urgenteDias ? "rojo" : "ambar",
+      href: fichaAnimal(f.animal_id, "reproduccion"),
+      orden: -d,
+    });
+  }
+  return armarSenal(
+    {
+      id: "vacia",
+      area: "reproduccion",
+      titulo: "Vacías sin servicio",
+      queSignifica: "Hembras que ya parieron y siguen vacías, sin servicio y fuera de una temporada de monta. Cada día abierto cuesta leche y crías.",
+      regla: `Ámbar: pasaron ${avisoDias} días desde el parto. Rojo: pasaron ${urgenteDias} días o más.`,
+      accion: { texto: "Ver Reproducción", href: "/reproduccion" },
+      nota: "Si una hembra no se va a servir (se va a vender o descartar), sácala de aquí marcando su salida.",
+    },
+    items,
+  );
+}
+
+export type AbortoReciente = { id: string; madre_id: string; fecha: string; causa_aborto: string | null };
+/** Cuántos abortos en esta ventana de días ponen la señal en ámbar y en rojo. */
+export const ABORTOS_VENTANA_DIAS = 30;
+export const ABORTOS_AMBAR = 2;
+export const ABORTOS_ROJO = 3;
+
+/**
+ * Abortos agrupados: dos o más en un mes pueden ser un brote (brucelosis, toxoplasmosis, clamidiosis). Un aborto solo no enciende la señal, salvo que
+ * su causa sea infecciosa.
+ */
+export function senalAbortos(abortos: AbortoReciente[], hoy: string, etiqueta: Etiqueta): Senal {
+  const recientes = abortos.filter((a) => diasDesde(a.fecha, hoy) <= ABORTOS_VENTANA_DIAS);
+  const grupo = recientes.length;
+  const items: ItemSenal[] = [];
+  for (const a of recientes) {
+    const infecciosa = a.causa_aborto === "infecciosa";
+    if (grupo < ABORTOS_AMBAR && !infecciosa) continue;
+    items.push({
+      clave: `aborto-${a.id}`,
+      etiqueta: etiqueta(a.madre_id),
+      detalle: `Abortó el ${corta(a.fecha)}${a.causa_aborto ? ` · causa ${a.causa_aborto.replace(/_/g, " ")}` : ""}${infecciosa ? ": aíslala y maneja el feto con guantes" : ""}`,
+      nivel: grupo >= ABORTOS_ROJO ? "rojo" : "ambar",
+      href: fichaAnimal(a.madre_id, "reproduccion"),
+      orden: diasDesde(a.fecha, hoy),
+    });
+  }
+  return armarSenal(
+    {
+      id: "abortos",
+      area: "reproduccion",
+      titulo: "Abortos agrupados",
+      queSignifica: `Abortos de los últimos ${ABORTOS_VENTANA_DIAS} días. Varios juntos pueden ser un brote infeccioso y piden llamar al veterinario.`,
+      regla: `Ámbar: ${ABORTOS_AMBAR} abortos en ${ABORTOS_VENTANA_DIAS} días (o uno de causa infecciosa). Rojo: ${ABORTOS_ROJO} o más.`,
+      accion: { texto: "Ver Reproducción", href: "/reproduccion" },
+    },
+    items,
+  );
+}
+
+export type MuerteCria = { clave: string; animalId: string | null; fecha: string; texto: string };
+/** Ventana y umbrales de la mortalidad de crías, y cuántas crías mínimo hacen falta para que el porcentaje diga algo. */
+export const MORTALIDAD_VENTANA_DIAS = 90;
+export const MORTALIDAD_AMBAR_PCT = 10;
+export const MORTALIDAD_ROJO_PCT = 20;
+export const MORTALIDAD_MIN_CRIAS = 8;
+
+/**
+ * Mortalidad de crías: de las que nacieron en los últimos 90 días, las que nacieron muertas más las que murieron después, sobre todas las que nacieron.
+ * Con pocas crías (menos de 8) el porcentaje engaña, así que no enciende la señal.
+ */
+export function senalMortalidadCrias(nacidas: number, muertes: MuerteCria[], hoy: string): Senal {
+  const n = muertes.length;
+  const pct = nacidas > 0 ? Math.round((n / nacidas) * 100) : 0;
+  const suficiente = nacidas >= MORTALIDAD_MIN_CRIAS;
+  const nivel: NivelItem | null = !suficiente ? null : pct > MORTALIDAD_ROJO_PCT ? "rojo" : pct > MORTALIDAD_AMBAR_PCT ? "ambar" : null;
+  const items: ItemSenal[] = [];
+  if (nivel) {
+    items.push({ clave: "mortalidad-resumen", etiqueta: `Mortalidad de ${pct} %`, detalle: `${n} de ${nacidas} crías en ${MORTALIDAD_VENTANA_DIAS} días`, nivel, href: "/reproduccion", orden: -1 });
+    for (const m of muertes) {
+      items.push({ clave: m.clave, etiqueta: m.texto, detalle: `${m.animalId ? "Murió" : "Nació muerta"} el ${corta(m.fecha)}`, nivel, href: m.animalId ? fichaAnimal(m.animalId) : "/reproduccion", orden: diasDesde(m.fecha, hoy) });
+    }
+  }
+  return armarSenal(
+    {
+      id: "mortalidad",
+      area: "reproduccion",
+      titulo: "Mortalidad de crías",
+      queSignifica: `De las crías que nacieron en los últimos ${MORTALIDAD_VENTANA_DIAS} días, las que nacieron muertas o murieron después, frente a todas las que nacieron.`,
+      regla: `Ámbar: más de ${MORTALIDAD_AMBAR_PCT} %. Rojo: más de ${MORTALIDAD_ROJO_PCT} %. Con menos de ${MORTALIDAD_MIN_CRIAS} crías en el periodo no se evalúa.`,
+      accion: { texto: "Ver Reproducción", href: "/reproduccion" },
+      nota: suficiente ? undefined : `Solo nacieron ${nacidas} ${nacidas === 1 ? "cría" : "crías"} en ${MORTALIDAD_VENTANA_DIAS} días: son pocas para sacar un porcentaje.`,
     },
     items,
   );

@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
-  areasSemaforo, armarSenal, contarSenales, senalCalidad, senalCorrales, senalDosis, senalFamacha, senalFrio, senalPartos, senalProduccion,
+  areasSemaforo, armarSenal, contarSenales, senalCalidad, senalCorrales, senalDosis, senalFamacha, senalFrio, senalPartos, senalProduccion, senalAbortos, senalMortalidadCrias, senalVaciaSinServicio,
   senalRetiro, senalSecado, senalesDiagnostico,
 } from "../lib/semaforos.ts";
 
@@ -42,7 +42,7 @@ test("semáforos: partos — verde lejos, ámbar a 30 y 14 días, ámbar hasta 7
     hembra("atrasada", { fecha_prevista_parto: dia(-12) }),
     hembra("vacia", { estado: "vacia", fecha_prevista_parto: dia(5) }),
   ];
-  const s = senalPartos(filas, HOY, etiqueta);
+  const s = senalPartos(filas, HOY, { preparar: 30, vigilar: 14 }, etiqueta);
   const por = Object.fromEntries(s.items.map((i) => [i.clave, i]));
   assert.ok(!por["parto-lejos"] && !por["parto-vacia"]);
   assert.equal(por["parto-en30"].nivel, "ambar");
@@ -56,7 +56,7 @@ test("semáforos: partos — verde lejos, ámbar a 30 y 14 días, ámbar hasta 7
 });
 
 test("semáforos: una servida sin confirmar avisa que su fecha es una estimación", () => {
-  const s = senalPartos([hembra("s", { estado: "servida", fecha_prevista_parto: dia(9) })], HOY, etiqueta);
+  const s = senalPartos([hembra("s", { estado: "servida", fecha_prevista_parto: dia(9) })], HOY, { preparar: 30, vigilar: 14 }, etiqueta);
   assert.match(s.items[0].detalle, /estimada/);
 });
 
@@ -131,4 +131,46 @@ test("semáforos: corrales — cupo pasado y potrero que debe salir en rojo", ()
   const s = senalCorrales([u("a", { hacinada: true }), u("b", { estado: "debe_salir" })]);
   assert.deepEqual(s.items.map((i) => [i.clave, i.nivel]), [["cupo-a", "rojo"], ["rotacion-b", "rojo"]]);
   assert.equal(senalCorrales([]).nivel, "verde");
+});
+
+test("semáforos: los plazos de partos salen de Ajustes (no son fijos)", () => {
+  const filas = [hembra("a", { fecha_prevista_parto: dia(25) }), hembra("b", { fecha_prevista_parto: dia(8) })];
+  const corto = senalPartos(filas, HOY, { preparar: 10, vigilar: 5 }, etiqueta);
+  assert.deepEqual(corto.items.map((i) => i.clave), ["parto-b"], "con 10 días de aviso la de 25 días no entra");
+  assert.match(corto.items[0].detalle, /maternidad/, "a 8 días está sobre el plazo de vigilar (5): prepara");
+  const largo = senalPartos(filas, HOY, { preparar: 40, vigilar: 10 }, etiqueta);
+  assert.equal(largo.items.length, 2);
+  assert.match(largo.items.find((i) => i.clave === "parto-b").detalle, /a diario/);
+});
+
+test("semáforos: vacías sin servicio — ámbar a los 60 días del parto, rojo a los 120; en temporada de monta no cuentan", () => {
+  const vacia = (id, hace, extra) => hembra(id, { estado: "vacia", ultimo_parto: dia(-hace), ...extra });
+  const s = senalVaciaSinServicio(
+    [vacia("reciente", 30), vacia("a", 70), vacia("b", 130), vacia("enMonta", 200, { empadronamiento_id: "emp" }), hembra("gest", { ultimo_parto: dia(-90) }), vacia("sinParto", 0, { ultimo_parto: null })],
+    HOY, 60, 120, etiqueta,
+  );
+  assert.deepEqual(s.items.map((i) => [i.clave, i.nivel]), [["vacia-b", "rojo"], ["vacia-a", "ambar"]]);
+});
+
+test("semáforos: abortos — uno solo no enciende la señal (salvo infeccioso); dos en el mes, ámbar; tres, rojo", () => {
+  const ab = (id, hace, causa = "desconocida") => ({ id, madre_id: `m${id}`, fecha: dia(-hace), causa_aborto: causa });
+  assert.equal(senalAbortos([ab("1", 5)], HOY, etiqueta).nivel, "verde");
+  const infec = senalAbortos([ab("1", 5, "infecciosa")], HOY, etiqueta);
+  assert.equal(infec.nivel, "ambar");
+  assert.match(infec.items[0].detalle, /aíslala/);
+  assert.equal(senalAbortos([ab("1", 5), ab("2", 20)], HOY, etiqueta).nivel, "ambar");
+  assert.equal(senalAbortos([ab("1", 5), ab("2", 20), ab("3", 28)], HOY, etiqueta).nivel, "rojo");
+  assert.equal(senalAbortos([ab("1", 5), ab("2", 45)], HOY, etiqueta).nivel, "verde", "uno fuera de los 30 días no cuenta");
+});
+
+test("semáforos: mortalidad de crías — por porcentaje, y con pocas crías no se evalúa", () => {
+  const muertes = (n) => Array.from({ length: n }, (_, i) => ({ clave: `m${i}`, animalId: i % 2 ? `a${i}` : null, fecha: dia(-3), texto: `Cría ${i}` }));
+  assert.equal(senalMortalidadCrias(30, muertes(2), HOY).nivel, "verde");
+  const ambar = senalMortalidadCrias(30, muertes(4), HOY);
+  assert.equal(ambar.nivel, "ambar");
+  assert.equal(ambar.items[0].etiqueta, "Mortalidad de 13 %");
+  assert.equal(senalMortalidadCrias(30, muertes(8), HOY).nivel, "rojo");
+  const pocas = senalMortalidadCrias(5, muertes(3), HOY);
+  assert.equal(pocas.nivel, "verde");
+  assert.match(pocas.nota, /pocas/);
 });

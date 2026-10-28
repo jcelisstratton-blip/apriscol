@@ -18,6 +18,10 @@ export type AjustesFinca = {
   dx_prenez_dia_desde: number;
   dx_prenez_dia_hasta: number;
   ultimo_tercio_dia: number;
+  parto_preparar_dias: number;
+  parto_vigilar_dias: number;
+  vacia_aviso_dias: number;
+  vacia_urgente_dias: number;
   gdp_minima_g: number;
   cc_venta_min: number;
   cc_venta_max: number;
@@ -100,6 +104,10 @@ export const GRUPOS_AJUSTES: GrupoDefinicion[] = [
       { clave: "dx_prenez_dia_desde", etiqueta: "Diagnóstico de preñez: desde el día", unidad: "después del servicio", min: 15, max: 90, decimales: 0 },
       { clave: "dx_prenez_dia_hasta", etiqueta: "Diagnóstico de preñez: hasta el día", unidad: "después del servicio", min: 15, max: 120, decimales: 0 },
       { clave: "ultimo_tercio_dia", etiqueta: "Último tercio de gestación desde el día", unidad: "de gestación", ayuda: "Desde aquí conviene reforzar la alimentación de la hembra.", min: 60, max: 140, decimales: 0 },
+      { clave: "parto_preparar_dias", etiqueta: "Partos: empezar a preparar la maternidad", unidad: "días antes del parto", ayuda: "Desde aquí el semáforo avisa que se acerca un parto: hay que preparar la maternidad y vacunar.", min: 15, max: 60, decimales: 0 },
+      { clave: "parto_vigilar_dias", etiqueta: "Partos: vigilar a diario", unidad: "días antes del parto", ayuda: "Desde aquí conviene revisar a la hembra todos los días.", min: 3, max: 30, decimales: 0 },
+      { clave: "vacia_aviso_dias", etiqueta: "Vacía sin servicio: avisar a los", unidad: "días del parto", ayuda: "Una hembra que parió y sigue sin servirse pierde producción y tiempo. Aquí empieza el aviso.", min: 30, max: 180, decimales: 0 },
+      { clave: "vacia_urgente_dias", etiqueta: "Vacía sin servicio: urgente a los", unidad: "días del parto", ayuda: "Desde aquí el semáforo se pone en rojo.", min: 60, max: 365, decimales: 0 },
     ],
     especie: [
       { clave: "gestacion_dias", etiqueta: "Duración de la gestación", unidad: "días", min: 0, max: 0, decimales: 0 },
@@ -176,6 +184,8 @@ export const GRUPOS_AJUSTES: GrupoDefinicion[] = [
 /** Pares «desde / hasta»: el primero no puede pasar del segundo. */
 export const PARES_ORDENADOS: { menor: ClaveGeneral | ClaveEspecie; mayor: ClaveGeneral | ClaveEspecie; mensaje: string }[] = [
   { menor: "dx_prenez_dia_desde", mayor: "dx_prenez_dia_hasta", mensaje: "El diagnóstico de preñez no puede empezar después del día en que termina." },
+  { menor: "parto_vigilar_dias", mayor: "parto_preparar_dias", mensaje: "Vigilar a diario no puede empezar antes que preparar la maternidad." },
+  { menor: "vacia_aviso_dias", mayor: "vacia_urgente_dias", mensaje: "El aviso de una hembra vacía no puede ser después del urgente." },
   { menor: "cc_venta_min", mayor: "cc_venta_max", mensaje: "La condición corporal para vender «desde» no puede ser mayor que «hasta»." },
   { menor: "peso_faena_min_kg", mayor: "peso_faena_max_kg", mensaje: "El peso de faena «desde» no puede ser mayor que «hasta»." },
   { menor: "grasa_min_pct", mayor: "grasa_max_pct", mensaje: "El mínimo de grasa no puede ser mayor que el máximo." },
