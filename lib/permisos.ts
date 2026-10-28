@@ -36,6 +36,11 @@ export function puedeGestionar(rol: RolFinca): boolean {
   return rol === "propietario" || rol === "administrador";
 }
 
+/** La primera finca la crea cualquiera; para agregar otra hay que ser propietario o administrador de alguna. */
+export function puedeAgregarFinca(roles: RolFinca[]): boolean {
+  return roles.length === 0 || roles.some(puedeGestionar);
+}
+
 export const ETIQUETA_ROL: Record<RolFinca, string> = {
   propietario: "Propietario",
   administrador: "Administrador",

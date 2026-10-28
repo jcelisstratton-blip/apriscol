@@ -25,9 +25,13 @@ export type VisibilidadMenu = {
   reportes: boolean;
   proyecciones: boolean;
   premios: boolean;
-  /** Datos de la finca y Equipo. */
+  /** Equipo (el contador lo ve por la nómina). */
   equipo: boolean;
+  /** Datos de la finca: solo quien la gestiona. */
+  datosFinca: boolean;
   propietario: boolean;
+  /** Puede agregar otra finca: solo propietario o administrador. */
+  agregarFinca: boolean;
   /** Hay un plan superior al actual: la entrada dice «Cambiar el plan»; si no, «Plan de esta finca». */
   planMejorable: boolean;
 };
@@ -46,7 +50,9 @@ export function visibilidadMenu(rol: RolFinca, plan: PlanId): VisibilidadMenu {
     proyecciones: puedeGestionar(rol) && ve("proyecciones"),
     premios: ve("ferias"),
     equipo: puedeGestionar(rol) || ve("contabilidad"),
+    datosFinca: puedeGestionar(rol),
     propietario: rol === "propietario",
+    agregarFinca: puedeGestionar(rol),
     planMejorable: plan !== "hacienda",
   };
 }
@@ -99,13 +105,13 @@ export function menuPrincipal(v: VisibilidadMenu): GrupoMenu[] {
 /** Lo de la finca: sus datos, ajustes, equipo, plan y lo que se hace con ella. */
 export function menuFinca(v: VisibilidadMenu): EntradaMenu[] {
   return [
-    ...(v.equipo ? [{ href: "/mas/finca", etiqueta: "Datos de la finca", Icono: MapPin }] : []),
+    ...(v.datosFinca ? [{ href: "/mas/finca", etiqueta: "Datos de la finca", Icono: MapPin }] : []),
     { href: "/mas/ajustes", etiqueta: "Ajustes de la finca", Icono: SlidersHorizontal },
     ...(v.equipo ? [{ href: "/mas/miembros", etiqueta: "Equipo", Icono: Users }] : []),
     { href: "/mas/referidos", etiqueta: "Referidos", Icono: Gift, acento: true },
     ...(v.propietario ? [{ href: "/mas/plan", etiqueta: v.planMejorable ? "Cambiar el plan" : "Plan de esta finca", Icono: Rocket, acento: true }] : []),
     ...(v.propietario ? [{ href: "/mas/exportar", etiqueta: "Exportar datos", Icono: Download }] : []),
-    { href: "/onboarding", etiqueta: "Agregar otra finca", Icono: Plus },
+    ...(v.agregarFinca ? [{ href: "/onboarding", etiqueta: "Agregar otra finca", Icono: Plus }] : []),
   ];
 }
 

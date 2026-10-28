@@ -30,3 +30,9 @@ grupo con «Volver a los valores sugeridos»). Cada finca tiene **siempre** su f
 - **Al cambiar o quitar:** `editarFinca` guarda la ruta nueva y borra el archivo anterior. Si la persona sube un logo y cancela sin guardar, queda un archivo suelto sin efecto.
 - **No está en los Excel todavía** (encabezado de reportes y exportación): se agrega cuando se pida.
 
+
+## Quién puede agregar otra finca
+
+Solo el propietario o un administrador (`puedeAgregarFinca`, `lib/permisos.ts`): el botón de «Tus fincas», la entrada «Agregar otra finca» del menú,
+la página `/onboarding` (redirige a «Más») y la acción `crearFinca` lo comprueban. Quien aún no tiene ninguna finca puede crear la primera.
+«Datos de la finca» también es solo de quien gestiona (el contador ve Equipo por la nómina, pero no esa página).
