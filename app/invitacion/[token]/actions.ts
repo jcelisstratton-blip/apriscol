@@ -16,10 +16,10 @@ export async function aceptarInvitacion(token: string): Promise<EstadoAceptar> {
   redirect("/");
 }
 
-/** Cierra la sesión que está abierta y vuelve a esta invitación: sin sesión, la app pide entrar y regresa aquí con el correo correcto. */
+/** Cierra la sesión que está abierta y vuelve a esta invitación: sin sesión, la pantalla ofrece crear la cuenta o entrar con el correo invitado. */
 export async function cerrarSesionYVolver(token: string): Promise<void> {
   if (!/^[0-9a-f-]{36}$/i.test(token)) redirect("/login");
   const supabase = await crearClienteServidor();
   await supabase.auth.signOut();
-  redirect(`/login?next=${encodeURIComponent(`/invitacion/${token}`)}`);
+  redirect(`/invitacion/${token}`);
 }

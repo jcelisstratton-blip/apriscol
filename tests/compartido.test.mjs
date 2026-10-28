@@ -228,3 +228,12 @@ test("invitación: el acceso de una persona es sin invitación, pendiente, venci
   assert.equal(estadoAcceso({ aceptada_en: null, expira_en: "2026-10-27T00:00:00Z" }, ahora), "vencida", "una vencida sigue ocupando el correo: hay que poder renovarla");
   assert.equal(estadoAcceso({ aceptada_en: "2026-10-20T00:00:00Z", expira_en: "2026-10-27T00:00:00Z" }, ahora), "aceptada", "aceptada manda aunque ya haya vencido");
 });
+
+test("invitación: el correo prellenado en Entrar y Crear cuenta solo vale si se llega desde una invitación", async () => {
+  const { correoDeInvitacion } = await import("../lib/invitacion.ts");
+  assert.equal(correoDeInvitacion("/invitacion/abc", " Vet@Correo.com "), "vet@correo.com");
+  assert.equal(correoDeInvitacion("/hato", "vet@correo.com"), undefined, "otro destino: no se rellena");
+  assert.equal(correoDeInvitacion("/invitacion/abc", "no-es-correo"), undefined);
+  assert.equal(correoDeInvitacion("/invitacion/abc", undefined), undefined);
+  assert.equal(correoDeInvitacion(undefined, "vet@correo.com"), undefined);
+});
