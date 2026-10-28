@@ -348,3 +348,12 @@ test("etapas: avisos de mezcla en un corral (nunca bloquean; maternidad no avisa
   assert.deepEqual(claves([o("hembra_adulta", "hembra", 40), o("levante_hembra", "hembra", 30)]), []);
   assert.deepEqual(contarEtapas([{ etapa: "ceba" }, { etapa: "lactante" }, { etapa: "ceba" }, { etapa: null }]), [{ etapa: "lactante", n: 1 }, { etapa: "ceba", n: 2 }]);
 });
+
+test("etapas: cada aviso de mezcla dice qué animales son, para filtrar la lista del corral", () => {
+  const o = (id, etapa, sexo, pesoKg = null) => ({ id, etapa, sexo, pesoKg });
+  const a = avisosMezcla([o("l1", "lactante", "hembra"), o("l2", "lactante", "macho"), o("m1", "levante_macho", "macho", 30), o("h1", "levante_hembra", "hembra", 15), o("h2", "levante_hembra", "hembra", 14)], "general", 1.5);
+  const por = Object.fromEntries(a.map((x) => [x.clave, x.ver.ids.sort()]));
+  assert.deepEqual(por.lactantes_con_grandes, ["l1", "l2"]);
+  assert.deepEqual(por.machos_con_hembras, ["m1"]);
+  assert.deepEqual(por.pesos_distintos, ["h2", "m1"]);
+});

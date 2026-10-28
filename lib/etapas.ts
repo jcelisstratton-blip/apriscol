@@ -77,8 +77,14 @@ export function pesoAdultoReferencia(definido: number | null, pesosAdultas: numb
 
 // ───────────────────────── Mezcla en un corral ─────────────────────────
 
-export type OcupanteCorral = { etapa: Etapa | null; sexo: SexoAnimal; pesoKg: number | null };
-export type AvisoMezcla = { clave: "lactantes_con_grandes" | "machos_con_hembras" | "pesos_distintos"; texto: string };
+export type OcupanteCorral = { id?: string; etapa: Etapa | null; sexo: SexoAnimal; pesoKg: number | null };
+export type AvisoMezcla = {
+  clave: "lactantes_con_grandes" | "machos_con_hembras" | "pesos_distintos";
+  texto: string;
+  /** Quiénes son los animales del aviso (si los ocupantes traen su id): para filtrar la lista del corral y verlos. */
+  ver?: { texto: string; ids: string[] };
+};
+const idsDe = (xs: OcupanteCorral[]) => xs.map((o) => o.id).filter((i): i is string => Boolean(i));
 
 /** Los corrales donde la mezcla es lo normal: no se avisa. */
 export const USOS_SIN_AVISO_MEZCLA = ["maternidad"] as const;
@@ -100,6 +106,7 @@ export function avisosMezcla(ocupantes: OcupanteCorral[], uso: string, razonPeso
     avisos.push({
       clave: "lactantes_con_grandes",
       texto: `Hay ${lactantes.length} ${lactantes.length === 1 ? "lactante" : "lactantes"} con ${destetados.length} ${destetados.length === 1 ? "animal ya destetado" : "animales ya destetados"}: los más chicos quedan desplazados del alimento.`,
+      ver: { texto: `Ver ${lactantes.length === 1 ? "el lactante" : `los ${lactantes.length} lactantes`}`, ids: idsDe(lactantes) },
     });
   }
   if (!(USOS_CON_MACHOS as readonly string[]).includes(uso)) {
@@ -109,16 +116,19 @@ export function avisosMezcla(ocupantes: OcupanteCorral[], uso: string, razonPeso
       avisos.push({
         clave: "machos_con_hembras",
         texto: `Hay ${machos.length} ${machos.length === 1 ? "macho" : "machos"} destetados con ${hembras.length} ${hembras.length === 1 ? "hembra" : "hembras"}: conviene separarlos después de la lactancia para evitar montas tempranas.`,
+        ver: { texto: `Ver ${machos.length === 1 ? "el macho" : `los ${machos.length} machos`}`, ids: idsDe(machos) },
       });
     }
   }
-  const pesos = destetados.map((o) => o.pesoKg).filter((p): p is number => p !== null && p > 0);
+  const pesados = destetados.filter((o) => o.pesoKg !== null && o.pesoKg > 0);
+  const pesos = pesados.map((o) => o.pesoKg as number);
   if (pesos.length >= 2) {
     const max = Math.max(...pesos);
     const min = Math.min(...pesos);
     if (max / min > razonPeso) {
       const n = (v: number) => v.toLocaleString("es-CO", { maximumFractionDigits: 1 });
-      avisos.push({ clave: "pesos_distintos", texto: `El más pesado (${n(max)} kg) pesa ${n(Math.round((max / min) * 10) / 10)} veces el más liviano (${n(min)} kg): el grande desplaza al pequeño.` });
+      const extremos = pesados.filter((o) => o.pesoKg === max || o.pesoKg === min);
+      avisos.push({ clave: "pesos_distintos", ver: { texto: "Ver el más pesado y el más liviano", ids: idsDe(extremos) }, texto: `El más pesado (${n(max)} kg) pesa ${n(Math.round((max / min) * 10) / 10)} veces el más liviano (${n(min)} kg): el grande desplaza al pequeño.` });
     }
   }
   return avisos;
