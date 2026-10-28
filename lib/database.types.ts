@@ -1744,6 +1744,8 @@ export type Database = {
           ms_mantenimiento_pct: number
           ms_produccion_max_pct: number
           ms_produccion_min_pct: number
+          parto_preparar_dias: number
+          parto_vigilar_dias: number
           pediluvio_dias: number
           pediluvio_dias_lluvia: number
           podologia_inspeccion_dias: number
@@ -1755,6 +1757,8 @@ export type Database = {
           ultimo_tercio_dia: number
           updated_at: string
           updated_by: string | null
+          vacia_aviso_dias: number
+          vacia_urgente_dias: number
           vacuna_clostridiosis_dias: number | null
           vacuna_rabia_dias: number | null
         }
@@ -1772,6 +1776,8 @@ export type Database = {
           ms_mantenimiento_pct?: number
           ms_produccion_max_pct?: number
           ms_produccion_min_pct?: number
+          parto_preparar_dias?: number
+          parto_vigilar_dias?: number
           pediluvio_dias?: number
           pediluvio_dias_lluvia?: number
           podologia_inspeccion_dias?: number
@@ -1783,6 +1789,8 @@ export type Database = {
           ultimo_tercio_dia?: number
           updated_at?: string
           updated_by?: string | null
+          vacia_aviso_dias?: number
+          vacia_urgente_dias?: number
           vacuna_clostridiosis_dias?: number | null
           vacuna_rabia_dias?: number | null
         }
@@ -1800,6 +1808,8 @@ export type Database = {
           ms_mantenimiento_pct?: number
           ms_produccion_max_pct?: number
           ms_produccion_min_pct?: number
+          parto_preparar_dias?: number
+          parto_vigilar_dias?: number
           pediluvio_dias?: number
           pediluvio_dias_lluvia?: number
           podologia_inspeccion_dias?: number
@@ -1811,6 +1821,8 @@ export type Database = {
           ultimo_tercio_dia?: number
           updated_at?: string
           updated_by?: string | null
+          vacia_aviso_dias?: number
+          vacia_urgente_dias?: number
           vacuna_clostridiosis_dias?: number | null
           vacuna_rabia_dias?: number | null
         }

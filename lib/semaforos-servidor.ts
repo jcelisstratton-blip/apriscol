@@ -2,9 +2,9 @@ import "server-only";
 import type { crearClienteServidor } from "@/lib/supabase/server";
 import type { AjustesCompletos } from "@/lib/ajustes";
 import { etiquetaAnimal } from "@/lib/animal";
-import { leerTodo } from "@/lib/consultas";
+import { enTramos, leerTodo } from "@/lib/consultas";
 import { aplicaFamacha } from "@/lib/famacha";
-import { sumarDias } from "@/lib/fechas";
+import { diasDesde, sumarDias } from "@/lib/fechas";
 import { nombreEvento } from "@/lib/sanidad";
 import {
   areasSemaforo,
@@ -17,10 +17,17 @@ import {
   senalProduccion,
   senalRetiro,
   senalSecado,
+  senalAbortos,
+  senalMortalidadCrias,
+  senalVaciaSinServicio,
+  ABORTOS_VENTANA_DIAS,
+  MORTALIDAD_VENTANA_DIAS,
   senalesDiagnostico,
   type AnalisisTanque,
   type DosisPendiente,
+  type AbortoReciente,
   type LecturaFrio,
+  type MuerteCria,
   type Senal,
 } from "@/lib/semaforos";
 import type { PlanId, ProgramaSanitarioResumen, ReproHembra, RolFinca, SanidadPendiente, UbicacionVista } from "@/lib/tipos";
@@ -73,10 +80,34 @@ export async function cargarSemaforos({
   if (areas.has("reproduccion")) {
     const { data } = await leerTodo<ReproHembra>((d, h) => supabase.from("v_repro_hembras").select("*").eq("finca_id", fincaId).order("animal_id").range(d, h));
     const filas = ((data ?? []) as ReproHembra[]).filter((f) => activo(f.animal_id));
+    // Abortos recientes y crías nacidas en los últimos 90 días (nacidas muertas o muertas antes de los 90 días).
+    const desdeCrias = sumarDias(hoy, -MORTALIDAD_VENTANA_DIAS);
+    const [abortosDB, partosDB, muertesDB] = await Promise.all([
+      supabase.from("partos").select("id, madre_id, fecha, causa_aborto").eq("finca_id", fincaId).eq("tipo", "aborto").gte("fecha", sumarDias(hoy, -ABORTOS_VENTANA_DIAS)).order("fecha", { ascending: false }).limit(100),
+      supabase.from("partos").select("id, madre_id, fecha").eq("finca_id", fincaId).neq("tipo", "aborto").gte("fecha", desdeCrias).limit(1000),
+      supabase.from("bajas").select("id, animal_id, fecha").eq("finca_id", fincaId).eq("tipo", "muerte").gte("fecha", desdeCrias).limit(1000),
+    ]);
+    const partos = partosDB.data ?? [];
+    const criasDB = await Promise.all(enTramos(partos.map((p) => p.id), 100).map((ids) => supabase.from("crias").select("id, parto_id, vivo, animal_id").eq("finca_id", fincaId).in("parto_id", ids)));
+    const crias = criasDB.flatMap((r) => r.data ?? []);
+    const madreDe = new Map(partos.map((p) => [p.id, p]));
+    const muertes: MuerteCria[] = crias
+      .filter((c) => !c.vivo)
+      .map((c) => ({ clave: `nacida-muerta-${c.id}`, animalId: null, fecha: madreDe.get(c.parto_id)?.fecha ?? hoy, texto: `Cría de ${etiqueta(madreDe.get(c.parto_id)?.madre_id ?? "")}` }));
+    for (const b of muertesDB.data ?? []) {
+      const nac = porId.get(b.animal_id)?.fecha_nacimiento;
+      // Solo las que nacieron dentro del periodo: así lo que muere cabe dentro de lo que nació y el porcentaje no se infla.
+      if (!nac || nac < desdeCrias || diasDesde(nac, b.fecha) > MORTALIDAD_VENTANA_DIAS) continue;
+      muertes.push({ clave: `murio-${b.id}`, animalId: b.animal_id, fecha: b.fecha, texto: etiqueta(b.animal_id) });
+    }
+
     senales.push(
-      senalPartos(filas, hoy, etiqueta),
+      senalPartos(filas, hoy, { preparar: g.parto_preparar_dias, vigilar: g.parto_vigilar_dias }, etiqueta),
       ...senalesDiagnostico(filas, hoy, { desde: g.dx_prenez_dia_desde, hasta: g.dx_prenez_dia_hasta }, etiqueta),
       senalSecado(filas, hoy, g.secado_dias_antes_parto, g.ultimo_tercio_dia, etiqueta),
+      senalVaciaSinServicio(filas, hoy, g.vacia_aviso_dias, g.vacia_urgente_dias, etiqueta),
+      senalAbortos((abortosDB.data ?? []) as AbortoReciente[], hoy, etiqueta),
+      senalMortalidadCrias(crias.length, muertes, hoy),
     );
   }
 
