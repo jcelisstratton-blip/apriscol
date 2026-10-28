@@ -6,6 +6,7 @@ import { Encabezado } from "@/components/Encabezado";
 import { PestanasTarjetas } from "@/components/TarjetaOpcion";
 import { armarPestanas } from "@/lib/escenas";
 import { FiltroPeriodo } from "@/components/FiltroPeriodo";
+import { ListaCoprologicos } from "@/components/ListaCoprologicos";
 import { ListaEventos } from "@/components/ListaEventos";
 import { ListaProductos } from "@/components/ListaProductos";
 import { ListaPruebas } from "@/components/ListaPruebas";
@@ -24,6 +25,7 @@ const PESTANAS = [
   { valor: "historial", etiqueta: "Historial", detalle: "Todo lo aplicado" },
   { valor: "productos", etiqueta: "Productos", detalle: "Tu catálogo veterinario" },
   { valor: "pruebas", etiqueta: "Pruebas", detalle: "Diagnósticos del hato" },
+  { valor: "coprologicos", etiqueta: "Coprológicos", detalle: "Huevos de parásitos en heces" },
 ] as const;
 type Vista = (typeof PESTANAS)[number]["valor"];
 
@@ -45,9 +47,14 @@ export default async function PaginaSanidad({
   const tipo: TipoEvento | "todos" = TIPOS_EVENTO.includes(sp.tipo as TipoEvento) ? (sp.tipo as TipoEvento) : "todos";
   const filtroFechas = { periodo, desde: sp.desde, hasta: sp.hasta };
   const rango = rangoPeriodo(periodo, hoyBogota(), sp.desde, sp.hasta);
-  const conFechas = vista === "resumen" || vista === "historial" || vista === "pruebas";
+  const conFechas = vista === "resumen" || vista === "historial" || vista === "pruebas" || vista === "coprologicos";
 
-  const accion = vista === "productos" && puedeEditar ? <EnlaceBoton href="/sanidad/productos/nuevo" ancho={false}>Nuevo producto</EnlaceBoton> : null;
+  const accion =
+    vista === "productos" && puedeEditar ? (
+      <EnlaceBoton href="/sanidad/productos/nuevo" ancho={false}>Nuevo producto</EnlaceBoton>
+    ) : vista === "coprologicos" && puedeEditar ? (
+      <EnlaceBoton href="/hato/sanidad/coprologico/nuevo" ancho={false}>Registrar un examen</EnlaceBoton>
+    ) : null;
 
   return (
     <>
@@ -65,6 +72,7 @@ export default async function PaginaSanidad({
       {vista === "historial" ? <ListaEventos fincaId={finca.id} puedeRegistrar={puedeEditar} rango={rango} tipoInicial={tipo} /> : null}
       {vista === "productos" ? <ListaProductos fincaId={finca.id} puedeEditar={puedeEditar} /> : null}
       {vista === "pruebas" ? <ListaPruebas fincaId={finca.id} puedeEditar={puedeEditar} rango={rango} /> : null}
+      {vista === "coprologicos" ? <ListaCoprologicos fincaId={finca.id} puedeEditar={puedeEditar} rango={rango} /> : null}
     </>
   );
 }

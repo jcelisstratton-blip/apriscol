@@ -79,7 +79,7 @@ export function HistorialSanidadAnimal({ eventos, pruebas, famacha = [], coprolo
           </div>
         ) : f.clase === "coprologico" ? (
           <div className="flex min-h-[4rem] items-start justify-between gap-3 rounded-2xl bg-lana px-3 py-2.5">
-            <span className="min-w-0">
+            <Link href={`/sanidad/coprologico/${f.id}`} className="block min-w-0">
               <span className="block font-semibold">Coprológico · {textoResultado(f)}</span>
               <span className="block text-sm text-humo [overflow-wrap:anywhere]">
                 {ETIQUETA_TECNICA[f.tecnica]} · {formatoFecha(f.fecha, { day: "numeric", month: "short", year: "numeric" })}
@@ -91,7 +91,7 @@ export function HistorialSanidadAnimal({ eventos, pruebas, famacha = [], coprolo
                   <Insignia tono={interpretarHpg(f.hpg).tono}>{interpretarHpg(f.hpg).texto}</Insignia>
                 </span>
               ) : null}
-            </span>
+            </Link>
             {puedeEditar ? (
               <Link href={`/hato/sanidad/coprologico/${f.id}/editar`} className="inline-flex min-h-11 shrink-0 items-center gap-1.5 text-sm font-semibold text-musgo underline-offset-4 hover:underline">
                 <Pencil className="size-3.5" strokeWidth={2} aria-hidden="true" /> Editar

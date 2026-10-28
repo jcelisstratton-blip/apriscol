@@ -62,10 +62,10 @@ export async function TarjetaSanidad({ c }: { c: CtxFicha }) {
       {coproActual.data && lecturaCopro ? (
         <div className="mb-3 rounded-2xl bg-lana px-3 py-2.5">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <span className="min-w-0 text-[0.9375rem]">
+            <Link href={`/sanidad/coprologico/${coproActual.data.examen_id}`} className="min-w-0 text-[0.9375rem] hover:underline">
               <span className="font-semibold">Coprológico · {textoResultado(coproActual.data)}</span>
-              <span className="block text-sm text-humo">{formatoFecha(coproActual.data.ultima_fecha, { day: "numeric", month: "short", year: "numeric" })}</span>
-            </span>
+              <span className="block text-sm text-humo">{formatoFecha(coproActual.data.ultima_fecha, { day: "numeric", month: "short", year: "numeric" })} · ver de dónde salió</span>
+            </Link>
             <Insignia tono={lecturaCopro.tono}>{lecturaCopro.texto}</Insignia>
           </div>
           {!coproActual.data.desparasitado_en && (lecturaCopro.nivel === "alto" || lecturaCopro.nivel === "muy_alto") ? <p className="mt-1.5 text-sm text-humo">{lecturaCopro.accion}</p> : null}

@@ -8,6 +8,7 @@ import { Campo, CLASE_INPUT } from "@/components/Campo";
 import { Chip, FilaDesplazable } from "@/components/FilaDesplazable";
 import { Insignia } from "@/components/Insignia";
 import { Selector } from "@/components/Selector";
+import { SelectorAnimal } from "@/components/SelectorAnimal";
 import { crearCoprologico, editarCoprologico } from "@/app/(app)/sanidad/actions";
 import {
   AYUDA_OOQUISTES,
@@ -32,13 +33,17 @@ const entero = (v: number | null | undefined) => (v === null || v === undefined 
  * dos de la prueba de eficacia: antes o después de aplicarla.
  */
 export function FormCoprologico({
-  animalId,
+  animalId: animalFijo,
+  fincaId,
   hoy,
   examen,
   evento,
   momentoInicial,
 }: {
-  animalId: string;
+  /** El animal, si ya viene elegido (desde su ficha o su desparasitación). Si no, se elige en el formulario. */
+  animalId?: string;
+  /** Hace falta para elegir el animal cuando no viene fijo. */
+  fincaId?: string;
   hoy: string;
   examen?: ExamenCoprologico;
   /** La desparasitación a la que pertenece el examen (prueba de eficacia). */
@@ -46,6 +51,8 @@ export function FormCoprologico({
   momentoInicial?: Exclude<MomentoCoprologico, "diagnostico">;
 }) {
   const editando = Boolean(examen);
+  const [elegido, setElegido] = useState<{ id: string; numero_arete: string; nombre: string | null } | null>(null);
+  const animalId = animalFijo ?? elegido?.id ?? "";
   const [estado, enviar, pendiente] = useActionState(editando ? editarCoprologico : crearCoprologico, undefined);
   const [, iniciar] = useTransition();
   const [tecnica, setTecnica] = useState<TecnicaCoprologico>(examen?.tecnica ?? "mcmaster");
@@ -64,7 +71,7 @@ export function FormCoprologico({
     const datos = new FormData(e.currentTarget);
     iniciar(() => enviar(datos));
   };
-  const volver = eventoId ? `/sanidad/evento/${eventoId}` : `/hato/${animalId}#sanidad`;
+  const volver = eventoId ? `/sanidad/evento/${eventoId}` : animalFijo ? `/hato/${animalFijo}#sanidad` : "/sanidad?vista=coprologicos";
 
   return (
     <form onSubmit={alEnviar} className="space-y-5">
@@ -89,6 +96,12 @@ export function FormCoprologico({
             ))}
           </FilaDesplazable>
         </div>
+      ) : null}
+
+      {!animalFijo && fincaId ? (
+        <Campo etiqueta="Animal" ayuda="A quién se le tomó la muestra. Si fue de varios, anótalo en observaciones y registra el examen del más representativo.">
+          {(idc) => <SelectorAnimal id={idc} nombre="animal_id_elegido" fincaId={fincaId} titulo="¿De qué animal es la muestra?" valor={elegido} onCambio={setElegido} vacio="Elegir animal" soloActivos />}
+        </Campo>
       ) : null}
 
       <Campo etiqueta="Fecha de la muestra">
@@ -141,10 +154,10 @@ export function FormCoprologico({
         {(id) => <textarea id={id} name="observaciones" defaultValue={examen?.observaciones ?? ""} rows={2} maxLength={300} className={`${CLASE_INPUT} py-3`} />}
       </Campo>
 
-      {!hpg.trim() && !opg.trim() ? <Aviso tipo="atencion">Escribe al menos un resultado (HPG u OPG) para guardar.</Aviso> : null}
+      {!animalId ? <Aviso tipo="atencion">Elige el animal para guardar.</Aviso> : !hpg.trim() && !opg.trim() ? <Aviso tipo="atencion">Escribe al menos un resultado (HPG u OPG) para guardar.</Aviso> : null}
       {estado?.error ? <Aviso tipo="error">{estado.error}</Aviso> : null}
       <div className="space-y-2">
-        <Boton type="submit" pendiente={pendiente} cargando="Guardando…" disabled={!hpg.trim() && !opg.trim()}>
+        <Boton type="submit" pendiente={pendiente} cargando="Guardando…" disabled={(!hpg.trim() && !opg.trim()) || !animalId}>
           {editando ? "Guardar cambios" : "Guardar examen"}
         </Boton>
         <Link href={volver} className={clasesBoton("fantasma")}>

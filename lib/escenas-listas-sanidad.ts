@@ -23,3 +23,13 @@ export const ESCENA_RESULTADO_PRUEBA: Record<ResultadoPrueba, EscenaDef> = {
 };
 /** «Todas» en el filtro de pruebas. */
 export const ESCENA_TODAS_PRUEBAS: EscenaDef = escena(LayoutDashboard, "musgo", FlaskConical);
+
+/** Cada nivel de carga de un examen coprológico, con su escena. */
+export const ESCENA_NIVEL_COPROLOGICO: Record<"bajo" | "moderado" | "alto" | "muy_alto", EscenaDef> = {
+  bajo: escena(ShieldCheck, "oliva", Microscope),
+  moderado: escena(CircleHelp, "ocre", Microscope),
+  alto: escena(ShieldAlert, "ambar", Microscope),
+  muy_alto: escena(ShieldAlert, "arcilla", TestTube),
+};
+/** «Todos» en el filtro de exámenes coprológicos. */
+export const ESCENA_TODOS_COPROLOGICOS: EscenaDef = escena(LayoutDashboard, "musgo", Microscope);

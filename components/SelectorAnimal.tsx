@@ -26,6 +26,7 @@ export function SelectorAnimal({
   onCambio,
   excluir,
   incluirInactivos = false,
+  soloActivos = false,
   vacio = "Sin registrar",
 }: {
   id?: string;
@@ -40,6 +41,8 @@ export function SelectorAnimal({
   excluir?: string;
   /** Para padres y madres: el padre de una cría suele estar ya vendido o muerto. */
   incluirInactivos?: boolean;
+  /** Ofrece solo animales activos aunque no se filtre por sexo ni especie. */
+  soloActivos?: boolean;
   /** Lo que se lee cuando no hay animal elegido. */
   vacio?: string;
 }) {
@@ -60,14 +63,14 @@ export function SelectorAnimal({
       if (sexo) q = q.eq("sexo", sexo);
       if (especie) q = q.eq("especie", especie);
       // Los animales que ya salieron del hato también pueden tener premios históricos.
-      if ((sexo || especie) && !incluirInactivos) q = q.eq("estado", "activo");
+      if ((sexo || especie || soloActivos) && !incluirInactivos) q = q.eq("estado", "activo");
       if (excluir) q = q.neq("id", excluir);
       if (limpio) q = q.or(`numero_arete.ilike.%${limpio}%,nombre.ilike.%${limpio}%`);
       const { data, error: e } = await q.order("numero_arete").limit(20);
       if (e) setError(e.message);
       else setResultados(data ?? []);
     },
-    [fincaId, sexo, especie, excluir, incluirInactivos],
+    [fincaId, sexo, especie, excluir, incluirInactivos, soloActivos],
   );
 
   return (
