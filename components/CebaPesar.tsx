@@ -79,7 +79,7 @@ export function CebaPesar({ animales, lotes, hoy, puedeEditar }: { animales: Ani
   const hayLoteSuelto = animales.some((a) => a.loteId === null);
 
   return (
-    <div className="space-y-3 lg:max-w-3xl">
+    <div className="space-y-3 lg:max-w-5xl">
       <p className="px-1 text-[0.9375rem] text-humo">
         {puedeEditar ? "Escribe el peso de cada animal y toca «Guardar». " : "Los animales en engorde con su último peso. "}
         Con dos pesos separados al menos 7 días se calcula cuánto gana por día.
@@ -122,6 +122,7 @@ export function CebaPesar({ animales, lotes, hoy, puedeEditar }: { animales: Ani
           key={`${t}|${lote}`}
           items={visibles}
           clave={(a) => a.id}
+          rejilla="grid-cols-1 lg:grid-cols-2"
           fila={(a) => {
             const nuevo = leerNumero(texto[a.id] ?? "");
             const menos = nuevo !== null && a.ultimoPeso !== null && nuevo < a.ultimoPeso;
