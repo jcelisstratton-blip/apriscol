@@ -6,6 +6,7 @@ import { animalesPorIds } from "@/lib/animal-etiquetas";
 import { etiquetaAnimal } from "@/lib/animal";
 import { hoyBogota, sumarDias } from "@/lib/fechas";
 import { leerTodo } from "@/lib/consultas";
+import { entraEnCeba } from "@/lib/ceba-candidatos";
 
 /** Días desde el último peso para que un animal sin lote siga apareciendo en Ceba. */
 const DIAS_RECIENTE = 90;
@@ -36,9 +37,10 @@ export async function Ceba({
   const ids = new Set<string>();
   const loteDe = new Map<string, string | null>();
   for (const c of datos.values()) {
-    const enLoteAbierto = c.lote_id !== null && abiertos.has(c.lote_id);
-    // Un animal de un lote ya cerrado no sale de ceba aquí por estar cerrado: se ve solo si lo pesaron hace poco.
-    if (enLoteAbierto || (c.fecha_ultimo && c.fecha_ultimo >= reciente)) {
+    // Un animal de un lote ya cerrado no sale de ceba aquí por estar cerrado: se ve solo si lo pesaron de verdad hace poco
+    // (el peso al nacer no cuenta: ver `entraEnCeba`).
+    const { entra, enLoteAbierto } = entraEnCeba(c, abiertos, reciente);
+    if (entra) {
       ids.add(c.animal_id);
       loteDe.set(c.animal_id, enLoteAbierto ? c.lote_id : null);
     }
