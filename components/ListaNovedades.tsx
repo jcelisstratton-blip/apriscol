@@ -13,7 +13,7 @@ import { FilaTarjetas, TarjetaOpcion } from "@/components/TarjetaOpcion";
 import { ESCENA_ESTADO_NOVEDAD, ESCENA_TODAS_NOVEDADES } from "@/lib/escenas-novedades";
 import { eliminarNovedad } from "@/app/(app)/novedades/actions";
 import { crearClienteNavegador } from "@/lib/supabase/client";
-import { atiendeNovedad } from "@/lib/permisos";
+import { atiendeNovedad, destinoNovedades } from "@/lib/permisos";
 import { etiquetaAnimal } from "@/lib/animal";
 import { formatoFecha } from "@/lib/fechas";
 import { ESTADOS_NOVEDAD, ETIQUETA_ESTADO_NOVEDAD, TONO_ESTADO_NOVEDAD, direccionParaRegistrar, resumenNovedad, type EstadoNovedad } from "@/lib/novedades";
@@ -33,6 +33,8 @@ export function ListaNovedades({ fincaId, rol, reviso, estadoInicial, usuarioId 
       const supabase = crearClienteNavegador();
       let q = supabase.from("novedades").select("*", { count: "exact" }).eq("finca_id", fincaId);
       if (estado !== "todas") q = q.eq("estado", estado);
+      // Además de la base de datos, el administrador solo ve las de comprar (lo único que le llega).
+      if (destinoNovedades(rol) === "compra") q = q.eq("tipo", "compra");
       const limpio = busqueda.replace(/[%,()*\\]/g, " ").trim();
       if (limpio) {
         const { data: animales } = await supabase.from("animales").select("id").eq("finca_id", fincaId).or(`numero_arete.ilike.%${limpio}%,nombre.ilike.%${limpio}%`).limit(200);
@@ -49,7 +51,7 @@ export function ListaNovedades({ fincaId, rol, reviso, estadoInicial, usuarioId 
       for (const f of filas) f.animal = f.animal_id ? porId.get(f.animal_id) : undefined;
       return { filas, total: count ?? 0 };
     },
-    [fincaId, busqueda, estado],
+    [fincaId, rol, busqueda, estado],
   );
 
   const hayFiltro = busqueda !== "" || estado !== "todas";
