@@ -80,6 +80,7 @@ correspondiente en `node_modules/next/dist/docs/` (esta versión cambia APIs: `m
   **hojas inferiores** (`Sheet`). Números con el **teclado propio** (`Teclado`), un solo botón principal fijo abajo.
 - Listas que pueden crecer: `ListaEscalable` (tramos de 20, paginación en servidor, «Mostrando X de N») y
   `CampoBusqueda`. Nunca un `.map()` sin límite sobre datos que crecen.
+- **Listas donde se mezclan cabras, cabros, ovejas y carneros** (`SelectorAnimal`, `SelectorAnimales`): se agrupan con encabezado por tipo (`agruparPorTipo` de `lib/animal.ts` + `EncabezadoLista`), sin emojis. El encabezado solo aparece si hay más de un grupo.
 - Mensajes: `Aviso` (info/éxito son una nota; atención/error llevan recuadro sutil), `EstadoVacio` para listas sin
   datos, `useToast()` para confirmaciones pasajeras. Errores técnicos siempre por `mensajeAmigable`. Nada técnico a
   los clientes. Sin emojis decorativos: iconos de trazo fino (lucide). Nunca `<select>`, `confirm`, `alert` ni `prompt`.

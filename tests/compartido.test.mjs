@@ -237,3 +237,17 @@ test("invitación: el correo prellenado en Entrar y Crear cuenta solo vale si se
   assert.equal(correoDeInvitacion("/invitacion/abc", undefined), undefined);
   assert.equal(correoDeInvitacion(undefined, "vet@correo.com"), undefined);
 });
+
+import { agruparPorTipo } from "../lib/animal.ts";
+test("listas de animales: se agrupan en cabras, cabros, ovejas y carneros, en ese orden", () => {
+  const g = agruparPorTipo([
+    { id: 1, especie: "ovino", sexo: "macho" },
+    { id: 2, especie: "caprino", sexo: "macho" },
+    { id: 3, especie: "caprino", sexo: "hembra" },
+    { id: 4, especie: "ovino", sexo: "hembra" },
+    { id: 5, especie: "caprino", sexo: "hembra" },
+  ]);
+  assert.deepEqual(g.map((x) => [x.titulo, x.items.map((i) => i.id)]), [["Cabras", [3, 5]], ["Cabros", [2]], ["Ovejas", [4]], ["Carneros", [1]]]);
+  // Sin especie ni sexo (listas que no los traen) queda un solo grupo sin título, en el orden recibido.
+  assert.deepEqual(agruparPorTipo([{ id: 1 }, { id: 2 }]).map((x) => [x.titulo, x.items.length]), [[null, 2]]);
+});

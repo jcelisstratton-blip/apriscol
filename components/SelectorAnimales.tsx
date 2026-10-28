@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { Fragment, useCallback, useEffect, useState } from "react";
 import { Check, Users, X } from "lucide-react";
 import { Aviso } from "@/components/Aviso";
 import { Boton } from "@/components/Boton";
@@ -10,13 +10,14 @@ import { CLASE_INPUT } from "@/components/Campo";
 import { Chip, FilaDesplazable } from "@/components/FilaDesplazable";
 import { Sheet } from "@/components/Sheet";
 import { crearClienteNavegador } from "@/lib/supabase/client";
-import { etiquetaAnimal } from "@/lib/animal";
+import { EncabezadoLista } from "@/components/EncabezadoLista";
+import { agruparPorTipo, etiquetaAnimal } from "@/lib/animal";
 import { hoyBogota, sumarDias } from "@/lib/fechas";
 import { estadoFamacha } from "@/lib/famacha";
 import { diasEntrePediluvios, mesDeFecha } from "@/lib/ajustes";
-import type { Especie } from "@/lib/tipos";
+import type { Especie, SexoAnimal } from "@/lib/tipos";
 
-export type AnimalElegido = { id: string; numero_arete: string; nombre: string | null };
+export type AnimalElegido = { id: string; numero_arete: string; nombre: string | null; especie?: Especie; sexo?: SexoAnimal };
 
 const MAXIMO = 1000;
 
@@ -66,7 +67,7 @@ export function SelectorAnimales({
       setError(null);
       setResultados(null);
       const limpio = texto.replace(/[%,()*\\]/g, " ").trim();
-      let q = crearClienteNavegador().from("animales").select("id, numero_arete, nombre").eq("finca_id", fincaId).eq("estado", "activo").is("deleted_at", null);
+      let q = crearClienteNavegador().from("animales").select("id, numero_arete, nombre, especie, sexo").eq("finca_id", fincaId).eq("estado", "activo").is("deleted_at", null);
       if (limpio) q = q.or(`numero_arete.ilike.%${limpio}%,nombre.ilike.%${limpio}%`);
       const { data, error: e } = await q.order("numero_arete").limit(20);
       if (e) setError(e.message);
@@ -235,7 +236,12 @@ export function SelectorAnimales({
             {resultados === null && !error ? <Cargando texto="Buscando…" /> : null}
             {resultados?.length === 0 ? <p className="py-4 text-center text-sm text-humo">No hay animales activos que coincidan.</p> : null}
             <ul className="-mx-2 space-y-0.5">
-              {resultados?.map((r) => {
+              {(() => {
+                const grupos = agruparPorTipo(resultados ?? []);
+                return grupos.map((g) => (
+                  <Fragment key={g.titulo ?? "otros"}>
+                    {g.titulo && grupos.length > 1 ? <EncabezadoLista titulo={g.titulo} /> : null}
+                    {g.items.map((r) => {
                 const activo = elegidos.has(r.id);
                 return (
                   <li key={r.id}>
@@ -252,7 +258,10 @@ export function SelectorAnimales({
                     </button>
                   </li>
                 );
-              })}
+                    })}
+                  </Fragment>
+                ));
+              })()}
             </ul>
           </div>
 
