@@ -17,6 +17,9 @@ correspondiente en `node_modules/next/dist/docs/` (esta versión cambia APIs: `m
    `id_propietario` por tabla: los permisos salen de `finca_miembros` + `private.puede_ver/puede_escribir`.
 3. **Tabla nueva ⇒ RLS en la misma migración**: `select private.crear_politicas_finca('<tabla>', '<modulo>');` y
    `grant … to authenticated` (nunca a `anon`). Una tabla sin RLS no se mergea.
+   **Las políticas de lectura usan `finca_id in (select private.fincas_ver('<modulo>'))`** (lo hace `crear_politicas_finca`), nunca
+   `(select private.puede_ver(finca_id, …))`: con una columna de la fila Postgres evalúa la función por cada fila (leer 16.548 ordeños
+   costaba 3,2 s; por conjunto, 4 ms). Una política escrita a mano sigue el mismo patrón (`fincas_ver` / `fincas_miembro`).
 4. **Migraciones versionadas** en `supabase/migrations/<timestamp>_<descripcion>.sql`. Nada de cambios sueltos en la
    consola de Supabase. Se aplican al proyecto y el archivo queda con la misma versión que registra Supabase.
    Deben ser **retrocompatibles** (agregar antes de quitar): la base cambia antes de que Vercel termine de desplegar.
