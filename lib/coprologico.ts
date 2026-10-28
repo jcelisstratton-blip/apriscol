@@ -18,6 +18,16 @@ export const AYUDA_TECNICA: Record<TecnicaCoprologico, string> = {
   otra: "Otra técnica del laboratorio.",
 };
 
+/** Cómo se recogió la muestra: directo del animal (limpia) o del piso (contaminada). */
+export type TipoMuestra = "limpia" | "contaminada";
+export const TIPOS_MUESTRA: TipoMuestra[] = ["limpia", "contaminada"];
+export const ETIQUETA_MUESTRA: Record<TipoMuestra, string> = { limpia: "Muestra limpia", contaminada: "Muestra contaminada" };
+export const DETALLE_MUESTRA: Record<TipoMuestra, string> = { limpia: "Directamente del animal", contaminada: "Recogida del piso" };
+export const AYUDA_MUESTRA: Record<TipoMuestra, string> = {
+  limpia: "Se toma de las heces recién salidas o directo del recto: así se sabe con certeza de qué animal es y no trae tierra ni parásitos del suelo.",
+  contaminada: "Las heces del piso pueden traer tierra, parásitos del ambiente y mezcla de varios animales: no se sabe con certeza de cuál es. Sirve como orientación del corral, no para tratar a un animal.",
+};
+
 export type MomentoCoprologico = "diagnostico" | "antes" | "despues";
 export const ETIQUETA_MOMENTO: Record<MomentoCoprologico, string> = {
   diagnostico: "Diagnóstico",
@@ -55,7 +65,7 @@ export function interpretarHpg(hpg: number): InterpretacionHpg {
 export const AYUDA_OOQUISTES = "Los ooquistes se leen junto con la edad y la diarrea: en cabritos y corderos de pocas semanas pesan más. Su conteo es poco repetible: no decide solo el tratamiento.";
 
 /** Un examen contado (con HPG): lo que hace falta para la prueba de eficacia. */
-export type ExamenEficacia = { animal_id: string; momento: MomentoCoprologico; hpg: number | null };
+export type ExamenEficacia = { animal_id: string; momento: MomentoCoprologico; hpg: number | null; /** Una muestra contaminada (del piso) no cuenta: no se sabe de qué animal es. */ tipo_muestra?: TipoMuestra | null };
 
 export type ResultadoEficacia = {
   /** Animales con examen antes y después. */
@@ -81,7 +91,7 @@ export function eficaciaDesparasitante(examenes: ExamenEficacia[]): ResultadoEfi
   const antes = new Map<string, number>();
   const despues = new Map<string, number>();
   for (const e of examenes) {
-    if (e.hpg === null) continue;
+    if (e.hpg === null || e.tipo_muestra === "contaminada") continue;
     if (e.momento === "antes") antes.set(e.animal_id, e.hpg);
     else if (e.momento === "despues") despues.set(e.animal_id, e.hpg);
   }

@@ -6,6 +6,7 @@ import { EliminarRegistro } from "@/components/EliminarRegistro";
 import { Encabezado } from "@/components/Encabezado";
 import { FormCoprologico } from "@/components/FormCoprologico";
 import { obtenerContexto } from "@/lib/contexto";
+import { cargarVeterinarios } from "@/lib/veterinarios-servidor";
 import { crearClienteServidor } from "@/lib/supabase/server";
 import { puedeEscribir } from "@/lib/permisos";
 import { etiquetaAnimal } from "@/lib/animal";
@@ -27,6 +28,7 @@ export default async function PaginaEditarCoprologico({ params }: { params: Prom
   if (!puedeEscribir(rol, "sanidad", finca.plan)) redirect(`/hato/${examen.animal_id}`);
   const { data: animal } = await supabase.from("animales").select("id, numero_arete, nombre").eq("id", examen.animal_id).eq("finca_id", finca.id).maybeSingle();
   if (!animal) notFound();
+  const { veterinarios, puedeAgregar } = await cargarVeterinarios(supabase, finca, rol);
   let ev: { id: string; titulo: string } | undefined;
   if (examen.evento_id) {
     const { data: e } = await supabase.from("eventos_sanitarios").select("id, tipo, producto_nombre").eq("id", examen.evento_id).eq("finca_id", finca.id).maybeSingle();
@@ -41,7 +43,7 @@ export default async function PaginaEditarCoprologico({ params }: { params: Prom
       </Link>
       <Encabezado titulo="Editar examen coprológico" subtitulo={etiquetaAnimal(animal)} />
       <div className="space-y-8 lg:max-w-xl">
-        <FormCoprologico animalId={animal.id} hoy={hoyBogota()} examen={examen} evento={ev} />
+        <FormCoprologico animalId={animal.id} hoy={hoyBogota()} examen={examen} evento={ev} veterinarios={veterinarios} puedeAgregarVeterinario={puedeAgregar} />
         <EliminarRegistro
           etiqueta="Eliminar este examen"
           resumen={`${textoResultado(examen)} del ${formatoFecha(examen.fecha)}`}

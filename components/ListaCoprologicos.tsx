@@ -7,12 +7,12 @@ import { CampoBusqueda } from "@/components/CampoBusqueda";
 import { EnlaceBoton } from "@/components/Boton";
 import { EstadoVacio } from "@/components/EstadoVacio";
 import { FilaTarjetas, TarjetaOpcion } from "@/components/TarjetaOpcion";
-import { Insignia } from "@/components/Insignia";
 import { ListaEscalable } from "@/components/ListaEscalable";
+import { TarjetasExamen } from "@/components/TarjetasExamen";
 import { ESCENA_NIVEL_COPROLOGICO, ESCENA_TODOS_COPROLOGICOS } from "@/lib/escenas-listas-sanidad";
 import { crearClienteNavegador } from "@/lib/supabase/client";
 import { etiquetaAnimal } from "@/lib/animal";
-import { ETIQUETA_MOMENTO, ETIQUETA_TECNICA, HPG_ALTO, HPG_BAJO, HPG_MUY_ALTO, interpretarHpg, textoResultado, type NivelHpg } from "@/lib/coprologico";
+import { HPG_ALTO, HPG_BAJO, HPG_MUY_ALTO, type NivelHpg } from "@/lib/coprologico";
 import { formatoFecha } from "@/lib/fechas";
 import type { ExamenCoprologico } from "@/lib/tipos";
 
@@ -77,21 +77,12 @@ export function ListaCoprologicos({ fincaId, puedeEditar, rango = { desde: null,
         key={`${busqueda}|${nivel}|${rango.desde}|${rango.hasta}`}
         cargar={cargar}
         clave={(x) => x.id}
-        fila={(x) => {
-          const lectura = x.hpg !== null && x.momento === "diagnostico" ? interpretarHpg(x.hpg) : null;
-          return (
-            <div className="flex items-start gap-3 rounded-2xl bg-papel px-3.5 py-3 ring-1 ring-arena">
+        fila={(x) => (
+          <div className="space-y-2 rounded-2xl bg-papel px-3.5 py-3 ring-1 ring-arena">
+            <div className="flex items-start justify-between gap-3">
               <Link href={`/sanidad/coprologico/${x.id}`} className="block min-w-0 flex-1">
-                <span className="block font-bold [overflow-wrap:anywhere]">{textoResultado(x)}</span>
-                <span className="block text-sm text-humo [overflow-wrap:anywhere]">{x.animal ? etiquetaAnimal(x.animal) : "Animal"}</span>
-                <span className="block text-sm text-humo [overflow-wrap:anywhere]">
-                  {formatoFecha(x.fecha, { day: "numeric", month: "short", year: "numeric" })} · {ETIQUETA_TECNICA[x.tecnica]}
-                  {x.laboratorio ? ` · ${x.laboratorio}` : ""}
-                </span>
-                <span className="mt-1.5 flex flex-wrap gap-1.5">
-                  {lectura ? <Insignia tono={lectura.tono}>{lectura.texto}</Insignia> : null}
-                  {x.momento !== "diagnostico" ? <Insignia>{ETIQUETA_MOMENTO[x.momento]}</Insignia> : null}
-                </span>
+                <span className="block font-bold [overflow-wrap:anywhere]">{x.animal ? etiquetaAnimal(x.animal) : "Animal"}</span>
+                <span className="block text-sm text-humo">{formatoFecha(x.fecha, { day: "numeric", month: "short", year: "numeric" })} · ver el detalle</span>
               </Link>
               {puedeEditar ? (
                 <Link href={`/hato/sanidad/coprologico/${x.id}/editar`} className="inline-flex min-h-11 shrink-0 items-center gap-1.5 text-sm font-semibold text-musgo underline-offset-4 hover:underline">
@@ -99,8 +90,9 @@ export function ListaCoprologicos({ fincaId, puedeEditar, rango = { desde: null,
                 </Link>
               ) : null}
             </div>
-          );
-        }}
+            <TarjetasExamen x={x} compacta />
+          </div>
+        )}
         vacio={
           hayFiltro ? (
             <EstadoVacio icono={<Microscope strokeWidth={1.5} />} titulo="Ningún examen coincide" descripcion="Prueba con otro nombre o quita el filtro." />

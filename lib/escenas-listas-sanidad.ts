@@ -33,3 +33,9 @@ export const ESCENA_NIVEL_COPROLOGICO: Record<"bajo" | "moderado" | "alto" | "mu
 };
 /** «Todos» en el filtro de exámenes coprológicos. */
 export const ESCENA_TODOS_COPROLOGICOS: EscenaDef = escena(LayoutDashboard, "musgo", Microscope);
+
+/** Cómo se recogió la muestra del coprológico: directo del animal o del piso. */
+export const ESCENA_MUESTRA: Record<"limpia" | "contaminada", EscenaDef> = {
+  limpia: escena(ShieldCheck, "oliva", Microscope),
+  contaminada: escena(ShieldAlert, "arcilla", TestTube),
+};

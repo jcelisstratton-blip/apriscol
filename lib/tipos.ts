@@ -628,6 +628,10 @@ export type ExamenCoprologico = {
   opg: number | null;
   otros_parasitos: string[];
   laboratorio: string | null;
+  /** Cómo se recogió: directo del animal (limpia) o del piso (contaminada). Nulo en los exámenes anteriores. */
+  tipo_muestra: "limpia" | "contaminada" | null;
+  /** Quién tomó la muestra: el veterinario de la finca u otra persona. */
+  tomada_por: string | null;
   observaciones: string | null;
   client_request_id: string | null;
   created_by: string | null;
