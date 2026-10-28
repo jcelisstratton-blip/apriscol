@@ -45,7 +45,7 @@ export const ATAJOS: Atajo[] = [
   { grupo: "Hato", tipo: "ir", titulo: "Endogamia", detalle: "Parentesco de todo el hato", href: "/hato/endogamia", Icono: GitFork, modulo: "hato", clave: "genealogia parentesco consanguinidad" },
   { grupo: "Hato", tipo: "ir", titulo: "Simular una cruza", detalle: "Mira la endogamia de una pareja antes de montarla", href: "/hato/cruza", Icono: Shuffle, modulo: "hato", clave: "cruce pareja" },
 
-  { grupo: "Hato", tipo: "registrar", titulo: "Crear una novedad", detalle: "Avisa al administrador y al veterinario; solo eliges opciones", href: "/novedades/nueva", Icono: Inbox, modulo: "novedades", clave: "novedad aviso reportar vacuna prueba diagnostica animal enfermo" },
+  { grupo: "Hato", tipo: "registrar", titulo: "Crear una novedad", detalle: "Avisa qué hay que comprar o aplicar; solo eliges opciones", href: "/novedades/nueva", Icono: Inbox, modulo: "novedades", clave: "novedad aviso reportar vacuna prueba diagnostica animal enfermo" },
   { grupo: "Hato", tipo: "ir", titulo: "Novedades", detalle: "Lo que el equipo ha avisado de los animales", href: "/novedades", Icono: Inbox, modulo: "novedades", clave: "avisos reportes novedad" },
 
   // Leche

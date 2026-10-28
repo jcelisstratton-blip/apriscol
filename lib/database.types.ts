@@ -1409,7 +1409,7 @@ export type Database = {
       novedades: {
         Row: {
           anestesia: string | null
-          animal_id: string
+          animal_id: string | null
           categoria: string | null
           categoria_producto: string | null
           client_request_id: string | null
@@ -1417,10 +1417,13 @@ export type Database = {
           cojera: number | null
           created_by: string | null
           enviada_por_nombre: string
+          compra_producto_id: string | null
+          compra_producto_nombre: string | null
           estado: string
           etapa: string | null
           fecha: string
           finca_id: string
+          grupo_compra: string | null
           id: string
           lote: string | null
           motivo: string | null
@@ -1440,7 +1443,7 @@ export type Database = {
         }
         Insert: {
           anestesia?: string | null
-          animal_id: string
+          animal_id?: string | null
           categoria?: string | null
           categoria_producto?: string | null
           client_request_id?: string | null
@@ -1448,10 +1451,13 @@ export type Database = {
           cojera?: number | null
           created_by?: string | null
           enviada_por_nombre: string
+          compra_producto_id?: string | null
+          compra_producto_nombre?: string | null
           estado?: string
           etapa?: string | null
           fecha: string
           finca_id: string
+          grupo_compra?: string | null
           id?: string
           lote?: string | null
           motivo?: string | null
@@ -1471,7 +1477,7 @@ export type Database = {
         }
         Update: {
           anestesia?: string | null
-          animal_id?: string
+          animal_id?: string | null
           categoria?: string | null
           categoria_producto?: string | null
           client_request_id?: string | null
@@ -1479,10 +1485,13 @@ export type Database = {
           cojera?: number | null
           created_by?: string | null
           enviada_por_nombre?: string
+          compra_producto_id?: string | null
+          compra_producto_nombre?: string | null
           estado?: string
           etapa?: string | null
           fecha?: string
           finca_id?: string
+          grupo_compra?: string | null
           id?: string
           lote?: string | null
           motivo?: string | null

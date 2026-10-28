@@ -17,7 +17,7 @@ import { esBaja } from "@/lib/produccion";
 import { EnlaceBoton } from "@/components/Boton";
 import { obtenerContexto } from "@/lib/contexto";
 import { crearClienteServidor } from "@/lib/supabase/server";
-import { puedeEscribir, puedeVer, revisaNovedades } from "@/lib/permisos";
+import { destinoNovedades, puedeEscribir, puedeVer } from "@/lib/permisos";
 import { diasHasta, formatoFecha, hoyBogota, litros, sumarDias } from "@/lib/fechas";
 import { etiquetaAnimal, saludo } from "@/lib/animal";
 import { pesos } from "@/lib/ferias";
@@ -137,9 +137,12 @@ export default async function PaginaHoy({ searchParams }: { searchParams: Promis
     : null;
 
   // Novedades nuevas del equipo (solo quien las revisa); si falla no debe tumbar la pantalla de inicio.
-  const novedadesNuevas = revisaNovedades(rol) && puedeVer(rol, "novedades", finca.plan)
-    ? await supabase.from("novedades").select("id", { count: "exact", head: true }).eq("finca_id", finca.id).eq("estado", "nueva").then((r) => r.count ?? 0, () => 0)
-    : 0;
+  // Solo las que le llegan a su perfil: el administrador, las de comprar; el veterinario, las de aplicar dosis; el propietario, todas.
+  const destinoNovedad = destinoNovedades(rol);
+  let consultaNovedades = supabase.from("novedades").select("id", { count: "exact", head: true }).eq("finca_id", finca.id).eq("estado", "nueva");
+  if (destinoNovedad === "compra") consultaNovedades = consultaNovedades.eq("tipo", "compra");
+  if (destinoNovedad === "no_compra") consultaNovedades = consultaNovedades.neq("tipo", "compra");
+  const novedadesNuevas = destinoNovedad && puedeVer(rol, "novedades", finca.plan) ? await consultaNovedades.then((r) => r.count ?? 0, () => 0) : 0;
 
   const nombrePila = (perfil?.nombre ?? "").split(" ")[0];
 
@@ -200,20 +203,20 @@ export default async function PaginaHoy({ searchParams }: { searchParams: Promis
                 <Inbox className="size-6 shrink-0 text-musgo" strokeWidth={1.75} aria-hidden="true" />
                 <span className="min-w-0">
                   <span className="block font-bold">{novedadesNuevas} {novedadesNuevas === 1 ? "novedad nueva" : "novedades nuevas"}</span>
-                  <span className="block text-sm text-humo">Lo que el equipo contó de los animales</span>
+                  <span className="block text-sm text-humo">Lo que el equipo avisó que hace falta</span>
                 </span>
               </span>
               <ChevronRight className="size-5 shrink-0 text-humo" strokeWidth={2} aria-hidden="true" />
             </Link>
           ) : null}
 
-          {puedeEscribir(rol, "novedades", finca.plan) && !revisaNovedades(rol) ? (
+          {puedeEscribir(rol, "novedades", finca.plan) ? (
             <Link href="/novedades/nueva" className="flex min-h-14 items-center justify-between gap-3 rounded-3xl bg-papel px-4 py-3 ring-1 ring-arena">
               <span className="flex min-w-0 items-center gap-3">
                 <Inbox className="size-6 shrink-0 text-musgo" strokeWidth={1.75} aria-hidden="true" />
                 <span className="min-w-0">
                   <span className="block font-bold">Crear una novedad</span>
-                  <span className="block text-sm text-humo">Avisa al administrador y al veterinario; solo eliges opciones</span>
+                  <span className="block text-sm text-humo">Avisa qué hay que comprar o aplicar; solo eliges opciones</span>
                 </span>
               </span>
               <ChevronRight className="size-5 shrink-0 text-humo" strokeWidth={2} aria-hidden="true" />

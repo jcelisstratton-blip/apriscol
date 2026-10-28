@@ -7,17 +7,25 @@ import { Encabezado } from "@/components/Encabezado";
 import { FormNovedad } from "@/components/FormNovedad";
 import { obtenerContexto } from "@/lib/contexto";
 import { crearClienteServidor } from "@/lib/supabase/server";
-import { puedeEscribir } from "@/lib/permisos";
+import { puedeEscribir, tiposNovedadQueCrea } from "@/lib/permisos";
+import { obtenerProductos } from "@/lib/catalogos-servidor";
+import { GRUPO_DE } from "@/lib/costos";
 import { etiquetaAnimal } from "@/lib/animal";
 
 export const metadata: Metadata = { title: "Crear una novedad" };
 const ID_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-/** Enviar una novedad sobre un animal (se llega desde su ficha): se eligen las opciones, no se escribe nada. */
+/** Enviar una novedad (comprar o aplicar una dosis; desde la ficha de un animal ya viene el animal): se eligen las opciones, no se escribe nada. */
 export default async function PaginaNovedadNueva({ searchParams }: { searchParams: Promise<{ animal?: string }> }) {
   const { finca, rol } = await obtenerContexto();
   const { animal } = await searchParams;
   if (!puedeEscribir(rol, "novedades", finca.plan)) redirect("/");
+  const tipos = tiposNovedadQueCrea(rol);
+  if (tipos.length === 0) redirect("/");
+  // El catálogo de Compras (activos y de compra) para elegir qué comprar.
+  const productos = (await obtenerProductos())
+    .filter((p) => p.tipo === "compra" && p.activo && p.rubro)
+    .map((p) => ({ id: p.id, nombre: p.nombre, grupo: GRUPO_DE[p.rubro!] }));
   const supabase = await crearClienteServidor();
   // Con un animal (desde su ficha) viene elegido; sin él (desde Sanidad) se elige en el formulario.
   let data: { id: string; numero_arete: string; nombre: string | null; estado: string } | null = null;
@@ -35,7 +43,7 @@ export default async function PaginaNovedadNueva({ searchParams }: { searchParam
       </Link>
       <Encabezado titulo="Crear una novedad" subtitulo={data ? etiquetaAnimal(data) : finca.nombre} />
       <div className="lg:max-w-xl">
-        <FormNovedad animalId={data?.id} animalTexto={data ? etiquetaAnimal(data) : undefined} fincaId={finca.id} solicitud={randomUUID()} />
+        <FormNovedad animalId={data?.id} animalTexto={data ? etiquetaAnimal(data) : undefined} fincaId={finca.id} solicitud={randomUUID()} tipos={tipos} productos={productos} />
       </div>
     </>
   );

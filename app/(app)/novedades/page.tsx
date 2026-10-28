@@ -11,8 +11,8 @@ import { ESTADOS_NOVEDAD, type EstadoNovedad } from "@/lib/novedades";
 export const metadata: Metadata = { title: "Novedades" };
 
 /**
- * Novedades: avisos informativos del equipo sobre los animales (una aplicación o una prueba diagnóstica), siempre con el nombre de quien los envió.
- * El propietario, el administrador y el veterinario ven todas y las marcan; el ordeñador ve las suyas. Es lo primero del menú para quien las revisa.
+ * Novedades: avisos informativos del equipo sobre los animales (comprar o aplicar una dosis), siempre con el nombre de quien los envió.
+ * El administrador atiende las de comprar y el veterinario las de aplicar dosis; el propietario, ambas. Quien las crea (ordeñador, veterinario) ve las suyas. Es lo primero del menú para quien las revisa.
  */
 export default async function PaginaNovedades({ searchParams }: { searchParams: Promise<{ estado?: string; enviada?: string }> }) {
   const { finca, rol, user } = await obtenerContexto();
@@ -25,7 +25,7 @@ export default async function PaginaNovedades({ searchParams }: { searchParams: 
     <>
       <AvisoGuardado activo={sp.enviada === "1"} texto="Novedad enviada" />
       <Encabezado titulo={reviso ? "Novedades" : "Mis novedades"} subtitulo={finca.nombre} acciones={puedeEscribir(rol, "novedades", finca.plan) ? <EnlaceBoton href="/novedades/nueva" ancho={false}>Crear una novedad</EnlaceBoton> : null} />
-      <ListaNovedades fincaId={finca.id} reviso={reviso} estadoInicial={inicial} usuarioId={user.id} />
+      <ListaNovedades fincaId={finca.id} rol={rol} reviso={reviso} estadoInicial={inicial} usuarioId={user.id} />
     </>
   );
 }

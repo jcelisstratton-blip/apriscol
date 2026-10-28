@@ -614,13 +614,18 @@ export type EvaluacionFamacha = {
 /** La última evaluación FAMACHA de un animal activo y cuándo se le desparasitó desde entonces (vista `v_famacha_animal`). */
 export type FamachaAnimal = { animal_id: string; finca_id: string; evaluacion_id: string; ultima_fecha: string; puntaje: number; desparasitado_en: string | null };
 
-/** Una novedad: un aviso informativo (solo por selección) sobre un animal, que envía quien trabaja con él y revisan el propietario, el administrador y el veterinario. */
+/** Una novedad: un aviso informativo (solo por selección). «Comprar» llega al administrador; «Aplicar dosis» (sobre un animal), al veterinario; el propietario atiende ambas. */
 export type Novedad = {
   id: string;
   finca_id: string;
-  animal_id: string;
-  tipo: "aplicacion" | "prueba" | "coprologico" | "famacha";
+  /** Nulo en una novedad de compra (no es de un animal). */
+  animal_id: string | null;
+  tipo: "compra" | "aplicacion" | "prueba" | "coprologico" | "famacha";
   fecha: string;
+  /** Si es una compra: el grupo del catálogo de Compras y el producto elegido (o solo el grupo, con «Otro producto» en las observaciones). */
+  grupo_compra: "alimentacion" | "sanidad" | "reproduccion" | "logistica" | "operacion" | null;
+  compra_producto_id: string | null;
+  compra_producto_nombre: string | null;
   /** Si es una aplicación: qué se hizo (vacunación, desparasitación…) y sus opciones, como en «Registrar una aplicación». */
   tipo_evento: TipoEvento | null;
   categoria: string | null;

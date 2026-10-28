@@ -102,7 +102,7 @@ export default async function PaginaHato({ searchParams }: { searchParams: Promi
       ) : enSanidad ? (
         <div className="space-y-4">
           <TarjetasHato especies={finca.especies} vistas={vistas} conteos={conteos} vistaActiva="sanidad" />
-          <Sanidad fincaId={finca.id} puedeEditar={puedeEscribir(rol, "sanidad", finca.plan)} guardado={sp.guardado === "1"} />
+          <Sanidad fincaId={finca.id} puedeEditar={puedeEscribir(rol, "sanidad", finca.plan)} puedeNovedad={puedeEscribir(rol, "novedades", finca.plan)} guardado={sp.guardado === "1"} />
         </div>
       ) : enCorrales ? (
         <div className="space-y-4">

@@ -100,11 +100,13 @@ test("novedades: es lo primero del menú; quien las revisa ve «Novedades», el 
 });
 
 import { atajosPara } from "../lib/atajos.ts";
-test("novedades: «Crear una novedad» está en «Al grano» para el ordeñador, el veterinario, el administrador y el propietario, y no para el contador", () => {
-  for (const rol of ["ordenador", "veterinario", "administrador", "propietario"]) {
+test("novedades: «Crear una novedad» está en «Al grano» solo para el ordeñador y el veterinario; el administrador y el propietario las atienden, no las crean", () => {
+  for (const rol of ["ordenador", "veterinario"]) {
     const a = atajosPara(rol, "hato").find((x) => x.href === "/novedades/nueva");
     assert.ok(a, rol);
     assert.equal(a.titulo, "Crear una novedad");
   }
-  assert.ok(!atajosPara("contador", "hato").some((x) => x.href === "/novedades/nueva"));
+  for (const rol of ["administrador", "propietario", "contador"]) assert.ok(!atajosPara(rol, "hato").some((x) => x.href === "/novedades/nueva"), rol);
+  // Todos los que las atienden ven «Novedades» en «Al grano».
+  for (const rol of ["administrador", "propietario", "veterinario"]) assert.ok(atajosPara(rol, "hato").some((x) => x.href === "/novedades"), rol);
 });

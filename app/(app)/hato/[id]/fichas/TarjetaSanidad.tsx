@@ -146,7 +146,7 @@ export async function TarjetaSanidad({ c }: { c: CtxFicha }) {
               <Link href={`/novedades/nueva?animal=${id}`} className={clasesBoton("secundario")}>
                 <Inbox className="size-5" strokeWidth={2} aria-hidden="true" /> Crear una novedad
               </Link>
-              <p className="mt-1.5 text-[0.8125rem] text-humo">Avisa al administrador y al veterinario, solo eligiendo opciones; no es un registro oficial.</p>
+              <p className="mt-1.5 text-[0.8125rem] text-humo">Avisa qué hay que comprar, solo eligiendo opciones; no es un registro oficial.</p>
             </div>
           ) : null}
           <div>

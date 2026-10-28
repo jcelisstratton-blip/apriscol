@@ -10,7 +10,7 @@ import { ETIQUETA_ESTADO_NOVEDAD, TONO_ESTADO_NOVEDAD, resumenNovedad } from "@/
 import { puedeEscribir, puedeVer } from "@/lib/permisos";
 import type { CtxFicha } from "./contexto";
 
-/** Las novedades de este animal y el botón para enviar una (solo eligiendo opciones). Quien revisa ve todas las del animal; el ordeñador, las suyas. */
+/** Las novedades de este animal y el botón para enviar una (solo eligiendo opciones). Cada perfil ve las que le llegan y las que creó. */
 export async function TarjetaNovedades({ c }: { c: CtxFicha }) {
   const { id, animal, finca, rol, supabase } = c;
   if (!puedeVer(rol, "novedades", finca.plan)) return null;
@@ -54,7 +54,7 @@ export async function TarjetaNovedades({ c }: { c: CtxFicha }) {
           <Link href={`/novedades/nueva?animal=${id}`} className={clasesBoton("primario")}>
             <Inbox className="size-5" strokeWidth={2} aria-hidden="true" /> Crear una novedad
           </Link>
-          <p className="mt-1.5 text-[0.8125rem] text-humo">Pídele al administrador y al veterinario una aplicación o una prueba diagnóstica. Solo eliges opciones.</p>
+          <p className="mt-1.5 text-[0.8125rem] text-humo">Avisa qué hay que comprar o una dosis que hay que aplicar. Solo eliges opciones.</p>
         </div>
       ) : null}
     </Tarjeta>

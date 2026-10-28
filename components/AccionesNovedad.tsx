@@ -9,7 +9,7 @@ import { marcarNovedad } from "@/app/(app)/novedades/actions";
 import type { EstadoNovedad } from "@/lib/novedades";
 
 /** Lo que hace quien revisa una novedad: marcarla vista o atendida, o registrarla de verdad en Sanidad. */
-export function AccionesNovedad({ id, estado, registrar, alCambiar }: { id: string; estado: EstadoNovedad; registrar: string; alCambiar?: () => void }) {
+export function AccionesNovedad({ id, estado, registrar, textoRegistrar = "Registrar de verdad", alCambiar }: { id: string; estado: EstadoNovedad; registrar: string; textoRegistrar?: string; alCambiar?: () => void }) {
   const [pendiente, iniciar] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const toast = useToast();
@@ -41,7 +41,7 @@ export function AccionesNovedad({ id, estado, registrar, alCambiar }: { id: stri
           </button>
         )}
         <Link href={registrar} className={`${clase} text-musgo`}>
-          Registrar de verdad
+          {textoRegistrar}
         </Link>
       </div>
     </div>
