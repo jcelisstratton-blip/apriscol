@@ -4769,6 +4769,7 @@ export type Database = {
           fin_retiro_leche: string | null
           finca_id: string | null
           id: string | null
+          lote_producto: string | null
           producto_nombre: string | null
           proxima_fecha: string | null
           retiro_carne_dias: number | null
@@ -4797,6 +4798,7 @@ export type Database = {
           fin_retiro_leche: string | null
           finca_id: string | null
           id: string | null
+          lote_producto: string | null
           primer_animal: string | null
           primer_animal_id: string | null
           producto_id: string | null

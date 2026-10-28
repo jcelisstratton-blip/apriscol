@@ -323,3 +323,10 @@ test("sanidad: cada tipo pide y guarda lo suyo", () => {
   assert.equal(REGLAS.pediluvio.retiro, "oculto");
   assert.equal(REGLAS.podologia.retiro, "segun_medicamento");
 });
+
+test("sanidad: todo tipo que lleva producto pide el lote del producto", () => {
+  for (const t of ["vacunacion", "desparasitacion", "tratamiento", "podologia", "pediluvio", "cirugia", "otro"]) assert.equal(REGLAS[t].lote, true, t);
+  // Una podología sin medicamento no guarda lote; con medicamento sí.
+  assert.equal(datosPorTipoEvento("podologia", { categoria: "recorte" }, false).limpiar?.lote, true);
+  assert.equal(datosPorTipoEvento("podologia", { categoria: "recorte", producto: "Oxitetraciclina", dosis: 2, via: "topica" }, false).limpiar?.lote, false);
+});

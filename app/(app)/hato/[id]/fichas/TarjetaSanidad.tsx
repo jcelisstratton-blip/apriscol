@@ -38,6 +38,7 @@ export async function TarjetaSanidad({ c }: { c: CtxFicha }) {
     fecha: e.fecha ?? "",
     tipo: e.tipo,
     producto_nombre: e.producto_nombre,
+    lote_producto: e.lote_producto,
     evento_id: e.id ?? "",
     retiro_leche_hasta: e.fin_retiro_leche && (e.retiro_leche_dias ?? 0) > 0 && e.fin_retiro_leche >= hoyBogota() ? e.fin_retiro_leche : null,
     retiro_carne_hasta: e.fin_retiro_carne && (e.retiro_carne_dias ?? 0) > 0 && e.fin_retiro_carne >= hoyBogota() ? e.fin_retiro_carne : null,
