@@ -3,7 +3,8 @@ import { NextResponse, type NextRequest } from "next/server";
 import { SUPABASE_KEY, SUPABASE_URL } from "@/lib/env";
 import type { Database } from "@/lib/tipos";
 
-const PUBLICAS = ["/login", "/registro", "/recuperar", "/auth", "/terminos", "/privacidad", "/api/csp"];
+// «/invitacion»: quien recibe el enlace sin tener cuenta debe poder ver a qué lo invitan y crearla (la pantalla pide sesión solo para aceptar).
+const PUBLICAS = ["/login", "/registro", "/recuperar", "/auth", "/terminos", "/privacidad", "/api/csp", "/invitacion"];
 
 /** Refresca la sesión en cada navegación y manda a /login a quien no la tenga. */
 export async function actualizarSesion(request: NextRequest) {

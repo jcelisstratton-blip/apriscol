@@ -14,6 +14,7 @@ export function FormAuth({
   next,
   referido,
   errorInicial,
+  emailInicial,
 }: {
   accion: (estado: EstadoAuth, form: FormData) => Promise<EstadoAuth>;
   modo: "login" | "registro";
@@ -21,10 +22,12 @@ export function FormAuth({
   /** Código de quien invitó con su enlace de referidos (solo en el registro). */
   referido?: string;
   errorInicial?: string;
+  /** Correo al que va dirigida la invitación con la que se llegó: queda escrito y no se puede cambiar. */
+  emailInicial?: string;
 }) {
   const [estado, enviar, pendiente] = useActionState(accion, undefined);
   const esRegistro = modo === "registro";
-  const sufijo = next ? `?next=${encodeURIComponent(next)}` : "";
+  const sufijo = next ? `?next=${encodeURIComponent(next)}${emailInicial ? `&email=${encodeURIComponent(emailInicial)}` : ""}` : "";
 
   return (
     <form action={enviar} className="space-y-4">
@@ -37,7 +40,7 @@ export function FormAuth({
           )}
         </Campo>
       ) : null}
-      <Campo etiqueta="Correo">
+      <Campo etiqueta="Correo" ayuda={emailInicial ? "La invitación es para este correo." : undefined}>
         {(id) => (
           <input
             id={id}
@@ -47,7 +50,9 @@ export function FormAuth({
             autoComplete="email"
             autoCapitalize="none"
             required
-            className={CLASE_INPUT}
+            defaultValue={emailInicial}
+            readOnly={Boolean(emailInicial)}
+            className={`${CLASE_INPUT}${emailInicial ? " bg-arena/50" : ""}`}
             placeholder="tu@correo.com"
           />
         )}

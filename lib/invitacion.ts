@@ -26,3 +26,13 @@ export function estadoAcceso(inv: { aceptada_en: string | null; expira_en: strin
   if (inv.aceptada_en) return "aceptada";
   return new Date(inv.expira_en).getTime() > ahora.getTime() ? "pendiente" : "vencida";
 }
+
+/**
+ * El correo con el que se abre «Entrar» o «Crear cuenta» cuando se llega desde una invitación (`?email=`): solo se acepta si el destino es una
+ * invitación y el correo parece un correo, para que el enlace no sirva para rellenar el formulario con otra cosa.
+ */
+export function correoDeInvitacion(next: string | undefined, email: string | undefined): string | undefined {
+  if (!next?.startsWith("/invitacion/") || !email) return undefined;
+  const limpio = email.trim().toLowerCase();
+  return /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(limpio) && limpio.length <= 254 ? limpio : undefined;
+}
