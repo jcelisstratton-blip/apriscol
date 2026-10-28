@@ -42,8 +42,9 @@ export default async function PaginaPersonaEditar({ params }: { params: Promise<
       </Link>
       <Encabezado titulo="Editar persona" subtitulo={finca.nombre} />
       <div className="space-y-8 lg:max-w-xl">
-        <FormPersona hoy={hoyBogota()} persona={persona} tienePagos={(count ?? 0) > 0} />
+        {/* Primero el acceso a la app: es lo que más se busca al abrir a una persona y el contrato es un formulario largo. */}
         {puedeGestionar(rol) ? <AccesoPersona personaId={persona.id} correo={persona.correo} rolActual={persona.rol} esVeterinario={persona.es_veterinario} acceso={acceso} invitacion={invitacion} /> : null}
+        <FormPersona hoy={hoyBogota()} persona={persona} tienePagos={(count ?? 0) > 0} />
         {puedeGestionar(rol) && (count ?? 0) === 0 ? (
           <EliminarRegistro etiqueta="Eliminar a esta persona" resumen={persona.nombre} accion={eliminarPersona.bind(null, id)} destino="/mas/miembros" mensaje="Persona eliminada" />
         ) : null}
