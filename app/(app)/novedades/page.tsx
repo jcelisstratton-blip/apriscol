@@ -5,7 +5,7 @@ import { EnlaceBoton } from "@/components/Boton";
 import { Encabezado } from "@/components/Encabezado";
 import { ListaNovedades } from "@/components/ListaNovedades";
 import { obtenerContexto } from "@/lib/contexto";
-import { puedeEscribir, puedeVer, revisaNovedades } from "@/lib/permisos";
+import { ETIQUETA_ROL, puedeEscribir, puedeVer, revisaNovedades } from "@/lib/permisos";
 import { ESTADOS_NOVEDAD, type EstadoNovedad } from "@/lib/novedades";
 
 export const metadata: Metadata = { title: "Novedades" };
@@ -15,7 +15,7 @@ export const metadata: Metadata = { title: "Novedades" };
  * El administrador atiende las de comprar y el veterinario las de aplicar dosis; el propietario, ambas. Quien las crea (ordeñador, veterinario) ve las suyas. Es lo primero del menú para quien las revisa.
  */
 export default async function PaginaNovedades({ searchParams }: { searchParams: Promise<{ estado?: string; enviada?: string }> }) {
-  const { finca, rol, user } = await obtenerContexto();
+  const { finca, rol, user, perfil } = await obtenerContexto();
   if (!puedeVer(rol, "novedades", finca.plan)) redirect("/");
   const sp = await searchParams;
   const reviso = revisaNovedades(rol);
@@ -24,7 +24,7 @@ export default async function PaginaNovedades({ searchParams }: { searchParams: 
   return (
     <>
       <AvisoGuardado activo={sp.enviada === "1"} texto="Novedad enviada" />
-      <Encabezado titulo={reviso ? "Novedades" : "Mis novedades"} subtitulo={finca.nombre} acciones={puedeEscribir(rol, "novedades", finca.plan) ? <EnlaceBoton href="/novedades/nueva" ancho={false}>Crear una novedad</EnlaceBoton> : null} />
+      <Encabezado titulo={reviso ? "Novedades" : "Mis novedades"} subtitulo={`${finca.nombre} · ${perfil?.nombre ?? "Tú"} (${ETIQUETA_ROL[rol]})`} acciones={puedeEscribir(rol, "novedades", finca.plan) ? <EnlaceBoton href="/novedades/nueva" ancho={false}>Crear una novedad</EnlaceBoton> : null} />
       <ListaNovedades fincaId={finca.id} rol={rol} reviso={reviso} estadoInicial={inicial} usuarioId={user.id} />
     </>
   );
