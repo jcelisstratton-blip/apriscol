@@ -119,3 +119,38 @@ export async function revocarInvitacion(id: string): Promise<{ error?: string }>
   revalidatePath("/mas/miembros");
   return {};
 }
+
+
+export type EstadoAcceso = { error?: string; enlace?: string; email?: string } | undefined;
+
+const esquemaAcceso = z.object({
+  persona_id: z.uuid(),
+  email: z.string().trim().toLowerCase().pipe(z.email("Escribe un correo válido.")),
+  rol: z.enum(["administrador", "ordenador", "veterinario", "contador"], "Elige qué perfil tendrá."),
+});
+
+/** Da acceso a la app a una persona que ya está en el equipo (o se lo vuelve a dar si cancelaron o venció su invitación) y devuelve el enlace. */
+export async function darAcceso(_: EstadoAcceso, form: FormData): Promise<EstadoAcceso> {
+  const { finca, rol } = await obtenerContexto();
+  if (!puedeGestionar(rol)) return { error: "Solo el propietario o un administrador pueden dar acceso a una persona." };
+  const datos = esquemaAcceso.safeParse(Object.fromEntries(form));
+  if (!datos.success) return { error: datos.error.issues[0]?.message };
+  const supabase = await crearClienteServidor();
+  const { data, error } = await supabase.rpc("invitar_persona", { p_finca: finca.id, p_persona: datos.data.persona_id, p_email: datos.data.email, p_rol: datos.data.rol });
+  if (error || !data) return { error: mensajeAmigable(error?.message ?? "") };
+  revalidatePath("/mas/miembros");
+  revalidatePath(`/personal/${datos.data.persona_id}/editar`);
+  return { enlace: `${await urlDelSitio()}/invitacion/${data}`, email: datos.data.email };
+}
+
+/** Le da 7 días más a una invitación (por ejemplo, una que venció) y devuelve su enlace. */
+export async function renovarInvitacion(id: string): Promise<{ error?: string; enlace?: string }> {
+  const { rol } = await obtenerContexto();
+  if (!puedeGestionar(rol)) return { error: "No tienes permiso para esto." };
+  if (!z.uuid().safeParse(id).success) return { error: "No encontramos esa invitación." };
+  const supabase = await crearClienteServidor();
+  const { data, error } = await supabase.rpc("renovar_invitacion", { p_id: id });
+  if (error || !data) return { error: mensajeAmigable(error?.message ?? "") };
+  revalidatePath("/mas/miembros");
+  return { enlace: `${await urlDelSitio()}/invitacion/${data}` };
+}

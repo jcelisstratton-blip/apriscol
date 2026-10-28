@@ -6,7 +6,9 @@ import { AvisoGuardado } from "@/components/AvisoGuardado";
 import { AyudaModulo } from "@/components/AyudaModulo";
 import { clasesBoton } from "@/components/Boton";
 import { Encabezado } from "@/components/Encabezado";
-import { FormInvitar, RevocarInvitacion } from "@/components/FormInvitar";
+import { FilaInvitacion } from "@/components/FilaInvitacion";
+import { FormInvitar } from "@/components/FormInvitar";
+import { urlDelSitio } from "@/lib/sitio";
 import { Insignia } from "@/components/Insignia";
 import { ListaPagosPersonal } from "@/components/ListaPagosPersonal";
 import { ListaPersonal } from "@/components/ListaPersonal";
@@ -44,6 +46,8 @@ export default async function PaginaMiembros({ searchParams }: { searchParams: P
   const puedeEditar = puedeEscribir(rol, "contabilidad", finca.plan);
   const hoy = hoyBogota();
   const supabase = await crearClienteServidor();
+  const sitio = await urlDelSitio();
+  const ahora = new Date();
 
   const [personalDB, abiertosDB, mesDB] = cuentas
     ? await Promise.all([
@@ -58,12 +62,12 @@ export default async function PaginaMiembros({ searchParams }: { searchParams: P
   const costoMes = (mesDB.data ?? []).reduce((s, p) => s + Number(p.costo_total), 0);
 
   let miembros: { user_id: string; rol: keyof typeof ETIQUETA_ROL; created_at: string }[] = [];
-  let pendientes: { id: string; email: string; rol: keyof typeof ETIQUETA_ROL; expira_en: string }[] = [];
+  let pendientes: { id: string; email: string; rol: keyof typeof ETIQUETA_ROL; expira_en: string; token: string }[] = [];
   const nombres = new Map<string, string>();
   if (gestiona && vista === "equipo") {
     const [{ data: m }, { data: p }] = await Promise.all([
       supabase.from("finca_miembros").select("user_id, rol, created_at").eq("finca_id", finca.id).order("created_at"),
-      supabase.from("invitaciones").select("id, email, rol, expira_en").eq("finca_id", finca.id).is("aceptada_en", null).gt("expira_en", new Date().toISOString()).order("created_at", { ascending: false }),
+      supabase.from("invitaciones").select("id, email, rol, expira_en, token").eq("finca_id", finca.id).is("aceptada_en", null).order("created_at", { ascending: false }).limit(100),
     ]);
     miembros = m ?? [];
     pendientes = p ?? [];
@@ -131,17 +135,20 @@ export default async function PaginaMiembros({ searchParams }: { searchParams: P
                 {pendientes.length > 0 ? (
                   <Tarjeta titulo="Invitaciones pendientes">
                     <ul className="divide-y divide-arena">
-                      {pendientes.map((i) => (
-                        <li key={i.id} className="flex min-h-14 items-center justify-between gap-2 py-1.5">
-                          <span className="min-w-0">
-                            <span className="block font-semibold [overflow-wrap:anywhere]">{i.email}</span>
-                            <span className="block text-sm text-humo">
-                              {ETIQUETA_ROL[i.rol]} · vence el {formatoFecha(i.expira_en.slice(0, 10), { day: "numeric", month: "short" })}
-                            </span>
-                          </span>
-                          <RevocarInvitacion id={i.id} />
-                        </li>
-                      ))}
+                      {pendientes.map((i) => {
+                        const vencida = new Date(i.expira_en).getTime() <= ahora.getTime();
+                        const vence = formatoFecha(i.expira_en.slice(0, 10), { day: "numeric", month: "short" });
+                        return (
+                          <FilaInvitacion
+                            key={i.id}
+                            id={i.id}
+                            email={i.email}
+                            detalle={`${ETIQUETA_ROL[i.rol]} · ${vencida ? `venció el ${vence}` : `vence el ${vence}`}`}
+                            vencida={vencida}
+                            enlace={`${sitio}/invitacion/${i.token}`}
+                          />
+                        );
+                      })}
                     </ul>
                   </Tarjeta>
                 ) : null}

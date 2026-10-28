@@ -219,3 +219,12 @@ test("invitación: solo se ofrece aceptar con el correo invitado; con otra sesi�
   assert.deepEqual(estadoInvitacion(resumen, "propietario@correo.com"), { tipo: "otro_correo", invitado: "Vet@Correo.com", sesion: "propietario@correo.com" });
   assert.deepEqual(estadoInvitacion(null, "vet@correo.com"), { tipo: "no_valida" }, "vencida, usada o inexistente");
 });
+
+test("invitación: el acceso de una persona es sin invitación, pendiente, vencida o aceptada", async () => {
+  const { estadoAcceso } = await import("../lib/invitacion.ts");
+  const ahora = new Date("2026-10-28T12:00:00Z");
+  assert.equal(estadoAcceso(null, ahora), "sin_invitacion");
+  assert.equal(estadoAcceso({ aceptada_en: null, expira_en: "2026-11-04T00:00:00Z" }, ahora), "pendiente");
+  assert.equal(estadoAcceso({ aceptada_en: null, expira_en: "2026-10-27T00:00:00Z" }, ahora), "vencida", "una vencida sigue ocupando el correo: hay que poder renovarla");
+  assert.equal(estadoAcceso({ aceptada_en: "2026-10-20T00:00:00Z", expira_en: "2026-10-27T00:00:00Z" }, ahora), "aceptada", "aceptada manda aunque ya haya vencido");
+});

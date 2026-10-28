@@ -17,3 +17,12 @@ export function estadoInvitacion(resumen: ResumenInvitacion | null, correoSesion
   if (limpio(resumen.email) !== limpio(correoSesion)) return { tipo: "otro_correo", invitado: resumen.email, sesion: correoSesion };
   return { tipo: "lista", invitado: resumen.email };
 }
+
+/** Cómo está el acceso a la app de una persona del equipo según su última invitación. */
+export type Acceso = "sin_invitacion" | "pendiente" | "vencida" | "aceptada";
+
+export function estadoAcceso(inv: { aceptada_en: string | null; expira_en: string } | null, ahora: Date = new Date()): Acceso {
+  if (!inv) return "sin_invitacion";
+  if (inv.aceptada_en) return "aceptada";
+  return new Date(inv.expira_en).getTime() > ahora.getTime() ? "pendiente" : "vencida";
+}
