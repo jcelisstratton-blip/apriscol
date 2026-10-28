@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   areasSemaforo, armarSenal, contarSenales, senalCalidad, senalCorrales, senalDosis, senalFamacha, senalFrio, senalPartos, senalProduccion, senalAbortos, senalMortalidadCrias, senalVaciaSinServicio,
-  senalRetiro, senalSecado, senalesDiagnostico,
+  senalRetiro, senalSecado, senalesDiagnostico, senalPruebas, senalCuarentena, senalPezunas, senalVacunas, senalMantenimiento, senalesCeba, senalesDinero,
 } from "../lib/semaforos.ts";
 
 const HOY = "2026-10-27";
@@ -13,9 +13,11 @@ const hembra = (id, extra) => ({ animal_id: id, estado: "gestante", ultimo_servi
 test("semáforos: cada rol ve solo su área (el veterinario, reproducción y sanidad) y el contador ninguna", () => {
   assert.deepEqual(areasSemaforo("veterinario", "profesional"), ["reproduccion", "sanidad"]);
   assert.deepEqual(areasSemaforo("ordenador", "profesional"), ["leche"]);
-  assert.deepEqual(areasSemaforo("propietario", "profesional"), ["reproduccion", "sanidad", "leche", "corrales"]);
-  assert.deepEqual(areasSemaforo("administrador", "profesional"), ["reproduccion", "sanidad", "leche", "corrales"]);
-  assert.deepEqual(areasSemaforo("contador", "profesional"), []);
+  assert.deepEqual(areasSemaforo("propietario", "profesional"), ["reproduccion", "sanidad", "leche", "ceba", "corrales", "dinero"]);
+  assert.deepEqual(areasSemaforo("administrador", "profesional"), ["reproduccion", "sanidad", "leche", "ceba", "corrales", "dinero"]);
+  assert.deepEqual(areasSemaforo("contador", "profesional"), ["dinero"]);
+  // El plan manda: sin carne ni contabilidad (plan Cría) no hay ceba ni dinero.
+  assert.ok(!areasSemaforo("propietario", "cria").includes("ceba") && !areasSemaforo("propietario", "cria").includes("dinero"));
 });
 
 test("semáforos: armarSenal ordena (rojo primero, lo más urgente primero) y calcula nivel y resumen", () => {
@@ -173,4 +175,64 @@ test("semáforos: mortalidad de crías — por porcentaje, y con pocas crías no
   const pocas = senalMortalidadCrias(5, muertes(3), HOY);
   assert.equal(pocas.nivel, "verde");
   assert.match(pocas.nota, /pocas/);
+});
+
+test("semáforos: pruebas — solo cuenta la última de cada tipo; CAE positivo en rojo, CMT positivo viejo no cuenta", () => {
+  const p = (animal_id, prueba, hace, resultado) => ({ animal_id, prueba, fecha: dia(-hace), resultado });
+  const s = senalPruebas(
+    [p("a", "cae", 100, "positivo"), p("b", "cae", 200, "positivo"), p("b", "cae", 10, "negativo"), p("c", "cmt", 100, "positivo"), p("d", "cmt", 20, "positivo"), p("e", "cae", 12, "sospechoso"), p("f", "brucelosis", 45, "sospechoso"), p("g", "cae", 40, "negativo")],
+    HOY, etiqueta,
+  );
+  const por = Object.fromEntries(s.items.map((i) => [i.clave, i.nivel]));
+  assert.deepEqual(por, { "prueba-a-cae": "rojo", "prueba-d-cmt": "ambar", "prueba-e-cae": "ambar", "prueba-f-brucelosis": "rojo" });
+});
+
+test("semáforos: cuarentena — sin cuarentena en rojo; en cuarentena sin cumplir el mínimo en ámbar; cumplida no cuenta", () => {
+  const c = (animal_id, situacion, diasN) => ({ animal_id, situacion, dias: diasN, desde: dia(-diasN), finca_id: "f", ubicacion_id: null });
+  const s = senalCuarentena([c("a", "falta_cuarentena", 15), c("b", "en_cuarentena", 7), c("c", "en_cuarentena", 25)], etiqueta);
+  assert.deepEqual(s.items.map((i) => [i.clave, i.nivel]), [["cuarentena-a", "rojo"], ["cuarentena-b", "ambar"]]);
+});
+
+test("semáforos: pezuñas — atrasado en ámbar, muy atrasado o sin registro en rojo, al día no cuenta", () => {
+  const plazos = { podologiaDias: 180, pediluvioDias: 30 };
+  const aldia = [{ animal_id: "a", ultima_fecha: dia(-10) }];
+  assert.equal(senalPezunas(aldia, aldia, plazos, HOY).nivel, "verde");
+  const algo = senalPezunas([], [{ animal_id: "a", ultima_fecha: dia(-40) }], plazos, HOY);
+  assert.equal(algo.items[0].nivel, "ambar");
+  const mucho = senalPezunas([{ animal_id: "a", ultima_fecha: dia(-250) }], [], plazos, HOY);
+  assert.equal(mucho.items[0].nivel, "rojo");
+  assert.equal(senalPezunas([{ animal_id: "a", ultima_fecha: null }], [], plazos, HOY).items[0].nivel, "rojo");
+});
+
+test("semáforos: vacunas — usa el plazo de Ajustes; sin plazo no se evalúa y lo dice", () => {
+  const ev = [{ fecha: dia(-340), producto_nombre: "Vacuna contra la rabia" }, { fecha: dia(-100), producto_nombre: "Vacuna clostridial 7 vías" }];
+  const s = senalVacunas(ev, 365, 180, HOY);
+  assert.deepEqual(s.items.map((i) => [i.clave, i.nivel]), [["vacuna-rabia", "ambar"]], "rabia vence en 25 días; la clostridial está al día");
+  assert.equal(senalVacunas(ev, 300, null, HOY).items[0].nivel, "rojo", "rabia vencida hace 40 días");
+  const sinPlazo = senalVacunas(ev, null, null, HOY);
+  assert.equal(sinPlazo.nivel, "verde");
+  assert.match(sinPlazo.nota, /rabia/);
+  assert.equal(senalVacunas([], 365, null, HOY).items[0].nivel, "rojo", "nunca registrada");
+});
+
+test("semáforos: mantenimiento de la sala — atrasada en rojo, próxima en ámbar", () => {
+  const m = (tipo, proxima) => ({ id: tipo, finca_id: "f", tipo, equipo: "Sala", fecha: dia(-30), created_at: dia(-30), proxima_fecha: proxima });
+  const s = senalMantenimiento([m("lavado_alcalino", dia(-2)), m("presion_vacio", dia(4)), m("revision", dia(40))], HOY);
+  assert.deepEqual(s.items.map((i) => i.nivel), ["rojo", "ambar"]);
+});
+
+test("semáforos: ceba — pesaje atrasado y ganancia baja, con rojo al doble del plazo o a la mitad del mínimo", () => {
+  const a = (animalId, ultima, gdp, limite = 30) => ({ animalId, ultimaFecha: ultima === null ? null : dia(-ultima), gdpRecienteG: gdp, limiteDias: limite });
+  const [pesaje, ganancia] = senalesCeba([a("ok", 10, 200), a("tarde", 40, 200), a("muyTarde", 70, 200), a("nunca", null, null), a("lento", 5, 100), a("muyLento", 5, 50)], 150, HOY, etiqueta);
+  assert.deepEqual(pesaje.items.map((i) => [i.clave, i.nivel]), [["pesaje-nunca", "rojo"], ["pesaje-muyTarde", "rojo"], ["pesaje-tarde", "ambar"]]);
+  assert.deepEqual(ganancia.items.map((i) => [i.clave, i.nivel]), [["gdp-muyLento", "rojo"], ["gdp-lento", "ambar"]]);
+});
+
+test("semáforos: dinero — vencido en rojo, en los próximos 7 días en ámbar, lejos no cuenta", () => {
+  const compra = (id, vence) => ({ id, descripcion: `Compra ${id}`, monto: 100000, vence });
+  const venta = (clave, vence) => ({ clave, producto: "Queso", tercero: null, valor: 50000, cobro_vence: vence });
+  const [pagar, cobrar] = senalesDinero([compra("a", dia(-3)), compra("b", dia(5)), compra("c", dia(20))], [venta("x", dia(-1)), venta("y", dia(30))], HOY);
+  assert.deepEqual(pagar.items.map((i) => [i.clave, i.nivel]), [["pagar-a", "rojo"], ["pagar-b", "ambar"]]);
+  assert.match(pagar.items[0].detalle, /venció hace 3 días/);
+  assert.deepEqual(cobrar.items.map((i) => [i.clave, i.nivel]), [["cobrar-x", "rojo"]]);
 });

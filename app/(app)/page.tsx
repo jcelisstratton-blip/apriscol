@@ -8,6 +8,10 @@ import { Insignia } from "@/components/Insignia";
 import { Aviso } from "@/components/Aviso";
 import { AvisoCandidatosCeba } from "@/components/AvisoCandidatosCeba";
 import { Tarjeta } from "@/components/Tarjeta";
+import { ResumenSemaforos } from "@/components/ResumenSemaforos";
+import { obtenerAjustes } from "@/lib/ajustes-servidor";
+import { areasSemaforo } from "@/lib/semaforos";
+import { cargarSemaforos } from "@/lib/semaforos-servidor";
 import { AlertasProduccion } from "@/components/AlertasProduccion";
 import { esBaja } from "@/lib/produccion";
 import { EnlaceBoton } from "@/components/Boton";
@@ -127,6 +131,11 @@ export default async function PaginaHoy({ searchParams }: { searchParams: Promis
   const hato = totalActivos.count ?? 0;
   const hembras = totalHembras.count ?? 0;
 
+  // Semáforos: solo lo que le toca a su rol (el veterinario, reproducción y sanidad); si algo falla no debe tumbar la pantalla de inicio.
+  const senalesHoy = hato > 0 && areasSemaforo(rol, finca.plan).length > 0
+    ? await cargarSemaforos({ supabase, fincaId: finca.id, rol, plan: finca.plan, hoy, ajustes: await obtenerAjustes() }).catch(() => null)
+    : null;
+
   const nombrePila = (perfil?.nombre ?? "").split(" ")[0];
 
   return (
@@ -179,6 +188,8 @@ export default async function PaginaHoy({ searchParams }: { searchParams: Promis
               ) : null}
             </section>
           ) : null}
+
+          {senalesHoy ? <ResumenSemaforos senales={senalesHoy} /> : null}
 
           {verLeche ? <AlertasProduccion alertas={alertasProduccion} limite={5} /> : null}
 

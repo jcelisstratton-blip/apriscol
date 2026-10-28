@@ -1,12 +1,12 @@
-import { diasDesde, diasHasta, formatoFecha } from "@/lib/fechas";
+import { diasDesde, diasHasta, formatoFecha, sumarDias } from "@/lib/fechas";
 import { puedeVer } from "@/lib/permisos";
 import { DIAS_PARTO_ATRASADO, porSecar as debeSecarse, enUltimoTercio, seguimientoServida, type VentanaDx } from "@/lib/reproduccion";
 import { estadoFamacha } from "@/lib/famacha";
-import { estadoCrioscopia, estadoRcs, estadoTemperatura, formatoCrioscopia, formatoMiles } from "@/lib/leche-calidad";
-import { estadoDosis, estadoFechaPrograma } from "@/lib/sanidad";
+import { ETIQUETA_MANTENIMIENTO, estadoCrioscopia, estadoRcs, estadoTemperatura, formatoCrioscopia, formatoMiles, pendientesMantenimiento, pesos, type PendienteEquipo } from "@/lib/leche-calidad";
+import { ETIQUETA_PRUEBA_CORTA, estadoDosis, estadoFechaPrograma, revisionAtrasada } from "@/lib/sanidad";
 import { esBaja, mensajeBaja, type Tendencia } from "@/lib/produccion";
-import { textoRotacion } from "@/lib/corrales";
-import type { ModuloApp, PlanId, ReproHembra, RolFinca, UbicacionVista } from "@/lib/tipos";
+import { estadoCuarentena, textoRotacion } from "@/lib/corrales";
+import type { CuarentenaAlerta, MantenimientoOrdeno, ModuloApp, PlanId, ReproHembra, RolFinca, TipoPrueba, UbicacionVista } from "@/lib/tipos";
 
 /**
  * Semáforos: una sola lectura del estado del hato para actuar a tiempo. Cada señal junta lo que la app ya sabe calcular (partos, FAMACHA, dosis,
@@ -14,20 +14,20 @@ import type { ModuloApp, PlanId, ReproHembra, RolFinca, UbicacionVista } from "@
  * Aquí viven las reglas (puras, con prueba); `lib/semaforos-servidor.ts` trae los datos y `components/Semaforos.tsx` los dibuja.
  */
 
-export type AreaSemaforo = "reproduccion" | "sanidad" | "leche" | "corrales";
-export const ETIQUETA_AREA: Record<AreaSemaforo, string> = { reproduccion: "Reproducción", sanidad: "Sanidad", leche: "Leche", corrales: "Corrales" };
-const MODULO_DE_AREA: Record<AreaSemaforo, ModuloApp> = { reproduccion: "reproduccion", sanidad: "sanidad", leche: "leche", corrales: "corrales" };
+export type AreaSemaforo = "reproduccion" | "sanidad" | "leche" | "ceba" | "corrales" | "dinero";
+export const ETIQUETA_AREA: Record<AreaSemaforo, string> = { reproduccion: "Reproducción", sanidad: "Sanidad", leche: "Leche", ceba: "Ceba", corrales: "Corrales", dinero: "Dinero" };
+const MODULO_DE_AREA: Record<AreaSemaforo, ModuloApp> = { reproduccion: "reproduccion", sanidad: "sanidad", leche: "leche", ceba: "carne", corrales: "corrales", dinero: "contabilidad" };
 
 /**
- * Qué áreas ve cada rol: solo lo suyo. El veterinario, reproducción y sanidad; el ordeñador, leche; el propietario y el administrador, todo.
+ * Qué áreas ve cada rol: solo lo suyo. El veterinario, reproducción y sanidad; el ordeñador, leche; el contador, dinero; el propietario y el administrador, todo.
  * (Si luego se le abren más áreas a un rol, se cambia aquí y nada más.) Además deben estar en su plan.
  */
 const AREAS_DEL_ROL: Record<RolFinca, AreaSemaforo[]> = {
-  propietario: ["reproduccion", "sanidad", "leche", "corrales"],
-  administrador: ["reproduccion", "sanidad", "leche", "corrales"],
+  propietario: ["reproduccion", "sanidad", "leche", "ceba", "corrales", "dinero"],
+  administrador: ["reproduccion", "sanidad", "leche", "ceba", "corrales", "dinero"],
   veterinario: ["reproduccion", "sanidad"],
   ordenador: ["leche"],
-  contador: [],
+  contador: ["dinero"],
 };
 
 export function areasSemaforo(rol: RolFinca, plan: PlanId): AreaSemaforo[] {
@@ -542,4 +542,278 @@ export function senalCorrales(ubicaciones: UbicacionVista[]): Senal {
     },
     items,
   );
+}
+
+// ───────────────────────── Sanidad (segunda tanda) ─────────────────────────
+export type FilaPrueba = { animal_id: string; prueba: TipoPrueba; fecha: string; resultado: "negativo" | "positivo" | "sospechoso" | "pendiente" };
+/** Pruebas cuyo positivo no se «cura»: el animal sigue siendo un riesgo mientras esté en el hato. */
+const PRUEBAS_PERSISTENTES: TipoPrueba[] = ["cae", "brucelosis", "paratuberculosis"];
+/** Días que un positivo de mastitis o CMT sigue contando como alerta. */
+const DIAS_PRUEBA_TRANSITORIA = 60;
+/** Un sospechoso que no se repite en este plazo pasa a rojo. */
+const DIAS_REPETIR_SOSPECHOSO = 30;
+
+export function senalPruebas(filas: FilaPrueba[], hoy: string, etiqueta: Etiqueta): Senal {
+  // Solo cuenta la última prueba de cada tipo por animal: un positivo viejo ya repetido en negativo no debe alarmar.
+  const ultimas = new Map<string, FilaPrueba>();
+  for (const f of filas) {
+    const k = `${f.animal_id}|${f.prueba}`;
+    const previa = ultimas.get(k);
+    if (!previa || f.fecha > previa.fecha) ultimas.set(k, f);
+  }
+  const items: ItemSenal[] = [];
+  for (const f of ultimas.values()) {
+    const nombre = ETIQUETA_PRUEBA_CORTA[f.prueba] ?? f.prueba;
+    const hace = diasDesde(f.fecha, hoy);
+    const base = { clave: `prueba-${f.animal_id}-${f.prueba}`, etiqueta: etiqueta(f.animal_id), href: fichaAnimal(f.animal_id, "sanidad") };
+    if (f.resultado === "positivo") {
+      const persistente = PRUEBAS_PERSISTENTES.includes(f.prueba);
+      if (!persistente && hace > DIAS_PRUEBA_TRANSITORIA) continue;
+      items.push({ ...base, detalle: `${nombre}: positivo el ${corta(f.fecha)}${persistente ? ". Aíslala y consulta al veterinario" : ""}`, nivel: persistente ? "rojo" : "ambar", orden: persistente ? 0 : 5 });
+    } else if (f.resultado === "sospechoso") {
+      items.push({ ...base, detalle: `${nombre}: sospechoso el ${corta(f.fecha)}${hace > DIAS_REPETIR_SOSPECHOSO ? `, sin repetir hace ${dias(hace)}` : ": repítela en unas semanas"}`, nivel: hace > DIAS_REPETIR_SOSPECHOSO ? "rojo" : "ambar", orden: 10 - hace / 100 });
+    } else if (f.resultado === "pendiente" && hace > 3) {
+      items.push({ ...base, detalle: `${nombre}: sin resultado desde el ${corta(f.fecha)}`, nivel: "ambar", orden: 20 });
+    }
+  }
+  return armarSenal(
+    {
+      id: "pruebas",
+      area: "sanidad",
+      titulo: "Pruebas de laboratorio",
+      queSignifica: "Animales cuya última prueba (CAE, brucelosis, paratuberculosis, CMT, cultivo) salió positiva, sospechosa o sin resultado.",
+      regla: `Rojo: positivo de CAE, brucelosis o paratuberculosis, o un sospechoso que no se repitió en ${DIAS_REPETIR_SOSPECHOSO} días. Ámbar: sospechoso reciente, positivo de CMT o cultivo de los últimos ${DIAS_PRUEBA_TRANSITORIA} días, o sin resultado.`,
+      accion: { texto: "Ver Sanidad", href: "/sanidad" },
+    },
+    items,
+  );
+}
+
+export function senalCuarentena(filas: CuarentenaAlerta[], etiqueta: Etiqueta): Senal {
+  const items: ItemSenal[] = [];
+  for (const c of filas) {
+    if (c.situacion === "falta_cuarentena") {
+      items.push({ clave: `cuarentena-${c.animal_id}`, etiqueta: etiqueta(c.animal_id), detalle: `Entró hace ${dias(c.dias)} y no pasó por cuarentena`, nivel: "rojo", href: fichaAnimal(c.animal_id), orden: -c.dias });
+    } else {
+      const e = estadoCuarentena(c.dias);
+      if (e.tono === "aviso") items.push({ clave: `cuarentena-${c.animal_id}`, etiqueta: etiqueta(c.animal_id), detalle: `En cuarentena: ${e.texto}`, nivel: "ambar", href: fichaAnimal(c.animal_id), orden: c.dias });
+    }
+  }
+  return armarSenal(
+    {
+      id: "cuarentena",
+      area: "sanidad",
+      titulo: "Cuarentena de animales nuevos",
+      queSignifica: "Animales que llegaron de afuera y no pasaron por cuarentena, o que siguen en ella sin cumplir el mínimo.",
+      regla: "Rojo: el animal entró y no está en cuarentena. Ámbar: está en cuarentena y aún no cumple los 21 días mínimos.",
+      accion: { texto: "Ver Corrales", href: "/corrales" },
+    },
+    items,
+  );
+}
+
+export type FilaRevision = { animal_id: string; ultima_fecha: string | null };
+/** Días de atraso desde los que la revisión de pezuñas pasa a rojo. */
+const DIAS_PEZUNAS_ROJO = 14;
+
+export function senalPezunas(podologia: FilaRevision[], pediluvio: FilaRevision[], plazos: { podologiaDias: number; pediluvioDias: number }, hoy: string): Senal {
+  const items: ItemSenal[] = [];
+  const grupo = (clave: string, titulo: string, filas: FilaRevision[], cadaDias: number) => {
+    const atrasadas = filas.map((f) => revisionAtrasada(f.ultima_fecha, cadaDias, hoy)).filter((r) => r !== null);
+    if (atrasadas.length === 0) return;
+    const nunca = atrasadas.filter((r) => r.diasAtraso === null).length;
+    const peor = Math.max(0, ...atrasadas.map((r) => r.diasAtraso ?? 0));
+    const rojo = nunca > 0 || peor > DIAS_PEZUNAS_ROJO;
+    items.push({
+      clave,
+      etiqueta: `${titulo}: ${atrasadas.length} ${atrasadas.length === 1 ? "animal atrasado" : "animales atrasados"}`,
+      detalle: `${nunca > 0 ? `${nunca} sin registro; ` : ""}${peor > 0 ? `el más atrasado, ${dias(peor)}` : "toca según el plazo de Ajustes"} (cada ${dias(cadaDias)})`,
+      nivel: rojo ? "rojo" : "ambar",
+      href: "/hato?vista=sanidad",
+      orden: rojo ? 0 : 1,
+    });
+  };
+  grupo("pezunas-podologia", "Revisión de pezuñas", podologia, plazos.podologiaDias);
+  grupo("pezunas-pediluvio", "Baño de patas (pediluvio)", pediluvio, plazos.pediluvioDias);
+  return armarSenal(
+    {
+      id: "pezunas",
+      area: "sanidad",
+      titulo: "Pezuñas y pediluvio",
+      queSignifica: "Animales a los que ya les tocaba la revisión de pezuñas o el baño de patas según el plazo de la finca.",
+      regla: `Ámbar: pasó el plazo de Ajustes. Rojo: más de ${DIAS_PEZUNAS_ROJO} días de atraso o sin registro.`,
+      accion: { texto: "Programar en Hato → Sanidad", href: "/hato?vista=sanidad" },
+    },
+    items,
+  );
+}
+
+export type EventoVacuna = { fecha: string; producto_nombre: string | null };
+/** Días antes del vencimiento desde los que una vacuna anual pasa a ámbar. */
+const DIAS_AVISO_VACUNA = 30;
+
+/**
+ * Vacunas con plazo definido en Ajustes (rabia, clostridiosis): mira la última campaña registrada de cada una por el nombre del producto.
+ * Si la finca no definió el plazo, esa vacuna no se evalúa y la señal lo dice.
+ */
+export function senalVacunas(eventos: EventoVacuna[], rabiaDias: number | null, clostridiosisDias: number | null, hoy: string): Senal {
+  const reglas = [
+    { clave: "rabia", nombre: "Rabia", patron: /rabia/i, cada: rabiaDias },
+    { clave: "clostridiosis", nombre: "Clostridiosis", patron: /clostrid/i, cada: clostridiosisDias },
+  ];
+  const items: ItemSenal[] = [];
+  for (const r of reglas) {
+    if (r.cada == null) continue;
+    const ultima = eventos.filter((e) => e.producto_nombre && r.patron.test(e.producto_nombre)).map((e) => e.fecha).sort().pop() ?? null;
+    if (!ultima) {
+      items.push({ clave: `vacuna-${r.clave}`, etiqueta: `Vacuna de ${r.nombre.toLowerCase()}`, detalle: `No hay ninguna campaña registrada (debe ser cada ${dias(r.cada)})`, nivel: "rojo", href: "/hato?vista=sanidad", orden: 0 });
+      continue;
+    }
+    const vence = sumarDias(ultima, r.cada);
+    const falta = diasHasta(vence, hoy);
+    if (falta < 0) items.push({ clave: `vacuna-${r.clave}`, etiqueta: `Vacuna de ${r.nombre.toLowerCase()}`, detalle: `Vencida hace ${dias(-falta)}: la última campaña fue el ${corta(ultima)}`, nivel: "rojo", href: "/hato?vista=sanidad", orden: falta });
+    else if (falta <= DIAS_AVISO_VACUNA) items.push({ clave: `vacuna-${r.clave}`, etiqueta: `Vacuna de ${r.nombre.toLowerCase()}`, detalle: `Toca ${falta === 0 ? "hoy" : `en ${dias(falta)}`} (${corta(vence)}): la última campaña fue el ${corta(ultima)}`, nivel: "ambar", href: "/hato?vista=sanidad", orden: falta });
+  }
+  const sinPlazo = reglas.filter((r) => r.cada == null).map((r) => r.nombre.toLowerCase());
+  return armarSenal(
+    {
+      id: "vacunas",
+      area: "sanidad",
+      titulo: "Vacunas anuales",
+      queSignifica: "Si ya toca repetir la campaña de rabia y de clostridiosis, según cada cuánto la repites (se define en Ajustes).",
+      regla: `Ámbar: faltan ${DIAS_AVISO_VACUNA} días o menos para repetirla. Rojo: ya venció o nunca se registró.`,
+      accion: { texto: "Programar en Hato → Sanidad", href: "/hato?vista=sanidad" },
+      nota: sinPlazo.length ? `No se evalúa la vacuna de ${sinPlazo.join(" ni la de ")}: define cada cuántos días se repite en Ajustes de la finca → Sanidad.` : "Se reconoce la vacuna por el nombre del producto (que diga «rabia» o «clostridios…»).",
+    },
+    items,
+  );
+}
+
+// ───────────────────────── Leche (segunda tanda) ─────────────────────────
+export function senalMantenimiento(filas: MantenimientoOrdeno[], hoy: string): Senal {
+  const items: ItemSenal[] = pendientesMantenimiento(filas, hoy).map((p: PendienteEquipo<MantenimientoOrdeno>) => ({
+    clave: `mant-${p.registro.tipo}-${p.registro.equipo ?? ""}`,
+    etiqueta: `${ETIQUETA_MANTENIMIENTO[p.registro.tipo as keyof typeof ETIQUETA_MANTENIMIENTO] ?? p.registro.tipo}${p.registro.equipo ? ` · ${p.registro.equipo}` : ""}`,
+    detalle: p.dias < 0 ? `Atrasada ${dias(-p.dias)}` : p.dias === 0 ? "Toca hoy" : `Toca en ${dias(p.dias)}`,
+    nivel: p.dias < 0 ? ("rojo" as const) : ("ambar" as const),
+    href: "/leche",
+    orden: p.dias,
+  }));
+  return armarSenal(
+    {
+      id: "mantenimiento",
+      area: "leche",
+      titulo: "Mantenimiento de la sala de ordeño",
+      queSignifica: "Lavados, revisión de presión y de pulsadores del equipo de ordeño que ya tocan o están por tocar.",
+      regla: "Ámbar: toca en los próximos 7 días. Rojo: ya está atrasada.",
+      accion: { texto: "Ver Leche", href: "/leche" },
+    },
+    items,
+  );
+}
+
+// ───────────────────────── Ceba ─────────────────────────
+export type AnimalEnCeba = { animalId: string; ultimaFecha: string | null; gdpRecienteG: number | null; limiteDias: number };
+
+export function senalesCeba(animales: AnimalEnCeba[], gdpMinimaG: number, hoy: string, etiqueta: Etiqueta): Senal[] {
+  const pesaje: ItemSenal[] = [];
+  const ganancia: ItemSenal[] = [];
+  for (const a of animales) {
+    const sin = a.ultimaFecha ? diasDesde(a.ultimaFecha, hoy) : null;
+    if (sin === null || sin > a.limiteDias) {
+      pesaje.push({
+        clave: `pesaje-${a.animalId}`,
+        etiqueta: etiqueta(a.animalId),
+        detalle: sin === null ? `Sin pesos todavía (conviene pesar cada ${dias(a.limiteDias)})` : `Sin pesar hace ${dias(sin)} (conviene cada ${dias(a.limiteDias)})`,
+        nivel: sin === null || sin > a.limiteDias * 2 ? "rojo" : "ambar",
+        href: fichaAnimal(a.animalId, "crecimiento"),
+        orden: sin === null ? -9999 : -sin,
+      });
+    }
+    if (a.gdpRecienteG != null && a.gdpRecienteG < gdpMinimaG) {
+      ganancia.push({
+        clave: `gdp-${a.animalId}`,
+        etiqueta: etiqueta(a.animalId),
+        detalle: `Gana ${Math.round(a.gdpRecienteG)} g/día; el mínimo es ${gdpMinimaG}`,
+        nivel: a.gdpRecienteG < gdpMinimaG / 2 ? "rojo" : "ambar",
+        href: fichaAnimal(a.animalId, "crecimiento"),
+        orden: a.gdpRecienteG,
+      });
+    }
+  }
+  return [
+    armarSenal(
+      {
+        id: "ceba-pesaje",
+        area: "ceba",
+        titulo: "Pesaje atrasado en ceba",
+        queSignifica: "Animales en engorde (en un lote abierto o machos de carne) que llevan más días sin pesarse de lo que la finca definió.",
+        regla: "Ámbar: pasó el plazo de pesaje de Carne → Reglas de ceba. Rojo: pasó el doble del plazo o nunca se ha pesado.",
+        accion: { texto: "Pesar en Hato → Ceba", href: "/hato?vista=ceba" },
+      },
+      pesaje,
+    ),
+    armarSenal(
+      {
+        id: "ceba-gdp",
+        area: "ceba",
+        titulo: "Ganancia de peso baja",
+        queSignifica: "Animales en engorde cuya ganancia diaria reciente está por debajo del mínimo de la finca.",
+        regla: `Ámbar: gana menos de ${gdpMinimaG} g/día (Ajustes → Ceba). Rojo: menos de la mitad.`,
+        accion: { texto: "Ver Carne", href: "/carne" },
+      },
+      ganancia,
+    ),
+  ];
+}
+
+// ───────────────────────── Dinero ─────────────────────────
+export type CompraPorPagar = { id: string; descripcion: string; monto: number; vence: string };
+export type VentaPorCobrar = { clave: string; producto: string; tercero: string | null; valor: number; cobro_vence: string };
+/** Días antes del vencimiento desde los que un pago o un cobro pasa a ámbar. */
+const DIAS_AVISO_DINERO = 7;
+
+export function senalesDinero(compras: CompraPorPagar[], ventas: VentaPorCobrar[], hoy: string): Senal[] {
+  const nivelDe = (vence: string): NivelItem | null => {
+    const d = diasHasta(vence, hoy);
+    return d < 0 ? "rojo" : d <= DIAS_AVISO_DINERO ? "ambar" : null;
+  };
+  const texto = (vence: string, verbo: string) => {
+    const d = diasHasta(vence, hoy);
+    return d < 0 ? `${verbo} hace ${dias(-d)}` : d === 0 ? `${verbo} hoy` : `${verbo} en ${dias(d)}`;
+  };
+  const pagar: ItemSenal[] = [];
+  for (const c of compras) {
+    const nivel = nivelDe(c.vence);
+    if (nivel) pagar.push({ clave: `pagar-${c.id}`, etiqueta: c.descripcion, detalle: `${pesos(Number(c.monto))} · ${texto(c.vence, "vence")}`.replace("vence hace", "venció hace"), nivel, href: "/hato?vista=gastos", orden: diasHasta(c.vence, hoy) });
+  }
+  const cobrar: ItemSenal[] = [];
+  for (const v of ventas) {
+    const nivel = nivelDe(v.cobro_vence);
+    if (nivel) cobrar.push({ clave: `cobrar-${v.clave}`, etiqueta: `${v.producto}${v.tercero ? ` · ${v.tercero}` : ""}`, detalle: `${pesos(Number(v.valor))} · ${texto(v.cobro_vence, "lo esperabas")}`.replace("lo esperabas en", "lo esperas en").replace("lo esperabas hoy", "lo esperas hoy"), nivel, href: "/hato?vista=ventas", orden: diasHasta(v.cobro_vence, hoy) });
+  }
+  return [
+    armarSenal(
+      {
+        id: "compras-pagar",
+        area: "dinero",
+        titulo: "Compras por pagar",
+        queSignifica: "Compras a crédito cuyo pago vence pronto o ya venció.",
+        regla: `Ámbar: vence hoy o en los próximos ${DIAS_AVISO_DINERO} días. Rojo: ya venció.`,
+        accion: { texto: "Ver Hato → Compras", href: "/hato?vista=gastos" },
+      },
+      pagar,
+    ),
+    armarSenal(
+      {
+        id: "ventas-cobrar",
+        area: "dinero",
+        titulo: "Ventas por cobrar",
+        queSignifica: "Ventas (leche, animales, carne, derivados) cuyo cobro esperado vence pronto o ya venció.",
+        regla: `Ámbar: se espera cobrar hoy o en los próximos ${DIAS_AVISO_DINERO} días. Rojo: el cobro esperado ya pasó.`,
+        accion: { texto: "Ver Hato → Ventas", href: "/hato?vista=ventas" },
+      },
+      cobrar,
+    ),
+  ];
 }
