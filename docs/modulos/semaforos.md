@@ -48,3 +48,10 @@ Los plazos que ya eran ajustables (ventana de diagnóstico, secado, último terc
 - **Alimento (autonomía del stock):** `stock_autonomia_dias` existe en Ajustes, pero la app todavía no lleva un inventario de alimento, así que no hay de qué calcular la señal. Se construye cuando exista el stock.
 - Las vacunas se reconocen por el nombre del producto; si algún día el catálogo guarda a qué enfermedad protege cada vacuna, se cambia ahí.
 - Aviso al entrar al escalón de 10 días: hoy lo cubre la tarjeta de Hoy (la señal de partos pasa a «vigílala a diario»); un aviso aparte (notificación) no existe.
+
+## «Qué hacer» en cada caso
+
+Un caso de la lista puede traer `queHacer` (una frase con el paso siguiente) y se muestra bajo el detalle. Hoy lo llevan los partos
+atrasados y los que ya pasaron su fecha. La ficha de la hembra muestra solo los botones que aplican a su estado: gestante → Parto
+(«Registrar parto o aborto» si está atrasada; «Repetir diagnóstico» solo si está en observación); servida → Diagnóstico, Nuevo servicio, Parto;
+vacía o sin datos → Servicio.

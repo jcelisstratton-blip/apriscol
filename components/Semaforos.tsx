@@ -131,6 +131,7 @@ export function Semaforos({ senales }: { senales: Senal[] }) {
                         <span className="min-w-0 [overflow-wrap:anywhere]">
                           <span className="block font-semibold">{i.etiqueta}</span>
                           <span className="block text-sm text-humo">{i.detalle}</span>
+                          {i.queHacer ? <span className="mt-0.5 block text-sm font-medium">Qué hacer: {i.queHacer}</span> : null}
                         </span>
                         <span className="flex shrink-0 items-center gap-1">
                           <Insignia tono={i.nivel === "rojo" ? "alerta" : "aviso"}>{i.nivel === "rojo" ? "Rojo" : "Ámbar"}</Insignia>
