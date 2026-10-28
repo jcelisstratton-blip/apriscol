@@ -12,6 +12,7 @@ import {
   senalCorrales,
   senalDosis,
   senalFamacha,
+  senalCoprologico,
   senalFrio,
   senalPartos,
   senalProduccion,
@@ -129,8 +130,9 @@ export async function cargarSemaforos({
 
   if (areas.has("sanidad")) {
     const plazosPezuna = plazosRevisionPezuna(g, hoy);
-    const [famacha, pendientes, programas, retiro, pruebas, cuarentena, podologia, pediluvio, vacunas] = await Promise.all([
+    const [famacha, coprologico, pendientes, programas, retiro, pruebas, cuarentena, podologia, pediluvio, vacunas] = await Promise.all([
       leerTodo((d, h) => supabase.from("v_famacha_animal").select("animal_id, puntaje, ultima_fecha, desparasitado_en").eq("finca_id", fincaId).gte("puntaje", 3).order("animal_id").range(d, h)),
+      leerTodo((d, h) => supabase.from("v_coprologico_animal").select("animal_id, hpg, ultima_fecha, desparasitado_en").eq("finca_id", fincaId).gte("hpg", 1000).is("desparasitado_en", null).order("animal_id").range(d, h)),
       leerTodo((d, h) => supabase.from("v_sanidad_pendiente").select("*").eq("finca_id", fincaId).lte("proxima_fecha", sumarDias(hoy, 7)).order("proxima_fecha").order("evento_id").order("animal_id").range(d, h)),
       supabase.from("v_programas_sanitarios").select("*").eq("finca_id", fincaId).eq("estado", "abierto").lte("fecha_programada", sumarDias(hoy, 7)).order("fecha_programada").limit(100),
       supabase.rpc("animales_en_retiro", { p_finca: fincaId }),
@@ -168,6 +170,7 @@ export async function cargarSemaforos({
     });
     senales.push(
       senalFamacha(famachaVigentes, etiqueta),
+      senalCoprologico((coprologico.data ?? []).filter((c) => activo(c.animal_id)), etiqueta),
       senalDosis([...grupos.values()].filter((d) => d.animales > 0), hoy),
       senalRetiro((retiro.data ?? []).filter((r) => activo(r.animal_id)), hoy, etiqueta),
       senalPruebas(((pruebas.data ?? []) as FilaPrueba[]).filter((p) => activo(p.animal_id)), hoy, etiqueta),

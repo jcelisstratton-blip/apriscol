@@ -7,6 +7,7 @@ import { clasesBoton } from "@/components/Boton";
 import { formatoFecha, hoyBogota } from "@/lib/fechas";
 import { HistorialSanidadAnimal } from "@/components/HistorialSanidadAnimal";
 import { aplicaFamacha, estadoFamacha, FAMACHA } from "@/lib/famacha";
+import { interpretarHpg, textoResultado } from "@/lib/coprologico";
 import { estadoDosis, estadoFechaPrograma, ETIQUETA_EVENTO, nombreEvento } from "@/lib/sanidad";
 import type { CtxFicha } from "./contexto";
 
@@ -28,6 +29,13 @@ export async function TarjetaSanidad({ c }: { c: CtxFicha }) {
         supabase.from("v_famacha_animal").select("*").eq("animal_id", id).maybeSingle(),
       ])
     : [{ data: [] }, { data: null }];
+  const [copros, coproActual] = verSanidad
+    ? await Promise.all([
+        supabase.from("examenes_coprologicos").select("id, fecha, hpg, opg, momento, tecnica, observaciones").eq("animal_id", id).eq("finca_id", finca.id).order("fecha", { ascending: false }).limit(50),
+        supabase.from("v_coprologico_animal").select("*").eq("animal_id", id).maybeSingle(),
+      ])
+    : [{ data: [] }, { data: null }];
+  const lecturaCopro = coproActual.data?.hpg != null ? interpretarHpg(coproActual.data.hpg) : null;
   const estadoFama = famachaActual.data ? estadoFamacha(famachaActual.data) : null;
   const pendientesProg = verSanidad ? ((await supabase.from("programa_sanitario_animales").select("programa_id").eq("animal_id", id).eq("finca_id", finca.id).is("evento_id", null).limit(50)).data ?? []) : [];
   const programasAnimal = pendientesProg.length > 0
@@ -43,13 +51,26 @@ export async function TarjetaSanidad({ c }: { c: CtxFicha }) {
     retiro_leche_hasta: e.fin_retiro_leche && (e.retiro_leche_dias ?? 0) > 0 && e.fin_retiro_leche >= hoyBogota() ? e.fin_retiro_leche : null,
     retiro_carne_hasta: e.fin_retiro_carne && (e.retiro_carne_dias ?? 0) > 0 && e.fin_retiro_carne >= hoyBogota() ? e.fin_retiro_carne : null,
   }));
+  const historialCopro = (copros.data ?? []).map((c) => ({ clave: `c-${c.id}`, id: c.id, fecha: c.fecha, hpg: c.hpg, opg: c.opg, momento: c.momento, tecnica: c.tecnica, observaciones: c.observaciones }));
   const historialPruebas = (pruebasSan.data ?? []).map((p) => ({ clave: `p-${p.id}`, id: p.id, fecha: p.fecha, prueba: p.prueba, resultado: p.resultado, laboratorio: p.laboratorio }));
   const historialFamacha = (famachaSan.data ?? []).map((f) => ({ clave: `f-${f.id}`, id: f.id, fecha: f.fecha, puntaje: f.puntaje, observaciones: f.observaciones }));
   const dosisPendientes = pendientesSan.data ?? [];
-  if (!(verSanidad && (animal.estado === "activo" || historialEventos.length > 0 || historialPruebas.length > 0 || historialFamacha.length > 0))) return null;
+  if (!(verSanidad && (animal.estado === "activo" || historialEventos.length > 0 || historialPruebas.length > 0 || historialFamacha.length > 0 || historialCopro.length > 0))) return null;
 
   return (
     <Tarjeta titulo="Sanidad" id="sanidad">
+      {coproActual.data && lecturaCopro ? (
+        <div className="mb-3 rounded-2xl bg-lana px-3 py-2.5">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <span className="min-w-0 text-[0.9375rem]">
+              <span className="font-semibold">Coprológico · {textoResultado(coproActual.data)}</span>
+              <span className="block text-sm text-humo">{formatoFecha(coproActual.data.ultima_fecha, { day: "numeric", month: "short", year: "numeric" })}</span>
+            </span>
+            <Insignia tono={lecturaCopro.tono}>{lecturaCopro.texto}</Insignia>
+          </div>
+          {!coproActual.data.desparasitado_en && (lecturaCopro.nivel === "alto" || lecturaCopro.nivel === "muy_alto") ? <p className="mt-1.5 text-sm text-humo">{lecturaCopro.accion}</p> : null}
+        </div>
+      ) : null}
       {estadoFama && famachaActual.data ? (
         <div className="mb-3 rounded-2xl bg-lana px-3 py-2.5">
           <div className="flex flex-wrap items-center justify-between gap-2">
@@ -108,10 +129,10 @@ export async function TarjetaSanidad({ c }: { c: CtxFicha }) {
           })}
         </ul>
       ) : null}
-      {historialEventos.length === 0 && historialPruebas.length === 0 && historialFamacha.length === 0 ? (
+      {historialEventos.length === 0 && historialPruebas.length === 0 && historialFamacha.length === 0 && historialCopro.length === 0 ? (
         <p className="text-[0.9375rem] text-humo">Todavía no tiene vacunas, tratamientos ni pruebas registrados.</p>
       ) : (
-        <HistorialSanidadAnimal eventos={historialEventos} pruebas={historialPruebas} famacha={historialFamacha} puedeEditar={puedeEscribir(rol, "sanidad", finca.plan)} />
+        <HistorialSanidadAnimal eventos={historialEventos} pruebas={historialPruebas} famacha={historialFamacha} coprologicos={historialCopro} puedeEditar={puedeEscribir(rol, "sanidad", finca.plan)} />
       )}
       {puedeEscribir(rol, "sanidad", finca.plan) && animal.estado === "activo" ? (
         <div className="mt-3 space-y-3">
@@ -130,6 +151,9 @@ export async function TarjetaSanidad({ c }: { c: CtxFicha }) {
           <div className="grid grid-cols-1 gap-2 min-[420px]:grid-cols-2">
             <Link href={`/sanidad/pruebas/nueva?animal=${id}`} className={clasesBoton("secundario")}>
               Prueba diagnóstica
+            </Link>
+            <Link href={`/hato/sanidad/coprologico/nuevo?animal=${id}`} className={clasesBoton("secundario")}>
+              Examen coprológico
             </Link>
             {aplicaEvaluarFamacha ? (
               <Link href={`/hato/sanidad/famacha/nueva?animal=${id}`} className={clasesBoton("secundario")}>

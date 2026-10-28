@@ -11,6 +11,8 @@ import { hoyBogota, sumarDias } from "@/lib/fechas";
 import { leerNumero } from "@/lib/numeros";
 import { soporteValido } from "@/lib/soportes";
 import { DIRECCION_SANIDAD } from "@/lib/hato";
+import type { ExamenCoprologico } from "@/lib/tipos";
+import { OTROS_PARASITOS, TECNICAS_COPROLOGICO } from "@/lib/coprologico";
 import { datosPorTipoEvento, type EntradaEvento } from "@/lib/sanidad-campos";
 import { EVENTO_CON_PRODUCTO, RESULTADOS_PRUEBA, TIPOS_EVENTO, TIPOS_PRODUCTO, TIPOS_PROGRAMABLES, TIPOS_PRUEBA, VIAS } from "@/lib/sanidad";
 import { opcional } from "@/lib/validacion";
@@ -429,6 +431,104 @@ export async function eliminarFamacha(evaluacionId: string): Promise<Resultado> 
   revalidatePath("/sanidad");
   revalidatePath("/hato");
   revalidatePath(`/hato/${data[0].animal_id}`);
+  return { ok: true };
+}
+
+// ───────────────────────── Examen coprológico (de un animal) ─────────────────────────
+const conteo = (mensaje: string, tope: number) => numero(z.coerce.number(mensaje).int(mensaje).min(0, mensaje).max(tope, "Ese número es demasiado grande. Revísalo."));
+const esquemaCoprologico = z.object({
+  animal_id: z.uuid("Elige el animal."),
+  fecha: z.iso.date("Indica la fecha del examen."),
+  momento: z.enum(["diagnostico", "antes", "despues"], "Indica si es de diagnóstico, antes o después de desparasitar."),
+  evento_id: opcional(z.uuid()),
+  tecnica: z.enum(TECNICAS_COPROLOGICO as [string, ...string[]], "Elige la técnica del examen."),
+  hpg: conteo("Los huevos por gramo (HPG) deben ser un número entero.", 1_000_000),
+  opg: conteo("Los ooquistes por gramo (OPG) deben ser un número entero.", 100_000_000),
+  laboratorio: opcional(z.string().trim().max(120, "El nombre del laboratorio es muy largo.")),
+  observaciones: opcional(z.string().trim().max(300, "Las observaciones son muy largas (máximo 300 letras).")),
+});
+const esquemaEdicionCoprologico = esquemaCoprologico.extend({ examen_id: z.uuid() });
+const COPROLOGICO_REPETIDO = "Ya registraste un examen coprológico de este animal en esa fecha y momento. Edítalo o elige otra fecha.";
+
+/** Valida el formulario del coprológico: resultado, otros parásitos y la desparasitación a la que pertenece (si es de antes o después). */
+async function leerCoprologico(form: FormData, fincaId: string, supabase: Cliente, edicion: boolean) {
+  const datos = (edicion ? esquemaEdicionCoprologico : esquemaCoprologico).safeParse(Object.fromEntries(form));
+  if (!datos.success) return { error: datos.error.issues[0]?.message ?? "Revisa los datos." } as const;
+  const d = datos.data as z.output<typeof esquemaCoprologico> & { examen_id?: string };
+  if (d.fecha > hoyBogota()) return { error: "La fecha no puede ser futura." } as const;
+  if (d.hpg === undefined && d.opg === undefined) return { error: "Escribe al menos un resultado: huevos por gramo (HPG) u ooquistes por gramo (OPG)." } as const;
+  if (d.tecnica === "flotacion" && d.hpg !== undefined) return { error: "La flotación simple no cuenta huevos: usa McMaster o Mini-FLOTAC para un número." } as const;
+  const otros = form.getAll("otros_parasitos").map(String).filter((o) => (OTROS_PARASITOS as string[]).includes(o));
+  if (d.momento !== "diagnostico") {
+    if (!d.evento_id) return { error: "Elige la desparasitación a la que pertenece este examen." } as const;
+    if (d.hpg === undefined) return { error: "La prueba de eficacia necesita los huevos por gramo (HPG)." } as const;
+    const { data: ev } = await supabase.from("eventos_sanitarios").select("id, tipo, fecha").eq("id", d.evento_id).eq("finca_id", fincaId).maybeSingle();
+    if (!ev || ev.tipo !== "desparasitacion") return { error: "Ese registro no es una desparasitación de esta finca." } as const;
+    const { data: ea } = await supabase.from("evento_sanitario_animales").select("animal_id").eq("evento_id", d.evento_id).eq("finca_id", fincaId).eq("animal_id", d.animal_id).maybeSingle();
+    if (!ea) return { error: "Ese animal no recibió esa desparasitación." } as const;
+    if (d.momento === "antes" && d.fecha > ev.fecha) return { error: "El examen de «antes» debe ser de la fecha de la desparasitación o anterior." } as const;
+    if (d.momento === "despues" && d.fecha <= ev.fecha) return { error: "El examen de «después» debe ser posterior a la desparasitación (lo normal: 10 a 14 días)." } as const;
+  }
+  const fila = {
+    animal_id: d.animal_id,
+    fecha: d.fecha,
+    momento: d.momento,
+    evento_id: d.momento === "diagnostico" ? null : (d.evento_id ?? null),
+    tecnica: d.tecnica as ExamenCoprologico["tecnica"],
+    hpg: d.hpg ?? null,
+    opg: d.opg ?? null,
+    otros_parasitos: otros,
+    laboratorio: d.laboratorio ?? null,
+    observaciones: d.observaciones ?? null,
+  };
+  return { fila, examenId: d.examen_id } as const;
+}
+
+function refrescarCoprologico(animalId: string, eventoId?: string | null) {
+  revalidatePath("/sanidad");
+  revalidatePath("/hato");
+  revalidatePath("/");
+  revalidatePath(`/hato/${animalId}`);
+  if (eventoId) revalidatePath(`/sanidad/evento/${eventoId}`);
+}
+
+export async function crearCoprologico(_: EstadoForm, form: FormData): Promise<EstadoForm> {
+  const { finca, rol } = await obtenerContexto();
+  if (!puedeEscribir(rol, "sanidad", finca.plan)) return { error: "No tienes permiso para registrar sanidad en esta finca." };
+  const supabase = await crearClienteServidor();
+  const leido = await leerCoprologico(form, finca.id, supabase, false);
+  if ("error" in leido) return { error: leido.error };
+  const { error } = await supabase.from("examenes_coprologicos").insert({ finca_id: finca.id, ...leido.fila });
+  if (error?.code === "23505") return { error: COPROLOGICO_REPETIDO };
+  if (error) return { error: mensajeAmigable(error.message) };
+  refrescarCoprologico(leido.fila.animal_id, leido.fila.evento_id);
+  redirect(leido.fila.evento_id ? `/sanidad/evento/${leido.fila.evento_id}?guardado=1` : `/hato/${leido.fila.animal_id}?guardado=1#sanidad`);
+}
+
+export async function editarCoprologico(_: EstadoForm, form: FormData): Promise<EstadoForm> {
+  const { finca, rol } = await obtenerContexto();
+  if (!puedeEscribir(rol, "sanidad", finca.plan)) return { error: "No tienes permiso para editar sanidad en esta finca." };
+  const supabase = await crearClienteServidor();
+  const leido = await leerCoprologico(form, finca.id, supabase, true);
+  if ("error" in leido) return { error: leido.error };
+  if (!leido.examenId) return { error: "No encontramos ese examen." };
+  const { data, error } = await supabase.from("examenes_coprologicos").update(leido.fila).eq("id", leido.examenId).eq("finca_id", finca.id).eq("animal_id", leido.fila.animal_id).select("id");
+  if (error?.code === "23505") return { error: COPROLOGICO_REPETIDO };
+  if (error) return { error: mensajeAmigable(error.message) };
+  if (!data || data.length === 0) return { error: "No encontramos ese examen." };
+  refrescarCoprologico(leido.fila.animal_id, leido.fila.evento_id);
+  redirect(leido.fila.evento_id ? `/sanidad/evento/${leido.fila.evento_id}?guardado=1` : `/hato/${leido.fila.animal_id}?guardado=1#sanidad`);
+}
+
+export async function eliminarCoprologico(examenId: string): Promise<Resultado> {
+  const { finca, rol } = await obtenerContexto();
+  if (!puedeEscribir(rol, "sanidad", finca.plan)) return { ok: false, error: "No tienes permiso para eliminar exámenes en esta finca." };
+  if (!ID_UUID.safeParse(examenId).success) return { ok: false, error: "Examen no válido." };
+  const supabase = await crearClienteServidor();
+  const { data, error } = await supabase.from("examenes_coprologicos").delete().eq("id", examenId).eq("finca_id", finca.id).select("animal_id, evento_id");
+  if (error) return { ok: false, error: mensajeAmigable(error.message) };
+  if (!data || data.length === 0) return { ok: false, error: "No encontramos ese examen." };
+  refrescarCoprologico(data[0].animal_id, data[0].evento_id);
   return { ok: true };
 }
 

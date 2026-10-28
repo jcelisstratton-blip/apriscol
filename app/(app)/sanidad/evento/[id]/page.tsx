@@ -6,6 +6,7 @@ import { AvisoGuardado } from "@/components/AvisoGuardado";
 import { EliminarRegistro } from "@/components/EliminarRegistro";
 import { IconoEvento } from "@/components/IconoEvento";
 import { Insignia } from "@/components/Insignia";
+import { EficaciaDesparasitante } from "@/components/EficaciaDesparasitante";
 import { ListaAnimalesEvento } from "@/components/ListaAnimalesEvento";
 import { Tarjeta } from "@/components/Tarjeta";
 import { obtenerContexto } from "@/lib/contexto";
@@ -45,6 +46,8 @@ export default async function DetalleEvento({ params, searchParams }: { params: 
   ]);
   if (!e) notFound();
   const animales = await animalesPorIds(supabase, finca.id, (filas ?? []).map((f) => f.animal_id));
+
+  const { data: examenes } = e.tipo === "desparasitacion" ? await supabase.from("examenes_coprologicos").select("*").eq("evento_id", id).eq("finca_id", finca.id).limit(2000) : { data: [] };
 
   const leche = e.retiro_leche_dias > 0 ? e.fin_retiro_leche : null;
   const carne = e.retiro_carne_dias > 0 ? e.fin_retiro_carne : null;
@@ -130,6 +133,8 @@ export default async function DetalleEvento({ params, searchParams }: { params: 
           </dl>
           {e.observaciones ? <p className="mt-3 whitespace-pre-wrap border-t border-arena pt-3 text-[0.9375rem]">{e.observaciones}</p> : null}
         </Tarjeta>
+
+        {e.tipo === "desparasitacion" ? <EficaciaDesparasitante eventoId={id} animales={animales} examenes={examenes ?? []} puedeEditar={puedeEscribir(rol, "sanidad", finca.plan)} /> : null}
 
         <Tarjeta titulo={animales.length === 1 ? "Animal" : `Animales (${animales.length})`}>
           <ListaAnimalesEvento animales={animales} />

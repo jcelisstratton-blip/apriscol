@@ -614,6 +614,29 @@ export type EvaluacionFamacha = {
 /** La última evaluación FAMACHA de un animal activo y cuándo se le desparasitó desde entonces (vista `v_famacha_animal`). */
 export type FamachaAnimal = { animal_id: string; finca_id: string; evaluacion_id: string; ultima_fecha: string; puntaje: number; desparasitado_en: string | null };
 
+/** Un examen coprológico: huevos por gramo (HPG) y ooquistes por gramo (OPG) de un animal en una fecha. */
+export type ExamenCoprologico = {
+  id: string;
+  finca_id: string;
+  animal_id: string;
+  fecha: string;
+  momento: "diagnostico" | "antes" | "despues";
+  /** La desparasitación a la que pertenece un examen de «antes» o «después». */
+  evento_id: string | null;
+  tecnica: "mcmaster" | "mini_flotac" | "flotacion" | "otra";
+  hpg: number | null;
+  opg: number | null;
+  otros_parasitos: string[];
+  laboratorio: string | null;
+  observaciones: string | null;
+  client_request_id: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+};
+/** El último examen coprológico de diagnóstico de un animal activo y cuándo se le desparasitó desde entonces (vista `v_coprologico_animal`). */
+export type CoprologicoAnimal = { animal_id: string; finca_id: string; examen_id: string; ultima_fecha: string; hpg: number | null; opg: number | null; desparasitado_en: string | null };
+
 /** Un evento con cuántos animales lo recibieron (vista `v_eventos_sanitarios`). */
 export type EventoResumen = {
   id: string | null;
@@ -1343,6 +1366,7 @@ export type Database = {
       personal: Tabla<Persona, "finca_id" | "nombre" | "vinculacion" | "forma_pago" | "valor_base">;
       pagos_personal: Tabla<PagoPersonal, "finca_id" | "personal_id" | "fecha" | "cantidad" | "valor_base">;
       evaluaciones_famacha: Tabla<EvaluacionFamacha, "finca_id" | "animal_id" | "fecha" | "puntaje">;
+      examenes_coprologicos: Tabla<ExamenCoprologico, "finca_id" | "animal_id" | "fecha">;
       analisis_leche: Tabla<AnalisisLeche, "finca_id">;
       controles_frio: Tabla<ControlFrio, "finca_id" | "momento" | "temperatura_c">;
       despachos_leche: Tabla<Omit<DespachoLeche, "valor_total">, "finca_id" | "litros" | "destino_tipo">;
@@ -1383,6 +1407,7 @@ export type Database = {
       v_ubicaciones: { Row: UbicacionVista; Relationships: [] };
       v_cuarentena_alerta: { Row: CuarentenaAlerta; Relationships: [] };
       v_famacha_animal: { Row: FamachaAnimal; Relationships: [] };
+      v_coprologico_animal: { Row: CoprologicoAnimal; Relationships: [] };
       v_podologia_animal: { Row: { animal_id: string; finca_id: string; ultima_fecha: string | null }; Relationships: [] };
       v_pediluvio_animal: { Row: { animal_id: string; finca_id: string; ultima_fecha: string | null }; Relationships: [] };
     };

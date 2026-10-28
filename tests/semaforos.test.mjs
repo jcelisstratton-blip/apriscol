@@ -236,3 +236,20 @@ test("semáforos: dinero — vencido en rojo, en los próximos 7 días en ámbar
   assert.match(pagar.items[0].detalle, /venció hace 3 días/);
   assert.deepEqual(cobrar.items.map((i) => [i.clave, i.nivel]), [["cobrar-x", "rojo"]]);
 });
+
+import { senalCoprologico } from "../lib/semaforos.ts";
+test("semáforo coprológico: solo cargas altas sin desparasitar; rojo desde 3.000", () => {
+  const etiqueta = (id) => id;
+  const s = senalCoprologico(
+    [
+      { animal_id: "bajo", hpg: 400, ultima_fecha: "2026-10-01", desparasitado_en: null },
+      { animal_id: "alto", hpg: 1500, ultima_fecha: "2026-10-01", desparasitado_en: null },
+      { animal_id: "muy", hpg: 5000, ultima_fecha: "2026-10-01", desparasitado_en: null },
+      { animal_id: "tratado", hpg: 5000, ultima_fecha: "2026-10-01", desparasitado_en: "2026-10-05" },
+      { animal_id: "solo_ooquistes", hpg: null, ultima_fecha: "2026-10-01", desparasitado_en: null },
+    ],
+    etiqueta,
+  );
+  assert.deepEqual(s.items.map((i) => [i.clave, i.nivel]), [["coprologico-muy", "rojo"], ["coprologico-alto", "ambar"]]);
+  assert.ok(s.items[0].queHacer);
+});
