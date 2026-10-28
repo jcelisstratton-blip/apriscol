@@ -96,7 +96,7 @@ export function ListaNovedades({ fincaId, reviso, estadoInicial, usuarioId }: { 
             <EstadoVacio
               icono={<Inbox strokeWidth={1.5} />}
               titulo={reviso ? "No hay novedades" : "Todavía no has enviado novedades"}
-              descripcion={reviso ? "Cuando alguien del equipo cuente algo de un animal, aparecerá aquí con su nombre." : "Entra a la ficha de un animal y elige «Enviar una novedad» para contar una aplicación, una prueba, un coprológico o un FAMACHA."}
+              descripcion={reviso ? "Cuando alguien del equipo cuente algo de un animal, aparecerá aquí con su nombre." : "Entra a la ficha de un animal y elige «Crear una novedad» para pedir una aplicación o una prueba diagnóstica."}
             />
           )
         }

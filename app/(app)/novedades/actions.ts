@@ -8,7 +8,7 @@ import { obtenerContexto } from "@/lib/contexto";
 import { puedeEscribir, puedeVer, revisaNovedades } from "@/lib/permisos";
 import { mensajeAmigable } from "@/lib/mensaje-amigable";
 import { hoyBogota } from "@/lib/fechas";
-import { CUANDO_NOVEDAD, ESTADOS_NOVEDAD, TIPOS_NOVEDAD, faltaEnNovedad, fechaDeNovedad, type CuandoNovedad } from "@/lib/novedades";
+import { CUANDO_NOVEDAD, ESTADOS_NOVEDAD, TIPOS_NOVEDAD_NUEVA, faltaEnNovedad, fechaDeNovedad, type CuandoNovedad } from "@/lib/novedades";
 import { RESULTADOS_PRUEBA, TIPOS_EVENTO, TIPOS_PRUEBA, VIAS } from "@/lib/sanidad";
 import { ANESTESIAS, CATEGORIAS, COJERAS, ETAPAS, MOTIVOS, REGLAS } from "@/lib/sanidad-campos";
 import { TIPOS_MUESTRA } from "@/lib/coprologico";
@@ -23,8 +23,9 @@ const enumDe = (valores: readonly string[], mensaje: string) => z.enum(valores a
 // Una novedad se arma solo eligiendo opciones: ningún campo es de texto libre.
 const esquema = z.object({
   animal_id: z.uuid("Elige el animal."),
-  tipo: enumDe(TIPOS_NOVEDAD, "Elige qué quieres contar."),
-  cuando: enumDe(CUANDO_NOVEDAD.map((c) => c.valor), "Elige cuándo fue."),
+  tipo: enumDe(TIPOS_NOVEDAD_NUEVA, "Elige sobre qué es la novedad."),
+  // Ya no se pregunta cuándo fue: la novedad es del día en que se envía.
+  cuando: opcional(enumDe(CUANDO_NOVEDAD.map((c) => c.valor), "Elige cuándo fue.")),
   // Lo mismo que se elige en «Registrar una aplicación» (qué se hizo y sus opciones); la única entrada de texto son las observaciones.
   tipo_evento: opcional(enumDe(TIPOS_EVENTO, "Elige qué se hizo.")),
   categoria: opcional(z.string().trim().max(40)),
@@ -87,7 +88,7 @@ export async function crearNovedad(_: EstadoForm, form: FormData): Promise<Estad
     finca_id: finca.id,
     animal_id: d.animal_id,
     tipo: d.tipo as Novedad["tipo"],
-    fecha: fechaDeNovedad(d.cuando as CuandoNovedad, hoyBogota()),
+    fecha: fechaDeNovedad((d.cuando as CuandoNovedad | undefined) ?? "hoy", hoyBogota()),
     tipo_evento: aplicacion ? ((d.tipo_evento as Novedad["tipo_evento"]) ?? null) : null,
     categoria: aplicacion ? (d.categoria ?? null) : null,
     etapa: aplicacion ? (d.etapa ?? null) : null,

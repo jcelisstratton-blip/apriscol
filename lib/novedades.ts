@@ -11,6 +11,8 @@ import type { Novedad } from "@/lib/tipos";
 
 export type TipoNovedad = Novedad["tipo"];
 export const TIPOS_NOVEDAD: TipoNovedad[] = ["aplicacion", "prueba", "coprologico", "famacha"];
+/** Sobre qué se puede crear una novedad hoy: una aplicación o una prueba diagnóstica. Las de coprológico y FAMACHA ya enviadas se siguen viendo. */
+export const TIPOS_NOVEDAD_NUEVA: TipoNovedad[] = ["aplicacion", "prueba"];
 export const ETIQUETA_TIPO_NOVEDAD: Record<TipoNovedad, string> = {
   aplicacion: "Aplicación",
   prueba: "Prueba diagnóstica",
@@ -19,7 +21,7 @@ export const ETIQUETA_TIPO_NOVEDAD: Record<TipoNovedad, string> = {
 };
 export const DETALLE_TIPO_NOVEDAD: Record<TipoNovedad, string> = {
   aplicacion: "Vacunación, desparasitación, tratamiento, podología, pediluvio, cirugía u otro",
-  prueba: "CAE, brucelosis, CMT… y cómo salió",
+  prueba: "CAE, brucelosis, CMT…",
   coprologico: "Una muestra de heces tomada",
   famacha: "El color del párpado del animal",
 };

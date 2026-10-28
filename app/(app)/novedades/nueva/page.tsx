@@ -28,11 +28,6 @@ export default async function PaginaNovedadNueva({ searchParams }: { searchParam
     if (!data) notFound();
     if (data.estado !== "activo") redirect(`/hato/${animal}`);
   }
-  const [{ data: productos }, { data: lotes }] = await Promise.all([
-    supabase.from("productos_veterinarios").select("id, nombre, tipo").eq("finca_id", finca.id).eq("activo", true).order("nombre").limit(500),
-    supabase.rpc("lotes_sanidad", { p_finca: finca.id }),
-  ]);
-
   return (
     <>
       <Link href={data ? `/hato/${data.id}` : "/novedades"} className="-ml-2 mt-3 inline-flex min-h-11 items-center gap-1 rounded-full px-2 text-[0.9375rem] font-semibold text-musgo">
@@ -40,7 +35,7 @@ export default async function PaginaNovedadNueva({ searchParams }: { searchParam
       </Link>
       <Encabezado titulo="Crear una novedad" subtitulo={data ? etiquetaAnimal(data) : finca.nombre} />
       <div className="lg:max-w-xl">
-        <FormNovedad animalId={data?.id} animalTexto={data ? etiquetaAnimal(data) : undefined} fincaId={finca.id} productos={(productos ?? []).map((p) => ({ id: p.id, nombre: p.nombre, tipo: p.tipo }))} lotes={lotes ?? []} solicitud={randomUUID()} />
+        <FormNovedad animalId={data?.id} animalTexto={data ? etiquetaAnimal(data) : undefined} fincaId={finca.id} solicitud={randomUUID()} />
       </div>
     </>
   );
