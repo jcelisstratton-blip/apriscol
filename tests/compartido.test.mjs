@@ -251,3 +251,29 @@ test("listas de animales: se agrupan en cabras, cabros, ovejas y carneros, en es
   // Sin especie ni sexo (listas que no los traen) queda un solo grupo sin título, en el orden recibido.
   assert.deepEqual(agruparPorTipo([{ id: 1 }, { id: 2 }]).map((x) => [x.titulo, x.items.length]), [[null, 2]]);
 });
+
+import { interpretarHpg, eficaciaDesparasitante, textoResultado } from "../lib/coprologico.ts";
+test("coprológico: el nivel de HPG sigue los cortes de referencia", () => {
+  assert.equal(interpretarHpg(0).nivel, "bajo");
+  assert.equal(interpretarHpg(249).nivel, "bajo");
+  assert.equal(interpretarHpg(250).nivel, "moderado");
+  assert.equal(interpretarHpg(999).nivel, "moderado");
+  assert.equal(interpretarHpg(1000).nivel, "alto");
+  assert.equal(interpretarHpg(2999).nivel, "alto");
+  assert.equal(interpretarHpg(3000).nivel, "muy_alto");
+  assert.equal(textoResultado({ hpg: 1200, opg: null }), "1.200 HPG");
+  assert.equal(textoResultado({ hpg: 300, opg: 5000 }), "300 HPG · 5.000 OPG");
+});
+
+test("coprológico: la prueba de eficacia compara promedios de los animales con examen antes y después", () => {
+  assert.equal(eficaciaDesparasitante([{ animal_id: "a", momento: "antes", hpg: 1000 }]), null);
+  const filas = (antes, despues) => antes.flatMap((h, i) => [{ animal_id: `a${i}`, momento: "antes", hpg: h }, { animal_id: `a${i}`, momento: "despues", hpg: despues[i] }]);
+  const eficaz = eficaciaDesparasitante(filas([1000, 2000], [20, 40]));
+  assert.equal(eficaz.reduccion, 98);
+  assert.equal(eficaz.veredicto, "eficaz");
+  assert.equal(eficaz.orientativo, true);
+  assert.equal(eficaciaDesparasitante(filas([1000], [70])).veredicto, "dudoso");
+  assert.equal(eficaciaDesparasitante(filas([1000], [300])).veredicto, "resistencia");
+  // Un animal sin examen «después» no cuenta.
+  assert.equal(eficaciaDesparasitante([...filas([1000], [10]), { animal_id: "x", momento: "antes", hpg: 5000 }]).n, 1);
+});

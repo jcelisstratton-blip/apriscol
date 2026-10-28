@@ -2,6 +2,7 @@ import { diasDesde, diasHasta, formatoFecha, sumarDias } from "@/lib/fechas";
 import { puedeVer } from "@/lib/permisos";
 import { DIAS_PARTO_ATRASADO, porSecar as debeSecarse, enUltimoTercio, seguimientoServida, type VentanaDx } from "@/lib/reproduccion";
 import { estadoFamacha } from "@/lib/famacha";
+import { HPG_ALTO, HPG_MUY_ALTO, interpretarHpg } from "@/lib/coprologico";
 import { ETIQUETA_MANTENIMIENTO, estadoCrioscopia, estadoRcs, estadoTemperatura, formatoCrioscopia, formatoMiles, pendientesMantenimiento, pesos, type PendienteEquipo } from "@/lib/leche-calidad";
 import { ETIQUETA_PRUEBA_CORTA, estadoDosis, estadoFechaPrograma, revisionAtrasada } from "@/lib/sanidad";
 import { esBaja, mensajeBaja, type Tendencia } from "@/lib/produccion";
@@ -359,6 +360,37 @@ export function senalFamacha(filas: FilaFamacha[], etiqueta: Etiqueta): Senal {
       titulo: "Anemia por parásitos (FAMACHA)",
       queSignifica: "Animales cuya última evaluación del color de la mucosa muestra anemia y todavía no se desparasitaron desde entonces.",
       regla: "Rojo: puntaje 4 o 5 sin desparasitar. Ámbar: puntaje 3 sin desparasitar (vigilar).",
+      accion: { texto: "Ver Sanidad", href: "/sanidad" },
+    },
+    items,
+  );
+}
+
+type FilaCoprologico = { animal_id: string; hpg: number | null; ultima_fecha: string; desparasitado_en: string | null };
+
+/** Animales cuyo último coprológico salió alto y todavía no se desparasitaron desde entonces. */
+export function senalCoprologico(filas: FilaCoprologico[], etiqueta: Etiqueta): Senal {
+  const items: ItemSenal[] = [];
+  for (const f of filas) {
+    if (f.hpg === null || f.desparasitado_en || f.hpg < HPG_ALTO) continue;
+    const lectura = interpretarHpg(f.hpg);
+    items.push({
+      clave: `coprologico-${f.animal_id}`,
+      etiqueta: etiqueta(f.animal_id),
+      detalle: `${f.hpg.toLocaleString("es-CO")} huevos por gramo el ${corta(f.ultima_fecha)}: ${lectura.texto.toLowerCase()}, sin desparasitar`,
+      nivel: f.hpg >= HPG_MUY_ALTO ? "rojo" : "ambar",
+      href: fichaAnimal(f.animal_id, "sanidad"),
+      queHacer: lectura.accion,
+      orden: -f.hpg,
+    });
+  }
+  return armarSenal(
+    {
+      id: "coprologico",
+      area: "sanidad",
+      titulo: "Cargas de parásitos altas (coprológico)",
+      queSignifica: "Animales cuyo último examen coprológico mostró muchos huevos de parásitos y todavía no se desparasitaron desde entonces.",
+      regla: `Ámbar: desde ${HPG_ALTO.toLocaleString("es-CO")} huevos por gramo (HPG) sin desparasitar. Rojo: desde ${HPG_MUY_ALTO.toLocaleString("es-CO")} HPG. Son cortes de referencia: tu veterinario manda.`,
       accion: { texto: "Ver Sanidad", href: "/sanidad" },
     },
     items,

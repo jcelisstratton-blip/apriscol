@@ -1406,6 +1406,63 @@ export type Database = {
           },
         ]
       }
+      examenes_coprologicos: {
+        Row: {
+          animal_id: string
+          client_request_id: string | null
+          created_at: string
+          created_by: string | null
+          evento_id: string | null
+          fecha: string
+          finca_id: string
+          hpg: number | null
+          id: string
+          laboratorio: string | null
+          momento: string
+          observaciones: string | null
+          opg: number | null
+          otros_parasitos: string[]
+          tecnica: string
+          updated_at: string
+        }
+        Insert: {
+          animal_id: string
+          client_request_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          evento_id?: string | null
+          fecha: string
+          finca_id: string
+          hpg?: number | null
+          id?: string
+          laboratorio?: string | null
+          momento?: string
+          observaciones?: string | null
+          opg?: number | null
+          otros_parasitos?: string[]
+          tecnica?: string
+          updated_at?: string
+        }
+        Update: {
+          animal_id?: string
+          client_request_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          evento_id?: string | null
+          fecha?: string
+          finca_id?: string
+          hpg?: number | null
+          id?: string
+          laboratorio?: string | null
+          momento?: string
+          observaciones?: string | null
+          opg?: number | null
+          otros_parasitos?: string[]
+          tecnica?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       evaluaciones_famacha: {
         Row: {
           animal_id: string
@@ -4766,6 +4823,18 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      v_coprologico_animal: {
+        Row: {
+          animal_id: string | null
+          desparasitado_en: string | null
+          examen_id: string | null
+          finca_id: string | null
+          hpg: number | null
+          opg: number | null
+          ultima_fecha: string | null
+        }
+        Relationships: []
       }
       v_eventos_animal: {
         Row: {

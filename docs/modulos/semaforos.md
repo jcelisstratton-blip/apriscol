@@ -18,6 +18,7 @@ Solo lo suyo, además de lo que permita su plan (Ceba pide el módulo Carne; Din
 | Reproducción | Abortos agrupados | 2 abortos en 30 días (o uno de causa infecciosa) | 3 o más en 30 días |
 | Reproducción | Mortalidad de crías | más de 10 % de las nacidas en 90 días (nacidas muertas + muertas después); con menos de 8 crías no se evalúa | más de 20 % |
 | Sanidad | FAMACHA | puntaje 3 sin desparasitar | puntaje 4 o 5 sin desparasitar |
+| Sanidad | Cargas de parásitos altas (coprológico) | — | último coprológico desde 1.000 HPG sin desparasitar (ámbar); desde 3.000 HPG (rojo). Trae «Qué hacer» |
 | Sanidad | Dosis y programas | vence hoy o en 7 días | ya venció |
 | Sanidad | Animales en retiro | mientras dure (nunca rojo: es una restricción, no una falla) | — |
 | Sanidad | Pruebas de laboratorio | sospechosa reciente, positivo de CMT o cultivo de los últimos 60 días, o sin resultado | positivo de CAE, brucelosis o paratuberculosis; sospechoso sin repetir en 30 días |

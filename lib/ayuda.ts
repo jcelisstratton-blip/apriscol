@@ -54,6 +54,10 @@ export const ayudaSanidad = (a: Pick<AjustesFinca, "podologia_inspeccion_dias" |
       texto: `Se evalúa el color del párpado de los animales de más de ${meses(DIAS_EDAD_FAMACHA)} meses. 1 y 2: sin anemia. 3: vigílalo. 4 y 5: desparasítalo. Así solo tratas a quien lo necesita.`,
     },
     {
+      titulo: "Examen coprológico",
+      texto: "Cuenta los huevos de parásitos en las heces (HPG). Menos de 250: carga baja. De 250 a 999: vigílalo con FAMACHA. Desde 1.000: conviene desparasitar. Para saber si el desparasitante funcionó, repite el examen 10 a 14 días después: si los huevos bajan menos de 90 %, puede haber resistencia.",
+    },
+    {
       titulo: "Pezuñas",
       texto: `Revisa las pezuñas cada ${textoPlazo(a.podologia_inspeccion_dias)} (podología) y usa pediluvio con sulfato de cobre o de zinc cada ${textoPlazo(a.pediluvio_dias)}, y cada ${textoPlazo(a.pediluvio_dias_lluvia)} en épocas de lluvia.`,
     },
