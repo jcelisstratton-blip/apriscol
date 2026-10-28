@@ -5,7 +5,7 @@ import { etiquetaAnimal } from "@/lib/animal";
 import { enTramos, leerTodo } from "@/lib/consultas";
 import { aplicaFamacha } from "@/lib/famacha";
 import { diasDesde, sumarDias } from "@/lib/fechas";
-import { nombreEvento } from "@/lib/sanidad";
+import { nombreEvento, plazosRevisionPezuna } from "@/lib/sanidad";
 import {
   areasSemaforo,
   senalCalidad,
@@ -18,6 +18,13 @@ import {
   senalRetiro,
   senalSecado,
   senalAbortos,
+  senalCuarentena,
+  senalMantenimiento,
+  senalPezunas,
+  senalPruebas,
+  senalVacunas,
+  senalesCeba,
+  senalesDinero,
   senalMortalidadCrias,
   senalVaciaSinServicio,
   ABORTOS_VENTANA_DIAS,
@@ -26,11 +33,16 @@ import {
   type AnalisisTanque,
   type DosisPendiente,
   type AbortoReciente,
+  type AnimalEnCeba,
+  type CompraPorPagar,
+  type EventoVacuna,
+  type FilaPrueba,
+  type VentaPorCobrar,
   type LecturaFrio,
   type MuerteCria,
   type Senal,
 } from "@/lib/semaforos";
-import type { PlanId, ProgramaSanitarioResumen, ReproHembra, RolFinca, SanidadPendiente, UbicacionVista } from "@/lib/tipos";
+import type { CuarentenaAlerta, MantenimientoOrdeno, PlanId, ProgramaSanitarioResumen, ReglaCeba, ReproHembra, RolFinca, SanidadPendiente, UbicacionVista } from "@/lib/tipos";
 import type { Tendencia } from "@/lib/produccion";
 
 type Cliente = Awaited<ReturnType<typeof crearClienteServidor>>;
@@ -66,7 +78,7 @@ export async function cargarSemaforos({
 
   // Nombres de los animales: una sola lectura liviana (arete, nombre, estado) y todo lo demás las consulta.
   const animales = await leerTodo((d, h) =>
-    supabase.from("animales").select("id, numero_arete, nombre, estado, fecha_nacimiento").eq("finca_id", fincaId).is("deleted_at", null).order("id").range(d, h),
+    supabase.from("animales").select("id, numero_arete, nombre, estado, fecha_nacimiento, especie, sexo, uso_macho, lote_ceba_id").eq("finca_id", fincaId).is("deleted_at", null).order("id").range(d, h),
   );
   const porId = new Map((animales.data ?? []).map((a) => [a.id, a]));
   const etiqueta = (id: string) => {
@@ -74,6 +86,10 @@ export async function cargarSemaforos({
     return a ? etiquetaAnimal(a) : "Animal";
   };
   const activo = (id: string) => porId.get(id)?.estado === "activo";
+  const adulto = (id: string) => {
+    const a = porId.get(id);
+    return a ? aplicaFamacha(a, hoy) : false;
+  };
 
   const senales: Senal[] = [];
 
@@ -112,11 +128,19 @@ export async function cargarSemaforos({
   }
 
   if (areas.has("sanidad")) {
-    const [famacha, pendientes, programas, retiro] = await Promise.all([
+    const plazosPezuna = plazosRevisionPezuna(g, hoy);
+    const [famacha, pendientes, programas, retiro, pruebas, cuarentena, podologia, pediluvio, vacunas] = await Promise.all([
       leerTodo((d, h) => supabase.from("v_famacha_animal").select("animal_id, puntaje, ultima_fecha, desparasitado_en").eq("finca_id", fincaId).gte("puntaje", 3).order("animal_id").range(d, h)),
       leerTodo((d, h) => supabase.from("v_sanidad_pendiente").select("*").eq("finca_id", fincaId).lte("proxima_fecha", sumarDias(hoy, 7)).order("proxima_fecha").order("evento_id").order("animal_id").range(d, h)),
       supabase.from("v_programas_sanitarios").select("*").eq("finca_id", fincaId).eq("estado", "abierto").lte("fecha_programada", sumarDias(hoy, 7)).order("fecha_programada").limit(100),
       supabase.rpc("animales_en_retiro", { p_finca: fincaId }),
+      leerTodo((d, h) => supabase.from("pruebas_sanitarias").select("animal_id, prueba, fecha, resultado").eq("finca_id", fincaId).gte("fecha", sumarDias(hoy, -730)).order("fecha", { ascending: false }).order("id").range(d, h)),
+      supabase.from("v_cuarentena_alerta").select("*").eq("finca_id", fincaId).limit(300),
+      leerTodo((d, h) => supabase.from("v_podologia_animal").select("animal_id, ultima_fecha").eq("finca_id", fincaId).order("animal_id").range(d, h)),
+      leerTodo((d, h) => supabase.from("v_pediluvio_animal").select("animal_id, ultima_fecha").eq("finca_id", fincaId).order("animal_id").range(d, h)),
+      g.vacuna_rabia_dias != null || g.vacuna_clostridiosis_dias != null
+        ? supabase.from("eventos_sanitarios").select("fecha, producto_nombre").eq("finca_id", fincaId).eq("tipo", "vacunacion").order("fecha", { ascending: false }).limit(300)
+        : Promise.resolve({ data: [] as EventoVacuna[] }),
     ]);
 
     // Las dosis por aplicar se agrupan por el evento que las programó (igual que en Hoy).
@@ -146,11 +170,21 @@ export async function cargarSemaforos({
       senalFamacha(famachaVigentes, etiqueta),
       senalDosis([...grupos.values()].filter((d) => d.animales > 0), hoy),
       senalRetiro((retiro.data ?? []).filter((r) => activo(r.animal_id)), hoy, etiqueta),
+      senalPruebas(((pruebas.data ?? []) as FilaPrueba[]).filter((p) => activo(p.animal_id)), hoy, etiqueta),
+      senalCuarentena(((cuarentena.data ?? []) as CuarentenaAlerta[]).filter((c) => activo(c.animal_id)), etiqueta),
+      senalPezunas(
+        // Las crías de menos de 3 meses no entran: nunca han tenido pezuñas que revisar y estarían siempre «sin registro».
+        (podologia.data ?? []).filter((p) => adulto(p.animal_id)),
+        (pediluvio.data ?? []).filter((p) => adulto(p.animal_id)),
+        plazosPezuna,
+        hoy,
+      ),
+      senalVacunas((vacunas.data ?? []) as EventoVacuna[], g.vacuna_rabia_dias, g.vacuna_clostridiosis_dias, hoy),
     );
   }
 
   if (areas.has("leche")) {
-    const [frio, analisis, tendencia] = await Promise.all([
+    const [frio, analisis, tendencia, mantenimiento] = await Promise.all([
       supabase.from("controles_frio").select("id, fecha, momento, temperatura_c").eq("finca_id", fincaId).gte("fecha", sumarDias(hoy, -DIAS_FRIO)).order("fecha", { ascending: false }).limit(200),
       supabase
         .from("analisis_leche")
@@ -161,13 +195,54 @@ export async function cargarSemaforos({
         .order("fecha", { ascending: false })
         .limit(1),
       supabase.rpc("produccion_tendencia", { p_finca: fincaId }),
+      supabase.from("mantenimiento_ordeno").select("*").eq("finca_id", fincaId).order("fecha", { ascending: false }).limit(500),
     ]);
     const ultimo = ((analisis.data ?? [])[0] ?? null) as AnalisisTanque | null;
     senales.push(
       senalFrio((frio.data ?? []) as LecturaFrio[], hoy),
       senalCalidad(ultimo, { rcs: g.ccs_limite_miles_ml, grasaMin: cap.grasa_min_pct, grasaMax: cap.grasa_max_pct, proteinaMin: cap.proteina_min_pct, proteinaMax: cap.proteina_max_pct }),
       senalProduccion(((tendencia.data ?? []) as Tendencia[]).filter((t) => activo(t.animal_id)), etiqueta),
+      senalMantenimiento((mantenimiento.data ?? []) as MantenimientoOrdeno[], hoy),
     );
+  }
+
+  if (areas.has("ceba")) {
+    const [lotes, ceba, reglas] = await Promise.all([
+      supabase.from("lotes_ceba").select("id").eq("finca_id", fincaId).is("cerrado_en", null).limit(500),
+      supabase.rpc("ceba_animales", { p_finca: fincaId }),
+      supabase.rpc("reglas_ceba_efectivas", { p_finca: fincaId }),
+    ]);
+    const abiertos = new Set((lotes.data ?? []).map((l) => l.id));
+    const reglaDe = new Map(((reglas.data ?? []) as ReglaCeba[]).map((r) => [r.especie, r]));
+    const datos = new Map((ceba.data ?? []).map((c) => [c.animal_id, c]));
+    const enCeba: AnimalEnCeba[] = [];
+    for (const [id, a] of porId) {
+      if (a.estado !== "activo") continue;
+      const enLote = a.lote_ceba_id !== null && abiertos.has(a.lote_ceba_id);
+      if (!enLote && !(a.sexo === "macho" && a.uso_macho === "carne")) continue;
+      const regla = reglaDe.get(a.especie);
+      const c = datos.get(id);
+      // El peso al nacer no cuenta como pesaje (igual que en Hato → Ceba): sin pesajes de verdad es «sin pesos todavía».
+      enCeba.push({
+        animalId: id,
+        ultimaFecha: c && c.n_pesajes > 0 ? c.fecha_ultimo : null,
+        gdpRecienteG: c?.gdp_reciente_g != null ? Number(c.gdp_reciente_g) : null,
+        limiteDias: (a.sexo === "hembra" ? regla?.hembra_dias_entre_pesajes : regla?.dias_entre_pesajes) ?? (a.sexo === "hembra" ? 90 : 30),
+      });
+    }
+    senales.push(...senalesCeba(enCeba, g.gdp_minima_g, hoy, etiqueta));
+  }
+
+  if (areas.has("dinero")) {
+    const limite = sumarDias(hoy, 7);
+    const [gastos, ventas] = await Promise.all([
+      supabase.from("gastos").select("id, descripcion, monto, vence").eq("finca_id", fincaId).is("pagado_en", null).not("vence", "is", null).lte("vence", limite).order("vence").limit(200),
+      supabase.rpc("ventas_pagina", { p_finca: fincaId, p_desde: null, p_hasta: null, p_linea: null, p_limite: 200, p_salto: 0 }),
+    ]);
+    const compras: CompraPorPagar[] = (gastos.data ?? []).map((x) => ({ id: x.id, descripcion: x.descripcion, monto: Number(x.monto), vence: x.vence! }));
+    const porCobrar: VentaPorCobrar[] = (ventas.data ?? [])
+      .flatMap((v) => (!v.cobrado && v.cobro_vence !== null && v.cobro_vence <= limite ? [{ clave: `${v.origen}-${v.origen_id}`, producto: v.producto, tercero: v.tercero ?? null, valor: Number(v.valor), cobro_vence: v.cobro_vence }] : []));
+    senales.push(...senalesDinero(compras, porCobrar, hoy));
   }
 
   if (areas.has("corrales")) {

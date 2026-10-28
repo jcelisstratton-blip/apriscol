@@ -4,7 +4,7 @@ Pantalla `/semaforos` (entrada **Semáforos** al principio de «Producción y ma
 
 ## Quién ve qué (`lib/semaforos.ts#areasSemaforo`)
 
-Solo lo suyo, además de lo que permita su plan: **veterinario** → Reproducción y Sanidad; **ordeñador** → Leche; **propietario y administrador** → todo; **contador** → nada (la entrada no aparece y la ruta redirige a Hoy). Si luego se le abren más áreas a un rol, se cambia solo `AREAS_DEL_ROL`.
+Solo lo suyo, además de lo que permita su plan (Ceba pide el módulo Carne; Dinero, Contabilidad): **veterinario** → Reproducción y Sanidad; **ordeñador** → Leche; **propietario y administrador** → todo; **contador** → Dinero. Si luego se le abren más áreas a un rol, se cambia solo `AREAS_DEL_ROL`.
 
 ## Las señales
 
@@ -20,17 +20,31 @@ Solo lo suyo, además de lo que permita su plan: **veterinario** → Reproducci�
 | Sanidad | FAMACHA | puntaje 3 sin desparasitar | puntaje 4 o 5 sin desparasitar |
 | Sanidad | Dosis y programas | vence hoy o en 7 días | ya venció |
 | Sanidad | Animales en retiro | mientras dure (nunca rojo: es una restricción, no una falla) | — |
+| Sanidad | Pruebas de laboratorio | sospechosa reciente, positivo de CMT o cultivo de los últimos 60 días, o sin resultado | positivo de CAE, brucelosis o paratuberculosis; sospechoso sin repetir en 30 días |
+| Sanidad | Cuarentena de animales nuevos | en cuarentena sin cumplir los 21 días | entró y no pasó por cuarentena |
+| Sanidad | Pezuñas y pediluvio | pasó el plazo de Ajustes (solo animales de 3 meses o más) | más de 14 días de atraso o sin registro |
+| Sanidad | Vacunas anuales | faltan 30 días o menos para repetir la campaña de rabia o de clostridiosis | vencida o sin ninguna campaña; se reconoce por el nombre del producto y solo se evalúa si la finca definió el plazo en Ajustes → Sanidad |
 | Leche | Cadena de frío (7 días) | hasta 2 °C fuera de 4–6 °C | más de 2 °C fuera |
 | Leche | Calidad del tanque (último análisis de 60 días) | células al 80 % del límite, crioscopia fría, grasa o proteína fuera de rango | residuos positivos, células sobre el límite, posible agua |
+| Leche | Mantenimiento de la sala de ordeño | toca en los próximos 7 días | atrasado |
 | Leche | Producción que baja | baja notable (`produccion_tendencia`) | baja fuerte |
+| Ceba | Pesaje atrasado | pasó el plazo de las reglas de ceba | el doble del plazo o nunca pesado |
+| Ceba | Ganancia de peso baja | menos del mínimo de Ajustes → Ceba | menos de la mitad |
+| Dinero | Compras por pagar | vence en los próximos 7 días | ya venció |
+| Dinero | Ventas por cobrar | se espera cobrar en los próximos 7 días | el cobro esperado ya pasó |
 | Corrales | Cupo y rotación | — | cupo pasado o potrero que debe desocuparse |
 
 Cada regla tiene su función pura en `lib/semaforos.ts` (con prueba en `tests/semaforos.test.mjs`) y reutiliza las que ya existían (`lib/reproduccion.ts`, `lib/famacha.ts`, `lib/sanidad.ts`, `lib/leche-calidad.ts`, `lib/produccion.ts`, `lib/corrales.ts`): si una regla cambia allí, el semáforo cambia con ella. `lib/semaforos-servidor.ts` solo consulta, con las mismas vistas y funciones que usan Hoy, Reproducción, Sanidad y Leche, y solo trae las áreas del rol.
 
 Los plazos que ya eran ajustables (ventana de diagnóstico, secado, último tercio, límite de células somáticas, rango de grasa y proteína) se leen de Ajustes de la finca. Los de partos (30 y 14 días) y los de hembras vacías sin servicio (60 y 120 días) también son ajustes de la finca (grupo Reproducción). Los de abortos (2 y 3 en 30 días) y mortalidad de crías (10 % y 20 %, mínimo 8 crías) son constantes en `lib/semaforos.ts`.
 
+## En Hoy
+
+`components/ResumenSemaforos.tsx`: tarjeta «Semáforos» con los conteos y las 4 señales más urgentes (rojo primero), con enlace a la pantalla completa. Se calcula con el mismo `cargarSemaforos` y, si falla, no tumba la pantalla de inicio.
+
 ## Pendiente (que no se olvide)
 
-- **Validar los plazos con un veterinario.** Los valores iniciales los puso el equipo de producto, no un especialista (por eso los números de partos y de caída de producción son punto de partida, no norma).
-- Señales aprobadas pero fuera de la primera versión: pruebas (CAE, brucelosis, CMT), cuarentena, pezuñas y pediluvio, vacunas anuales, mantenimiento de la sala, ceba (pesaje atrasado y ganancia baja), alimento y dinero.
-- Un resumen en Hoy y avisos al entrar al escalón de 10 días.
+- **Validar los plazos con un veterinario.** Los valores iniciales los puso el equipo de producto, no un especialista (partos 30 y 14 días, vacías 60 y 120, abortos 2 y 3 en 30 días, mortalidad de crías 10 % y 20 %, caída de producción).
+- **Alimento (autonomía del stock):** `stock_autonomia_dias` existe en Ajustes, pero la app todavía no lleva un inventario de alimento, así que no hay de qué calcular la señal. Se construye cuando exista el stock.
+- Las vacunas se reconocen por el nombre del producto; si algún día el catálogo guarda a qué enfermedad protege cada vacuna, se cambia ahí.
+- Aviso al entrar al escalón de 10 días: hoy lo cubre la tarjeta de Hoy (la señal de partos pasa a «vigílala a diario»); un aviso aparte (notificación) no existe.
