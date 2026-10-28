@@ -34,7 +34,10 @@ test("menú: un ordeñador no ve lo que no puede abrir y los grupos vacíos desa
     ["Dinero y análisis", ["Reportes"]], // el reporte de ordeño sí lo puede abrir
     ["Genealogía", ["Endogamia"]],
   ]);
-  assert.deepEqual(menuFinca(v).map((e) => e.etiqueta), ["Ajustes de la finca", "Referidos", "Agregar otra finca"]);
+  assert.deepEqual(menuFinca(v).map((e) => e.etiqueta), ["Ajustes de la finca", "Referidos"]);
+  assert.ok(!menuFinca(visibilidadMenu("veterinario", "profesional")).some((e) => e.etiqueta === "Agregar otra finca"));
+  assert.ok(!menuFinca(visibilidadMenu("contador", "profesional")).some((e) => e.etiqueta === "Agregar otra finca" || e.etiqueta === "Datos de la finca"));
+  assert.ok(menuFinca(visibilidadMenu("administrador", "profesional")).some((e) => e.etiqueta === "Agregar otra finca"));
 });
 
 test("menú: un administrador no ve el plan ni exportar; un plan Cría no ve carne, costos ni proyecciones", () => {

@@ -5,6 +5,9 @@ import { FormFinca } from "@/components/FormFinca";
 import { PantallaAuth } from "@/components/PantallaAuth";
 import { crearClienteServidor } from "@/lib/supabase/server";
 import { obtenerUsuario } from "@/lib/contexto";
+import { redirect } from "next/navigation";
+import { puedeAgregarFinca } from "@/lib/permisos";
+import type { RolFinca } from "@/lib/tipos";
 import { planPorId, precioMes, usd } from "@/lib/planes";
 
 export const metadata: Metadata = { title: "Nueva finca" };
@@ -15,6 +18,8 @@ export default async function PaginaOnboarding() {
   const { data: propias } = await supabase.from("finca_miembros").select("finca_id").eq("user_id", user.id).eq("rol", "propietario");
   const { count } = await supabase.from("finca_miembros").select("*", { count: "exact", head: true }).eq("user_id", user.id);
   const tieneFincas = (count ?? 0) > 0;
+  const { data: roles } = await supabase.from("finca_miembros").select("rol").eq("user_id", user.id);
+  if (!puedeAgregarFinca((roles ?? []).map((m) => m.rol as RolFinca))) redirect("/mas");
   // Desde la segunda finca propia hay costo y la finca se activa al confirmar el pago (las cuentas de pruebas no pagan).
   const { data: perfil } = await supabase.from("perfiles").select("exenta_vigencia").eq("id", user.id).maybeSingle();
   const cobra = (propias ?? []).length > 0 && !perfil?.exenta_vigencia;

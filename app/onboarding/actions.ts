@@ -6,8 +6,9 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { crearClienteServidor } from "@/lib/supabase/server";
 import { obtenerContexto, obtenerUsuario } from "@/lib/contexto";
-import { puedeGestionar } from "@/lib/permisos";
+import { puedeAgregarFinca, puedeGestionar } from "@/lib/permisos";
 import { mensajeAmigable } from "@/lib/mensaje-amigable";
+import type { RolFinca } from "@/lib/tipos";
 import { BUCKET_LOGOS, TIPOS_LOGO, rutaLogoValida } from "@/lib/logo-finca";
 
 export type EstadoFinca = { error?: string } | undefined;
@@ -34,6 +35,8 @@ export async function crearFinca(_: EstadoFinca, form: FormData): Promise<Estado
   if (!datos.success) return { error: datos.error.issues[0]?.message };
 
   const supabase = await crearClienteServidor();
+  const { data: membresias } = await supabase.from("finca_miembros").select("rol").eq("user_id", user.id);
+  if (!puedeAgregarFinca((membresias ?? []).map((m) => m.rol as RolFinca))) return { error: "Solo el propietario o un administrador puede agregar otra finca." };
   const { data, error } = await supabase
     .from("fincas")
     .insert({ ...datos.data, created_by: user.id })

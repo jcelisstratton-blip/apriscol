@@ -8,7 +8,7 @@ import { LogoFinca } from "@/components/LogoFinca";
 import { Sheet } from "@/components/Sheet";
 import { useToast } from "@/components/Toast";
 import { cambiarFinca } from "@/app/onboarding/actions";
-import { ETIQUETA_ROL } from "@/lib/permisos";
+import { ETIQUETA_ROL, puedeGestionar } from "@/lib/permisos";
 import type { RolFinca } from "@/lib/tipos";
 
 type Item = { id: string; nombre: string; rol: RolFinca; logo_path?: string | null };
@@ -20,6 +20,7 @@ export function FincaSelector({ fincas, activa }: { fincas: Item[]; activa: stri
   const router = useRouter();
   const toast = useToast();
   const actual = fincas.find((f) => f.id === activa);
+  const puedeAgregar = !!actual && puedeGestionar(actual.rol);
 
   const elegir = (id: string) => {
     if (id === activa) return setAbierta(false);
@@ -65,13 +66,15 @@ export function FincaSelector({ fincas, activa }: { fincas: Item[]; activa: stri
             </li>
           ))}
         </ul>
-        <Link
-          href="/onboarding"
-          onClick={() => setAbierta(false)}
-          className="mt-3 flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-arena font-semibold text-musgo-osc"
-        >
-          <Plus className="size-5" strokeWidth={2} /> Agregar otra finca
-        </Link>
+        {puedeAgregar ? (
+          <Link
+            href="/onboarding"
+            onClick={() => setAbierta(false)}
+            className="mt-3 flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-arena font-semibold text-musgo-osc"
+          >
+            <Plus className="size-5" strokeWidth={2} /> Agregar otra finca
+          </Link>
+        ) : null}
       </Sheet>
     </>
   );
