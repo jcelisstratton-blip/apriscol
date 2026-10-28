@@ -207,6 +207,19 @@ export default async function PaginaHoy({ searchParams }: { searchParams: Promis
             </Link>
           ) : null}
 
+          {puedeEscribir(rol, "novedades", finca.plan) && !revisaNovedades(rol) ? (
+            <Link href="/novedades/nueva" className="flex min-h-14 items-center justify-between gap-3 rounded-3xl bg-papel px-4 py-3 ring-1 ring-arena">
+              <span className="flex min-w-0 items-center gap-3">
+                <Inbox className="size-6 shrink-0 text-musgo" strokeWidth={1.75} aria-hidden="true" />
+                <span className="min-w-0">
+                  <span className="block font-bold">Crear una novedad</span>
+                  <span className="block text-sm text-humo">Avisa al administrador y al veterinario; solo eliges opciones</span>
+                </span>
+              </span>
+              <ChevronRight className="size-5 shrink-0 text-humo" strokeWidth={2} aria-hidden="true" />
+            </Link>
+          ) : null}
+
           {senalesHoy ? <ResumenSemaforos senales={senalesHoy} /> : null}
 
           {verLeche ? <AlertasProduccion alertas={alertasProduccion} limite={5} /> : null}

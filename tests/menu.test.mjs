@@ -98,3 +98,13 @@ test("novedades: es lo primero del menú; quien las revisa ve «Novedades», el 
   }
   assert.ok(!menuPrincipal(visibilidadMenu("contador", "hato"))[0].entradas.some((e) => e.href === "/novedades"));
 });
+
+import { atajosPara } from "../lib/atajos.ts";
+test("novedades: «Crear una novedad» está en «Al grano» para el ordeñador, el veterinario, el administrador y el propietario, y no para el contador", () => {
+  for (const rol of ["ordenador", "veterinario", "administrador", "propietario"]) {
+    const a = atajosPara(rol, "hato").find((x) => x.href === "/novedades/nueva");
+    assert.ok(a, rol);
+    assert.equal(a.titulo, "Crear una novedad");
+  }
+  assert.ok(!atajosPara("contador", "hato").some((x) => x.href === "/novedades/nueva"));
+});

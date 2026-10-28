@@ -1,7 +1,7 @@
 import {
   Activity, ArrowRightLeft, Baby, Banknote, BarChart3, Beef, CalendarClock, ClipboardCheck, Droplets, FileText, FlaskConical, GitFork, HeartPulse, Download, FileSpreadsheet, Home, KeyRound, Layers, MapPin,
   Microscope, Package, PawPrint, Plus, Rocket, Scale, Shuffle, SlidersHorizontal, Snowflake, Syringe, Trophy, Truck, UserPlus, Users, Wallet, Wrench, Fence, Sheet, type LucideIcon,
-  HardHat, Gift,
+  HardHat, Gift, Inbox,
 } from "lucide-react";
 import { puedeEscribir, puedeGestionar, puedeVer } from "@/lib/permisos";
 import { servicioEnPlan, type ServicioPlan } from "@/lib/planes";
@@ -44,6 +44,9 @@ export const ATAJOS: Atajo[] = [
   { grupo: "Hato", tipo: "ir", titulo: "Hembras del hato", detalle: "Elige una y registra servicio, diagnóstico o parto", href: "/hato?filtro=hembras", Icono: Baby, modulo: "reproduccion", clave: "parto servicio monta diagnostico gestacion cria" },
   { grupo: "Hato", tipo: "ir", titulo: "Endogamia", detalle: "Parentesco de todo el hato", href: "/hato/endogamia", Icono: GitFork, modulo: "hato", clave: "genealogia parentesco consanguinidad" },
   { grupo: "Hato", tipo: "ir", titulo: "Simular una cruza", detalle: "Mira la endogamia de una pareja antes de montarla", href: "/hato/cruza", Icono: Shuffle, modulo: "hato", clave: "cruce pareja" },
+
+  { grupo: "Hato", tipo: "registrar", titulo: "Crear una novedad", detalle: "Avisa al administrador y al veterinario; solo eliges opciones", href: "/novedades/nueva", Icono: Inbox, modulo: "novedades", clave: "novedad aviso reportar vacuna prueba diagnostica animal enfermo" },
+  { grupo: "Hato", tipo: "ir", titulo: "Novedades", detalle: "Lo que el equipo ha avisado de los animales", href: "/novedades", Icono: Inbox, modulo: "novedades", clave: "avisos reportes novedad" },
 
   // Leche
   { grupo: "Leche", tipo: "registrar", titulo: "Registrar ordeño", detalle: "Litros por animal, jornada de hoy", href: "/hato?vista=ordeno", Icono: Droplets, modulo: "leche", clave: "litros leche ordeno jornada" },
