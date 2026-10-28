@@ -16,6 +16,9 @@ import { obtenerContexto } from "@/lib/contexto";
 import { etiquetaAnimal } from "@/lib/animal";
 import { animalesPorIds } from "@/lib/animal-etiquetas";
 import { ETIQUETA_ESTADO_UBICACION, ETIQUETA_PISO, ETIQUETA_TIPO_UBICACION, ETIQUETA_USO, PISOS_SECOS, TONO_ESTADO_UBICACION, textoOcupacion, textoRotacion } from "@/lib/corrales";
+import { obtenerAjustes } from "@/lib/ajustes-servidor";
+import { ETIQUETA_ETAPA, avisosMezcla, contarEtapas } from "@/lib/etapas";
+import { cargarEtapas } from "@/lib/etapas-servidor";
 import { diasHasta, hoyBogota } from "@/lib/fechas";
 import { puedeEscribir, puedeVer } from "@/lib/permisos";
 import { crearClienteServidor } from "@/lib/supabase/server";
@@ -43,12 +46,24 @@ export default async function PaginaUbicacion({ params, searchParams }: { params
   const { data: abiertos } = await supabase.from("movimientos_animales").select("animal_id, desde").eq("finca_id", finca.id).eq("ubicacion_id", id).is("hasta", null).order("desde").limit(1000);
   const animales = await animalesPorIds(supabase, finca.id, (abiertos ?? []).map((m) => m.animal_id));
   const etiquetas = new Map(animales.map((a) => [a.id, etiquetaAnimal(a)]));
+  // Etapa de cada animal (lactante, levante, ceba…) y qué conviene revisar si el corral mezcla etapas.
+  const ajustes = await obtenerAjustes();
+  const etapas = await cargarEtapas(supabase, finca.id, ajustes, (abiertos ?? []).map((m) => m.animal_id), hoy);
+  const textoEtapa = (animalId: string) => {
+    const e = etapas.get(animalId);
+    if (!e?.etapa) return undefined;
+    return [ETIQUETA_ETAPA[e.etapa], e.pesoKg !== null ? `${String(e.pesoKg).replace(".", ",")} kg` : null, e.porcentaje !== null ? `${e.porcentaje} % del peso adulto` : null].filter(Boolean).join(" · ");
+  };
   const ocupantes: Ocupante[] = (abiertos ?? []).map((m) => ({
     id: m.animal_id,
     etiqueta: etiquetas.get(m.animal_id) ?? "Animal",
     desde: m.desde,
     dias: Math.max(0, -diasHasta(m.desde, hoy)),
+    etapa: textoEtapa(m.animal_id),
   }));
+  const dentro = [...etapas.values()];
+  const porEtapa = contarEtapas(dentro);
+  const mezcla = avisosMezcla(dentro.map((e) => ({ etapa: e.etapa, sexo: e.sexo, pesoKg: e.pesoKg })), u.uso, ajustes.general.corral_razon_peso);
 
   const { data: todas } = await supabase.from("ubicaciones").select("id, nombre").eq("finca_id", finca.id).limit(500);
   const nombres: Record<string, string> = Object.fromEntries((todas ?? []).map((x) => [x.id, x.nombre]));
@@ -148,6 +163,22 @@ export default async function PaginaUbicacion({ params, searchParams }: { params
         </div>
 
         <div className="min-w-0 space-y-4">
+          {porEtapa.length > 0 ? (
+            <Tarjeta titulo="Etapas en este corral">
+              <div className="flex flex-wrap gap-1.5">
+                {porEtapa.map((x) => (
+                  <Insignia key={x.etapa} tono="neutro">{x.n} {ETIQUETA_ETAPA[x.etapa].toLowerCase()}</Insignia>
+                ))}
+              </div>
+              {mezcla.length > 0 ? (
+                <div className="mt-3 space-y-2">
+                  {mezcla.map((a) => (
+                    <Aviso key={a.clave} tipo="atencion">{a.texto}</Aviso>
+                  ))}
+                </div>
+              ) : null}
+            </Tarjeta>
+          ) : null}
           <Tarjeta titulo={`Quiénes están (${ocupantes.length})`}>
             {ocupantes.length === 0 ? (
               <EstadoVacio icono={<ArrowRightLeft strokeWidth={1.5} />} titulo="Sin animales ahora" descripcion="Cuando muevas animales aquí, los verás en esta lista con los días que llevan." />

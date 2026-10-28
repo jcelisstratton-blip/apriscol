@@ -8,7 +8,7 @@ import { Campo, CLASE_INPUT } from "@/components/Campo";
 import { Selector } from "@/components/Selector";
 import { SelectorTarjetas } from "@/components/SelectorTarjetas";
 import { SelectorAnimales, type AnimalElegido } from "@/components/SelectorAnimales";
-import { moverAnimales } from "@/app/(app)/hato/corrales/actions";
+import { avisosDeMezcla, moverAnimales } from "@/app/(app)/hato/corrales/actions";
 import { ESCENA_MOTIVO } from "@/lib/escenas-corrales";
 import { crearClienteNavegador } from "@/lib/supabase/client";
 import { ETIQUETA_MOTIVO, ETIQUETA_TIPO_UBICACION, ETIQUETA_USO, MOTIVOS, textoOcupacion } from "@/lib/corrales";
@@ -65,6 +65,7 @@ export function FormMover({
   const [fecha, setFecha] = useState(hoy);
   const [motivo, setMotivo] = useState<MotivoMovimiento>(motivoInicial ?? "traslado");
   const [yaAhi, setYaAhi] = useState(0);
+  const [mezcla, setMezcla] = useState<string[]>([]);
 
   const sinDestino = destino === SIN_DESTINO;
   const elDestino = ubicaciones.find((u) => u.id === destino);
@@ -89,6 +90,13 @@ export function FormMover({
       if (vigente) setYaAhi(n);
     }
     void contar();
+    // Qué conviene revisar de la mezcla (lactantes con grandes, machos con hembras, pesos distintos): solo avisa, no bloquea.
+    const pedirAvisos = async () => {
+      if (!elDestino || animales.length === 0) return setMezcla([]);
+      const r = await avisosDeMezcla(elDestino.id, animales.map((a) => a.id));
+      if (vigente) setMezcla(r.avisos);
+    };
+    void pedirAvisos();
     return () => {
       vigente = false;
     };
@@ -170,6 +178,15 @@ export function FormMover({
         </Aviso>
       ) : null}
       {elDestino?.uso === "cuarentena" ? <Aviso tipo="info">En cuarentena los animales se quedan al menos 21 días (lo ideal, 30) antes de pasar al lote general.</Aviso> : null}
+
+      {mezcla.length > 0 ? (
+        <div className="space-y-2">
+          {mezcla.map((t) => (
+            <Aviso key={t} tipo="atencion">{t}</Aviso>
+          ))}
+          <p className="text-sm text-humo">Es una recomendación: puedes mover de todas formas.</p>
+        </div>
+      ) : null}
 
       <Campo etiqueta="Fecha del movimiento">
         {(id) => <input id={id} name="fecha" type="date" value={fecha} max={hoy} onChange={(e) => setFecha(e.target.value)} required className={`${CLASE_INPUT} sm:max-w-xs`} />}

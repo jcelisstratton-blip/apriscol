@@ -24,6 +24,7 @@ import { TarjetaPremios } from "./fichas/TarjetaPremios";
 import { TarjetaReproduccion } from "./fichas/TarjetaReproduccion";
 import { TarjetaSalida } from "./fichas/TarjetaSalida";
 import { TarjetaSanidad } from "./fichas/TarjetaSanidad";
+import { EtapaAnimal } from "./fichas/EtapaAnimal";
 import { TarjetaUbicacion } from "./fichas/TarjetaUbicacion";
 import { TarjetasGenealogia } from "./fichas/TarjetasGenealogia";
 
@@ -112,6 +113,7 @@ export default async function FichaAnimal({ params, searchParams }: { params: Pr
               {animal.fecha_nacimiento_aprox ? " (aprox.)" : ""}
             </Dato>
             <Dato etiqueta="Edad">{edadTexto(animal.fecha_nacimiento)}</Dato>
+            <EtapaAnimal c={c} />
             <Dato etiqueta="Origen">{animal.origen === "comprado" ? "Comprado" : "Nació en la finca"}</Dato>
             {animal.chip ? <Dato etiqueta="Microchip">{animal.chip}</Dato> : null}
             {animal.color ? <Dato etiqueta="Color">{animal.color}</Dato> : null}

@@ -1816,6 +1816,8 @@ export type Database = {
           updated_by: string | null
           vacia_aviso_dias: number
           vacia_urgente_dias: number
+          destete_dias: number
+          corral_razon_peso: number
           vacuna_clostridiosis_dias: number | null
           vacuna_rabia_dias: number | null
         }
@@ -1848,6 +1850,8 @@ export type Database = {
           updated_by?: string | null
           vacia_aviso_dias?: number
           vacia_urgente_dias?: number
+          destete_dias?: number
+          corral_razon_peso?: number
           vacuna_clostridiosis_dias?: number | null
           vacuna_rabia_dias?: number | null
         }
@@ -1880,6 +1884,8 @@ export type Database = {
           updated_by?: string | null
           vacia_aviso_dias?: number
           vacia_urgente_dias?: number
+          destete_dias?: number
+          corral_razon_peso?: number
           vacuna_clostridiosis_dias?: number | null
           vacuna_rabia_dias?: number | null
         }

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { ListaPorTramos } from "@/components/ListaPorTramos";
 import { formatoFecha } from "@/lib/fechas";
 
-export type Ocupante = { id: string; etiqueta: string; desde: string; dias: number };
+export type Ocupante = { id: string; etiqueta: string; desde: string; dias: number; /** Etapa de crecimiento y su porcentaje del peso adulto, en texto. */ etapa?: string };
 
 /** Los animales que están ahora en una instalación, desde cuándo y cuántos días llevan. Muestra todos, de a tramos. */
 export function ListaOcupantes({ ocupantes }: { ocupantes: Ocupante[] }) {
@@ -15,7 +15,10 @@ export function ListaOcupantes({ ocupantes }: { ocupantes: Ocupante[] }) {
       tramo={20}
       fila={(o) => (
         <Link href={`/hato/${o.id}#ubicacion`} className="flex min-h-14 items-center justify-between gap-3 rounded-2xl bg-lana px-3 py-2">
-          <span className="min-w-0 font-semibold [overflow-wrap:anywhere]">{o.etiqueta}</span>
+          <span className="min-w-0 [overflow-wrap:anywhere]">
+            <span className="block font-semibold">{o.etiqueta}</span>
+            {o.etapa ? <span className="block text-sm text-humo">{o.etapa}</span> : null}
+          </span>
           <span className="shrink-0 text-right text-sm text-humo">
             desde el {formatoFecha(o.desde, { day: "numeric", month: "short" })}
             <span className="block text-xs">{o.dias === 0 ? "entró hoy" : `${o.dias} ${o.dias === 1 ? "día" : "días"}`}</span>

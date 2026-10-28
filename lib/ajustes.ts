@@ -7,7 +7,7 @@ import type { Especie } from "@/lib/tipos";
  * valida cada ajuste; el formulario, la acción de guardado y la lectura salen de ella para que no se desincronicen.
  */
 
-export type GrupoAjustes = "reproduccion" | "ceba" | "leche" | "sanidad" | "nutricion" | "personal";
+export type GrupoAjustes = "reproduccion" | "ceba" | "leche" | "sanidad" | "nutricion" | "crecimiento" | "personal";
 
 /** Ajustes generales de la finca (una fila). */
 export type AjustesFinca = {
@@ -22,6 +22,8 @@ export type AjustesFinca = {
   parto_vigilar_dias: number;
   vacia_aviso_dias: number;
   vacia_urgente_dias: number;
+  destete_dias: number;
+  corral_razon_peso: number;
   gdp_minima_g: number;
   cc_venta_min: number;
   cc_venta_max: number;
@@ -167,6 +169,16 @@ export const GRUPOS_AJUSTES: GrupoDefinicion[] = [
       { clave: "ms_produccion_min_pct", etiqueta: "Alimento seco diario en gestación avanzada o lactancia: desde", unidad: "% del peso vivo", min: 1, max: 8, decimales: 1 },
       { clave: "ms_produccion_max_pct", etiqueta: "Alimento seco diario en gestación avanzada o lactancia: hasta", unidad: "% del peso vivo", ayuda: "Lo habitual es entre 3,5 y 4,5 %.", min: 1, max: 8, decimales: 1 },
       { clave: "stock_autonomia_dias", etiqueta: "Avisar cuando el alimento alcance para menos de", unidad: "días", ayuda: "Aplica a sales, melaza, concentrado y demás insumos clave.", min: 1, max: 90, decimales: 0 },
+    ],
+    especie: [],
+  },
+  {
+    id: "crecimiento",
+    titulo: "Crecimiento y corrales",
+    detalle: "Hasta cuándo es lactante un animal y cuándo avisar que un corral mezcla animales muy distintos. La edad y el peso adulto de la hembra (Reproducción) completan las etapas.",
+    general: [
+      { clave: "destete_dias", etiqueta: "Destete: edad en que deja de ser lactante", unidad: "días", ayuda: "Lo habitual es entre 60 y 90 días. Después del destete, los machos y las hembras van en corrales aparte.", min: 45, max: 90, decimales: 0 },
+      { clave: "corral_razon_peso", etiqueta: "Corral: avisar si el más pesado pasa al más liviano por", unidad: "veces", ayuda: "Si en un corral el animal más pesado es más de esta cantidad de veces el más liviano, se avisa: el grande desplaza al pequeño. Es un punto de partida; ajústalo con tu veterinario.", min: 1.2, max: 3, decimales: 1 },
     ],
     especie: [],
   },
