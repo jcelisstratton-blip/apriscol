@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { FileSpreadsheet, Plus } from "lucide-react";
+import { FileSpreadsheet, Inbox, Plus } from "lucide-react";
 import { AyudaModulo } from "@/components/AyudaModulo";
 import { TarjetasHato } from "@/components/TarjetasHato";
 import { AYUDA_ORDENO } from "@/lib/ayuda";
@@ -55,23 +55,37 @@ export default async function PaginaHato({ searchParams }: { searchParams: Promi
         titulo="Hato"
         subtitulo={finca.nombre}
         acciones={
-          puedeCrear ? (
-            <>
-              <Link
-                href="/hato/importar"
-                aria-label="Cargar animales desde Excel"
-                className="grid size-11 shrink-0 place-items-center rounded-full bg-arena text-musgo transition active:scale-95"
-              >
-                <FileSpreadsheet className="size-5" strokeWidth={1.75} aria-hidden="true" />
-              </Link>
-              <Link
-                href="/hato/nuevo"
-                className="inline-flex min-h-11 items-center gap-1.5 rounded-full bg-musgo px-4 text-sm font-semibold text-sobre-musgo"
-              >
-                <Plus className="size-4" strokeWidth={2.4} /> Nuevo
-              </Link>
-            </>
-          ) : null
+          <>
+            {/* «Crear una novedad»: con texto para quien no crea animales (ordeñador, veterinario); como icono junto a los demás botones para quien sí. */}
+            {puedeEscribir(rol, "novedades", finca.plan) ? (
+              puedeCrear ? (
+                <Link href="/novedades/nueva" aria-label="Crear una novedad" className="grid size-11 shrink-0 place-items-center rounded-full bg-arena text-musgo transition active:scale-95">
+                  <Inbox className="size-5" strokeWidth={1.75} aria-hidden="true" />
+                </Link>
+              ) : (
+                <Link href="/novedades/nueva" className="inline-flex min-h-11 items-center gap-1.5 rounded-full bg-musgo px-4 text-sm font-semibold text-sobre-musgo">
+                  <Inbox className="size-4" strokeWidth={2.2} aria-hidden="true" /> Crear una novedad
+                </Link>
+              )
+            ) : null}
+            {puedeCrear ? (
+              <>
+                <Link
+                  href="/hato/importar"
+                  aria-label="Cargar animales desde Excel"
+                  className="grid size-11 shrink-0 place-items-center rounded-full bg-arena text-musgo transition active:scale-95"
+                >
+                  <FileSpreadsheet className="size-5" strokeWidth={1.75} aria-hidden="true" />
+                </Link>
+                <Link
+                  href="/hato/nuevo"
+                  className="inline-flex min-h-11 items-center gap-1.5 rounded-full bg-musgo px-4 text-sm font-semibold text-sobre-musgo"
+                >
+                  <Plus className="size-4" strokeWidth={2.4} /> Nuevo
+                </Link>
+              </>
+            ) : null}
+          </>
         }
       />
 
