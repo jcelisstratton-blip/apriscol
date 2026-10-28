@@ -1,6 +1,7 @@
-import { Baby, Beef, Download, Droplets, Fence, FileBarChart2, Gift, GitFork, Home, MapPin, Package, PawPrint, Plus, Rocket, SlidersHorizontal, Syringe, TrendingUp, Trophy, Users, Wallet, type LucideIcon } from "lucide-react";
+import { Activity, Baby, Beef, Download, Droplets, Fence, FileBarChart2, Gift, GitFork, Home, MapPin, Package, PawPrint, Plus, Rocket, SlidersHorizontal, Syringe, TrendingUp, Trophy, Users, Wallet, type LucideIcon } from "lucide-react";
 import { puedeGestionar, puedeVer } from "@/lib/permisos";
 import { reportesVisibles } from "@/lib/reportes/catalogo";
+import { areasSemaforo } from "@/lib/semaforos";
 import type { PlanId, RolFinca } from "@/lib/tipos";
 
 /**
@@ -13,6 +14,8 @@ export type GrupoMenu = { id: string; titulo?: string; entradas: EntradaMenu[] }
 
 /** Qué ve la persona: sale de su rol y del plan de la finca. */
 export type VisibilidadMenu = {
+  /** Tiene al menos un área de semáforos (según su rol y plan). */
+  semaforos: boolean;
   leche: boolean;
   repro: boolean;
   carne: boolean;
@@ -32,6 +35,7 @@ export type VisibilidadMenu = {
 export function visibilidadMenu(rol: RolFinca, plan: PlanId): VisibilidadMenu {
   const ve = (m: Parameters<typeof puedeVer>[1]) => puedeVer(rol, m, plan);
   return {
+    semaforos: areasSemaforo(rol, plan).length > 0,
     leche: ve("leche"),
     repro: ve("reproduccion"),
     carne: ve("carne"),
@@ -61,6 +65,7 @@ export function menuPrincipal(v: VisibilidadMenu): GrupoMenu[] {
       id: "produccion",
       titulo: "Producción y manejo",
       entradas: [
+        ...(v.semaforos ? [{ href: "/semaforos", etiqueta: "Semáforos", Icono: Activity }] : []),
         ...(v.leche ? [{ href: "/leche", etiqueta: "Leche", Icono: Droplets }] : []),
         ...(v.repro ? [{ href: "/reproduccion", etiqueta: "Reproducción", Icono: Baby }] : []),
         ...(v.carne ? [{ href: "/carne", etiqueta: "Carne", Icono: Beef }] : []),

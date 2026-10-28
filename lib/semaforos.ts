@@ -1,0 +1,437 @@
+import { diasDesde, diasHasta, formatoFecha } from "@/lib/fechas";
+import { puedeVer } from "@/lib/permisos";
+import { DIAS_PARTO_ATRASADO, porSecar as debeSecarse, enUltimoTercio, seguimientoServida, type VentanaDx } from "@/lib/reproduccion";
+import { estadoFamacha } from "@/lib/famacha";
+import { estadoCrioscopia, estadoRcs, estadoTemperatura, formatoCrioscopia, formatoMiles } from "@/lib/leche-calidad";
+import { estadoDosis, estadoFechaPrograma } from "@/lib/sanidad";
+import { esBaja, mensajeBaja, type Tendencia } from "@/lib/produccion";
+import { textoRotacion } from "@/lib/corrales";
+import type { ModuloApp, PlanId, ReproHembra, RolFinca, UbicacionVista } from "@/lib/tipos";
+
+/**
+ * Semáforos: una sola lectura del estado del hato para actuar a tiempo. Cada señal junta lo que la app ya sabe calcular (partos, FAMACHA, dosis,
+ * frío, calidad…) en tres niveles con el mismo significado en toda la app: **rojo** = actúa hoy, **ámbar** = programa una acción, **verde** = en orden.
+ * Aquí viven las reglas (puras, con prueba); `lib/semaforos-servidor.ts` trae los datos y `components/Semaforos.tsx` los dibuja.
+ */
+
+export type AreaSemaforo = "reproduccion" | "sanidad" | "leche" | "corrales";
+export const ETIQUETA_AREA: Record<AreaSemaforo, string> = { reproduccion: "Reproducción", sanidad: "Sanidad", leche: "Leche", corrales: "Corrales" };
+const MODULO_DE_AREA: Record<AreaSemaforo, ModuloApp> = { reproduccion: "reproduccion", sanidad: "sanidad", leche: "leche", corrales: "corrales" };
+
+/**
+ * Qué áreas ve cada rol: solo lo suyo. El veterinario, reproducción y sanidad; el ordeñador, leche; el propietario y el administrador, todo.
+ * (Si luego se le abren más áreas a un rol, se cambia aquí y nada más.) Además deben estar en su plan.
+ */
+const AREAS_DEL_ROL: Record<RolFinca, AreaSemaforo[]> = {
+  propietario: ["reproduccion", "sanidad", "leche", "corrales"],
+  administrador: ["reproduccion", "sanidad", "leche", "corrales"],
+  veterinario: ["reproduccion", "sanidad"],
+  ordenador: ["leche"],
+  contador: [],
+};
+
+export function areasSemaforo(rol: RolFinca, plan: PlanId): AreaSemaforo[] {
+  return AREAS_DEL_ROL[rol].filter((a) => puedeVer(rol, MODULO_DE_AREA[a], plan));
+}
+
+export type NivelItem = "rojo" | "ambar";
+export type Nivel = NivelItem | "verde";
+
+export type ItemSenal = {
+  clave: string;
+  /** Quién o qué es: «Luna · MIR-C0001», «Tanque de frío». */
+  etiqueta: string;
+  /** Por qué está en este nivel, en una frase. */
+  detalle: string;
+  nivel: NivelItem;
+  href: string;
+  /** Más chico = más urgente dentro de su nivel. */
+  orden: number;
+};
+
+export type Senal = {
+  id: string;
+  area: AreaSemaforo;
+  titulo: string;
+  nivel: Nivel;
+  /** «2 en rojo · 5 en ámbar» o «En orden». */
+  resumen: string;
+  items: ItemSenal[];
+  queSignifica: string;
+  regla: string;
+  accion?: { texto: string; href: string };
+  nota?: string;
+};
+
+type BaseSenal = Pick<Senal, "id" | "area" | "titulo" | "queSignifica" | "regla" | "accion" | "nota">;
+
+/** Arma la señal: ordena (rojo primero, luego lo más urgente), calcula su nivel y su resumen. */
+export function armarSenal(base: BaseSenal, items: ItemSenal[]): Senal {
+  const ordenados = [...items].sort((a, b) => (a.nivel === b.nivel ? a.orden - b.orden : a.nivel === "rojo" ? -1 : 1));
+  const rojos = ordenados.filter((i) => i.nivel === "rojo").length;
+  const ambar = ordenados.length - rojos;
+  const nivel: Nivel = rojos > 0 ? "rojo" : ambar > 0 ? "ambar" : "verde";
+  const partes = [rojos > 0 ? `${rojos} en rojo` : null, ambar > 0 ? `${ambar} en ámbar` : null].filter(Boolean);
+  return { ...base, nivel, resumen: partes.length ? partes.join(" · ") : "En orden", items: ordenados };
+}
+
+/** Cuántos rojos y ámbar hay en total, para el encabezado. */
+export function contarSenales(senales: Senal[]): { rojo: number; ambar: number; verde: number } {
+  return {
+    rojo: senales.filter((s) => s.nivel === "rojo").length,
+    ambar: senales.filter((s) => s.nivel === "ambar").length,
+    verde: senales.filter((s) => s.nivel === "verde").length,
+  };
+}
+
+const corta = (iso: string) => formatoFecha(iso, { day: "numeric", month: "short" });
+const dias = (n: number) => `${n} ${n === 1 ? "día" : "días"}`;
+type Etiqueta = (animalId: string) => string;
+const fichaAnimal = (id: string, ancla?: string) => (ancla ? `/hato/${id}#${ancla}` : `/hato/${id}`);
+
+// ───────────────────────── Reproducción ─────────────────────────
+/** Desde cuántos días antes del parto conviene preparar la maternidad y la vacuna; y desde cuántos vigilarla a diario. */
+export const DIAS_PARTO_PREPARAR = 30;
+export const DIAS_PARTO_VIGILAR = 14;
+
+const enGestacion = (f: Pick<ReproHembra, "estado">) => f.estado === "gestante" || f.estado === "servida";
+
+export function senalPartos(filas: ReproHembra[], hoy: string, etiqueta: Etiqueta): Senal {
+  const items: ItemSenal[] = [];
+  for (const f of filas) {
+    if (!enGestacion(f) || !f.fecha_prevista_parto) continue;
+    const d = diasHasta(f.fecha_prevista_parto, hoy);
+    if (d > DIAS_PARTO_PREPARAR) continue;
+    const estimada = f.estado === "servida" ? " · fecha estimada, sin confirmar" : "";
+    let nivel: NivelItem = "ambar";
+    let detalle: string;
+    if (d < -DIAS_PARTO_ATRASADO) {
+      nivel = "rojo";
+      detalle = `Atrasada ${dias(-d)}: su fecha era el ${corta(f.fecha_prevista_parto)}`;
+    } else if (d < 0) {
+      detalle = `Debió parir hace ${dias(-d)}`;
+    } else if (d === 0) {
+      detalle = "Pare hoy";
+    } else if (d <= DIAS_PARTO_VIGILAR) {
+      detalle = `Pare en ${dias(d)}: vigílala a diario`;
+    } else {
+      detalle = `Pare en ${dias(d)}: prepara la maternidad y la vacuna`;
+    }
+    items.push({ clave: `parto-${f.animal_id}`, etiqueta: etiqueta(f.animal_id), detalle: detalle + estimada, nivel, href: fichaAnimal(f.animal_id, "reproduccion"), orden: d });
+  }
+  return armarSenal(
+    {
+      id: "partos",
+      area: "reproduccion",
+      titulo: "Partos que se acercan",
+      queSignifica: "Hembras gestantes o servidas cuyo parto previsto llega en los próximos 30 días, o que ya pasó su fecha.",
+      regla: `Ámbar: faltan ${DIAS_PARTO_PREPARAR} días o menos (a ${DIAS_PARTO_VIGILAR} o menos, vigilarla a diario) o pasó hasta ${DIAS_PARTO_ATRASADO} días. Rojo: pasaron más de ${DIAS_PARTO_ATRASADO} días de su fecha sin parir.`,
+      accion: { texto: "Ver Reproducción", href: "/reproduccion" },
+      nota: "Si la hembra solo está servida, la fecha es una estimación hasta que se confirme la gestación.",
+    },
+    items,
+  );
+}
+
+/** Dos señales de lo mismo: servidas a las que ya toca diagnóstico, y diagnósticos dudosos por repetir. */
+export function senalesDiagnostico(filas: ReproHembra[], hoy: string, ventana: VentanaDx, etiqueta: Etiqueta): Senal[] {
+  const confirmar: ItemSenal[] = [];
+  const repetir: ItemSenal[] = [];
+  for (const f of filas) {
+    const s = seguimientoServida(f, hoy, ventana);
+    if (!s || s.estado === "pronto") continue;
+    const nivel: NivelItem = s.estado === "atrasado" ? "rojo" : "ambar";
+    const item: ItemSenal = {
+      clave: `${s.clase}-${f.animal_id}`,
+      etiqueta: etiqueta(f.animal_id),
+      detalle:
+        s.clase === "diagnostico"
+          ? s.estado === "atrasado"
+            ? `Servida hace ${dias(s.dias)}: pasó la ventana (hasta el ${corta(s.hasta)})`
+            : `Servida hace ${dias(s.dias)}: toca diagnóstico (hasta el ${corta(s.hasta)})`
+          : s.estado === "atrasado"
+            ? `Diagnóstico dudoso hace ${dias(s.dias)}: pasó el plazo para repetirlo`
+            : `Diagnóstico dudoso hace ${dias(s.dias)}: toca repetirlo (hasta el ${corta(s.hasta)})`,
+      nivel,
+      href: fichaAnimal(f.animal_id, "reproduccion"),
+      orden: -s.dias,
+    };
+    (s.clase === "diagnostico" ? confirmar : repetir).push(item);
+  }
+  return [
+    armarSenal(
+      {
+        id: "diagnostico",
+        area: "reproduccion",
+        titulo: "Servicios sin diagnóstico",
+        queSignifica: "Hembras servidas a las que ya toca confirmar si quedaron gestantes.",
+        regla: `Ámbar: está dentro de la ventana de diagnóstico (del día ${ventana.desde} al ${ventana.hasta} después del servicio). Rojo: ya la pasó.`,
+        accion: { texto: "Ver Reproducción", href: "/reproduccion" },
+      },
+      confirmar,
+    ),
+    armarSenal(
+      {
+        id: "repetir",
+        area: "reproduccion",
+        titulo: "Diagnósticos por repetir",
+        queSignifica: "Hembras cuyo último diagnóstico fue dudoso y siguen en observación.",
+        regla: "Ámbar: toca repetir la prueba entre 14 y 21 días después del dudoso. Rojo: pasaron más de 21 días.",
+        accion: { texto: "Ver Reproducción", href: "/reproduccion" },
+      },
+      repetir,
+    ),
+  ];
+}
+
+export function senalSecado(filas: ReproHembra[], hoy: string, secadoDiasAntes: number, ultimoTercioDia: number, etiqueta: Etiqueta): Senal {
+  const items: ItemSenal[] = [];
+  for (const f of filas) {
+    if (debeSecarse(f, hoy, secadoDiasAntes)) {
+      const d = diasHasta(f.fecha_prevista_parto!, hoy);
+      const justo = d <= 7;
+      items.push({
+        clave: `secar-${f.animal_id}`,
+        etiqueta: etiqueta(f.animal_id),
+        detalle: d < 0 ? `Pasó su fecha prevista y sigue en ordeño` : `Faltan ${dias(d)} para parir y sigue en ordeño: toca secarla`,
+        nivel: justo ? "rojo" : "ambar",
+        href: fichaAnimal(f.animal_id, "reproduccion"),
+        orden: d,
+      });
+    } else if (enUltimoTercio(f, hoy, ultimoTercioDia)) {
+      items.push({
+        clave: `tercio-${f.animal_id}`,
+        etiqueta: etiqueta(f.animal_id),
+        detalle: `Día ${diasDesde(f.ultimo_servicio!, hoy)} de gestación: refuerza su alimentación`,
+        nivel: "ambar",
+        href: fichaAnimal(f.animal_id, "reproduccion"),
+        orden: 100 + diasHasta(f.fecha_prevista_parto!, hoy),
+      });
+    }
+  }
+  return armarSenal(
+    {
+      id: "secado",
+      area: "reproduccion",
+      titulo: "Secado y último tercio",
+      queSignifica: "Gestantes en ordeño que ya deben secarse, y gestantes que entraron al último tercio y necesitan más alimento.",
+      regla: `Ámbar: faltan ${secadoDiasAntes} días o menos para parir y sigue en ordeño (secarla), o lleva ${ultimoTercioDia} días de gestación o más (reforzar). Rojo: faltan 7 días o menos y sigue en ordeño.`,
+      accion: { texto: "Ver Reproducción", href: "/reproduccion" },
+    },
+    items,
+  );
+}
+
+// ───────────────────────── Sanidad ─────────────────────────
+type FilaFamacha = { animal_id: string; puntaje: number; ultima_fecha: string; desparasitado_en: string | null };
+
+export function senalFamacha(filas: FilaFamacha[], etiqueta: Etiqueta): Senal {
+  const items: ItemSenal[] = [];
+  for (const f of filas) {
+    const e = estadoFamacha(f);
+    if (e.clave !== "desparasitar" && e.clave !== "vigilar") continue;
+    items.push({
+      clave: `famacha-${f.animal_id}`,
+      etiqueta: etiqueta(f.animal_id),
+      detalle: `FAMACHA ${f.puntaje} el ${corta(f.ultima_fecha)}: ${e.clave === "desparasitar" ? "desparasitar" : "vigilar y volver a evaluar"}`,
+      nivel: e.clave === "desparasitar" ? "rojo" : "ambar",
+      href: fichaAnimal(f.animal_id, "sanidad"),
+      orden: -f.puntaje,
+    });
+  }
+  return armarSenal(
+    {
+      id: "famacha",
+      area: "sanidad",
+      titulo: "Anemia por parásitos (FAMACHA)",
+      queSignifica: "Animales cuya última evaluación del color de la mucosa muestra anemia y todavía no se desparasitaron desde entonces.",
+      regla: "Rojo: puntaje 4 o 5 sin desparasitar. Ámbar: puntaje 3 sin desparasitar (vigilar).",
+      accion: { texto: "Ver Sanidad", href: "/sanidad" },
+    },
+    items,
+  );
+}
+
+export type DosisPendiente = { clave: string; titulo: string; fecha: string; animales: number; tipo: "dosis" | "programa"; href: string };
+
+export function senalDosis(pendientes: DosisPendiente[], hoy: string): Senal {
+  const items: ItemSenal[] = [];
+  for (const p of pendientes) {
+    const e = p.tipo === "programa" ? estadoFechaPrograma(p.fecha, hoy) : estadoDosis(p.fecha, hoy);
+    if (e.tono === "neutro") continue;
+    items.push({
+      clave: p.clave,
+      etiqueta: p.titulo,
+      detalle: `${p.animales} ${p.animales === 1 ? "animal" : "animales"} · ${e.texto.toLowerCase()} (${corta(p.fecha)})`,
+      nivel: e.tono === "alerta" ? "rojo" : "ambar",
+      href: p.href,
+      orden: e.dias,
+    });
+  }
+  return armarSenal(
+    {
+      id: "dosis",
+      area: "sanidad",
+      titulo: "Dosis y programas por aplicar",
+      queSignifica: "Refuerzos de vacunas, desparasitaciones y jornadas sanitarias programadas que vencen pronto o ya vencieron.",
+      regla: "Ámbar: vence hoy o en los próximos 7 días. Rojo: ya venció.",
+      accion: { texto: "Ver Sanidad", href: "/sanidad" },
+    },
+    items,
+  );
+}
+
+export type FilaRetiro = { animal_id: string; retiro_leche_hasta: string | null; retiro_carne_hasta: string | null };
+
+export function senalRetiro(filas: FilaRetiro[], hoy: string, etiqueta: Etiqueta): Senal {
+  const items: ItemSenal[] = [];
+  for (const r of filas) {
+    const leche = r.retiro_leche_hasta && r.retiro_leche_hasta >= hoy ? r.retiro_leche_hasta : null;
+    const carne = r.retiro_carne_hasta && r.retiro_carne_hasta >= hoy ? r.retiro_carne_hasta : null;
+    if (!leche && !carne) continue;
+    const partes = [leche ? `leche hasta el ${corta(leche)}` : null, carne ? `carne hasta el ${corta(carne)}` : null].filter(Boolean);
+    items.push({
+      clave: `retiro-${r.animal_id}`,
+      etiqueta: etiqueta(r.animal_id),
+      detalle: `En retiro: ${partes.join(" · ")}`,
+      nivel: "ambar",
+      href: fichaAnimal(r.animal_id, "sanidad"),
+      orden: diasHasta(leche ?? carne!, hoy),
+    });
+  }
+  return armarSenal(
+    {
+      id: "retiro",
+      area: "sanidad",
+      titulo: "Animales en periodo de retiro",
+      queSignifica: "Animales tratados cuya leche no puede ir al tanque o cuya carne no puede salir a consumo hasta que pase el retiro del medicamento.",
+      regla: "Ámbar mientras dure el retiro. La app ya descarta esa leche y avisa antes de vender o sacrificar; no hay rojo porque no es una falla, es una restricción.",
+      nota: "Respeta la fecha: la leche o la carne con residuos de medicamento no se puede vender.",
+    },
+    items,
+  );
+}
+
+// ───────────────────────── Leche ─────────────────────────
+export type LecturaFrio = { id: string; fecha: string; momento: string; temperatura_c: number };
+
+export function senalFrio(lecturas: LecturaFrio[], hoy: string): Senal {
+  const items: ItemSenal[] = [];
+  for (const l of lecturas) {
+    const e = estadoTemperatura(Number(l.temperatura_c));
+    if (e.tono !== "aviso" && e.tono !== "alerta") continue;
+    const etiquetaMomento = l.momento === "tras_ordeno" ? "Tras el ordeño" : l.momento === "almacenada" ? "Almacenada" : "Al despachar";
+    items.push({
+      clave: `frio-${l.id}`,
+      etiqueta: etiquetaMomento,
+      detalle: `${Number(l.temperatura_c).toLocaleString("es-CO", { maximumFractionDigits: 1 })} °C el ${corta(l.fecha)}: ${e.texto.toLowerCase()}`,
+      nivel: e.tono === "alerta" ? "rojo" : "ambar",
+      href: `/leche/frio/${l.id}`,
+      orden: diasDesde(l.fecha, hoy),
+    });
+  }
+  return armarSenal(
+    {
+      id: "frio",
+      area: "leche",
+      titulo: "Cadena de frío",
+      queSignifica: "Lecturas de temperatura del tanque de los últimos 7 días fuera del rango seguro (4 a 6 °C).",
+      regla: "Ámbar: hasta 2 °C fuera del rango. Rojo: más de 2 °C fuera, la leche está en riesgo.",
+      accion: { texto: "Ver Leche", href: "/leche" },
+    },
+    items,
+  );
+}
+
+export type AnalisisTanque = {
+  id: string;
+  fecha: string;
+  rcs_miles_ml: number | null;
+  grasa_pct: number | null;
+  proteina_pct: number | null;
+  crioscopia_c: number | null;
+  residuos_antibioticos: "negativo" | "positivo" | null;
+};
+/** Grasa y proteína pueden no tener rango definido (entonces no se revisan). */
+export type LimitesCalidad = { rcs: number; grasaMin: number | null; grasaMax: number | null; proteinaMin: number | null; proteinaMax: number | null };
+
+export function senalCalidad(a: AnalisisTanque | null, l: LimitesCalidad): Senal {
+  const items: ItemSenal[] = [];
+  if (a) {
+    const href = `/leche/calidad/${a.id}`;
+    const fecha = corta(a.fecha);
+    const poner = (clave: string, etiqueta: string, detalle: string, nivel: NivelItem, orden: number) => items.push({ clave: `${clave}-${a.id}`, etiqueta, detalle: `${detalle} (análisis del ${fecha})`, nivel, href, orden });
+    if (a.residuos_antibioticos === "positivo") poner("res", "Residuos de antibiótico", "Positivo: no despachar esa leche", "rojo", 0);
+    if (a.rcs_miles_ml != null) {
+      const e = estadoRcs(a.rcs_miles_ml, l.rcs);
+      if (e.tono === "alerta" || e.tono === "aviso") poner("rcs", "Células somáticas", `${formatoMiles(a.rcs_miles_ml)}: ${e.texto.toLowerCase()} (${formatoMiles(l.rcs)})`, e.tono === "alerta" ? "rojo" : "ambar", 1);
+    }
+    if (a.crioscopia_c != null) {
+      const e = estadoCrioscopia(Number(a.crioscopia_c));
+      if (e.tono === "alerta" || e.tono === "aviso") poner("crio", "Crioscopia", `${formatoCrioscopia(Number(a.crioscopia_c))}: ${e.texto.toLowerCase()}`, e.tono === "alerta" ? "rojo" : "ambar", 2);
+    }
+    if (a.grasa_pct != null && l.grasaMin != null && l.grasaMax != null && (a.grasa_pct < l.grasaMin || a.grasa_pct > l.grasaMax)) poner("grasa", "Grasa", `${a.grasa_pct} % fuera de ${l.grasaMin}–${l.grasaMax} %`, "ambar", 3);
+    if (a.proteina_pct != null && l.proteinaMin != null && l.proteinaMax != null && (a.proteina_pct < l.proteinaMin || a.proteina_pct > l.proteinaMax)) poner("prot", "Proteína", `${a.proteina_pct} % fuera de ${l.proteinaMin}–${l.proteinaMax} %`, "ambar", 4);
+  }
+  return armarSenal(
+    {
+      id: "calidad",
+      area: "leche",
+      titulo: "Calidad de la leche",
+      queSignifica: "El último análisis del tanque (de los últimos 60 días): células somáticas, crioscopia, residuos de antibióticos, grasa y proteína.",
+      regla: "Rojo: residuos positivos, células sobre el límite o crioscopia con posible agua. Ámbar: células cerca del límite (80 %), crioscopia más fría de lo habitual, o grasa o proteína fuera de rango.",
+      accion: { texto: "Ver Leche", href: "/leche" },
+      nota: a ? undefined : "No hay un análisis del tanque en los últimos 60 días.",
+    },
+    items,
+  );
+}
+
+export function senalProduccion(tendencias: Tendencia[], etiqueta: Etiqueta): Senal {
+  const items: ItemSenal[] = [];
+  for (const t of tendencias) {
+    if (!esBaja(t)) continue;
+    items.push({
+      clave: `prod-${t.animal_id}`,
+      etiqueta: etiqueta(t.animal_id),
+      detalle: mensajeBaja(t),
+      nivel: t.nivel === "critico" ? "rojo" : "ambar",
+      href: fichaAnimal(t.animal_id),
+      orden: t.variacion,
+    });
+  }
+  return armarSenal(
+    {
+      id: "produccion",
+      area: "leche",
+      titulo: "Producción que baja",
+      queSignifica: "Hembras en ordeño cuya producción de los últimos días bajó frente a su propio promedio.",
+      regla: "Ámbar: baja notable frente a su promedio. Rojo: baja fuerte, hay que revisarla ya (mastitis, parásitos, alimentación, celo o estrés).",
+      accion: { texto: "Ver Leche", href: "/leche" },
+    },
+    items,
+  );
+}
+
+// ───────────────────────── Corrales ─────────────────────────
+export function senalCorrales(ubicaciones: UbicacionVista[]): Senal {
+  const items: ItemSenal[] = [];
+  for (const u of ubicaciones) {
+    if (u.hacinada) {
+      items.push({ clave: `cupo-${u.id}`, etiqueta: u.nombre, detalle: `Pasó su cupo: ${u.ocupantes} animales`, nivel: "rojo", href: `/hato/corrales/${u.id}`, orden: 0 });
+    } else if (u.estado === "debe_salir") {
+      items.push({ clave: `rotacion-${u.id}`, etiqueta: u.nombre, detalle: textoRotacion(u), nivel: "rojo", href: `/hato/corrales/${u.id}`, orden: 1 });
+    }
+  }
+  return armarSenal(
+    {
+      id: "corrales",
+      area: "corrales",
+      titulo: "Cupo y rotación",
+      queSignifica: "Corrales con más animales que su cupo y potreros que ya pasaron los días de ocupación y deben desocuparse.",
+      regla: "Rojo: el corral pasó su cupo o el potrero pasó los días máximos de ocupación.",
+      accion: { texto: "Ver Corrales", href: "/corrales" },
+    },
+    items,
+  );
+}

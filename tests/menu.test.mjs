@@ -9,7 +9,7 @@ test("menú: el propietario con plan Profesional ve todos los grupos, en este or
   const v = visibilidadMenu("propietario", "profesional");
   assert.deepEqual(etiquetas(menuPrincipal(v)), [
     ["(inicio)", ["Hoy", "Hato"]],
-    ["Producción y manejo", ["Leche", "Reproducción", "Carne", "Sanidad", "Corrales"]],
+    ["Producción y manejo", ["Semáforos", "Leche", "Reproducción", "Carne", "Sanidad", "Corrales"]],
     ["Dinero y análisis", ["Costos", "Reportes", "Proyecciones", "Productos y terceros"]],
     ["Genealogía", ["Endogamia", "Premios"]],
   ]);
@@ -30,7 +30,7 @@ test("menú: un ordeñador no ve lo que no puede abrir y los grupos vacíos desa
   const v = visibilidadMenu("ordenador", "profesional");
   assert.deepEqual(etiquetas(menuPrincipal(v)), [
     ["(inicio)", ["Hoy", "Hato"]],
-    ["Producción y manejo", ["Leche"]],
+    ["Producción y manejo", ["Semáforos", "Leche"]],
     ["Dinero y análisis", ["Reportes"]], // el reporte de ordeño sí lo puede abrir
     ["Genealogía", ["Endogamia"]],
   ]);

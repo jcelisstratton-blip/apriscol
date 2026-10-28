@@ -1,4 +1,4 @@
-import { CalendarCheck, Coins, Crown, Download, FileBarChart2, FileSpreadsheet, GitFork, Gift, Home, Package, Plus, SlidersHorizontal, Sprout, TrendingUp, Trophy, Users, Wallet, Wrench } from "lucide-react";
+import { Activity, CalendarCheck, Coins, Crown, Download, FileBarChart2, FileSpreadsheet, GitFork, Gift, Home, Package, Plus, SlidersHorizontal, Sprout, TrendingUp, Trophy, Users, Wallet, Wrench } from "lucide-react";
 import { escena, ESC, ESCENA_HATO, type EscenaDef } from "@/lib/escenas";
 import { menuFinca, menuPrincipal, visibilidadMenu, type EntradaMenu } from "@/lib/menu";
 import { MESES_REFERIDO, PORCENTAJE_REFERIDO } from "@/lib/referidos";
@@ -38,6 +38,11 @@ export const CONTENIDO: Record<string, ContenidoOpcion> = {
     escena: ESCENA_HATO.todos,
     lema: "Cada animal, con su historia",
     puntos: ["Ficha con foto, edad, estado y padres", "Trae tus animales del libro genealógico o desde un Excel", "Leche, peso, partos y sanidad de cada uno, en su ficha"],
+  },
+  "/semaforos": {
+    escena: escena(Activity, "musgo", CalendarCheck),
+    lema: "Qué pide atención, por colores",
+    puntos: ["Rojo: actúa hoy; ámbar: programa una acción; verde: en orden", "Partos, diagnósticos, desparasitación, frío y calidad de la leche", "Cada persona ve solo lo de su rol; al tocar una tarjeta ves qué animales son"],
   },
   "/leche": {
     escena: ESCENA_HATO.ordeno,
