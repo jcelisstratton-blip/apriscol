@@ -77,3 +77,18 @@ export function textoUltimoPeso(c: CandidatoCeba, hoy: string): string | null {
 }
 
 export type GrupoCandidatos = "todos" | "hembras" | "machos";
+
+/**
+ * ¿Aparece un animal en Hato → Ceba? Si está en un lote de ceba abierto, siempre. Si no, solo cuando lo pesaron de verdad hace poco:
+ * el peso al nacer que `ceba_animales` suma como primer punto del historial NO cuenta (`n_pesajes` = 0), porque si no toda cría
+ * recién nacida aparecería «Sin lote» durante `reciente` días.
+ */
+export function entraEnCeba(
+  c: { lote_id: string | null; n_pesajes: number; fecha_ultimo: string | null },
+  lotesAbiertos: ReadonlySet<string>,
+  reciente: string,
+): { entra: boolean; enLoteAbierto: boolean } {
+  const enLoteAbierto = c.lote_id !== null && lotesAbiertos.has(c.lote_id);
+  const pesadoHacePoco = c.n_pesajes > 0 && !!c.fecha_ultimo && c.fecha_ultimo >= reciente;
+  return { entra: enLoteAbierto || pesadoHacePoco, enLoteAbierto };
+}

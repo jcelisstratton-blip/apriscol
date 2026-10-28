@@ -5,6 +5,7 @@ import { enTramos, leerTodo, paginar, traerTodo } from "../lib/consultas.ts";
 import { sinTildes } from "../lib/texto.ts";
 import { cabecerasExcel, nombreAscii } from "../lib/archivos.ts";
 import { diasDesde } from "../lib/fechas.ts";
+import { entraEnCeba } from "../lib/ceba-candidatos.ts";
 import { conRevisionAtrasada, plazosRevisionPezuna, revisionAtrasada } from "../lib/sanidad.ts";
 import { contarFamacha, FAMACHA, PUNTAJES_FAMACHA, GUIA_FAMACHA } from "../lib/famacha.ts";
 import { enUltimoTercio, partoAtrasado, partoProximo, porConfirmar, porRepetir, porSecar, seguimientoServida } from "../lib/reproduccion.ts";
@@ -193,4 +194,20 @@ test("por confirmar y por repetir: lo que cuenta el Resumen de Reproducción y l
   assert.equal(porConfirmar(dudosa, hoy, ventana), false, "una dudosa se repite, no se confirma");
   assert.equal(porRepetir(dudosa, hoy, ventana), true);
   assert.equal(porRepetir(servida("2026-09-20", { diagnostico: "dudoso", fecha_diagnostico: "2026-10-15" }), hoy, ventana), false, "9 días: aún no");
+});
+
+test("Ceba: una cría con solo el peso al nacer no aparece; un animal pesado de verdad o en un lote abierto, sí", () => {
+  const abiertos = new Set(["lote-1"]);
+  const reciente = "2026-07-29";
+  // Cría nacida hace 10 días: su único «peso» es el del nacimiento (n_pesajes = 0).
+  assert.deepEqual(entraEnCeba({ lote_id: null, n_pesajes: 0, fecha_ultimo: "2026-10-17" }, abiertos, reciente), { entra: false, enLoteAbierto: false });
+  // Pesado de verdad hace poco, sin lote.
+  assert.deepEqual(entraEnCeba({ lote_id: null, n_pesajes: 2, fecha_ultimo: "2026-10-01" }, abiertos, reciente), { entra: true, enLoteAbierto: false });
+  // Pesado hace mucho, sin lote: sale.
+  assert.equal(entraEnCeba({ lote_id: null, n_pesajes: 3, fecha_ultimo: "2026-05-01" }, abiertos, reciente).entra, false);
+  // En un lote abierto entra aunque no tenga pesos.
+  assert.deepEqual(entraEnCeba({ lote_id: "lote-1", n_pesajes: 0, fecha_ultimo: null }, abiertos, reciente), { entra: true, enLoteAbierto: true });
+  // Lote ya cerrado: cuenta como sin lote y solo entra si lo pesaron hace poco.
+  assert.deepEqual(entraEnCeba({ lote_id: "lote-0", n_pesajes: 1, fecha_ultimo: "2026-10-01" }, abiertos, reciente), { entra: true, enLoteAbierto: false });
+  assert.equal(entraEnCeba({ lote_id: "lote-0", n_pesajes: 0, fecha_ultimo: "2026-10-01" }, abiertos, reciente).entra, false);
 });
