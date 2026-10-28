@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync, statSync } from "node:fs";
+import { join } from "node:path";
 import { destinosMenu, menuFinca, menuPrincipal, visibilidadMenu } from "../lib/menu.ts";
 
 const etiquetas = (grupos) => grupos.map((g) => [g.titulo ?? "(inicio)", g.entradas.map((e) => e.etiqueta)]);
@@ -62,4 +63,29 @@ test("menú: el computador y el celular lo dibujan desde lib/menu.ts y no tienen
     assert.match(fuente, /@\/lib\/menu/, archivo);
     for (const href of ['"/leche"', '"/costos"', '"/mas/productos"', '"/reportes"', '"/hato/endogamia"', '"/ferias"']) assert.ok(!fuente.includes(`href=${href}`) && !fuente.includes(`href: ${href}`), `${archivo} escribe ${href} a mano`);
   }
+});
+
+import { ESCENA_PESTANA } from "../lib/escenas.ts";
+test("pestañas: toda pestaña de un módulo tiene su escena (si falta, la pantalla se rompe)", () => {
+  const archivos = [];
+  const recorrer = (dir) => {
+    for (const nombre of readdirSync(dir)) {
+      const ruta = join(dir, nombre);
+      if (statSync(ruta).isDirectory()) recorrer(ruta);
+      else if (/page\.tsx$/.test(nombre)) archivos.push(ruta);
+    }
+  };
+  recorrer(new URL("../app", import.meta.url).pathname);
+  let revisadas = 0;
+  for (const f of archivos) {
+    const src = readFileSync(f, "utf8");
+    if (!src.includes("armarPestanas(")) continue;
+    const bloque = src.match(/const PESTANAS = \[([\s\S]*?)\] as const/);
+    if (!bloque) continue;
+    for (const m of bloque[1].matchAll(/valor: "([a-z_]+)"/g)) {
+      revisadas++;
+      assert.ok(ESCENA_PESTANA[m[1]], `${f}: la pestaña «${m[1]}» no tiene escena en ESCENA_PESTANA`);
+    }
+  }
+  assert.ok(revisadas > 5);
 });

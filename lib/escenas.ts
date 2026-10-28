@@ -49,6 +49,7 @@ export const ESCENA_PESTANA: Record<string, EscenaDef> = {
   historial: escena(ClipboardList, "ocre"),
   productos: escena(Package, "ocre", Pill),
   pruebas: ESC.laboratorio,
+  coprologicos: escena(Microscope, "oliva", Bug),
   movimientos: escena(ArrowRightLeft, "ocre", Fence),
   produccion: ESC.leche,
   calidad: ESC.laboratorio,
@@ -71,7 +72,7 @@ export type PestanaTarjeta = { valor: string; etiqueta: string; href: string; es
 
 /** Arma las pestañas de un módulo: la primera va a la ruta sola y las demás a `?vista=`; la escena sale de `ESCENA_PESTANA`. */
 export function armarPestanas(ruta: string, primera: string, lista: readonly { valor: string; etiqueta: string; detalle?: string }[]): PestanaTarjeta[] {
-  return lista.map((p) => ({ ...p, href: p.valor === primera ? ruta : `${ruta}?vista=${p.valor}`, escena: ESCENA_PESTANA[p.valor] }));
+  return lista.map((p) => ({ ...p, href: p.valor === primera ? ruta : `${ruta}?vista=${p.valor}`, escena: ESCENA_PESTANA[p.valor] ?? escena(LayoutDashboard, "musgo") }));
 }
 
 /** Las tres formas de trabajar el ordeño (Hato → Ordeño). */
