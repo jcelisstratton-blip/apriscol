@@ -5,7 +5,7 @@ import { Tarjeta } from "@/components/Tarjeta";
 import { puedeEscribir, puedeVer } from "@/lib/permisos";
 import { clasesBoton } from "@/components/Boton";
 import { diasDesde, formatoFecha, hoyBogota } from "@/lib/fechas";
-import { detalleParto, enObservacion, resumenCrias, ETIQUETA_ESTADO, ETIQUETA_FETOS, ETIQUETA_INDICADOR, ETIQUETA_METODO, ETIQUETA_OBSERVACION, ETIQUETA_VIABILIDAD, ventanaRepetirDx, ETIQUETA_PARTO, ETIQUETA_RESULTADO, ETIQUETA_SERVICIO, plazoParto, porConfirmar, textoPartos, TONO_ESTADO } from "@/lib/reproduccion";
+import { detalleParto, enObservacion, partoAtrasado, resumenCrias, ETIQUETA_ESTADO, ETIQUETA_FETOS, ETIQUETA_INDICADOR, ETIQUETA_METODO, ETIQUETA_OBSERVACION, ETIQUETA_VIABILIDAD, ventanaRepetirDx, ETIQUETA_PARTO, ETIQUETA_RESULTADO, ETIQUETA_SERVICIO, plazoParto, porConfirmar, textoPartos, TONO_ESTADO } from "@/lib/reproduccion";
 import { PartosPrevios } from "@/components/PartosPrevios";
 import type { DiagnosticoGestacion } from "@/lib/tipos";
 import type { CtxFicha } from "./contexto";
@@ -50,6 +50,16 @@ export async function TarjetaReproduccion({ c, sinCrear }: { c: CtxFicha; sinCre
   const historialRepro = todoRepro.slice(0, 8);
   const mostrarRepro = verRepro && (animal.estado === "activo" || historialRepro.length > 0);
   if (!(mostrarRepro)) return null;
+
+  // Solo lo que tiene sentido según el estado: una gestante no necesita «Servicio»; una servida, primero el diagnóstico.
+  const estadoRepro = repro?.estado ?? "sin_datos";
+  const atrasada = !!repro && partoAtrasado(repro, hoyBogota());
+  const botonesRepro: { ruta: string; texto: string; principal?: boolean }[] =
+    estadoRepro === "gestante"
+      ? [{ ruta: "parto", texto: atrasada ? "Registrar parto o aborto" : "Parto", principal: atrasada }, ...(repro && enObservacion(repro) ? [{ ruta: "diagnostico", texto: "Repetir diagnóstico" }] : [])]
+      : estadoRepro === "servida"
+        ? [{ ruta: "diagnostico", texto: "Diagnóstico", principal: true }, { ruta: "servicio", texto: "Nuevo servicio" }, { ruta: "parto", texto: "Parto" }]
+        : [{ ruta: "servicio", texto: "Servicio" }];
 
   return (
     <Tarjeta titulo="Reproducción" id="reproduccion">
@@ -120,15 +130,11 @@ export async function TarjetaReproduccion({ c, sinCrear }: { c: CtxFicha; sinCre
       ) : null}
       {puedeEscribir(rol, "reproduccion", finca.plan) && animal.estado === "activo" ? (
         <div className="mt-3 grid grid-cols-1 gap-2 min-[420px]:grid-cols-3">
-          <Link href={`/hato/${id}/reproduccion/servicio/nuevo`} className={clasesBoton("secundario")}>
-            Servicio
-          </Link>
-          <Link href={`/hato/${id}/reproduccion/diagnostico/nuevo`} className={clasesBoton("secundario")}>
-            Diagnóstico
-          </Link>
-          <Link href={`/hato/${id}/reproduccion/parto/nuevo`} className={clasesBoton("secundario")}>
-            Parto
-          </Link>
+          {botonesRepro.map((b) => (
+            <Link key={b.ruta} href={`/hato/${id}/reproduccion/${b.ruta}/nuevo`} className={clasesBoton(b.principal ? "primario" : "secundario")}>
+              {b.texto}
+            </Link>
+          ))}
         </div>
       ) : null}
     </Tarjeta>

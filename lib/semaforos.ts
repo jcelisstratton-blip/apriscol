@@ -45,6 +45,8 @@ export type ItemSenal = {
   detalle: string;
   nivel: NivelItem;
   href: string;
+  /** Qué hacer ahora con este caso, en una frase (opcional). */
+  queHacer?: string;
   /** Más chico = más urgente dentro de su nivel. */
   orden: number;
 };
@@ -104,11 +106,14 @@ export function senalPartos(filas: ReproHembra[], hoy: string, plazos: PlazosPar
     const estimada = f.estado === "servida" ? " · fecha estimada, sin confirmar" : "";
     let nivel: NivelItem = "ambar";
     let detalle: string;
+    let queHacer: string | undefined;
     if (d < -DIAS_PARTO_ATRASADO) {
       nivel = "rojo";
+      queHacer = "Revisa si ya parió y no se registró: si parió, registra el parto; si abortó, registra el aborto. Si sigue gestante, que el veterinario la examine y confirme la fecha del servicio.";
       detalle = `Atrasada ${dias(-d)}: su fecha era el ${corta(f.fecha_prevista_parto)}`;
     } else if (d < 0) {
       detalle = `Debió parir hace ${dias(-d)}`;
+      queHacer = "Vigílala hoy mismo. Si ya parió, registra el parto.";
     } else if (d === 0) {
       detalle = "Pare hoy";
     } else if (d <= plazos.vigilar) {
@@ -116,7 +121,7 @@ export function senalPartos(filas: ReproHembra[], hoy: string, plazos: PlazosPar
     } else {
       detalle = `Pare en ${dias(d)}: prepara la maternidad y la vacuna`;
     }
-    items.push({ clave: `parto-${f.animal_id}`, etiqueta: etiqueta(f.animal_id), detalle: detalle + estimada, nivel, href: fichaAnimal(f.animal_id, "reproduccion"), orden: d });
+    items.push({ clave: `parto-${f.animal_id}`, etiqueta: etiqueta(f.animal_id), detalle: detalle + estimada, nivel, href: fichaAnimal(f.animal_id, "reproduccion"), queHacer, orden: d });
   }
   return armarSenal(
     {
