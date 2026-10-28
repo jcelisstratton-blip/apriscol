@@ -1408,17 +1408,23 @@ export type Database = {
       }
       novedades: {
         Row: {
+          anestesia: string | null
           animal_id: string
+          categoria: string | null
           categoria_producto: string | null
           client_request_id: string | null
           created_at: string
+          cojera: number | null
           created_by: string | null
           enviada_por_nombre: string
           estado: string
+          etapa: string | null
           fecha: string
           finca_id: string
           id: string
           lote: string | null
+          motivo: string | null
+          observaciones: string | null
           producto_id: string | null
           producto_nombre: string | null
           prueba: string | null
@@ -1427,22 +1433,29 @@ export type Database = {
           revisada_en: string | null
           revisada_por: string | null
           tipo: string
+          tipo_evento: string | null
           tipo_muestra: string | null
           updated_at: string
           via: string | null
         }
         Insert: {
+          anestesia?: string | null
           animal_id: string
+          categoria?: string | null
           categoria_producto?: string | null
           client_request_id?: string | null
           created_at?: string
+          cojera?: number | null
           created_by?: string | null
           enviada_por_nombre: string
           estado?: string
+          etapa?: string | null
           fecha: string
           finca_id: string
           id?: string
           lote?: string | null
+          motivo?: string | null
+          observaciones?: string | null
           producto_id?: string | null
           producto_nombre?: string | null
           prueba?: string | null
@@ -1451,22 +1464,29 @@ export type Database = {
           revisada_en?: string | null
           revisada_por?: string | null
           tipo: string
+          tipo_evento?: string | null
           tipo_muestra?: string | null
           updated_at?: string
           via?: string | null
         }
         Update: {
+          anestesia?: string | null
           animal_id?: string
+          categoria?: string | null
           categoria_producto?: string | null
           client_request_id?: string | null
           created_at?: string
+          cojera?: number | null
           created_by?: string | null
           enviada_por_nombre?: string
           estado?: string
+          etapa?: string | null
           fecha?: string
           finca_id?: string
           id?: string
           lote?: string | null
+          motivo?: string | null
+          observaciones?: string | null
           producto_id?: string | null
           producto_nombre?: string | null
           prueba?: string | null
@@ -1475,6 +1495,7 @@ export type Database = {
           revisada_en?: string | null
           revisada_por?: string | null
           tipo?: string
+          tipo_evento?: string | null
           tipo_muestra?: string | null
           updated_at?: string
           via?: string | null

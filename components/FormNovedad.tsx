@@ -4,54 +4,98 @@ import { useActionState, useState, useTransition } from "react";
 import Link from "next/link";
 import { Aviso } from "@/components/Aviso";
 import { Boton, clasesBoton } from "@/components/Boton";
-import { Campo } from "@/components/Campo";
+import { Campo, CLASE_INPUT } from "@/components/Campo";
 import { Chip, FilaDesplazable } from "@/components/FilaDesplazable";
 import { OjoFamacha } from "@/components/OjoFamacha";
 import { Selector } from "@/components/Selector";
-import { SelectorTarjetas } from "@/components/SelectorTarjetas";
+import { SelectorAnimal } from "@/components/SelectorAnimal";
+import { SelectorTarjetas, type OpcionTarjeta } from "@/components/SelectorTarjetas";
 import { crearNovedad } from "@/app/(app)/novedades/actions";
 import { AYUDA_MUESTRA, DETALLE_MUESTRA, ETIQUETA_MUESTRA, TIPOS_MUESTRA, type TipoMuestra } from "@/lib/coprologico";
+import { ESCENA_EVENTO } from "@/lib/escenas-sanidad";
+import { ESCENA_CAMPO, ESCENA_GENERICA } from "@/lib/escenas-sanidad-campos";
 import { ESCENA_VIA } from "@/lib/escenas-forms-a-sanidad";
-import { ESCENA_MUESTRA, ESCENA_PRODUCTO, ESCENA_RESULTADO_PRUEBA, ESCENA_TIPO_NOVEDAD } from "@/lib/escenas-listas-sanidad";
+import { ESCENA_MUESTRA, ESCENA_RESULTADO_PRUEBA, ESCENA_TIPO_NOVEDAD } from "@/lib/escenas-listas-sanidad";
 import { ESC } from "@/lib/escenas";
 import { FAMACHA, PUNTAJES_FAMACHA } from "@/lib/famacha";
-import { CUANDO_NOVEDAD, DETALLE_TIPO_NOVEDAD, ETIQUETA_TIPO_NOVEDAD, TIPOS_NOVEDAD, faltaEnNovedad, type CuandoNovedad, type TipoNovedad } from "@/lib/novedades";
-import { ETIQUETA_PRODUCTO, ETIQUETA_PRUEBA_CORTA, ETIQUETA_RESULTADO_PRUEBA, ETIQUETA_VIA, RESULTADOS_PRUEBA, TIPOS_PRODUCTO, TIPOS_PRUEBA, VIAS } from "@/lib/sanidad";
-import type { Novedad, ResultadoPrueba, TipoProducto, TipoPrueba, ViaAplicacion } from "@/lib/tipos";
+import { CUANDO_NOVEDAD, DETALLE_TIPO_NOVEDAD, ETIQUETA_TIPO_NOVEDAD, TIPOS_NOVEDAD, faltaEnNovedad, productosParaTipo, type CuandoNovedad, type TipoNovedad } from "@/lib/novedades";
+import { ANESTESIAS, CATEGORIAS, COJERAS, ETAPAS, MOTIVOS, REGLAS, type OpcionCampo } from "@/lib/sanidad-campos";
+import { ETIQUETA_EVENTO, ETIQUETA_PRUEBA_CORTA, ETIQUETA_RESULTADO_PRUEBA, ETIQUETA_VIA, RESULTADOS_PRUEBA, TIPOS_EVENTO, TIPOS_PRUEBA, VIAS } from "@/lib/sanidad";
+import type { Novedad, ResultadoPrueba, TipoEvento, TipoPrueba, ViaAplicacion } from "@/lib/tipos";
 
-export type ProductoNovedad = { id: string; nombre: string; tipo: TipoProducto };
+export type ProductoNovedad = { id: string; nombre: string; tipo: string };
 export type LoteNovedad = { gasto_id: string; producto_id: string; lote: string; vencimiento: string | null; comprado: string };
+type AnimalElegido = { id: string; numero_arete: string; nombre: string | null };
 
 const COLOR_PUNTO = { ok: "bg-ok text-white", neutro: "bg-arena text-tinta", aviso: "bg-ambar text-white", alerta: "bg-rojo text-white" } as const;
+const aTarjetas = (grupo: string, opciones: OpcionCampo[]): OpcionTarjeta<string>[] => opciones.map((o) => ({ valor: o.valor, etiqueta: o.etiqueta, detalle: o.detalle, escena: ESCENA_CAMPO[`${grupo}:${o.valor}`] ?? ESCENA_GENERICA }));
 
 /**
- * Enviar una novedad sobre un animal. **Todo se elige, nada se escribe**: primero qué quieres contar (los mismos botones de la ficha en Sanidad) y luego las
- * características de cada uno. No es un registro oficial: lo revisan el propietario, el administrador y el veterinario.
+ * Enviar una novedad sobre un animal. **Todo se elige, nada se captura**: las mismas opciones de «Registrar una aplicación» (qué se hizo, contra qué, qué dosis, por qué,
+ * cómo caminaba, qué anestesia, producto, lote y vía), de «Prueba diagnóstica», de «Examen coprológico» y de «Evaluación FAMACHA». Lo único que se escribe son las observaciones.
+ * No es un registro oficial: lo revisan el propietario, el administrador y el veterinario.
  */
-export function FormNovedad({ animalId, animalTexto, productos, lotes, solicitud }: { animalId: string; animalTexto: string; productos: ProductoNovedad[]; lotes: LoteNovedad[]; solicitud: string }) {
+export function FormNovedad({
+  animalId: animalFijo,
+  animalTexto,
+  fincaId,
+  productos,
+  lotes,
+  solicitud,
+}: {
+  /** El animal, si ya viene elegido (desde su ficha). Si no, se elige en el formulario. */
+  animalId?: string;
+  animalTexto?: string;
+  fincaId: string;
+  productos: ProductoNovedad[];
+  lotes: LoteNovedad[];
+  solicitud: string;
+}) {
   const [estado, enviar, pendiente] = useActionState(crearNovedad, undefined);
   const [, iniciar] = useTransition();
+  const [elegido, setElegido] = useState<AnimalElegido | null>(null);
   const [tipo, setTipo] = useState<TipoNovedad | "">("");
   const [cuando, setCuando] = useState<CuandoNovedad>("hoy");
-  const [categoria, setCategoria] = useState<TipoProducto | "">("");
+  // Aplicación (lo mismo que «Registrar una aplicación»)
+  const [tipoEvento, setTipoEvento] = useState<TipoEvento | "">("");
+  const [categoria, setCategoria] = useState("");
+  const [etapa, setEtapa] = useState("");
+  const [motivo, setMotivo] = useState("");
+  const [cojera, setCojera] = useState("");
+  const [anestesia, setAnestesia] = useState("");
   const [producto, setProducto] = useState("");
-  const [via, setVia] = useState<ViaAplicacion | "">("");
   const [lote, setLote] = useState("");
+  const [via, setVia] = useState<ViaAplicacion | "">("");
+  // Prueba, coprológico y FAMACHA
   const [prueba, setPrueba] = useState<TipoPrueba | "">("");
   const [resultado, setResultado] = useState<ResultadoPrueba | "">("");
   const [muestra, setMuestra] = useState<TipoMuestra | "">("");
   const [puntaje, setPuntaje] = useState<number | null>(null);
 
-  const delTipo = productos.filter((p) => p.tipo === categoria);
+  const animalId = animalFijo ?? elegido?.id ?? "";
+  const r = tipoEvento ? REGLAS[tipoEvento] : null;
+  const delTipo = productosParaTipo(tipoEvento, productos);
   const lotesDelProducto = lotes.filter((l) => l.producto_id === producto);
+  const conProducto = tipoEvento === "vacunacion" || tipoEvento === "desparasitacion" || tipoEvento === "tratamiento" || tipoEvento === "otro" || tipoEvento === "cirugia";
   const falta = faltaEnNovedad({
     tipo: tipo || undefined,
-    categoria_producto: categoria || null,
+    tipo_evento: tipoEvento || null,
     prueba: prueba || null,
     resultado_prueba: resultado || null,
     tipo_muestra: muestra || null,
     puntaje,
   } as Partial<Novedad>);
+
+  const cambiarTipoEvento = (t: TipoEvento) => {
+    setTipoEvento(t);
+    setCategoria("");
+    setEtapa("");
+    setMotivo("");
+    setCojera("");
+    setAnestesia("");
+    setProducto("");
+    setLote("");
+  };
 
   const alEnviar = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -65,9 +109,17 @@ export function FormNovedad({ animalId, animalTexto, productos, lotes, solicitud
       <input type="hidden" name="client_request_id" value={solicitud} />
       <input type="hidden" name="tipo" value={tipo} />
       <input type="hidden" name="cuando" value={cuando} />
-      <Aviso tipo="info">Esto es un aviso: lo ven el administrador y el veterinario. No queda como registro de Sanidad hasta que ellos lo confirmen. Solo eliges opciones, no escribes datos.</Aviso>
+      <Aviso tipo="info">Esto es una novedad: un aviso para el administrador y el veterinario. No queda como registro de Sanidad hasta que ellos lo confirmen. Solo eliges opciones; lo único que puedes escribir son las observaciones.</Aviso>
 
-      <Campo etiqueta="¿Qué quieres contar?" ayuda={`Sobre ${animalTexto}.`}>
+      {!animalFijo ? (
+        <Campo etiqueta="Animal" ayuda="¿De cuál animal es la novedad?">
+          {(id) => <SelectorAnimal id={id} nombre="animal_elegido" fincaId={fincaId} titulo="¿De qué animal es?" valor={elegido} onCambio={setElegido} vacio="Elegir animal" soloActivos />}
+        </Campo>
+      ) : (
+        <p className="text-sm text-humo">Sobre {animalTexto}.</p>
+      )}
+
+      <Campo etiqueta="¿Qué quieres contar?">
         {(id) => (
           <SelectorTarjetas<TipoNovedad>
             id={id}
@@ -94,86 +146,108 @@ export function FormNovedad({ animalId, animalTexto, productos, lotes, solicitud
 
       {tipo === "aplicacion" ? (
         <>
-          <input type="hidden" name="categoria_producto" value={categoria} />
-          <input type="hidden" name="producto_id" value={producto} />
-          <input type="hidden" name="via" value={via} />
-          <input type="hidden" name="lote_gasto_id" value={lote} />
-          <Campo etiqueta="¿Qué se aplicó?">
+          <Campo etiqueta="¿Qué se hizo?">
             {(id) => (
-              <SelectorTarjetas<TipoProducto>
+              <SelectorTarjetas<TipoEvento>
                 id={id}
-                valor={categoria}
-                onCambio={(v) => {
-                  if (v) {
-                    setCategoria(v);
-                    setProducto("");
-                    setLote("");
-                  }
-                }}
-                titulo="¿Qué se aplicó?"
-                opciones={TIPOS_PRODUCTO.map((t) => ({ valor: t, etiqueta: ETIQUETA_PRODUCTO[t], escena: ESCENA_PRODUCTO[t] }))}
+                nombre="tipo_evento"
+                valor={tipoEvento}
+                onCambio={(v) => v && cambiarTipoEvento(v)}
+                titulo="¿Qué se hizo?"
+                opciones={TIPOS_EVENTO.map((t) => ({ valor: t, etiqueta: ETIQUETA_EVENTO[t], escena: ESCENA_EVENTO[t] }))}
               />
             )}
           </Campo>
-          {categoria ? (
-            <Campo etiqueta="¿Cuál producto?" ayuda={delTipo.length === 0 ? "Todavía no hay productos de este tipo en el catálogo. Puedes enviar la novedad igual." : "Opcional."}>
-              {(id) => (
-                <Selector
-                  id={id}
-                  valor={producto}
-                  onCambio={(v) => {
-                    setProducto(String(v));
-                    setLote("");
-                  }}
-                  titulo="¿Cuál producto?"
-                  placeholder="Elegir producto"
-                  permitirVacio
-                  opciones={delTipo.map((p) => ({ valor: p.id, etiqueta: p.nombre }))}
-                />
-              )}
+          {r ? <Aviso tipo="info">{r.ayuda}</Aviso> : null}
+
+          {tipoEvento && CATEGORIAS[tipoEvento] ? (
+            <Campo etiqueta={r?.tituloCategoria ?? "¿Qué fue?"}>
+              {(id) => <SelectorTarjetas id={id} nombre="categoria" valor={categoria} onCambio={setCategoria} titulo={r?.tituloCategoria ?? "¿Qué fue?"} permitirVacio etiquetaVacio="No sé" opciones={aTarjetas(tipoEvento, CATEGORIAS[tipoEvento] ?? [])} />}
             </Campo>
           ) : null}
-          {producto ? (
-            <Campo etiqueta="¿Qué lote?" ayuda={lotesDelProducto.length === 0 ? "Este producto no tiene lotes registrados." : "Opcional. Está en el frasco; se elige de los que registró quien compró."}>
-              {(id) => (
-                <Selector
-                  id={id}
-                  valor={lote}
-                  onCambio={(v) => setLote(String(v))}
-                  titulo="¿Qué lote?"
-                  placeholder={lotesDelProducto.length === 0 ? "No hay lotes" : "Elegir lote"}
-                  permitirVacio
-                  opciones={lotesDelProducto.map((l) => ({ valor: l.gasto_id, etiqueta: l.lote, detalle: l.vencimiento ? `vence ${l.vencimiento}` : undefined }))}
-                />
-              )}
+          {tipoEvento === "pediluvio" && categoria === "cobre" ? <Aviso tipo="atencion">El sulfato de cobre no se recomienda en ovejas: puede ser tóxico si lo toman.</Aviso> : null}
+          {r?.etapa ? (
+            <Campo etiqueta="¿Qué dosis es?">
+              {(id) => <SelectorTarjetas id={id} nombre="etapa" valor={etapa} onCambio={setEtapa} titulo="¿Qué dosis es?" permitirVacio etiquetaVacio="No sé" opciones={aTarjetas("etapa", ETAPAS)} />}
             </Campo>
           ) : null}
-          <Campo etiqueta="¿Por dónde se aplicó?" ayuda="Opcional.">
-            {(id) => <SelectorTarjetas<ViaAplicacion> id={id} valor={via} onCambio={(v) => setVia(v)} titulo="¿Por dónde se aplicó?" permitirVacio opciones={VIAS.map((v) => ({ valor: v, etiqueta: ETIQUETA_VIA[v], escena: ESCENA_VIA[v] }))} />}
-          </Campo>
+          {r?.motivo ? (
+            <Campo etiqueta="¿Por qué se desparasita?">
+              {(id) => <SelectorTarjetas id={id} nombre="motivo" valor={motivo} onCambio={setMotivo} titulo="¿Por qué se desparasita?" permitirVacio etiquetaVacio="No sé" opciones={aTarjetas("motivo", MOTIVOS)} />}
+            </Campo>
+          ) : null}
+          {r?.cojera ? (
+            <Campo etiqueta="¿Cómo caminaba antes?" ayuda="Opcional.">
+              {(id) => <SelectorTarjetas id={id} nombre="cojera" valor={cojera} onCambio={setCojera} titulo="Cojera" permitirVacio etiquetaVacio="No lo revisé" opciones={aTarjetas("cojera", COJERAS)} />}
+            </Campo>
+          ) : null}
+          {r?.anestesia ? (
+            <Campo etiqueta="¿Con qué anestesia?">
+              {(id) => <SelectorTarjetas id={id} nombre="anestesia" valor={anestesia} onCambio={setAnestesia} titulo="Anestesia" permitirVacio etiquetaVacio="No sé" opciones={aTarjetas("anestesia", ANESTESIAS)} />}
+            </Campo>
+          ) : null}
+
+          {conProducto ? (
+            <>
+              <input type="hidden" name="producto_id" value={producto} />
+              <input type="hidden" name="lote_gasto_id" value={lote} />
+              <Campo etiqueta="¿Cuál producto?" ayuda={delTipo.length === 0 ? "No hay productos de este tipo en el catálogo. Puedes enviar la novedad igual." : "Opcional."}>
+                {(id) => (
+                  <Selector
+                    id={id}
+                    valor={producto}
+                    onCambio={(v) => {
+                      setProducto(String(v));
+                      setLote("");
+                    }}
+                    titulo="¿Cuál producto?"
+                    placeholder="Elegir producto"
+                    permitirVacio
+                    opciones={delTipo.map((p) => ({ valor: p.id, etiqueta: p.nombre }))}
+                  />
+                )}
+              </Campo>
+              {producto ? (
+                <Campo etiqueta="¿Qué lote?" ayuda={lotesDelProducto.length === 0 ? "Este producto no tiene lotes registrados." : "Opcional. Se elige de los que registró quien compró."}>
+                  {(id) => (
+                    <Selector
+                      id={id}
+                      valor={lote}
+                      onCambio={(v) => setLote(String(v))}
+                      titulo="¿Qué lote?"
+                      placeholder={lotesDelProducto.length === 0 ? "No hay lotes" : "Elegir lote"}
+                      permitirVacio
+                      opciones={lotesDelProducto.map((l) => ({ valor: l.gasto_id, etiqueta: l.lote, detalle: l.vencimiento ? `vence ${l.vencimiento}` : undefined }))}
+                    />
+                  )}
+                </Campo>
+              ) : null}
+              <Campo etiqueta="¿Por dónde se aplicó?" ayuda="Opcional.">
+                {(id) => <SelectorTarjetas<ViaAplicacion> id={id} nombre="via" valor={via} onCambio={(v) => setVia(v)} titulo="¿Por dónde se aplicó?" permitirVacio opciones={VIAS.map((v) => ({ valor: v, etiqueta: ETIQUETA_VIA[v], escena: ESCENA_VIA[v] }))} />}
+              </Campo>
+            </>
+          ) : null}
         </>
       ) : null}
 
       {tipo === "prueba" ? (
         <>
-          <input type="hidden" name="prueba" value={prueba} />
-          <input type="hidden" name="resultado_prueba" value={resultado} />
           <Campo etiqueta="¿Qué prueba fue?">
-            {(id) => <SelectorTarjetas<TipoPrueba> id={id} valor={prueba} onCambio={(v) => v && setPrueba(v)} titulo="¿Qué prueba fue?" opciones={TIPOS_PRUEBA.map((t) => ({ valor: t, etiqueta: ETIQUETA_PRUEBA_CORTA[t], escena: ESC.laboratorio }))} />}
+            {(id) => <SelectorTarjetas<TipoPrueba> id={id} nombre="prueba" valor={prueba} onCambio={(v) => v && setPrueba(v)} titulo="¿Qué prueba fue?" opciones={TIPOS_PRUEBA.map((t) => ({ valor: t, etiqueta: ETIQUETA_PRUEBA_CORTA[t], escena: ESC.laboratorio }))} />}
           </Campo>
           <Campo etiqueta="¿Cómo salió?">
-            {(id) => <SelectorTarjetas<ResultadoPrueba> id={id} valor={resultado} onCambio={(v) => v && setResultado(v)} titulo="¿Cómo salió?" opciones={RESULTADOS_PRUEBA.map((r) => ({ valor: r, etiqueta: ETIQUETA_RESULTADO_PRUEBA[r], escena: ESCENA_RESULTADO_PRUEBA[r] }))} />}
+            {(id) => <SelectorTarjetas<ResultadoPrueba> id={id} nombre="resultado_prueba" valor={resultado} onCambio={(v) => v && setResultado(v)} titulo="¿Cómo salió?" opciones={RESULTADOS_PRUEBA.map((x) => ({ valor: x, etiqueta: ETIQUETA_RESULTADO_PRUEBA[x], escena: ESCENA_RESULTADO_PRUEBA[x] }))} />}
           </Campo>
         </>
       ) : null}
 
       {tipo === "coprologico" ? (
         <>
-          <input type="hidden" name="tipo_muestra" value={muestra} />
           <Campo etiqueta="¿Cómo se tomó la muestra?">
             {(id) => (
               <SelectorTarjetas<TipoMuestra>
                 id={id}
+                nombre="tipo_muestra"
                 valor={muestra}
                 onCambio={(v) => v && setMuestra(v)}
                 titulo="¿Cómo se tomó la muestra?"
@@ -208,13 +282,19 @@ export function FormNovedad({ animalId, animalTexto, productos, lotes, solicitud
         </div>
       ) : null}
 
-      {falta && tipo ? <Aviso tipo="atencion">{falta}</Aviso> : null}
+      {tipo ? (
+        <Campo etiqueta="Observaciones" ayuda="Opcional. Es lo único que se escribe en una novedad.">
+          {(id) => <textarea id={id} name="observaciones" rows={3} maxLength={300} className={`${CLASE_INPUT} py-3`} />}
+        </Campo>
+      ) : null}
+
+      {!animalId ? <Aviso tipo="atencion">Elige el animal para enviar.</Aviso> : falta && tipo ? <Aviso tipo="atencion">{falta}</Aviso> : null}
       {estado?.error ? <Aviso tipo="error">{estado.error}</Aviso> : null}
       <div className="space-y-2">
-        <Boton type="submit" pendiente={pendiente} cargando="Enviando…" disabled={falta !== null}>
+        <Boton type="submit" pendiente={pendiente} cargando="Enviando…" disabled={falta !== null || !animalId}>
           Enviar la novedad
         </Boton>
-        <Link href={`/hato/${animalId}`} className={clasesBoton("fantasma")}>
+        <Link href={animalFijo ? `/hato/${animalFijo}` : "/novedades"} className={clasesBoton("fantasma")}>
           Cancelar
         </Link>
       </div>

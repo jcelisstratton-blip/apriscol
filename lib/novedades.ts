@@ -5,7 +5,8 @@
  */
 import { ETIQUETA_MUESTRA, DETALLE_MUESTRA } from "@/lib/coprologico";
 import { FAMACHA } from "@/lib/famacha";
-import { ETIQUETA_PRODUCTO, ETIQUETA_PRUEBA_CORTA, ETIQUETA_RESULTADO_PRUEBA, ETIQUETA_VIA } from "@/lib/sanidad";
+import { ETIQUETA_EVENTO, ETIQUETA_PRODUCTO, ETIQUETA_PRUEBA_CORTA, ETIQUETA_RESULTADO_PRUEBA, ETIQUETA_VIA } from "@/lib/sanidad";
+import { ANESTESIAS, CATEGORIAS, COJERAS, ETAPAS, MOTIVOS, etiquetaDe } from "@/lib/sanidad-campos";
 import type { Novedad } from "@/lib/tipos";
 
 export type TipoNovedad = Novedad["tipo"];
@@ -17,7 +18,7 @@ export const ETIQUETA_TIPO_NOVEDAD: Record<TipoNovedad, string> = {
   famacha: "Evaluación FAMACHA",
 };
 export const DETALLE_TIPO_NOVEDAD: Record<TipoNovedad, string> = {
-  aplicacion: "Una vacuna, desparasitante, antibiótico u otro producto",
+  aplicacion: "Vacunación, desparasitación, tratamiento, podología, pediluvio, cirugía u otro",
   prueba: "CAE, brucelosis, CMT… y cómo salió",
   coprologico: "Una muestra de heces tomada",
   famacha: "El color del párpado del animal",
@@ -40,13 +41,21 @@ export function fechaDeNovedad(cuando: CuandoNovedad, hoy: string): string {
   return new Date(Date.parse(`${hoy}T00:00:00Z`) - dias * 86_400_000).toISOString().slice(0, 10);
 }
 
-/** Lo que dice una novedad, en una frase: «Aplicación · Antibiótico · Penicilina · intramuscular · lote ANT-2604». */
-export function resumenNovedad(n: Pick<Novedad, "tipo" | "categoria_producto" | "producto_nombre" | "via" | "lote" | "prueba" | "resultado_prueba" | "tipo_muestra" | "puntaje">): string {
+type CamposResumen = Pick<Novedad, "tipo" | "tipo_evento" | "categoria" | "etapa" | "motivo" | "cojera" | "anestesia" | "categoria_producto" | "producto_nombre" | "via" | "lote" | "prueba" | "resultado_prueba" | "tipo_muestra" | "puntaje">;
+
+/** Lo que dice una novedad, en una frase: «Vacunación · Clostridiosis y tétanos · Primera dosis · Clostridial · lote CL7-2511». */
+export function resumenNovedad(n: CamposResumen): string {
   switch (n.tipo) {
     case "aplicacion":
       return [
-        "Aplicación",
-        n.categoria_producto ? ETIQUETA_PRODUCTO[n.categoria_producto] : null,
+        n.tipo_evento ? ETIQUETA_EVENTO[n.tipo_evento] : "Aplicación",
+        // Las novedades anteriores traían solo el tipo de producto.
+        !n.tipo_evento && n.categoria_producto ? ETIQUETA_PRODUCTO[n.categoria_producto] : null,
+        n.tipo_evento && n.categoria ? (etiquetaDe(CATEGORIAS[n.tipo_evento], n.categoria) ?? n.categoria) : null,
+        n.etapa ? etiquetaDe(ETAPAS, n.etapa) : null,
+        n.motivo ? etiquetaDe(MOTIVOS, n.motivo) : null,
+        n.cojera !== null && n.cojera !== undefined ? etiquetaDe(COJERAS, String(n.cojera)) : null,
+        n.anestesia ? etiquetaDe(ANESTESIAS, n.anestesia) : null,
         n.producto_nombre,
         n.via ? ETIQUETA_VIA[n.via].toLowerCase() : null,
         n.lote ? `lote ${n.lote}` : null,
@@ -63,10 +72,10 @@ export function resumenNovedad(n: Pick<Novedad, "tipo" | "categoria_producto" | 
 }
 
 /** La pantalla oficial donde se registra de verdad lo que contó una novedad (con el animal ya elegido). */
-export function direccionParaRegistrar(n: Pick<Novedad, "tipo" | "animal_id" | "categoria_producto">): string {
+export function direccionParaRegistrar(n: Pick<Novedad, "tipo" | "animal_id" | "categoria_producto" | "tipo_evento">): string {
   switch (n.tipo) {
     case "aplicacion": {
-      const tipo = n.categoria_producto === "vacuna" ? "vacunacion" : n.categoria_producto === "desparasitante" ? "desparasitacion" : "tratamiento";
+      const tipo = n.tipo_evento ?? (n.categoria_producto === "vacuna" ? "vacunacion" : n.categoria_producto === "desparasitante" ? "desparasitacion" : "tratamiento");
       return `/hato/sanidad/nuevo?animal=${n.animal_id}&tipo=${tipo}`;
     }
     case "prueba":
@@ -78,13 +87,13 @@ export function direccionParaRegistrar(n: Pick<Novedad, "tipo" | "animal_id" | "
   }
 }
 
-export type EntradaNovedad = Partial<Pick<Novedad, "tipo" | "categoria_producto" | "producto_id" | "via" | "prueba" | "resultado_prueba" | "tipo_muestra" | "puntaje">>;
+export type EntradaNovedad = Partial<Pick<Novedad, "tipo" | "tipo_evento" | "categoria_producto" | "producto_id" | "via" | "prueba" | "resultado_prueba" | "tipo_muestra" | "puntaje">>;
 
 /** Qué falta para poder enviar (null si está completa). Cada tipo pide lo suyo, todo por selección. */
 export function faltaEnNovedad(e: EntradaNovedad): string | null {
   switch (e.tipo) {
     case "aplicacion":
-      return !e.categoria_producto ? "Elige qué se aplicó (vacuna, desparasitante, antibiótico…)." : null;
+      return !e.tipo_evento && !e.categoria_producto ? "Elige qué se hizo (vacunación, desparasitación, tratamiento…)." : null;
     case "prueba":
       return !e.prueba ? "Elige la prueba." : !e.resultado_prueba ? "Elige cómo salió." : null;
     case "coprologico":
@@ -94,4 +103,12 @@ export function faltaEnNovedad(e: EntradaNovedad): string | null {
     default:
       return "Elige qué quieres contar.";
   }
+}
+
+/** Los productos del catálogo que tienen sentido para lo que se hizo: una vacunación ofrece vacunas, una desparasitación desparasitantes y un tratamiento el resto de medicamentos. */
+export function productosParaTipo<T extends { tipo: string }>(tipoEvento: string | null | undefined, productos: T[]): T[] {
+  if (tipoEvento === "vacunacion") return productos.filter((p) => p.tipo === "vacuna");
+  if (tipoEvento === "desparasitacion") return productos.filter((p) => p.tipo === "desparasitante");
+  if (tipoEvento === "tratamiento") return productos.filter((p) => p.tipo !== "vacuna" && p.tipo !== "desparasitante");
+  return productos;
 }

@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { Inbox } from "lucide-react";
 import { clasesBoton } from "@/components/Boton";
+import { EliminarRegistro } from "@/components/EliminarRegistro";
 import { Insignia } from "@/components/Insignia";
 import { Tarjeta } from "@/components/Tarjeta";
 import { formatoFecha } from "@/lib/fechas";
+import { eliminarNovedad } from "@/app/(app)/novedades/actions";
 import { ETIQUETA_ESTADO_NOVEDAD, TONO_ESTADO_NOVEDAD, resumenNovedad } from "@/lib/novedades";
 import { puedeEscribir, puedeVer } from "@/lib/permisos";
 import type { CtxFicha } from "./contexto";
@@ -32,6 +34,12 @@ export async function TarjetaNovedades({ c }: { c: CtxFicha }) {
               <p className="text-sm text-humo [overflow-wrap:anywhere]">
                 Enviada por {n.enviada_por_nombre} · ocurrió el {formatoFecha(n.fecha, { day: "numeric", month: "short" })}
               </p>
+              {n.observaciones ? <p className="mt-1 whitespace-pre-wrap text-sm [overflow-wrap:anywhere]">{n.observaciones}</p> : null}
+              {n.created_by === c.usuarioId ? (
+                <div className="mt-1">
+                  <EliminarRegistro etiqueta="Eliminar mi novedad" resumen={resumenNovedad(n)} accion={eliminarNovedad.bind(null, n.id)} destino={`/hato/${id}`} mensaje="Novedad eliminada" />
+                </div>
+              ) : null}
             </li>
           ))}
         </ul>
@@ -44,7 +52,7 @@ export async function TarjetaNovedades({ c }: { c: CtxFicha }) {
       {puedeEnviar ? (
         <div className="mt-3">
           <Link href={`/novedades/nueva?animal=${id}`} className={clasesBoton("primario")}>
-            <Inbox className="size-5" strokeWidth={2} aria-hidden="true" /> Enviar una novedad
+            <Inbox className="size-5" strokeWidth={2} aria-hidden="true" /> Crear una novedad
           </Link>
           <p className="mt-1.5 text-[0.8125rem] text-humo">Cuéntales al administrador y al veterinario una aplicación, una prueba, un coprológico o un FAMACHA. Solo eliges opciones.</p>
         </div>

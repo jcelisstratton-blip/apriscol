@@ -41,7 +41,7 @@ export default async function FichaAnimal({ params, searchParams }: { params: Pr
   const sin_crear = (sinCrearBruto ?? "").replace(/[^\p{L}\p{N}*\-_., ]/gu, "").slice(0, 200);
   if (!ID_UUID.test(id)) notFound();
 
-  const { finca, rol } = await obtenerContexto();
+  const { finca, rol, user } = await obtenerContexto();
   const ajustes = await obtenerAjustes();
   const supabase = await crearClienteServidor();
   const { data: animal } = await supabase.from("animales").select("*").eq("id", id).eq("finca_id", finca.id).is("deleted_at", null).maybeSingle();
@@ -60,7 +60,7 @@ export default async function FichaAnimal({ params, searchParams }: { params: Pr
   const miRetiro = retiro.data?.find((r) => r.animal_id === id);
   const lac = lactancia.data;
   const lacAbierta = lac && !lac.fecha_secado;
-  const c: CtxFicha = { id, animal, finca, rol, ajustes, supabase, hoy: hoyBogota() };
+  const c: CtxFicha = { id, animal, finca, rol, ajustes, supabase, hoy: hoyBogota(), usuarioId: user.id };
 
   return (
     <>

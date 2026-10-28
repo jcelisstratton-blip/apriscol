@@ -16,4 +16,6 @@ export type CtxFicha = {
   supabase: Awaited<ReturnType<typeof crearClienteServidor>>;
   /** Hoy en Colombia (AAAA-MM-DD). */
   hoy: string;
+  /** Quién mira la ficha (para lo que solo puede cambiar quien lo creó, como una novedad). */
+  usuarioId: string;
 };

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CalendarClock, Footprints, Microscope, Plus, Syringe } from "lucide-react";
+import { CalendarClock, Footprints, Inbox, Microscope, Plus, Syringe } from "lucide-react";
 import { AvisoFamacha } from "@/components/AvisoFamacha";
 import { AvisoGuardado } from "@/components/AvisoGuardado";
 import { AyudaModulo } from "@/components/AyudaModulo";
@@ -75,8 +75,11 @@ export async function Sanidad({
       <Link href="/hato/sanidad/nuevo" className={clasesBoton("secundario")}>
         <Plus className="size-5" strokeWidth={2.2} aria-hidden="true" /> Registrar una aplicación
       </Link>
-      <Link href="/hato/sanidad/coprologico/nuevo" className={`${clasesBoton("secundario")} min-[420px]:col-span-2`}>
+      <Link href="/hato/sanidad/coprologico/nuevo" className={clasesBoton("secundario")}>
         <Microscope className="size-5" strokeWidth={2} aria-hidden="true" /> Registrar un examen coprológico
+      </Link>
+      <Link href="/novedades/nueva" className={clasesBoton("secundario")}>
+        <Inbox className="size-5" strokeWidth={2} aria-hidden="true" /> Crear una novedad
       </Link>
     </div>
   ) : null;

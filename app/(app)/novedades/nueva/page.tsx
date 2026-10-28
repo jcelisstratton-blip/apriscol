@@ -10,7 +10,7 @@ import { crearClienteServidor } from "@/lib/supabase/server";
 import { puedeEscribir } from "@/lib/permisos";
 import { etiquetaAnimal } from "@/lib/animal";
 
-export const metadata: Metadata = { title: "Enviar una novedad" };
+export const metadata: Metadata = { title: "Crear una novedad" };
 const ID_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /** Enviar una novedad sobre un animal (se llega desde su ficha): se eligen las opciones, no se escribe nada. */
@@ -18,11 +18,16 @@ export default async function PaginaNovedadNueva({ searchParams }: { searchParam
   const { finca, rol } = await obtenerContexto();
   const { animal } = await searchParams;
   if (!puedeEscribir(rol, "novedades", finca.plan)) redirect("/");
-  if (!animal || !ID_UUID.test(animal)) redirect("/hato");
   const supabase = await crearClienteServidor();
-  const { data } = await supabase.from("animales").select("id, numero_arete, nombre, estado").eq("id", animal).eq("finca_id", finca.id).is("deleted_at", null).maybeSingle();
-  if (!data) notFound();
-  if (data.estado !== "activo") redirect(`/hato/${animal}`);
+  // Con un animal (desde su ficha) viene elegido; sin él (desde Sanidad) se elige en el formulario.
+  let data: { id: string; numero_arete: string; nombre: string | null; estado: string } | null = null;
+  if (animal) {
+    if (!ID_UUID.test(animal)) notFound();
+    const r = await supabase.from("animales").select("id, numero_arete, nombre, estado").eq("id", animal).eq("finca_id", finca.id).is("deleted_at", null).maybeSingle();
+    data = r.data;
+    if (!data) notFound();
+    if (data.estado !== "activo") redirect(`/hato/${animal}`);
+  }
   const [{ data: productos }, { data: lotes }] = await Promise.all([
     supabase.from("productos_veterinarios").select("id, nombre, tipo").eq("finca_id", finca.id).eq("activo", true).order("nombre").limit(500),
     supabase.rpc("lotes_sanidad", { p_finca: finca.id }),
@@ -30,12 +35,12 @@ export default async function PaginaNovedadNueva({ searchParams }: { searchParam
 
   return (
     <>
-      <Link href={`/hato/${animal}`} className="-ml-2 mt-3 inline-flex min-h-11 items-center gap-1 rounded-full px-2 text-[0.9375rem] font-semibold text-musgo">
-        <ChevronLeft className="size-5" strokeWidth={2} /> {data.nombre ?? data.numero_arete}
+      <Link href={data ? `/hato/${data.id}` : "/novedades"} className="-ml-2 mt-3 inline-flex min-h-11 items-center gap-1 rounded-full px-2 text-[0.9375rem] font-semibold text-musgo">
+        <ChevronLeft className="size-5" strokeWidth={2} /> {data ? (data.nombre ?? data.numero_arete) : "Novedades"}
       </Link>
-      <Encabezado titulo="Enviar una novedad" subtitulo={etiquetaAnimal(data)} />
+      <Encabezado titulo="Crear una novedad" subtitulo={data ? etiquetaAnimal(data) : finca.nombre} />
       <div className="lg:max-w-xl">
-        <FormNovedad animalId={animal} animalTexto={etiquetaAnimal(data)} productos={(productos ?? []).map((p) => ({ id: p.id, nombre: p.nombre, tipo: p.tipo }))} lotes={lotes ?? []} solicitud={randomUUID()} />
+        <FormNovedad animalId={data?.id} animalTexto={data ? etiquetaAnimal(data) : undefined} fincaId={finca.id} productos={(productos ?? []).map((p) => ({ id: p.id, nombre: p.nombre, tipo: p.tipo }))} lotes={lotes ?? []} solicitud={randomUUID()} />
       </div>
     </>
   );
