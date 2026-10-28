@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CalendarClock, Footprints, Plus, Syringe } from "lucide-react";
+import { CalendarClock, Footprints, Microscope, Plus, Syringe } from "lucide-react";
 import { AvisoFamacha } from "@/components/AvisoFamacha";
 import { AvisoGuardado } from "@/components/AvisoGuardado";
 import { AyudaModulo } from "@/components/AyudaModulo";
@@ -13,6 +13,7 @@ import { ayudaSanidad } from "@/lib/ayuda";
 import { obtenerAjustes } from "@/lib/ajustes-servidor";
 import { textoPlazo } from "@/lib/ajustes";
 import { contarFamacha } from "@/lib/famacha";
+import { HPG_ALTO, HPG_MUY_ALTO } from "@/lib/coprologico";
 import { formatoFecha, hoyBogota } from "@/lib/fechas";
 import { ETIQUETA_EVENTO, conRevisionAtrasada, estadoDosis, estadoFechaPrograma, nombreEvento, plazosRevisionPezuna } from "@/lib/sanidad";
 import type { ProgramaSanitarioResumen, SanidadPendiente, TipoEvento } from "@/lib/tipos";
@@ -41,13 +42,16 @@ export async function Sanidad({
   const hoy = hoyBogota();
   const { general: ajustes } = await obtenerAjustes();
   const { pediluvioDias: diasPediluvio } = plazosRevisionPezuna(ajustes, hoy);
-  const [programasDB, pendientesDB, podologiaDB, pediluvioDB, famachaDB] = await Promise.all([
+  const [programasDB, pendientesDB, podologiaDB, pediluvioDB, famachaDB, coproDB] = await Promise.all([
     supabase.from("v_programas_sanitarios").select("*").eq("finca_id", fincaId).eq("estado", "abierto").order("fecha_programada").limit(50),
     leerTodo((d, h) => supabase.from("v_sanidad_pendiente").select("*").eq("finca_id", fincaId).order("proxima_fecha").order("evento_id").order("animal_id").range(d, h)),
     leerTodo((d, h) => supabase.from("v_podologia_animal").select("animal_id, ultima_fecha").eq("finca_id", fincaId).order("animal_id").range(d, h)),
     leerTodo((d, h) => supabase.from("v_pediluvio_animal").select("animal_id, ultima_fecha").eq("finca_id", fincaId).order("animal_id").range(d, h)),
     leerTodo((d, h) => supabase.from("v_famacha_animal").select("*").eq("finca_id", fincaId).gte("puntaje", 3).order("animal_id").range(d, h)),
+    leerTodo((d, h) => supabase.from("v_coprologico_animal").select("animal_id, hpg, desparasitado_en").eq("finca_id", fincaId).gte("hpg", HPG_ALTO).is("desparasitado_en", null).order("animal_id").range(d, h)),
   ]);
+  const coproAlto = (coproDB.data ?? []).length;
+  const coproMuyAlto = (coproDB.data ?? []).filter((c) => (c.hpg ?? 0) >= HPG_MUY_ALTO).length;
   const programas = (programasDB.data ?? []) as ProgramaSanitarioResumen[];
 
   // Las próximas dosis (refuerzos) se agrupan por el evento que las programó: «Clostridial · 30 animales».
@@ -70,6 +74,9 @@ export async function Sanidad({
       </Link>
       <Link href="/hato/sanidad/nuevo" className={clasesBoton("secundario")}>
         <Plus className="size-5" strokeWidth={2.2} aria-hidden="true" /> Registrar una aplicación
+      </Link>
+      <Link href="/hato/sanidad/coprologico/nuevo" className={`${clasesBoton("secundario")} min-[420px]:col-span-2`}>
+        <Microscope className="size-5" strokeWidth={2} aria-hidden="true" /> Registrar un examen coprológico
       </Link>
     </div>
   ) : null;
@@ -171,6 +178,24 @@ export async function Sanidad({
         <section className="rounded-2xl bg-lana p-3.5" aria-label="FAMACHA">
           <p className="mb-1 font-bold">FAMACHA</p>
           <AvisoFamacha desparasitar={famachaDesparasitar} vigilar={famachaVigilar} puedeProgramar={puedeEditar} />
+        </section>
+      ) : null}
+
+      {coproAlto > 0 ? (
+        <section className="rounded-2xl bg-lana p-3.5" aria-label="Coprológico">
+          <div className="flex items-start gap-3">
+            <Microscope className="mt-0.5 size-6 shrink-0 text-musgo" strokeWidth={1.75} aria-hidden="true" />
+            <div className="min-w-0">
+              <p className="font-bold">Cargas de parásitos altas</p>
+              <p className="mt-0.5 text-[0.9375rem] text-humo">
+                {coproAlto} {coproAlto === 1 ? "animal tiene" : "animales tienen"} un coprológico desde {HPG_ALTO.toLocaleString("es-CO")} huevos por gramo y no se {coproAlto === 1 ? "ha desparasitado" : "han desparasitado"} desde entonces
+                {coproMuyAlto > 0 ? ` (${coproMuyAlto} con ${HPG_MUY_ALTO.toLocaleString("es-CO")} o más)` : ""}.
+              </p>
+              <Link href="/sanidad?vista=coprologicos" className="mt-1 inline-flex min-h-11 items-center font-semibold text-musgo underline-offset-4 hover:underline">
+                Ver los exámenes
+              </Link>
+            </div>
+          </div>
         </section>
       ) : null}
 

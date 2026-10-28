@@ -18,8 +18,22 @@ const ID_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 export default async function PaginaCoprologicoNuevo({ searchParams }: { searchParams: Promise<{ animal?: string; evento?: string; momento?: string }> }) {
   const { finca, rol } = await obtenerContexto();
   const { animal, evento, momento } = await searchParams;
-  if (!animal || !ID_UUID.test(animal)) redirect("/hato");
-  if (!puedeEscribir(rol, "sanidad", finca.plan)) redirect(`/hato/${animal}`);
+  if (!puedeEscribir(rol, "sanidad", finca.plan)) redirect(animal && ID_UUID.test(animal) ? `/hato/${animal}` : "/sanidad");
+  // Sin animal (se llegó desde el menú de Sanidad): se elige en el formulario.
+  if (!animal) {
+    return (
+      <>
+        <Link href="/sanidad?vista=coprologicos" className="-ml-2 mt-3 inline-flex min-h-11 items-center gap-1 rounded-full px-2 text-[0.9375rem] font-semibold text-musgo">
+          <ChevronLeft className="size-5" strokeWidth={2} /> Exámenes coprológicos
+        </Link>
+        <Encabezado titulo="Examen coprológico" subtitulo={finca.nombre} />
+        <div className="lg:max-w-xl">
+          <FormCoprologico fincaId={finca.id} hoy={hoyBogota()} />
+        </div>
+      </>
+    );
+  }
+  if (!ID_UUID.test(animal)) redirect("/hato");
   const supabase = await crearClienteServidor();
   const { data } = await supabase.from("animales").select("id, numero_arete, nombre, estado").eq("id", animal).eq("finca_id", finca.id).is("deleted_at", null).maybeSingle();
   if (!data) notFound();
