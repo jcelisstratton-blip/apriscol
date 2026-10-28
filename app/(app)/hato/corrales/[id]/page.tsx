@@ -10,13 +10,15 @@ import { Encabezado } from "@/components/Encabezado";
 import { EstadoVacio } from "@/components/EstadoVacio";
 import { Insignia } from "@/components/Insignia";
 import { ListaMovimientos } from "@/components/ListaMovimientos";
-import { ListaOcupantes, type Ocupante } from "@/components/ListaOcupantes";
+import type { Ocupante } from "@/components/ListaOcupantes";
+import type { Etapa } from "@/lib/etapas";
 import { Tarjeta } from "@/components/Tarjeta";
 import { obtenerContexto } from "@/lib/contexto";
 import { etiquetaAnimal } from "@/lib/animal";
 import { animalesPorIds } from "@/lib/animal-etiquetas";
 import { ETIQUETA_ESTADO_UBICACION, ETIQUETA_PISO, ETIQUETA_TIPO_UBICACION, ETIQUETA_USO, PISOS_SECOS, TONO_ESTADO_UBICACION, textoOcupacion, textoRotacion } from "@/lib/corrales";
 import { obtenerAjustes } from "@/lib/ajustes-servidor";
+import { EtapasCorral } from "@/components/EtapasCorral";
 import { ETIQUETA_ETAPA, avisosMezcla, contarEtapas } from "@/lib/etapas";
 import { cargarEtapas } from "@/lib/etapas-servidor";
 import { diasHasta, hoyBogota } from "@/lib/fechas";
@@ -54,16 +56,17 @@ export default async function PaginaUbicacion({ params, searchParams }: { params
     if (!e?.etapa) return undefined;
     return [ETIQUETA_ETAPA[e.etapa], e.pesoKg !== null ? `${String(e.pesoKg).replace(".", ",")} kg` : null, e.porcentaje !== null ? `${e.porcentaje} % del peso adulto` : null].filter(Boolean).join(" · ");
   };
-  const ocupantes: Ocupante[] = (abiertos ?? []).map((m) => ({
+  const ocupantes: (Ocupante & { etapaClave: Etapa | null })[] = (abiertos ?? []).map((m) => ({
     id: m.animal_id,
     etiqueta: etiquetas.get(m.animal_id) ?? "Animal",
     desde: m.desde,
     dias: Math.max(0, -diasHasta(m.desde, hoy)),
     etapa: textoEtapa(m.animal_id),
+    etapaClave: etapas.get(m.animal_id)?.etapa ?? null,
   }));
   const dentro = [...etapas.values()];
   const porEtapa = contarEtapas(dentro);
-  const mezcla = avisosMezcla(dentro.map((e) => ({ etapa: e.etapa, sexo: e.sexo, pesoKg: e.pesoKg })), u.uso, ajustes.general.corral_razon_peso);
+  const mezcla = avisosMezcla(dentro.map((e) => ({ id: e.id, etapa: e.etapa, sexo: e.sexo, pesoKg: e.pesoKg })), u.uso, ajustes.general.corral_razon_peso);
 
   const { data: todas } = await supabase.from("ubicaciones").select("id, nombre").eq("finca_id", finca.id).limit(500);
   const nombres: Record<string, string> = Object.fromEntries((todas ?? []).map((x) => [x.id, x.nombre]));
@@ -163,29 +166,12 @@ export default async function PaginaUbicacion({ params, searchParams }: { params
         </div>
 
         <div className="min-w-0 space-y-4">
-          {porEtapa.length > 0 ? (
-            <Tarjeta titulo="Etapas en este corral">
-              <div className="flex flex-wrap gap-1.5">
-                {porEtapa.map((x) => (
-                  <Insignia key={x.etapa} tono="neutro">{x.n} {ETIQUETA_ETAPA[x.etapa].toLowerCase()}</Insignia>
-                ))}
-              </div>
-              {mezcla.length > 0 ? (
-                <div className="mt-3 space-y-2">
-                  {mezcla.map((a) => (
-                    <Aviso key={a.clave} tipo="atencion">{a.texto}</Aviso>
-                  ))}
-                </div>
-              ) : null}
-            </Tarjeta>
-          ) : null}
-          <Tarjeta titulo={`Quiénes están (${ocupantes.length})`}>
-            {ocupantes.length === 0 ? (
-              <EstadoVacio icono={<ArrowRightLeft strokeWidth={1.5} />} titulo="Sin animales ahora" descripcion="Cuando muevas animales aquí, los verás en esta lista con los días que llevan." />
-            ) : (
-              <ListaOcupantes ocupantes={ocupantes} />
-            )}
-          </Tarjeta>
+          <EtapasCorral
+            ocupantes={ocupantes}
+            etapas={porEtapa}
+            avisos={mezcla}
+            vacio={<EstadoVacio icono={<ArrowRightLeft strokeWidth={1.5} />} titulo="Sin animales ahora" descripcion="Cuando muevas animales aquí, los verás en esta lista con los días que llevan." />}
+          />
           <Tarjeta titulo="Historial">
             <ListaMovimientos fincaId={finca.id} ubicaciones={nombres} ubicacionId={u.id} puedeEditar={puedeEditar} />
           </Tarjeta>
