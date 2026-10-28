@@ -7,7 +7,8 @@ import { clasesBoton } from "@/components/Boton";
 import { formatoFecha, hoyBogota } from "@/lib/fechas";
 import { HistorialSanidadAnimal } from "@/components/HistorialSanidadAnimal";
 import { aplicaFamacha, estadoFamacha, FAMACHA } from "@/lib/famacha";
-import { interpretarHpg, textoResultado } from "@/lib/coprologico";
+import { interpretarHpg } from "@/lib/coprologico";
+import { TarjetasExamen } from "@/components/TarjetasExamen";
 import { estadoDosis, estadoFechaPrograma, ETIQUETA_EVENTO, nombreEvento } from "@/lib/sanidad";
 import type { CtxFicha } from "./contexto";
 
@@ -31,11 +32,12 @@ export async function TarjetaSanidad({ c }: { c: CtxFicha }) {
     : [{ data: [] }, { data: null }];
   const [copros, coproActual] = verSanidad
     ? await Promise.all([
-        supabase.from("examenes_coprologicos").select("id, fecha, hpg, opg, momento, tecnica, observaciones").eq("animal_id", id).eq("finca_id", finca.id).order("fecha", { ascending: false }).limit(50),
+        supabase.from("examenes_coprologicos").select("id, fecha, hpg, opg, momento, tecnica, observaciones, otros_parasitos, laboratorio, tipo_muestra, tomada_por").eq("animal_id", id).eq("finca_id", finca.id).order("fecha", { ascending: false }).limit(50),
         supabase.from("v_coprologico_animal").select("*").eq("animal_id", id).maybeSingle(),
       ])
     : [{ data: [] }, { data: null }];
   const lecturaCopro = coproActual.data?.hpg != null ? interpretarHpg(coproActual.data.hpg) : null;
+  const ultimoCopro = (copros.data ?? []).find((c) => c.id === coproActual.data?.examen_id) ?? null;
   const estadoFama = famachaActual.data ? estadoFamacha(famachaActual.data) : null;
   const pendientesProg = verSanidad ? ((await supabase.from("programa_sanitario_animales").select("programa_id").eq("animal_id", id).eq("finca_id", finca.id).is("evento_id", null).limit(50)).data ?? []) : [];
   const programasAnimal = pendientesProg.length > 0
@@ -51,7 +53,7 @@ export async function TarjetaSanidad({ c }: { c: CtxFicha }) {
     retiro_leche_hasta: e.fin_retiro_leche && (e.retiro_leche_dias ?? 0) > 0 && e.fin_retiro_leche >= hoyBogota() ? e.fin_retiro_leche : null,
     retiro_carne_hasta: e.fin_retiro_carne && (e.retiro_carne_dias ?? 0) > 0 && e.fin_retiro_carne >= hoyBogota() ? e.fin_retiro_carne : null,
   }));
-  const historialCopro = (copros.data ?? []).map((c) => ({ clave: `c-${c.id}`, id: c.id, fecha: c.fecha, hpg: c.hpg, opg: c.opg, momento: c.momento, tecnica: c.tecnica, observaciones: c.observaciones }));
+  const historialCopro = (copros.data ?? []).map((c) => ({ clave: `c-${c.id}`, id: c.id, fecha: c.fecha, hpg: c.hpg, opg: c.opg, momento: c.momento, tecnica: c.tecnica, observaciones: c.observaciones, otros_parasitos: c.otros_parasitos, laboratorio: c.laboratorio, tipo_muestra: c.tipo_muestra, tomada_por: c.tomada_por }));
   const historialPruebas = (pruebasSan.data ?? []).map((p) => ({ clave: `p-${p.id}`, id: p.id, fecha: p.fecha, prueba: p.prueba, resultado: p.resultado, laboratorio: p.laboratorio }));
   const historialFamacha = (famachaSan.data ?? []).map((f) => ({ clave: `f-${f.id}`, id: f.id, fecha: f.fecha, puntaje: f.puntaje, observaciones: f.observaciones }));
   const dosisPendientes = pendientesSan.data ?? [];
@@ -59,16 +61,13 @@ export async function TarjetaSanidad({ c }: { c: CtxFicha }) {
 
   return (
     <Tarjeta titulo="Sanidad" id="sanidad">
-      {coproActual.data && lecturaCopro ? (
-        <div className="mb-3 rounded-2xl bg-lana px-3 py-2.5">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <Link href={`/sanidad/coprologico/${coproActual.data.examen_id}`} className="min-w-0 text-[0.9375rem] hover:underline">
-              <span className="font-semibold">Coprológico · {textoResultado(coproActual.data)}</span>
-              <span className="block text-sm text-humo">{formatoFecha(coproActual.data.ultima_fecha, { day: "numeric", month: "short", year: "numeric" })} · ver de dónde salió</span>
-            </Link>
-            <Insignia tono={lecturaCopro.tono}>{lecturaCopro.texto}</Insignia>
-          </div>
-          {!coproActual.data.desparasitado_en && (lecturaCopro.nivel === "alto" || lecturaCopro.nivel === "muy_alto") ? <p className="mt-1.5 text-sm text-humo">{lecturaCopro.accion}</p> : null}
+      {ultimoCopro ? (
+        <div className="mb-3 space-y-2">
+          <Link href={`/sanidad/coprologico/${ultimoCopro.id}`} className="inline-flex min-h-11 items-center font-semibold hover:underline">
+            Último examen coprológico · {formatoFecha(ultimoCopro.fecha, { day: "numeric", month: "short", year: "numeric" })}
+          </Link>
+          <TarjetasExamen x={ultimoCopro} compacta />
+          {coproActual.data && lecturaCopro && !coproActual.data.desparasitado_en && (lecturaCopro.nivel === "alto" || lecturaCopro.nivel === "muy_alto") ? <p className="text-sm text-humo">{lecturaCopro.accion}</p> : null}
         </div>
       ) : null}
       {estadoFama && famachaActual.data ? (

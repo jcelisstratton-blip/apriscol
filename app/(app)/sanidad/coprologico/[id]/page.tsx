@@ -2,16 +2,15 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { ChevronLeft, Pencil } from "lucide-react";
-import { Aviso } from "@/components/Aviso";
 import { AvisoGuardado } from "@/components/AvisoGuardado";
 import { Encabezado } from "@/components/Encabezado";
-import { Insignia } from "@/components/Insignia";
 import { Tarjeta } from "@/components/Tarjeta";
+import { TarjetasExamen } from "@/components/TarjetasExamen";
 import { obtenerContexto } from "@/lib/contexto";
 import { crearClienteServidor } from "@/lib/supabase/server";
 import { puedeEscribir, puedeVer } from "@/lib/permisos";
 import { etiquetaAnimal } from "@/lib/animal";
-import { AYUDA_OOQUISTES, ETIQUETA_MOMENTO, ETIQUETA_OTRO_PARASITO, ETIQUETA_TECNICA, interpretarHpg, type OtroParasito } from "@/lib/coprologico";
+import { ETIQUETA_MOMENTO } from "@/lib/coprologico";
 import { formatoFecha } from "@/lib/fechas";
 import { nombreEvento } from "@/lib/sanidad";
 
@@ -42,8 +41,6 @@ export default async function DetalleCoprologico({ params, searchParams }: { par
     supabase.from("animales").select("id, numero_arete, nombre").eq("id", x.animal_id).eq("finca_id", finca.id).maybeSingle(),
     x.evento_id ? supabase.from("eventos_sanitarios").select("id, tipo, producto_nombre, fecha").eq("id", x.evento_id).eq("finca_id", finca.id).maybeSingle() : Promise.resolve({ data: null }),
   ]);
-  const lectura = x.hpg !== null && x.momento === "diagnostico" ? interpretarHpg(x.hpg) : null;
-  const n = (v: number) => v.toLocaleString("es-CO");
 
   return (
     <>
@@ -60,28 +57,12 @@ export default async function DetalleCoprologico({ params, searchParams }: { par
       </div>
       <Encabezado titulo="Examen coprológico" subtitulo={animal ? etiquetaAnimal(animal) : "Animal"} />
 
-      <div className="grid grid-cols-1 gap-4 lg:max-w-3xl">
-        <Tarjeta titulo="Resultado">
-          <div className="flex flex-wrap items-center gap-2 pb-2">
-            {lectura ? <Insignia tono={lectura.tono}>{lectura.texto}</Insignia> : null}
-            {x.momento !== "diagnostico" ? <Insignia tono="neutro">{ETIQUETA_MOMENTO[x.momento]}</Insignia> : null}
-          </div>
-          <dl className="divide-y divide-arena">
-            {x.hpg !== null ? <Dato etiqueta="Huevos por gramo (HPG)">{n(x.hpg)}</Dato> : null}
-            {x.opg !== null ? <Dato etiqueta="Ooquistes por gramo (OPG)">{n(x.opg)}</Dato> : null}
-            {x.otros_parasitos.length > 0 ? <Dato etiqueta="Otros parásitos">{x.otros_parasitos.map((o) => ETIQUETA_OTRO_PARASITO[o as OtroParasito] ?? o).join(", ")}</Dato> : null}
-          </dl>
-          {lectura ? <div className="mt-3"><Aviso tipo={lectura.tono === "alerta" || lectura.tono === "aviso" ? "atencion" : "info"}><span className="font-semibold">Qué hacer: </span>{lectura.accion}</Aviso></div> : null}
-          {x.opg !== null ? <p className="mt-3 text-sm text-humo">{AYUDA_OOQUISTES}</p> : null}
-          {x.observaciones ? <p className="mt-3 whitespace-pre-wrap border-t border-arena pt-3 text-[0.9375rem]">{x.observaciones}</p> : null}
-        </Tarjeta>
+      <div className="grid grid-cols-1 gap-4 lg:max-w-4xl">
+        <TarjetasExamen x={x} />
 
-        <Tarjeta titulo="De dónde salió este resultado">
+        <Tarjeta titulo="Registro">
           <dl className="divide-y divide-arena">
             <Dato etiqueta="Animal">{animal ? <Link href={`/hato/${animal.id}#sanidad`} className="text-musgo underline-offset-4 hover:underline">{etiquetaAnimal(animal)}</Link> : "No encontrado"}</Dato>
-            <Dato etiqueta="Fecha de la muestra">{formatoFecha(x.fecha, larga)}</Dato>
-            <Dato etiqueta="Técnica">{ETIQUETA_TECNICA[x.tecnica]}</Dato>
-            <Dato etiqueta="Laboratorio o quién lo leyó">{x.laboratorio ?? "No anotado"}</Dato>
             <Dato etiqueta="Para qué">{x.momento === "diagnostico" ? "Diagnóstico" : ETIQUETA_MOMENTO[x.momento]}</Dato>
             {evento ? (
               <Dato etiqueta="Desparasitación">

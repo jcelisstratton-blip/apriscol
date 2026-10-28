@@ -357,3 +357,11 @@ test("etapas: cada aviso de mezcla dice qué animales son, para filtrar la lista
   assert.deepEqual(por.machos_con_hembras, ["m1"]);
   assert.deepEqual(por.pesos_distintos, ["h2", "m1"]);
 });
+
+test("coprológico: una muestra contaminada (del piso) no cuenta en la prueba de eficacia", () => {
+  const f = (m, hpg, muestra) => ({ animal_id: "a", momento: m, hpg, tipo_muestra: muestra });
+  assert.equal(eficaciaDesparasitante([f("antes", 1000, "limpia"), f("despues", 10, "contaminada")]), null);
+  assert.equal(eficaciaDesparasitante([f("antes", 1000, "limpia"), f("despues", 10, "limpia")]).reduccion, 99);
+  // Los exámenes anteriores (sin dato) cuentan como antes.
+  assert.equal(eficaciaDesparasitante([f("antes", 1000, null), f("despues", 10, undefined)]).reduccion, 99);
+});

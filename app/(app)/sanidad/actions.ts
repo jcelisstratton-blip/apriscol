@@ -12,7 +12,7 @@ import { leerNumero } from "@/lib/numeros";
 import { soporteValido } from "@/lib/soportes";
 import { DIRECCION_SANIDAD } from "@/lib/hato";
 import type { ExamenCoprologico } from "@/lib/tipos";
-import { OTROS_PARASITOS, TECNICAS_COPROLOGICO } from "@/lib/coprologico";
+import { OTROS_PARASITOS, TECNICAS_COPROLOGICO, TIPOS_MUESTRA } from "@/lib/coprologico";
 import { datosPorTipoEvento, type EntradaEvento } from "@/lib/sanidad-campos";
 import { EVENTO_CON_PRODUCTO, RESULTADOS_PRUEBA, TIPOS_EVENTO, TIPOS_PRODUCTO, TIPOS_PROGRAMABLES, TIPOS_PRUEBA, VIAS } from "@/lib/sanidad";
 import { opcional } from "@/lib/validacion";
@@ -445,6 +445,9 @@ const esquemaCoprologico = z.object({
   hpg: conteo("Los huevos por gramo (HPG) deben ser un número entero.", 1_000_000),
   opg: conteo("Los ooquistes por gramo (OPG) deben ser un número entero.", 100_000_000),
   laboratorio: opcional(z.string().trim().max(120, "El nombre del laboratorio es muy largo.")),
+  /** Cómo se recogió la muestra y quién la tomó (el veterinario de la finca u otra persona). */
+  tipo_muestra: opcional(z.enum(TIPOS_MUESTRA as [string, ...string[]], "Elige cómo se recogió la muestra.")),
+  tomada_por: opcional(z.string().trim().max(120, "El nombre de quien tomó la muestra es muy largo.")),
   observaciones: opcional(z.string().trim().max(300, "Las observaciones son muy largas (máximo 300 letras).")),
 });
 const esquemaEdicionCoprologico = esquemaCoprologico.extend({ examen_id: z.uuid() });
@@ -458,6 +461,10 @@ async function leerCoprologico(form: FormData, fincaId: string, supabase: Client
   if (d.fecha > hoyBogota()) return { error: "La fecha no puede ser futura." } as const;
   if (d.hpg === undefined && d.opg === undefined) return { error: "Escribe al menos un resultado: huevos por gramo (HPG) u ooquistes por gramo (OPG)." } as const;
   if (d.tecnica === "flotacion" && d.hpg !== undefined) return { error: "La flotación simple no cuenta huevos: usa McMaster o Mini-FLOTAC para un número." } as const;
+  // Al registrar uno nuevo es obligatorio decir cómo se recogió la muestra y quién la tomó; al corregir uno antiguo no se exige (no se bloquea).
+  if (!edicion && !d.tipo_muestra) return { error: "Elige cómo se recogió la muestra: limpia (directo del animal) o contaminada (del piso)." } as const;
+  if (!edicion && !d.tomada_por) return { error: "Indica quién tomó la muestra: el veterinario o otra persona." } as const;
+  if (d.momento !== "diagnostico" && d.tipo_muestra === "contaminada") return { error: "La prueba de eficacia necesita muestras limpias, tomadas directamente del animal." } as const;
   const otros = form.getAll("otros_parasitos").map(String).filter((o) => (OTROS_PARASITOS as string[]).includes(o));
   if (d.momento !== "diagnostico") {
     if (!d.evento_id) return { error: "Elige la desparasitación a la que pertenece este examen." } as const;
@@ -479,6 +486,8 @@ async function leerCoprologico(form: FormData, fincaId: string, supabase: Client
     opg: d.opg ?? null,
     otros_parasitos: otros,
     laboratorio: d.laboratorio ?? null,
+    tipo_muestra: (d.tipo_muestra as ExamenCoprologico["tipo_muestra"]) ?? null,
+    tomada_por: d.tomada_por ?? null,
     observaciones: d.observaciones ?? null,
   };
   return { fila, examenId: d.examen_id } as const;

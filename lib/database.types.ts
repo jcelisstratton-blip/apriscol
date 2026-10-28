@@ -1423,6 +1423,8 @@ export type Database = {
           opg: number | null
           otros_parasitos: string[]
           tecnica: string
+          tipo_muestra: string | null
+          tomada_por: string | null
           updated_at: string
         }
         Insert: {
@@ -1441,6 +1443,8 @@ export type Database = {
           opg?: number | null
           otros_parasitos?: string[]
           tecnica?: string
+          tipo_muestra?: string | null
+          tomada_por?: string | null
           updated_at?: string
         }
         Update: {
@@ -1459,6 +1463,8 @@ export type Database = {
           opg?: number | null
           otros_parasitos?: string[]
           tecnica?: string
+          tipo_muestra?: string | null
+          tomada_por?: string | null
           updated_at?: string
         }
         Relationships: []

@@ -6,12 +6,21 @@ import { Aviso } from "@/components/Aviso";
 import { Boton, clasesBoton } from "@/components/Boton";
 import { Campo, CLASE_INPUT } from "@/components/Campo";
 import { Chip, FilaDesplazable } from "@/components/FilaDesplazable";
+import { AsistidoPor } from "@/components/AsistidoPor";
 import { Insignia } from "@/components/Insignia";
 import { Selector } from "@/components/Selector";
 import { SelectorAnimal } from "@/components/SelectorAnimal";
+import { SelectorTarjetas } from "@/components/SelectorTarjetas";
+import { ESCENA_MUESTRA } from "@/lib/escenas-listas-sanidad";
+import type { VeterinarioRef } from "@/lib/veterinarios";
 import { crearCoprologico, editarCoprologico } from "@/app/(app)/sanidad/actions";
 import {
+  AYUDA_MUESTRA,
   AYUDA_OOQUISTES,
+  DETALLE_MUESTRA,
+  ETIQUETA_MUESTRA,
+  TIPOS_MUESTRA,
+  type TipoMuestra,
   AYUDA_TECNICA,
   ETIQUETA_MOMENTO,
   ETIQUETA_OTRO_PARASITO,
@@ -39,6 +48,8 @@ export function FormCoprologico({
   examen,
   evento,
   momentoInicial,
+  veterinarios,
+  puedeAgregarVeterinario,
 }: {
   /** El animal, si ya viene elegido (desde su ficha o su desparasitación). Si no, se elige en el formulario. */
   animalId?: string;
@@ -49,6 +60,9 @@ export function FormCoprologico({
   /** La desparasitación a la que pertenece el examen (prueba de eficacia). */
   evento?: { id: string; titulo: string };
   momentoInicial?: Exclude<MomentoCoprologico, "diagnostico">;
+  /** Los veterinarios del equipo: quien toma la muestra suele ser uno de ellos. */
+  veterinarios: VeterinarioRef[];
+  puedeAgregarVeterinario: boolean;
 }) {
   const editando = Boolean(examen);
   const [elegido, setElegido] = useState<{ id: string; numero_arete: string; nombre: string | null } | null>(null);
@@ -57,6 +71,7 @@ export function FormCoprologico({
   const [, iniciar] = useTransition();
   const [tecnica, setTecnica] = useState<TecnicaCoprologico>(examen?.tecnica ?? "mcmaster");
   const [momento, setMomento] = useState<MomentoCoprologico>(examen?.momento ?? (evento ? (momentoInicial ?? "antes") : "diagnostico"));
+  const [muestra, setMuestra] = useState<TipoMuestra | "">(examen?.tipo_muestra ?? "");
   const [hpg, setHpg] = useState(entero(examen?.hpg));
   const [opg, setOpg] = useState(entero(examen?.opg));
   const [otros, setOtros] = useState<OtroParasito[]>((examen?.otros_parasitos ?? []) as OtroParasito[]);
@@ -103,6 +118,22 @@ export function FormCoprologico({
           {(idc) => <SelectorAnimal id={idc} nombre="animal_id_elegido" fincaId={fincaId} titulo="¿De qué animal es la muestra?" valor={elegido} onCambio={setElegido} vacio="Elegir animal" soloActivos />}
         </Campo>
       ) : null}
+
+      <div className="space-y-2">
+        <p className="text-sm font-semibold" id="muestra-titulo">Prueba recogida: ¿cómo se tomó la muestra?</p>
+        <input type="hidden" name="tipo_muestra" value={muestra} />
+        <SelectorTarjetas<TipoMuestra>
+          id="muestra-opciones"
+          valor={muestra}
+          onCambio={(v) => v && setMuestra(v)}
+          titulo="¿Cómo se tomó la muestra?"
+          opciones={TIPOS_MUESTRA.map((t) => ({ valor: t, etiqueta: ETIQUETA_MUESTRA[t], detalle: DETALLE_MUESTRA[t], escena: ESCENA_MUESTRA[t] }))}
+        />
+        {muestra ? <Aviso tipo={muestra === "contaminada" ? "atencion" : "info"}>{AYUDA_MUESTRA[muestra]}</Aviso> : null}
+        {muestra === "contaminada" && momento !== "diagnostico" ? <Aviso tipo="error">La prueba de eficacia necesita muestras limpias, tomadas directamente del animal.</Aviso> : null}
+      </div>
+
+      <AsistidoPor nombre="tomada_por" etiqueta="¿Quién tomó la muestra?" ayuda="El veterinario de la finca u otra persona." veterinarios={veterinarios} puedeAgregar={puedeAgregarVeterinario} inicial={examen?.tomada_por} requerido={!editando} />
 
       <Campo etiqueta="Fecha de la muestra">
         {(id) => <input id={id} name="fecha" type="date" defaultValue={examen?.fecha ?? hoy} max={hoy} required className={CLASE_INPUT} />}
@@ -157,7 +188,7 @@ export function FormCoprologico({
       {!animalId ? <Aviso tipo="atencion">Elige el animal para guardar.</Aviso> : !hpg.trim() && !opg.trim() ? <Aviso tipo="atencion">Escribe al menos un resultado (HPG u OPG) para guardar.</Aviso> : null}
       {estado?.error ? <Aviso tipo="error">{estado.error}</Aviso> : null}
       <div className="space-y-2">
-        <Boton type="submit" pendiente={pendiente} cargando="Guardando…" disabled={(!hpg.trim() && !opg.trim()) || !animalId}>
+        <Boton type="submit" pendiente={pendiente} cargando="Guardando…" disabled={(!hpg.trim() && !opg.trim()) || !animalId || (!editando && !muestra) || (muestra === "contaminada" && momento !== "diagnostico")}>
           {editando ? "Guardar cambios" : "Guardar examen"}
         </Boton>
         <Link href={volver} className={clasesBoton("fantasma")}>
