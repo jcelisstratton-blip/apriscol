@@ -189,7 +189,8 @@ export function armarBase(d: DatosFinca): BaseProyeccion {
   if (meses >= 3 && totalAnimales > 0) {
     const msDia = vientres * base.ms_vientre_seco + lactantes * Math.max(0, base.ms_vientre_lactando - base.ms_vientre_seco) + sementalesEfectivos * base.ms_semental + crias * base.ms_cria + levante * base.ms_levante;
     const alimentacion = total((r) => ["concentrado", "forraje", "sales_suplementos", "leche_maternizada"].includes(r));
-    const muestra = `${meses} ${meses === 1 ? "mes" : "meses"} con costos`;
+    // Es un promedio por mes: los meses son el divisor, no el período del valor.
+    const muestra = `Promedio por mes de ${meses} ${meses === 1 ? "mes" : "meses"} con costos`;
     if (alimentacion > 0 && msDia > 0) poner("costo_kg_ms", alimentacion / meses / (msDia * DIAS_MES), muestra);
     const variables = total((r) => ["vacunas_desparasitantes", "tratamientos", "pruebas_laboratorio", "podologia", "bioseguridad", "material_reproductivo", "asistencia_veterinaria", "identificacion", "fletes"].includes(r));
     if (variables > 0) poner("costo_animal_mes", variables / meses / totalAnimales, muestra);
