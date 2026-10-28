@@ -5,7 +5,7 @@ export type SexoAnimal = "hembra" | "macho";
 export type Vocacion = "leche" | "carne" | "doble";
 export type RolFinca = "propietario" | "administrador" | "ordenador" | "veterinario" | "contador";
 export type ModuloApp =
-  | "hato" | "genealogia" | "leche" | "carne" | "sanidad" | "reproduccion" | "nutricion" | "ambiente" | "contabilidad" | "ferias" | "corrales" | "proyecciones";
+  | "hato" | "genealogia" | "leche" | "carne" | "sanidad" | "reproduccion" | "nutricion" | "ambiente" | "contabilidad" | "ferias" | "corrales" | "proyecciones" | "novedades";
 export type PlanId = "cria" | "hato" | "profesional" | "hacienda";
 export type UsoMacho = "reproductor" | "carne";
 export type Jornada = "manana" | "tarde" | "noche" | "unico";
@@ -613,6 +613,32 @@ export type EvaluacionFamacha = {
 };
 /** La última evaluación FAMACHA de un animal activo y cuándo se le desparasitó desde entonces (vista `v_famacha_animal`). */
 export type FamachaAnimal = { animal_id: string; finca_id: string; evaluacion_id: string; ultima_fecha: string; puntaje: number; desparasitado_en: string | null };
+
+/** Una novedad: un aviso informativo (solo por selección) sobre un animal, que envía quien trabaja con él y revisan el propietario, el administrador y el veterinario. */
+export type Novedad = {
+  id: string;
+  finca_id: string;
+  animal_id: string;
+  tipo: "aplicacion" | "prueba" | "coprologico" | "famacha";
+  fecha: string;
+  categoria_producto: TipoProducto | null;
+  producto_id: string | null;
+  producto_nombre: string | null;
+  via: ViaAplicacion | null;
+  lote: string | null;
+  prueba: TipoPrueba | null;
+  resultado_prueba: ResultadoPrueba | null;
+  tipo_muestra: "limpia" | "contaminada" | null;
+  puntaje: number | null;
+  enviada_por_nombre: string;
+  estado: "nueva" | "vista" | "atendida";
+  revisada_por: string | null;
+  revisada_en: string | null;
+  client_request_id: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+};
 
 /** Un examen coprológico: huevos por gramo (HPG) y ooquistes por gramo (OPG) de un animal en una fecha. */
 export type ExamenCoprologico = {
@@ -1371,6 +1397,7 @@ export type Database = {
       pagos_personal: Tabla<PagoPersonal, "finca_id" | "personal_id" | "fecha" | "cantidad" | "valor_base">;
       evaluaciones_famacha: Tabla<EvaluacionFamacha, "finca_id" | "animal_id" | "fecha" | "puntaje">;
       examenes_coprologicos: Tabla<ExamenCoprologico, "finca_id" | "animal_id" | "fecha">;
+      novedades: Tabla<Novedad, "finca_id" | "animal_id" | "tipo" | "fecha" | "enviada_por_nombre">;
       analisis_leche: Tabla<AnalisisLeche, "finca_id">;
       controles_frio: Tabla<ControlFrio, "finca_id" | "momento" | "temperatura_c">;
       despachos_leche: Tabla<Omit<DespachoLeche, "valor_total">, "finca_id" | "litros" | "destino_tipo">;

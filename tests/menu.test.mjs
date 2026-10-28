@@ -9,7 +9,7 @@ const etiquetas = (grupos) => grupos.map((g) => [g.titulo ?? "(inicio)", g.entra
 test("menú: el propietario con plan Profesional ve todos los grupos, en este orden", () => {
   const v = visibilidadMenu("propietario", "profesional");
   assert.deepEqual(etiquetas(menuPrincipal(v)), [
-    ["(inicio)", ["Hoy", "Hato"]],
+    ["(inicio)", ["Novedades", "Hoy", "Hato"]],
     ["Producción y manejo", ["Semáforos", "Leche", "Reproducción", "Carne", "Sanidad", "Corrales"]],
     ["Dinero y análisis", ["Costos", "Reportes", "Proyecciones", "Productos y terceros"]],
     ["Genealogía", ["Endogamia", "Premios"]],
@@ -30,7 +30,7 @@ test("menú: Leche y Productos y terceros están en el menú del que salen el co
 test("menú: un ordeñador no ve lo que no puede abrir y los grupos vacíos desaparecen", () => {
   const v = visibilidadMenu("ordenador", "profesional");
   assert.deepEqual(etiquetas(menuPrincipal(v)), [
-    ["(inicio)", ["Hoy", "Hato"]],
+    ["(inicio)", ["Mis novedades", "Hoy", "Hato"]],
     ["Producción y manejo", ["Semáforos", "Leche"]],
     ["Dinero y análisis", ["Reportes"]], // el reporte de ordeño sí lo puede abrir
     ["Genealogía", ["Endogamia"]],
@@ -88,4 +88,13 @@ test("pestañas: toda pestaña de un módulo tiene su escena (si falta, la panta
     }
   }
   assert.ok(revisadas > 5);
+});
+
+test("novedades: es lo primero del menú; quien las revisa ve «Novedades», el ordeñador «Mis novedades» y el contador no la ve", () => {
+  for (const [rol, esperado] of [["propietario", "Novedades"], ["administrador", "Novedades"], ["veterinario", "Novedades"], ["ordenador", "Mis novedades"]]) {
+    const primero = menuPrincipal(visibilidadMenu(rol, "hato"))[0].entradas[0];
+    assert.equal(primero.etiqueta, esperado, rol);
+    assert.equal(primero.href, "/novedades");
+  }
+  assert.ok(!menuPrincipal(visibilidadMenu("contador", "hato"))[0].entradas.some((e) => e.href === "/novedades"));
 });

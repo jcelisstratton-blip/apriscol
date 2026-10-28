@@ -1406,6 +1406,81 @@ export type Database = {
           },
         ]
       }
+      novedades: {
+        Row: {
+          animal_id: string
+          categoria_producto: string | null
+          client_request_id: string | null
+          created_at: string
+          created_by: string | null
+          enviada_por_nombre: string
+          estado: string
+          fecha: string
+          finca_id: string
+          id: string
+          lote: string | null
+          producto_id: string | null
+          producto_nombre: string | null
+          prueba: string | null
+          puntaje: number | null
+          resultado_prueba: string | null
+          revisada_en: string | null
+          revisada_por: string | null
+          tipo: string
+          tipo_muestra: string | null
+          updated_at: string
+          via: string | null
+        }
+        Insert: {
+          animal_id: string
+          categoria_producto?: string | null
+          client_request_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          enviada_por_nombre: string
+          estado?: string
+          fecha: string
+          finca_id: string
+          id?: string
+          lote?: string | null
+          producto_id?: string | null
+          producto_nombre?: string | null
+          prueba?: string | null
+          puntaje?: number | null
+          resultado_prueba?: string | null
+          revisada_en?: string | null
+          revisada_por?: string | null
+          tipo: string
+          tipo_muestra?: string | null
+          updated_at?: string
+          via?: string | null
+        }
+        Update: {
+          animal_id?: string
+          categoria_producto?: string | null
+          client_request_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          enviada_por_nombre?: string
+          estado?: string
+          fecha?: string
+          finca_id?: string
+          id?: string
+          lote?: string | null
+          producto_id?: string | null
+          producto_nombre?: string | null
+          prueba?: string | null
+          puntaje?: number | null
+          resultado_prueba?: string | null
+          revisada_en?: string | null
+          revisada_por?: string | null
+          tipo?: string
+          tipo_muestra?: string | null
+          updated_at?: string
+          via?: string | null
+        }
+        Relationships: []
+      }
       examenes_coprologicos: {
         Row: {
           animal_id: string
@@ -6401,6 +6476,7 @@ export type Database = {
         | "ferias"
         | "corrales"
         | "proyecciones"
+        | "novedades"
       rol_finca:
         | "propietario"
         | "administrador"
@@ -6550,6 +6626,7 @@ export const Constants = {
         "ferias",
         "corrales",
         "proyecciones",
+        "novedades",
       ],
       rol_finca: [
         "propietario",

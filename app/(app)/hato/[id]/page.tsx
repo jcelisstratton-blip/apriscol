@@ -25,6 +25,7 @@ import { TarjetaReproduccion } from "./fichas/TarjetaReproduccion";
 import { TarjetaSalida } from "./fichas/TarjetaSalida";
 import { TarjetaSanidad } from "./fichas/TarjetaSanidad";
 import { EtapaAnimal } from "./fichas/EtapaAnimal";
+import { TarjetaNovedades } from "./fichas/TarjetaNovedades";
 import { TarjetaUbicacion } from "./fichas/TarjetaUbicacion";
 import { TarjetasGenealogia } from "./fichas/TarjetasGenealogia";
 
@@ -122,6 +123,8 @@ export default async function FichaAnimal({ params, searchParams }: { params: Pr
             {animal.peso_nacer_kg ? <Dato etiqueta="Peso al nacer">{litros(animal.peso_nacer_kg)} kg</Dato> : null}
           </dl>
         </Tarjeta>
+
+        <TarjetaNovedades c={c} />
 
         <TarjetaLactancia c={c} lac={lac} />
         <TarjetaReproduccion c={c} sinCrear={sin_crear} />
