@@ -50,6 +50,7 @@ export const HOJAS: Hoja[] = [
   { tabla: "pruebas_sanitarias", hoja: "Pruebas sanitarias" },
   { tabla: "evaluaciones_famacha", hoja: "FAMACHA" },
   { tabla: "examenes_coprologicos", hoja: "Coprológicos" },
+  { tabla: "inventario_movimientos", hoja: "Inventario (conteos)" },
   { tabla: "productos_veterinarios", hoja: "Productos veterinarios" },
   { tabla: "gastos", hoja: "Compras", producto: "productos" },
   { tabla: "ventas", hoja: "Ventas", producto: "productos" },

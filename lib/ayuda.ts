@@ -161,3 +161,15 @@ export const AYUDA_PROYECCIONES: Ayuda = {
   ],
   enlace: { href: "/mas/ajustes", texto: "Ajustes de la finca" },
 };
+
+export const AYUDA_INVENTARIO: Ayuda = {
+  titulo: "Inventario de medicamentos y vacunas",
+  puntos: [
+    { titulo: "Conteo de apertura", texto: "Cada producto empieza con un conteo: cuánto hay hoy en la bodega, por lote y con su vencimiento. Desde esa fecha la app lleva la cuenta sola." },
+    { titulo: "Entra y sale solo", texto: "Cada compra con producto veterinario suma (cantidad × lo que trae cada presentación) y cada aplicación resta (dosis × animales × días del tratamiento). Si corriges una compra o una aplicación, el inventario se corrige solo." },
+    { titulo: "Presentación", texto: "Dile a la app cómo viene el producto (por ejemplo, frasco de 100 ml). Sin eso no puede sumar las compras, y las verás marcadas como pendientes." },
+    { titulo: "Ajustes", texto: "Si lo que cuentas en la bodega no coincide, registra un conteo físico. Los vencidos, las pérdidas y los daños también se dan de baja ahí, con su motivo." },
+    { titulo: "Avisos", texto: "Te avisa cuando un producto llega a su mínimo, se agota o tiene un lote vencido o por vencer en 30 días. Una aplicación nunca se bloquea por falta de stock: si queda negativo, el producto aparece «Descuadrado»." },
+  ],
+  enlace: { href: "/sanidad?vista=productos", texto: "Ver los productos de Sanidad" },
+};

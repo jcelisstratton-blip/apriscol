@@ -6,10 +6,12 @@ import { enTramos, leerTodo } from "@/lib/consultas";
 import { aplicaFamacha } from "@/lib/famacha";
 import { diasDesde, sumarDias } from "@/lib/fechas";
 import { nombreEvento, plazosRevisionPezuna } from "@/lib/sanidad";
+import type { FilaInventario } from "@/lib/inventario";
 import {
   areasSemaforo,
   senalCalidad,
   senalCorrales,
+  senalInventario,
   senalDosis,
   senalFamacha,
   senalCoprologico,
@@ -251,6 +253,11 @@ export async function cargarSemaforos({
   if (areas.has("corrales")) {
     const { data } = await supabase.from("v_ubicaciones").select("*").eq("finca_id", fincaId).eq("activa", true).or("hacinada.eq.true,estado.eq.debe_salir").limit(100);
     senales.push(senalCorrales((data ?? []) as UbicacionVista[]));
+  }
+
+  if (areas.has("inventario")) {
+    const { data } = await supabase.rpc("inventario_productos", { p_finca: fincaId });
+    senales.push(senalInventario((data ?? []) as FilaInventario[], hoy));
   }
 
   return senales;

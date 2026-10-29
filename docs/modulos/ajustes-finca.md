@@ -14,7 +14,7 @@ grupo con «Volver a los valores sugeridos»). Cada finca tiene **siempre** su f
 - **Ajuste nuevo ⇒** columna con default y `check` en `finca_ajustes` (o en la tabla por especie y su default en `parametros_especie`), la entrada en
   `GRUPOS_AJUSTES` de `lib/ajustes.ts` (de ahí salen el formulario, la validación y la lectura), la función en `restablecer_ajustes_finca` y los tipos en `lib/tipos.ts`.
   Para leerlos en el servidor, `obtenerAjustes()` (`lib/ajustes-servidor.ts`); un componente de cliente recibe lo que necesita por props.
-- **No se muestra un ajuste que no hace nada sin decirlo:** los de módulos que aún no existen (alimentación e inventarios, nómina, avisos de vacunas) quedan
+- **No se muestra un ajuste que no hace nada sin decirlo:** los de módulos que aún no existen (inventario de alimento, nómina, avisos de vacunas) quedan
   guardados y su grupo lleva una nota («se usarán cuando llegue…»). Al construir el módulo, se quita la nota.
 - **No son ajustables a propósito:** el bloqueo por periodo de retiro (es una salvaguarda sanitaria) y todo lo que fija la ley (recargos, retenciones, SMMLV): eso se
   define con su fuente oficial cuando se construya la nómina.

@@ -1,7 +1,7 @@
 import {
   Activity, ArrowRightLeft, Baby, Banknote, BarChart3, Beef, CalendarClock, ClipboardCheck, Droplets, FileText, FlaskConical, GitFork, HeartPulse, Download, FileSpreadsheet, Home, KeyRound, Layers, MapPin,
   Microscope, Package, PawPrint, Plus, Rocket, Scale, Shuffle, SlidersHorizontal, Snowflake, Syringe, Trophy, Truck, UserPlus, Users, Wallet, Wrench, Fence, Sheet, type LucideIcon,
-  HardHat, Gift, Inbox,
+  HardHat, Gift, Inbox, Boxes,
 } from "lucide-react";
 import { puedeEscribir, puedeGestionar, puedeVer } from "@/lib/permisos";
 import { servicioEnPlan, type ServicioPlan } from "@/lib/planes";
@@ -92,6 +92,8 @@ export const ATAJOS: Atajo[] = [
   { grupo: "Corrales", tipo: "registrar", titulo: "Mover animales", detalle: "Cambiar de corral a uno o a todo un lote", href: "/hato/corrales/mover", Icono: ArrowRightLeft, modulo: "corrales", clave: "rotar trasladar" },
   { grupo: "Corrales", tipo: "ir", titulo: "Corrales y potreros", detalle: "Dónde está cada animal", href: "/hato?vista=corrales", Icono: Fence, modulo: "corrales" },
   { grupo: "Corrales", tipo: "ir", titulo: "Resumen de corrales", detalle: "Ocupación, movimientos y alertas", href: "/corrales", Icono: BarChart3, modulo: "corrales", clave: "hacinamiento cuarentena" },
+
+  { grupo: "Sanidad", tipo: "ir", titulo: "Inventario de medicamentos", detalle: "Qué queda de cada medicamento y vacuna, y los lotes por vencer", href: "/inventario", Icono: Boxes, modulo: "inventario", clave: "bodega stock existencias lotes vencimiento" },
 
   // Costos
   { grupo: "Costos", tipo: "registrar", titulo: "Registrar una compra", detalle: "Alimento, sanidad, servicios y más: eliges y pones la cantidad", href: "/hato/gastos/nuevo", Icono: Wallet, modulo: "contabilidad", clave: "gasto costo factura compra concentrado" },

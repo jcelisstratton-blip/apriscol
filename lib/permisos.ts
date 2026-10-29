@@ -27,7 +27,7 @@ export function puedeVer(rol: RolFinca, modulo: ModuloApp, plan: PlanId = "hacie
     case "ordenador":
       return modulo === "hato" || modulo === "leche" || modulo === "novedades";
     case "veterinario":
-      return ["hato", "genealogia", "sanidad", "reproduccion", "leche", "carne", "corrales", "novedades"].includes(modulo);
+      return ["hato", "genealogia", "sanidad", "reproduccion", "leche", "carne", "corrales", "novedades", "inventario"].includes(modulo);
     case "contador":
       return ["hato", "leche", "carne", "contabilidad"].includes(modulo);
   }

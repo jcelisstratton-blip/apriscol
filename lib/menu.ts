@@ -1,4 +1,4 @@
-import { Inbox, Activity, Baby, Beef, Download, Droplets, Fence, FileBarChart2, Gift, GitFork, Home, MapPin, Package, PawPrint, Plus, Rocket, SlidersHorizontal, Syringe, TrendingUp, Trophy, Users, Wallet, type LucideIcon } from "lucide-react";
+import { Inbox, Activity, Baby, Beef, Boxes, Download, Droplets, Fence, FileBarChart2, Gift, GitFork, Home, MapPin, Package, PawPrint, Plus, Rocket, SlidersHorizontal, Syringe, TrendingUp, Trophy, Users, Wallet, type LucideIcon } from "lucide-react";
 import { puedeGestionar, puedeVer, revisaNovedades } from "@/lib/permisos";
 import { reportesVisibles } from "@/lib/reportes/catalogo";
 import { areasSemaforo } from "@/lib/semaforos";
@@ -25,6 +25,8 @@ export type VisibilidadMenu = {
   carne: boolean;
   sanidad: boolean;
   corrales: boolean;
+  /** Inventario de medicamentos y vacunas (propietario, administrador y veterinario). */
+  inventario: boolean;
   costos: boolean;
   reportes: boolean;
   proyecciones: boolean;
@@ -51,6 +53,7 @@ export function visibilidadMenu(rol: RolFinca, plan: PlanId): VisibilidadMenu {
     carne: ve("carne"),
     sanidad: ve("sanidad"),
     corrales: ve("corrales"),
+    inventario: ve("inventario"),
     costos: ve("contabilidad"),
     reportes: reportesVisibles(ve).length > 0 || ve("contabilidad"),
     proyecciones: puedeGestionar(rol) && ve("proyecciones"),
@@ -85,6 +88,7 @@ export function menuPrincipal(v: VisibilidadMenu): GrupoMenu[] {
         ...(v.carne ? [{ href: "/carne", etiqueta: "Carne", Icono: Beef }] : []),
         ...(v.sanidad ? [{ href: "/sanidad", etiqueta: "Sanidad", Icono: Syringe }] : []),
         ...(v.corrales ? [{ href: "/corrales", etiqueta: "Corrales", Icono: Fence }] : []),
+        ...(v.inventario ? [{ href: "/inventario", etiqueta: "Inventario", Icono: Boxes }] : []),
       ],
     },
     {

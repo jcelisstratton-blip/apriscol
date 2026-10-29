@@ -10,7 +10,7 @@ test("menú: el propietario con plan Profesional ve todos los grupos, en este or
   const v = visibilidadMenu("propietario", "profesional");
   assert.deepEqual(etiquetas(menuPrincipal(v)), [
     ["(inicio)", ["Novedades", "Hoy", "Hato"]],
-    ["Producción y manejo", ["Semáforos", "Leche", "Reproducción", "Carne", "Sanidad", "Corrales"]],
+    ["Producción y manejo", ["Semáforos", "Leche", "Reproducción", "Carne", "Sanidad", "Corrales", "Inventario"]],
     ["Dinero y análisis", ["Costos", "Reportes", "Proyecciones", "Productos y terceros"]],
     ["Genealogía", ["Endogamia", "Premios"]],
   ]);

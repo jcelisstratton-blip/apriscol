@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   areasSemaforo, armarSenal, contarSenales, senalCalidad, senalCorrales, senalDosis, senalFamacha, senalFrio, senalPartos, senalProduccion, senalAbortos, senalMortalidadCrias, senalVaciaSinServicio,
-  senalRetiro, senalSecado, senalesDiagnostico, senalPruebas, senalCuarentena, senalPezunas, senalVacunas, senalMantenimiento, senalesCeba, senalesDinero,
+  senalInventario, senalRetiro, senalSecado, senalesDiagnostico, senalPruebas, senalCuarentena, senalPezunas, senalVacunas, senalMantenimiento, senalesCeba, senalesDinero,
 } from "../lib/semaforos.ts";
 
 const HOY = "2026-10-27";
@@ -11,13 +11,34 @@ const etiqueta = (id) => `Animal ${id}`;
 const hembra = (id, extra) => ({ animal_id: id, estado: "gestante", ultimo_servicio: null, fecha_prevista_parto: null, diagnostico: null, fecha_diagnostico: null, en_lactancia: false, ...extra });
 
 test("semáforos: cada rol ve solo su área (el veterinario, reproducción y sanidad) y el contador ninguna", () => {
-  assert.deepEqual(areasSemaforo("veterinario", "profesional"), ["reproduccion", "sanidad"]);
+  assert.deepEqual(areasSemaforo("veterinario", "profesional"), ["reproduccion", "sanidad", "inventario"]);
   assert.deepEqual(areasSemaforo("ordenador", "profesional"), ["leche"]);
-  assert.deepEqual(areasSemaforo("propietario", "profesional"), ["reproduccion", "sanidad", "leche", "ceba", "corrales", "dinero"]);
-  assert.deepEqual(areasSemaforo("administrador", "profesional"), ["reproduccion", "sanidad", "leche", "ceba", "corrales", "dinero"]);
+  assert.deepEqual(areasSemaforo("propietario", "profesional"), ["reproduccion", "sanidad", "leche", "ceba", "corrales", "inventario", "dinero"]);
+  assert.deepEqual(areasSemaforo("administrador", "profesional"), ["reproduccion", "sanidad", "leche", "ceba", "corrales", "inventario", "dinero"]);
   assert.deepEqual(areasSemaforo("contador", "profesional"), ["dinero"]);
   // El plan manda: sin carne ni contabilidad (plan Cría) no hay ceba ni dinero.
   assert.ok(!areasSemaforo("propietario", "cria").includes("ceba") && !areasSemaforo("propietario", "cria").includes("dinero"));
+  assert.ok(!areasSemaforo("propietario", "cria").includes("inventario"), "el inventario empieza en el plan Intermedio");
+});
+
+test("semáforos: el inventario avisa lo agotado, descuadrado, bajo y por vencer; lo que está por contar no", () => {
+  const base = { tipo: "vacuna", unidad: "ml", presentacion: "frasco", contenido_presentacion: 100, stock_minimo: 200, desde: "2026-10-01", vence_pronto: null, compras_sin_calcular: 0, aplicaciones_sin_dosis: 0 };
+  const filas = [
+    { ...base, producto_id: "a", nombre: "Agotado", stock: 0 },
+    { ...base, producto_id: "b", nombre: "Descuadrado", stock: -20 },
+    { ...base, producto_id: "c", nombre: "Bajo", stock: 150 },
+    { ...base, producto_id: "d", nombre: "Bien", stock: 900 },
+    { ...base, producto_id: "e", nombre: "Vencido", stock: 900, vence_pronto: "2026-10-20" },
+    { ...base, producto_id: "f", nombre: "Por vencer", stock: 900, vence_pronto: "2026-11-10" },
+    { ...base, producto_id: "g", nombre: "Sin contar", desde: null, stock: null },
+  ];
+  const s = senalInventario(filas, HOY);
+  assert.equal(s.area, "inventario");
+  assert.equal(s.nivel, "rojo");
+  assert.deepEqual(s.items.filter((i) => i.nivel === "rojo").map((i) => i.etiqueta), ["Vencido", "Agotado", "Descuadrado"]);
+  assert.deepEqual(s.items.filter((i) => i.nivel === "ambar").map((i) => i.etiqueta), ["Bajo", "Por vencer"]);
+  assert.ok(!s.items.some((i) => i.etiqueta === "Sin contar" || i.etiqueta === "Bien"));
+  assert.equal(senalInventario([filas[3]], HOY).nivel, "verde");
 });
 
 test("semáforos: armarSenal ordena (rojo primero, lo más urgente primero) y calcula nivel y resumen", () => {

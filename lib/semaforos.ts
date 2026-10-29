@@ -7,6 +7,7 @@ import { ETIQUETA_MANTENIMIENTO, estadoCrioscopia, estadoRcs, estadoTemperatura,
 import { ETIQUETA_PRUEBA_CORTA, estadoDosis, estadoFechaPrograma, revisionAtrasada } from "@/lib/sanidad";
 import { esBaja, mensajeBaja, type Tendencia } from "@/lib/produccion";
 import { estadoCuarentena, textoRotacion } from "@/lib/corrales";
+import { DIAS_AVISO_VENCIMIENTO, estadoStock, estadoVencimiento, textoStock, type FilaInventario } from "@/lib/inventario";
 import type { CuarentenaAlerta, MantenimientoOrdeno, ModuloApp, PlanId, ReproHembra, RolFinca, TipoPrueba, UbicacionVista } from "@/lib/tipos";
 
 /**
@@ -15,18 +16,18 @@ import type { CuarentenaAlerta, MantenimientoOrdeno, ModuloApp, PlanId, ReproHem
  * Aquí viven las reglas (puras, con prueba); `lib/semaforos-servidor.ts` trae los datos y `components/Semaforos.tsx` los dibuja.
  */
 
-export type AreaSemaforo = "reproduccion" | "sanidad" | "leche" | "ceba" | "corrales" | "dinero";
-export const ETIQUETA_AREA: Record<AreaSemaforo, string> = { reproduccion: "Reproducción", sanidad: "Sanidad", leche: "Leche", ceba: "Ceba", corrales: "Corrales", dinero: "Dinero" };
-const MODULO_DE_AREA: Record<AreaSemaforo, ModuloApp> = { reproduccion: "reproduccion", sanidad: "sanidad", leche: "leche", ceba: "carne", corrales: "corrales", dinero: "contabilidad" };
+export type AreaSemaforo = "reproduccion" | "sanidad" | "leche" | "ceba" | "corrales" | "inventario" | "dinero";
+export const ETIQUETA_AREA: Record<AreaSemaforo, string> = { reproduccion: "Reproducción", sanidad: "Sanidad", leche: "Leche", ceba: "Ceba", corrales: "Corrales", inventario: "Inventario", dinero: "Dinero" };
+const MODULO_DE_AREA: Record<AreaSemaforo, ModuloApp> = { reproduccion: "reproduccion", sanidad: "sanidad", leche: "leche", ceba: "carne", corrales: "corrales", inventario: "inventario", dinero: "contabilidad" };
 
 /**
  * Qué áreas ve cada rol: solo lo suyo. El veterinario, reproducción y sanidad; el ordeñador, leche; el contador, dinero; el propietario y el administrador, todo.
  * (Si luego se le abren más áreas a un rol, se cambia aquí y nada más.) Además deben estar en su plan.
  */
 const AREAS_DEL_ROL: Record<RolFinca, AreaSemaforo[]> = {
-  propietario: ["reproduccion", "sanidad", "leche", "ceba", "corrales", "dinero"],
-  administrador: ["reproduccion", "sanidad", "leche", "ceba", "corrales", "dinero"],
-  veterinario: ["reproduccion", "sanidad"],
+  propietario: ["reproduccion", "sanidad", "leche", "ceba", "corrales", "inventario", "dinero"],
+  administrador: ["reproduccion", "sanidad", "leche", "ceba", "corrales", "inventario", "dinero"],
+  veterinario: ["reproduccion", "sanidad", "inventario"],
   ordenador: ["leche"],
   contador: ["dinero"],
 };
@@ -576,6 +577,36 @@ export function senalCorrales(ubicaciones: UbicacionVista[]): Senal {
       queSignifica: "Corrales con más animales que su cupo y potreros que ya pasaron los días de ocupación y deben desocuparse.",
       regla: "Rojo: el corral pasó su cupo o el potrero pasó los días máximos de ocupación.",
       accion: { texto: "Ver Corrales", href: "/corrales" },
+    },
+    items,
+  );
+}
+
+// ───────────────────────── Inventario ─────────────────────────
+/**
+ * Medicamentos y vacunas que piden algo: rojo si un lote ya venció, si se agotó o si se aplicó más de lo que había; ámbar si llegó al mínimo o un lote vence en
+ * `DIAS_AVISO_VENCIMIENTO` días. Los productos «por contar» no avisan: todavía no hay stock del cual hablar.
+ */
+export function senalInventario(filas: FilaInventario[], hoy: string): Senal {
+  const items: ItemSenal[] = [];
+  for (const f of filas) {
+    const href = `/inventario/${f.producto_id}`;
+    const estado = estadoStock(f);
+    const venc = estadoVencimiento(f.vence_pronto, hoy);
+    if (venc === "vencido" && f.vence_pronto) items.push({ clave: `vencido-${f.producto_id}`, etiqueta: f.nombre, detalle: `Tiene un lote vencido el ${corta(f.vence_pronto)}`, nivel: "rojo", href, queHacer: "Sácalo de la bodega y dalo de baja en el inventario.", orden: 0 });
+    if (estado === "negativo") items.push({ clave: `negativo-${f.producto_id}`, etiqueta: f.nombre, detalle: "Se aplicó más de lo que había registrado", nivel: "rojo", href, queHacer: "Cuenta lo que hay y ajusta las existencias.", orden: 1 });
+    else if (estado === "agotado") items.push({ clave: `agotado-${f.producto_id}`, etiqueta: f.nombre, detalle: "Se agotó", nivel: "rojo", href, queHacer: "Avisa al administrador para que lo compre.", orden: 1 });
+    else if (estado === "bajo" && f.stock !== null) items.push({ clave: `bajo-${f.producto_id}`, etiqueta: f.nombre, detalle: `Quedan ${textoStock(f, f.stock)}, en el mínimo o por debajo`, nivel: "ambar", href, orden: 2 });
+    if (venc === "pronto" && f.vence_pronto) items.push({ clave: `vence-${f.producto_id}`, etiqueta: f.nombre, detalle: `Un lote vence el ${corta(f.vence_pronto)}`, nivel: "ambar", href, queHacer: "Úsalo primero.", orden: 3 });
+  }
+  return armarSenal(
+    {
+      id: "inventario",
+      area: "inventario",
+      titulo: "Medicamentos y vacunas",
+      queSignifica: "Productos de la bodega que se agotaron, llegaron a su mínimo o tienen un lote vencido o por vencer.",
+      regla: `Rojo: lote vencido, agotado o aplicado de más. Ámbar: en el mínimo o un lote que vence en ${DIAS_AVISO_VENCIMIENTO} días o menos.`,
+      accion: { texto: "Ver Inventario", href: "/inventario" },
     },
     items,
   );

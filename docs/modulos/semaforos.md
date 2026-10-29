@@ -39,6 +39,10 @@ Cada regla tiene su función pura en `lib/semaforos.ts` (con prueba en `tests/se
 
 Los plazos que ya eran ajustables (ventana de diagnóstico, secado, último tercio, límite de células somáticas, rango de grasa y proteína) se leen de Ajustes de la finca. Los de partos (30 y 14 días) y los de hembras vacías sin servicio (60 y 120 días) también son ajustes de la finca (grupo Reproducción). Los de abortos (2 y 3 en 30 días) y mortalidad de crías (10 % y 20 %, mínimo 8 crías) son constantes en `lib/semaforos.ts`.
 
+## Inventario de medicamentos
+
+Área **Inventario** (propietario, administrador y veterinario; desde el plan Intermedio): `senalInventario` en `lib/semaforos.ts`, con los datos de `inventario_productos`. **Rojo:** lote vencido, producto agotado o aplicado de más (descuadrado). **Ámbar:** stock en el mínimo o por debajo, o un lote que vence en 30 días o menos (`DIAS_AVISO_VENCIMIENTO`). Un producto «por contar» (sin conteo de apertura) no avisa. Detalle en `inventario.md`.
+
 ## En Hoy
 
 `components/ResumenSemaforos.tsx`: tarjeta «Semáforos» con los conteos y las 4 señales más urgentes (rojo primero), con enlace a la pantalla completa. Se calcula con el mismo `cargarSemaforos` y, si falla, no tumba la pantalla de inicio.
@@ -46,7 +50,7 @@ Los plazos que ya eran ajustables (ventana de diagnóstico, secado, último terc
 ## Pendiente (que no se olvide)
 
 - **Validar los plazos con un veterinario.** Los valores iniciales los puso el equipo de producto, no un especialista (partos 30 y 14 días, vacías 60 y 120, abortos 2 y 3 en 30 días, mortalidad de crías 10 % y 20 %, caída de producción).
-- **Alimento (autonomía del stock):** `stock_autonomia_dias` existe en Ajustes, pero la app todavía no lleva un inventario de alimento, así que no hay de qué calcular la señal. Se construye cuando exista el stock.
+- **Alimento (autonomía del stock):** `stock_autonomia_dias` existe en Ajustes, pero la app todavía no lleva un inventario de alimento (solo el de medicamentos y vacunas, ver `inventario.md`), así que no hay de qué calcular esa señal. Se construye con la segunda entrega del inventario.
 - Las vacunas se reconocen por el nombre del producto; si algún día el catálogo guarda a qué enfermedad protege cada vacuna, se cambia ahí.
 - Aviso al entrar al escalón de 10 días: hoy lo cubre la tarjeta de Hoy (la señal de partos pasa a «vigílala a diario»); un aviso aparte (notificación) no existe.
 

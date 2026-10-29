@@ -2474,6 +2474,72 @@ export type Database = {
           },
         ]
       }
+      inventario_movimientos: {
+        Row: {
+          cantidad: number
+          client_request_id: string | null
+          created_at: string
+          created_by: string | null
+          fecha: string
+          finca_id: string
+          id: string
+          lote: string | null
+          motivo: string | null
+          observaciones: string | null
+          producto_vet_id: string
+          tipo: string
+          updated_at: string
+          vencimiento: string | null
+        }
+        Insert: {
+          cantidad: number
+          client_request_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          fecha: string
+          finca_id: string
+          id?: string
+          lote?: string | null
+          motivo?: string | null
+          observaciones?: string | null
+          producto_vet_id: string
+          tipo: string
+          updated_at?: string
+          vencimiento?: string | null
+        }
+        Update: {
+          cantidad?: number
+          client_request_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          fecha?: string
+          finca_id?: string
+          id?: string
+          lote?: string | null
+          motivo?: string | null
+          observaciones?: string | null
+          producto_vet_id?: string
+          tipo?: string
+          updated_at?: string
+          vencimiento?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventario_mov_producto_fk"
+            columns: ["producto_vet_id", "finca_id"]
+            isOneToOne: false
+            referencedRelation: "productos_veterinarios"
+            referencedColumns: ["id", "finca_id"]
+          },
+          {
+            foreignKeyName: "inventario_movimientos_finca_id_fkey"
+            columns: ["finca_id"]
+            isOneToOne: false
+            referencedRelation: "fincas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       invitaciones: {
         Row: {
           aceptada_en: string | null
@@ -3777,39 +3843,48 @@ export type Database = {
       productos_veterinarios: {
         Row: {
           activo: boolean
+          contenido_presentacion: number | null
           created_at: string
           finca_id: string
           id: string
           nombre: string
+          presentacion: string | null
           registro_ica: string | null
           retiro_carne_dias: number
           retiro_leche_dias: number
+          stock_minimo: number | null
           tipo: string
           unidad_dosis: string | null
           updated_at: string
         }
         Insert: {
           activo?: boolean
+          contenido_presentacion?: number | null
           created_at?: string
           finca_id: string
           id?: string
           nombre: string
+          presentacion?: string | null
           registro_ica?: string | null
           retiro_carne_dias?: number
           retiro_leche_dias?: number
+          stock_minimo?: number | null
           tipo?: string
           unidad_dosis?: string | null
           updated_at?: string
         }
         Update: {
           activo?: boolean
+          contenido_presentacion?: number | null
           created_at?: string
           finca_id?: string
           id?: string
           nombre?: string
+          presentacion?: string | null
           registro_ica?: string | null
           retiro_carne_dias?: number
           retiro_leche_dias?: number
+          stock_minimo?: number | null
           tipo?: string
           unidad_dosis?: string | null
           updated_at?: string
@@ -6260,6 +6335,31 @@ export type Database = {
         Args: { p_entidad?: string; p_lote: Json }
         Returns: Json
       }
+      inventario_lotes: {
+        Args: { p_finca: string; p_producto: string }
+        Returns: {
+          lote: string
+          stock: number
+          vencimiento: string
+        }[]
+      }
+      inventario_productos: {
+        Args: { p_finca: string }
+        Returns: {
+          aplicaciones_sin_dosis: number
+          compras_sin_calcular: number
+          contenido_presentacion: number
+          desde: string
+          nombre: string
+          presentacion: string
+          producto_id: string
+          stock: number
+          stock_minimo: number
+          tipo: string
+          unidad: string
+          vence_pronto: string
+        }[]
+      }
       lotes_sanidad: {
         Args: { p_finca: string }
         Returns: {
@@ -6507,6 +6607,7 @@ export type Database = {
         | "corrales"
         | "proyecciones"
         | "novedades"
+        | "inventario"
       rol_finca:
         | "propietario"
         | "administrador"
@@ -6657,6 +6758,7 @@ export const Constants = {
         "corrales",
         "proyecciones",
         "novedades",
+        "inventario",
       ],
       rol_finca: [
         "propietario",

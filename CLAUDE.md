@@ -104,6 +104,7 @@ El detalle de cada módulo vive en `docs/modulos/`. Léelo antes de cambiar su c
 - [`docs/modulos/reportes.md`](docs/modulos/reportes.md) — Reportes: listados de toda la finca (inventario, reproducción, producción, sanidad), filtros como tarjetas y Excel
 - [`docs/modulos/proyecciones.md`](docs/modulos/proyecciones.md) — Proyecciones: simulador mes a mes del hato, el alimento y el dinero (carne y leche), solo propietario y administrador, plan Profesional
 - [`docs/modulos/novedades.md`](docs/modulos/novedades.md) — Novedades: avisos «Comprar» (al administrador) y «Aplicar dosis» (al veterinario), solo por selección; los crean el ordeñador y el veterinario, los atienden el administrador, el veterinario y el propietario
+- [`docs/modulos/inventario.md`](docs/modulos/inventario.md) — Inventario de bodega, primera entrega (medicamentos y vacunas): el stock se calcula (conteo de apertura + compras − aplicaciones), solo se guardan los conteos; propietario y administrador lo mueven, el veterinario lo ve
 - [`docs/modulos/semaforos.md`](docs/modulos/semaforos.md) — Semáforos: lo que pide atención en el hato en rojo, ámbar y verde, por rol; reglas puras en `lib/semaforos.ts`
 - [`docs/modulos/referidos.md`](docs/modulos/referidos.md) — Referidos: Referidos
 - [`docs/modulos/presentacion-planes.md`](docs/modulos/presentacion-planes.md) — Pantalla de entrada, legales y planes: Pantalla de entrada

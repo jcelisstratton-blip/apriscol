@@ -412,6 +412,60 @@ test("novedades: cada perfil crea y atiende solo lo suyo (espejo de la base)", (
   assert.ok(atiendeNovedad("veterinario", "aplicacion") && !atiendeNovedad("veterinario", "compra"));
   assert.ok(atiendeNovedad("propietario", "compra") && atiendeNovedad("propietario", "aplicacion"));
   assert.ok(!atiendeNovedad("ordenador", "compra") && !atiendeNovedad("contador", "aplicacion"));
-  assert.deepEqual(["propietario", "administrador", "veterinario", "ordenador"].map(destinoNovedades), ["todas", "compra", "no_compra", null]);  // Solo el administrador elimina novedades ajenas.
+  assert.deepEqual(["propietario", "administrador", "veterinario", "ordenador"].map(destinoNovedades), ["todas", "compra", "no_compra", null]);
+  // Solo el administrador elimina novedades ajenas.
   assert.deepEqual(["propietario", "administrador", "veterinario", "ordenador", "contador"].map(borraNovedadAjena), [false, true, false, false, false]);
+});
+
+import {
+  DIAS_AVISO_VENCIMIENTO,
+  aUnidades,
+  cambioDeAjuste,
+  enPresentaciones,
+  estadoStock,
+  estadoVencimiento,
+  faltaParaMinimo,
+  pideAtencion,
+  textoStock,
+} from "../lib/inventario.ts";
+
+const producto = { desde: "2026-10-01", stock: 50, stock_minimo: 20, vence_pronto: null };
+
+test("inventario: el estado del stock sale del conteo y del mínimo", () => {
+  assert.equal(estadoStock({ ...producto, desde: null, stock: null }), "sin_contar");
+  assert.equal(estadoStock({ ...producto, stock: -3 }), "negativo");
+  assert.equal(estadoStock({ ...producto, stock: 0 }), "agotado");
+  assert.equal(estadoStock({ ...producto, stock: 20 }), "bajo", "en el mínimo ya es bajo");
+  assert.equal(estadoStock({ ...producto, stock: 21 }), "ok");
+  assert.equal(estadoStock({ ...producto, stock_minimo: null, stock: 1 }), "ok", "sin mínimo nunca es bajo");
+});
+
+test("inventario: vencimientos y cuándo pide atención", () => {
+  const hoy = "2026-10-29";
+  assert.equal(estadoVencimiento(null, hoy), null);
+  assert.equal(estadoVencimiento("2026-10-28", hoy), "vencido");
+  assert.equal(estadoVencimiento("2026-10-29", hoy), "pronto", "vence hoy todavía sirve, pero se avisa");
+  assert.equal(estadoVencimiento("2026-11-28", hoy), DIAS_AVISO_VENCIMIENTO === 30 ? "pronto" : "ok");
+  assert.equal(estadoVencimiento("2026-11-29", hoy), "ok");
+  assert.equal(pideAtencion(producto, hoy), false);
+  assert.equal(pideAtencion({ ...producto, vence_pronto: "2026-11-10" }, hoy), true);
+  assert.equal(pideAtencion({ ...producto, stock: 5 }, hoy), true);
+  assert.equal(pideAtencion({ desde: null, stock: null, stock_minimo: null, vence_pronto: null }, hoy), false, "por contar no es alerta");
+});
+
+test("inventario: presentaciones, textos y ajustes", () => {
+  assert.equal(enPresentaciones(350, 100), 3.5);
+  assert.equal(enPresentaciones(350, null), null);
+  assert.equal(aUnidades(2.5, 100), 250);
+  assert.equal(textoStock({ unidad: "ml", presentacion: "frasco", contenido_presentacion: 100 }, 350), "3,5 frascos · 350 ml");
+  assert.equal(textoStock({ unidad: "ml", presentacion: "frasco", contenido_presentacion: 100 }, 100), "1 frasco · 100 ml");
+  assert.equal(textoStock({ unidad: null, presentacion: null, contenido_presentacion: null }, 1250), "1.250 unidades");
+  assert.equal(faltaParaMinimo({ stock: 8, stock_minimo: 20 }), 12);
+  assert.equal(faltaParaMinimo({ stock: 30, stock_minimo: 20 }), null);
+  // Conteo físico: lo contado menos lo que decía la app; los demás motivos siempre restan.
+  assert.equal(cambioDeAjuste("conteo", 90, 100), -10);
+  assert.equal(cambioDeAjuste("conteo", 110, 100), 10);
+  assert.equal(cambioDeAjuste("conteo", 100, 100), null);
+  assert.equal(cambioDeAjuste("vencido", 30, 100), -30);
+  assert.equal(cambioDeAjuste("perdida", -5, 100), -5);
 });
