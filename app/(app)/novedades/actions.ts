@@ -157,7 +157,7 @@ export async function marcarNovedad(id: string, estado: string): Promise<Resulta
   return { ok: true };
 }
 
-/** Elimina una novedad. Quien la creó puede eliminar la suya; el propietario y el administrador, cualquiera (lo exige también la base de datos). */
+/** Elimina una novedad. Quien la creó puede eliminar la suya; el administrador, cualquiera de las que ve (lo exige también la base de datos). */
 export async function eliminarNovedad(id: string): Promise<Resultado> {
   const { finca, rol } = await obtenerContexto();
   if (!puedeVer(rol, "novedades", finca.plan)) return { ok: false, error: "No tienes permiso para eliminar novedades en esta finca." };
@@ -165,7 +165,7 @@ export async function eliminarNovedad(id: string): Promise<Resultado> {
   const supabase = await crearClienteServidor();
   const { data, error } = await supabase.from("novedades").delete().eq("id", id).eq("finca_id", finca.id).select("animal_id");
   if (error) return { ok: false, error: mensajeAmigable(error.message) };
-  if (!data || data.length === 0) return { ok: false, error: "Solo quien envió la novedad (o el propietario o el administrador) puede eliminarla." };
+  if (!data || data.length === 0) return { ok: false, error: "Solo quien envió la novedad (o el administrador) puede eliminarla." };
   revalidatePath("/novedades");
   revalidatePath("/");
   if (data[0].animal_id) revalidatePath(`/hato/${data[0].animal_id}`);

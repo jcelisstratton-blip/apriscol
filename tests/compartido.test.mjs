@@ -401,7 +401,7 @@ test("novedades: el producto se ofrece según lo que se hizo", () => {
   assert.equal(productosParaTipo("cirugia", p).length, 4);
 });
 
-import { atiendeNovedad, destinoNovedades, puedeEscribir, tiposNovedadQueCrea } from "../lib/permisos.ts";
+import { atiendeNovedad, borraNovedadAjena, destinoNovedades, puedeEscribir, tiposNovedadQueCrea } from "../lib/permisos.ts";
 test("novedades: cada perfil crea y atiende solo lo suyo (espejo de la base)", () => {
   assert.deepEqual(tiposNovedadQueCrea("ordenador"), ["compra", "aplicacion"]);
   assert.deepEqual(tiposNovedadQueCrea("veterinario"), ["compra"]);
@@ -412,5 +412,6 @@ test("novedades: cada perfil crea y atiende solo lo suyo (espejo de la base)", (
   assert.ok(atiendeNovedad("veterinario", "aplicacion") && !atiendeNovedad("veterinario", "compra"));
   assert.ok(atiendeNovedad("propietario", "compra") && atiendeNovedad("propietario", "aplicacion"));
   assert.ok(!atiendeNovedad("ordenador", "compra") && !atiendeNovedad("contador", "aplicacion"));
-  assert.deepEqual(["propietario", "administrador", "veterinario", "ordenador"].map(destinoNovedades), ["todas", "compra", "no_compra", null]);
+  assert.deepEqual(["propietario", "administrador", "veterinario", "ordenador"].map(destinoNovedades), ["todas", "compra", "no_compra", null]);  // Solo el administrador elimina novedades ajenas.
+  assert.deepEqual(["propietario", "administrador", "veterinario", "ordenador", "contador"].map(borraNovedadAjena), [false, true, false, false, false]);
 });

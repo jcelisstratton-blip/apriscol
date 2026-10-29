@@ -50,6 +50,11 @@ export function destinoNovedades(rol: RolFinca): "compra" | "no_compra" | "todas
   return rol === "propietario" ? "todas" : rol === "administrador" ? "compra" : rol === "veterinario" ? "no_compra" : null;
 }
 
+/** ¿Elimina novedades que envió otra persona? Solo el administrador; cada quien elimina las suyas. Espejo de `private.fincas_borran_novedades`. */
+export function borraNovedadAjena(rol: RolFinca): boolean {
+  return rol === "administrador";
+}
+
 /** ¿Atiende (marca vista o atendida) una novedad de este tipo? Comprar: administrador y propietario; las demás (aplicar dosis…): veterinario y propietario. */
 export function atiendeNovedad(rol: RolFinca, tipo: TipoNovedadPermiso): boolean {
   if (rol === "propietario") return true;
