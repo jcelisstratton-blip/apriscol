@@ -24,6 +24,8 @@ const ID_UUID = z.uuid();
 const esquema = z
   .object({
     fecha: z.iso.date("Indica la fecha del gasto."),
+    /** La novedad «Comprar» desde la que se llegó: al guardar la compra queda atendida. */
+    novedad_id: opcional(z.uuid()),
     rubro: z.enum(RUBROS as [string, ...string[]], "Elige en qué se gastó."),
     descripcion: z.string().trim().min(1, "Cuenta en una frase qué se compró o se pagó.").max(160, "La descripción es muy larga (máximo 160 letras)."),
     proveedor: opcional(z.string().trim().max(120, "El nombre del proveedor es muy largo.")),
@@ -140,6 +142,23 @@ function refrescar(animal?: string | null) {
   if (animal) revalidatePath(`/hato/${animal}`);
 }
 
+/** La compra se registró desde una novedad «Comprar»: queda atendida (si la persona no puede cambiarla, la compra se guarda igual y la novedad sigue como estaba). */
+async function atenderNovedadDeCompra(supabase: Awaited<ReturnType<typeof crearClienteServidor>>, fincaId: string, novedadId: string) {
+  const { data: { user } } = await supabase.auth.getUser();
+  const { data } = await supabase
+    .from("novedades")
+    .update({ estado: "atendida", revisada_por: user?.id ?? null, revisada_en: new Date().toISOString() })
+    .eq("id", novedadId)
+    .eq("finca_id", fincaId)
+    .eq("tipo", "compra")
+    .neq("estado", "atendida")
+    .select("id");
+  if (data && data.length > 0) {
+    revalidatePath("/novedades");
+    revalidatePath("/");
+  }
+}
+
 export async function crearGasto(_: EstadoForm, form: FormData): Promise<EstadoForm> {
   const { finca, rol } = await obtenerContexto();
   if (!puedeEscribir(rol, "contabilidad", finca.plan)) return { error: "No tienes permiso para registrar gastos en esta finca." };
@@ -157,6 +176,7 @@ export async function crearGasto(_: EstadoForm, form: FormData): Promise<EstadoF
   // Doble toque: ya se guardó.
   if (error && !(error.code === "23505" && /client_req/.test(error.message))) return { error: mensajeAmigable(error.message) };
   if (!error) await recordarPrecio(supabase, finca.id, d);
+  if (d.novedad_id) await atenderNovedadDeCompra(supabase, finca.id, d.novedad_id);
 
   refrescar(d.animal_id);
   redirect(d.volver ? `/hato/${d.volver}?guardado=1#costos` : `${DIRECCION_GASTOS}&guardado=1`);

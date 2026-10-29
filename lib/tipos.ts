@@ -1064,6 +1064,7 @@ export type ConsumoLote = {
   fecha: string;
   kg_alimento: number;
   alimento: string | null;
+  producto_id: string | null;
   costo: number | null;
   observaciones: string | null;
   client_request_id: string | null;

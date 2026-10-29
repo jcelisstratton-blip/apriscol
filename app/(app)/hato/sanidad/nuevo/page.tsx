@@ -7,6 +7,7 @@ import { Encabezado } from "@/components/Encabezado";
 import { FormEvento, type DatosEvento } from "@/components/FormEvento";
 import { obtenerContexto } from "@/lib/contexto";
 import { cargarVeterinarios } from "@/lib/veterinarios-servidor";
+import { cargarProductosInventariados } from "@/lib/inventario-servidor";
 import { crearClienteServidor } from "@/lib/supabase/server";
 import { puedeEscribir } from "@/lib/permisos";
 import { animalesPorIds } from "@/lib/animal-etiquetas";
@@ -143,6 +144,7 @@ export default async function PaginaEventoNuevo({ searchParams }: { searchParams
           puedeAgregarVeterinario={puedeAgregarVeterinario}
           lotes={lotes ?? []}
           puedeComprar={puedeEscribir(rol, "contabilidad", finca.plan)}
+          inventariados={await cargarProductosInventariados(supabase, finca.id)}
         />
       </div>
     </>

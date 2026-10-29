@@ -229,6 +229,7 @@ const esquemaConsumo = z.object({
   fecha: z.iso.date("Indica la fecha."),
   kg_alimento: decimal(z.coerce.number("Los kilos deben ser un número.").positive("Los kilos deben ser mayores que cero.").max(100000, "Los kilos son demasiados. Revisa el dato.")).pipe(z.number("Indica cuántos kilos de alimento se dieron.")),
   alimento: texto(80, "El nombre del alimento es muy largo."),
+  producto_id: opcional(z.uuid()),
   costo: decimal(z.coerce.number("El costo debe ser un número.").min(0, "El costo no puede ser negativo.").max(99_999_999_999_999, "El costo es demasiado alto. Revisa el dato.")),
   observaciones: texto(1000, "Las observaciones son muy largas."),
   client_request_id: opcional(z.uuid()),
@@ -243,7 +244,7 @@ function leerConsumo(form: FormData) {
   if (futura) return { error: futura } as const;
   return {
     d,
-    fila: { fecha: d.fecha, kg_alimento: Math.round(d.kg_alimento * 10) / 10, alimento: d.alimento ?? null, costo: d.costo == null ? null : Math.round(d.costo), observaciones: d.observaciones ?? null },
+    fila: { fecha: d.fecha, kg_alimento: Math.round(d.kg_alimento * 10) / 10, alimento: d.alimento ?? null, producto_id: d.producto_id ?? null, costo: d.costo == null ? null : Math.round(d.costo), observaciones: d.observaciones ?? null },
   } as const;
 }
 
@@ -254,9 +255,10 @@ export async function crearConsumo(_: EstadoForm, form: FormData): Promise<Estad
   if ("error" in l) return { error: l.error };
   const supabase = await crearClienteServidor();
   const { error } = await supabase.from("consumo_lote").insert({ finca_id: p.finca.id, lote_id: l.d.lote_id, ...l.fila, client_request_id: l.d.client_request_id ?? null });
-  if (error && error.code === "23503") return { error: "No encontramos ese lote." };
+  if (error && error.code === "23503") return { error: /producto/.test(error.message) ? "No encontramos ese alimento. Elige otro de la lista." : "No encontramos ese lote." };
   if (error && !esRepetido(error)) return { error: mensajeAmigable(error.message) };
   revalidatePath("/carne");
+  revalidatePath("/inventario");
   redirect(`/carne/lotes/${l.d.lote_id}?guardado=1#consumo`);
 }
 
@@ -271,6 +273,7 @@ export async function editarConsumo(_: EstadoForm, form: FormData): Promise<Esta
   if (error) return { error: mensajeAmigable(error.message) };
   if (!data || data.length === 0) return { error: "No encontramos ese registro." };
   revalidatePath("/carne");
+  revalidatePath("/inventario");
   redirect(`/carne/lotes/${l.d.lote_id}?guardado=1#consumo`);
 }
 
@@ -283,6 +286,7 @@ export async function eliminarConsumo(consumoId: string): Promise<Resultado> {
   if (error) return { ok: false, error: mensajeAmigable(error.message) };
   if (!data || data.length === 0) return { ok: false, error: "No encontramos ese registro." };
   revalidatePath("/carne");
+  revalidatePath("/inventario");
   return { ok: true, destino: `/carne/lotes/${data[0].lote_id}#consumo` };
 }
 

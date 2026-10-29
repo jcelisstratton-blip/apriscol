@@ -114,6 +114,8 @@ export type ReglasTipo = {
   cojera?: boolean;
   anestesia?: boolean;
   solucion?: boolean;
+  /** La «dosis» es lo que se gastó en todo el baño (una vez, no por animal): así se descuenta del inventario. */
+  cantidadBano?: boolean;
 };
 
 const RETIRO_ETIQUETA = "Mira la etiqueta del producto. Si no dice nada para cabras u ovejas, pregunta a tu veterinario: muchos medicamentos no están aprobados para ellas y tienen un retiro recomendado.";
@@ -218,6 +220,7 @@ export const REGLAS: Record<TipoEvento, ReglasTipo> = {
     diagnostico: null,
     etiquetaObservaciones: "Observaciones",
     solucion: true,
+    cantidadBano: true,
   },
   cirugia: {
     ayuda: "Anota qué cirugía fue, por qué, con qué anestesia y quién la hizo. Los medicamentos que se usaron pueden dejar retiro de leche y de carne.",
@@ -294,8 +297,8 @@ export type ExtraEvento = {
   anestesia: string | null;
 };
 
-/** Lo que no pertenece al tipo se descarta (un pediluvio no guarda dosis ni retiro; una podología sin medicamento tampoco). */
-export type LimpiezaEvento = { diagnostico: boolean; dosis: boolean; lote: boolean; retiro: boolean };
+/** Lo que no pertenece al tipo se descarta (un pediluvio no guarda vía ni retiro, y su «dosis» es la cantidad del baño; una podología sin medicamento no guarda nada de eso). */
+export type LimpiezaEvento = { diagnostico: boolean; dosis: boolean; via: boolean; lote: boolean; retiro: boolean };
 
 const en = (opciones: OpcionCampo[] | undefined, v: string | undefined) => Boolean(v && opciones?.some((o) => o.valor === v));
 
@@ -352,7 +355,8 @@ export function datosPorTipoEvento(tipo: TipoEvento, e: EntradaEvento, exigir: b
     extra,
     limpiar: {
       diagnostico: !r.diagnostico,
-      dosis: tipo === "pediluvio" || sinMedicamento,
+      dosis: sinMedicamento,
+      via: tipo === "pediluvio" || sinMedicamento,
       lote: !r.lote || sinMedicamento,
       retiro: tipo === "pediluvio" || sinMedicamento,
     },

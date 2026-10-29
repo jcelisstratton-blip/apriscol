@@ -14,6 +14,7 @@ import { crearGasto, editarGasto } from "@/app/(app)/hato/gastos/actions";
 import { DESTINOS, DETALLE_DESTINO, DETALLE_GRUPO, ETIQUETA_DESTINO, ETIQUETA_GRUPO, ETIQUETA_PAGO, ETIQUETA_RUBRO, GRUPO_DE, GRUPOS, RUBROS_CON_LOTE, RUBROS_DE, RUBROS_LOTE_OBLIGATORIO, UNIDADES_GASTO, UNIDAD_SUGERIDA, type EstadoPago, type GrupoGasto } from "@/lib/costos";
 import { ESCENA_DESTINO_GASTO, ESCENA_ESPECIE, ESCENA_GRUPO_GASTO, ESCENA_PAGO, ESCENA_RUBRO } from "@/lib/escenas-costos";
 import { pesos } from "@/lib/ferias";
+import { avisoCompraInventario } from "@/lib/inventario-alimento";
 import { leerNumero } from "@/lib/numeros";
 import { comprasDeGrupo, textoPrecio } from "@/lib/productos";
 import type { DestinoGasto, Especie, Gasto, Producto, RubroGasto, Tercero } from "@/lib/tipos";
@@ -39,11 +40,13 @@ export function FormGasto({
   destinoInicial,
   animalDe,
   solicitud,
+  novedadId,
   conSoporte = true,
   productos,
   terceros,
   productosVet,
   conSanidad,
+  conInventario = false,
 }: {
   fincaId: string;
   especies: Especie[];
@@ -58,6 +61,8 @@ export function FormGasto({
   /** Si se llegó desde la ficha de un animal: al guardar se vuelve a ella. */
   animalDe?: string;
   solicitud?: string;
+  /** Si se llegó desde una novedad «Comprar»: al guardar la compra, la novedad queda atendida. */
+  novedadId?: string;
   /** El plan incluye subir la factura (PDF o foto). */
   conSoporte?: boolean;
   /** Los productos de compra del catálogo de la finca. */
@@ -65,9 +70,11 @@ export function FormGasto({
   /** Los proveedores y compradores de la finca. */
   terceros: Tercero[];
   /** Los productos veterinarios de la finca: a qué producto pertenece el lote de una vacuna o un medicamento. */
-  productosVet: { id: string; nombre: string }[];
+  productosVet: { id: string; nombre: string; contenido_presentacion?: number | null }[];
   /** El plan incluye Sanidad: solo entonces las compras de medicamentos piden producto veterinario y lote. */
   conSanidad: boolean;
+  /** El plan incluye el inventario de bodega: la compra avisa si no va a sumar. */
+  conInventario?: boolean;
 }) {
   const editando = Boolean(gasto);
   const [estado, enviar, pendiente] = useActionState(editando ? editarGasto : crearGasto, undefined);
@@ -139,6 +146,16 @@ export function FormGasto({
 
   const pideLote = conSanidad && Boolean(rubro) && RUBROS_LOTE_OBLIGATORIO.includes(rubro as RubroGasto);
   const conLote = conSanidad && Boolean(rubro) && RUBROS_CON_LOTE.includes(rubro as RubroGasto);
+  const vetElegido = productosVet.find((p) => p.id === productoVet);
+  const avisoInventario =
+    conInventario && rubro
+      ? avisoCompraInventario({
+          rubro,
+          producto: elegido ?? null,
+          conLoteVeterinario: conLote,
+          productoVet: productoVet ? (vetElegido ? { contenido_presentacion: vetElegido.contenido_presentacion ?? null } : null) : undefined,
+        })
+      : null;
   const falta =
     !grupo ? "Elige en qué se gastó."
     : !producto ? "Elige qué compraste."
@@ -166,6 +183,7 @@ export function FormGasto({
   return (
     <form onSubmit={alEnviar} className="space-y-6">
       {gasto ? <input type="hidden" name="gasto_id" value={gasto.id} /> : <input type="hidden" name="client_request_id" value={solicitud ?? ""} />}
+      {novedadId && !gasto ? <input type="hidden" name="novedad_id" value={novedadId} /> : null}
       {animalDe ? <input type="hidden" name="volver" value={animalDe} /> : null}
 
       <Campo etiqueta="¿En qué se gastó?">
@@ -286,6 +304,8 @@ export function FormGasto({
           </div>
         </div>
       ) : null}
+
+      {avisoInventario ? <Aviso tipo="info">{avisoInventario}</Aviso> : null}
 
       <Campo etiqueta="¿A quién se carga?" ayuda="Para saber cuánto cuesta cada animal, cada lote y cada litro. Lo de toda la finca queda como gasto general.">
         {(id) => (

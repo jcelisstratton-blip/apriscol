@@ -2,6 +2,7 @@ import "server-only";
 import type { crearClienteServidor } from "@/lib/supabase/server";
 import { puedeVer } from "@/lib/permisos";
 import type { DestinoSalida } from "@/components/FormSalidaAlimento";
+import { RUBROS_ALIMENTO } from "@/lib/inventario-alimento";
 import type { PlanId, RolFinca } from "@/lib/tipos";
 
 type Cliente = Awaited<ReturnType<typeof crearClienteServidor>>;
@@ -19,4 +20,18 @@ export async function cargarDestinosSalida(supabase: Cliente, finca: { id: strin
     ...(ubicaciones.data ?? []).map((u) => ({ valor: `ubicacion:${u.id}`, etiqueta: u.nombre, detalle: "Corral o potrero" })),
     ...(lotes.data ?? []).map((l) => ({ valor: `lote:${l.id}`, etiqueta: l.nombre, detalle: "Lote de ceba" })),
   ];
+}
+
+/** Los alimentos del catálogo de la finca (los mismos que cuenta el inventario de alimento): lo que se ofrece al anotar el consumo de un lote. */
+export async function cargarAlimentosCatalogo(supabase: Cliente, fincaId: string): Promise<{ valor: string; etiqueta: string }[]> {
+  const { data } = await supabase
+    .from("finca_productos")
+    .select("id, nombre")
+    .eq("finca_id", fincaId)
+    .eq("tipo", "compra")
+    .eq("activo", true)
+    .in("rubro", [...RUBROS_ALIMENTO])
+    .order("nombre")
+    .limit(300);
+  return (data ?? []).map((a) => ({ valor: a.id, etiqueta: a.nombre }));
 }

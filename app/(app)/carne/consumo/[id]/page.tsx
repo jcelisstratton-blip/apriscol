@@ -8,6 +8,7 @@ import { FormConsumo } from "@/components/FormConsumo";
 import { obtenerContexto } from "@/lib/contexto";
 import { crearClienteServidor } from "@/lib/supabase/server";
 import { puedeEscribir, puedeGestionar } from "@/lib/permisos";
+import { cargarAlimentosCatalogo } from "@/lib/inventario-alimento-servidor";
 import { formatoFecha, hoyBogota } from "@/lib/fechas";
 import { kg } from "@/lib/carne";
 import { eliminarConsumo } from "@/app/(app)/carne/actions";
@@ -33,7 +34,7 @@ export default async function PaginaEditarConsumo({ params }: { params: Promise<
       </Link>
       <Encabezado titulo="Editar alimento" subtitulo={lote.nombre} />
       <div className="space-y-8 lg:max-w-xl">
-        <FormConsumo loteId={lote.id} hoy={hoyBogota()} consumo={consumo} />
+        <FormConsumo loteId={lote.id} hoy={hoyBogota()} consumo={consumo} alimentos={await cargarAlimentosCatalogo(supabase, finca.id)} />
         {puedeGestionar(rol) ? (
           <EliminarRegistro
             etiqueta="Eliminar este registro"

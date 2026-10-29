@@ -55,7 +55,14 @@ export default async function PaginaInventario({ searchParams }: { searchParams:
       <Encabezado
         titulo="Inventario"
         subtitulo={`${finca.nombre} · ${vista === "medicamentos" ? "Medicamentos y vacunas" : "Alimento"}`}
-        acciones={vista === "alimento" && puedeEscribir(rol, "nutricion", finca.plan) ? <EnlaceBoton href="/inventario/alimento/salida" ancho={false}>Anotar lo que se dio</EnlaceBoton> : null}
+        acciones={
+          vista === "alimento" && puedeEscribir(rol, "nutricion", finca.plan) ? (
+            <div className="flex flex-wrap gap-2">
+              <EnlaceBoton href="/inventario/alimento/repetir" variante="secundario" ancho={false}>Repetir un día</EnlaceBoton>
+              <EnlaceBoton href="/inventario/alimento/salida" ancho={false}>Anotar lo que se dio</EnlaceBoton>
+            </div>
+          ) : null
+        }
       />
       {disponibles.length > 1 ? <PestanasTarjetas pestanas={armarPestanas("/inventario", disponibles[0].valor, disponibles)} actual={vista} /> : null}
       <div className="mb-2">

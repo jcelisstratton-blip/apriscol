@@ -30,7 +30,7 @@ export default async function PaginaGastoEditar({ params, searchParams }: { para
 
   const [productos, terceros] = await Promise.all([obtenerProductos(), obtenerTerceros()]);
   const conSanidad = moduloEnPlan(finca.plan, "sanidad");
-  const { data: productosVet } = conSanidad ? await supabase.from("productos_veterinarios").select("id, nombre").eq("finca_id", finca.id).or(`activo.eq.true,id.eq.${gasto.producto_vet_id ?? "00000000-0000-0000-0000-000000000000"}`).order("nombre").limit(500) : { data: [] };
+  const { data: productosVet } = conSanidad ? await supabase.from("productos_veterinarios").select("id, nombre, contenido_presentacion").eq("finca_id", finca.id).or(`activo.eq.true,id.eq.${gasto.producto_vet_id ?? "00000000-0000-0000-0000-000000000000"}`).order("nombre").limit(500) : { data: [] };
   const [animal, { data: ubicaciones }, { data: lotes }] = await Promise.all([
     gasto.animal_id ? supabase.from("animales").select("id, numero_arete, nombre").eq("id", gasto.animal_id).eq("finca_id", finca.id).maybeSingle().then((r) => r.data) : Promise.resolve(null),
     supabase.from("ubicaciones").select("id, nombre, activa").eq("finca_id", finca.id).order("nombre").limit(300),
@@ -62,6 +62,7 @@ export default async function PaginaGastoEditar({ params, searchParams }: { para
           terceros={terceros}
           productosVet={productosVet ?? []}
           conSanidad={conSanidad}
+          conInventario={moduloEnPlan(finca.plan, "inventario")}
         />
         {puedeGestionar(rol) ? (
           <EliminarRegistro

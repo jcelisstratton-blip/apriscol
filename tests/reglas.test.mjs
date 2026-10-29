@@ -297,11 +297,13 @@ test("sanidad: cada tipo pide y guarda lo suyo", () => {
   assert.match(datosPorTipoEvento("podologia", { categoria: "recorte", dosis: 2 }, true).error, /producto/);
   assert.equal(datosPorTipoEvento("podologia", { categoria: "curacion", producto: "Oxitetraciclina", dosis: 2 }, true).limpiar.retiro, false);
   assert.match(datosPorTipoEvento("podologia", { categoria: "recorte", cojera: 5 }, true).error, /0 a 3/);
-  // Pediluvio: concentración y minutos; nunca retiro ni dosis.
+  // Pediluvio: concentración y minutos; nunca retiro ni vía; la cantidad de producto del baño sí se guarda.
   assert.match(datosPorTipoEvento("pediluvio", { categoria: "zinc" }, true).error, /concentración/);
   assert.match(datosPorTipoEvento("pediluvio", { categoria: "zinc", concentracion_pct: 10 }, true).error, /minutos/);
   const ped = datosPorTipoEvento("pediluvio", { categoria: "zinc", concentracion_pct: 10, minutos: 10 }, true);
   assert.equal(ped.limpiar.retiro, true);
+  assert.equal(ped.limpiar.via, true);
+  assert.equal(ped.limpiar.dosis, false);
   assert.equal(ped.extra.minutos, 10);
   // Cirugía: cuál, por qué, anestesia y quién la hizo.
   assert.match(datosPorTipoEvento("cirugia", { categoria: "castracion", diagnostico: "Macho de carne" }, true).error, /anestesia/);

@@ -1,5 +1,6 @@
 "use server";
 
+import { createHash } from "node:crypto";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
@@ -9,7 +10,7 @@ import { puedeEscribir, puedeGestionar } from "@/lib/permisos";
 import { mensajeAmigable } from "@/lib/mensaje-amigable";
 import { hoyBogota } from "@/lib/fechas";
 import { cambioDeAjuste } from "@/lib/inventario";
-import { MOTIVOS_AJUSTE_ALIMENTO, RUBROS_ALIMENTO, aKg, compraEnKg, type FilaAlimento, type MotivoAjusteAlimento } from "@/lib/inventario-alimento";
+import { MOTIVOS_AJUSTE_ALIMENTO, RUBROS_ALIMENTO, aKg, compraEnKg, planearRepeticion, type FilaAlimento, type MotivoAjusteAlimento } from "@/lib/inventario-alimento";
 import { decimal, esRepetido, noFutura, opcional } from "@/lib/validacion";
 
 export type EstadoForm = { error?: string; /** Se guardó y la pantalla sigue («Guardar y anotar otro»). */ guardado?: boolean } | undefined;
@@ -130,6 +131,49 @@ export async function guardarSalida(_: EstadoForm, form: FormData): Promise<Esta
   refrescar(alimento.id);
   if (form.get("seguir") === "1") return { guardado: true };
   redirect(`/inventario/alimento/${alimento.id}?guardado=1`);
+}
+
+// ───────────────────────── Repetir las raciones de un día ─────────────────────────
+/** Un identificador estable por ración (a partir del de la solicitud): si se toca dos veces, la base no guarda las raciones dos veces. */
+function idDeRacion(solicitud: string, indice: number): string {
+  const h = createHash("sha1").update(`${solicitud}:${indice}`).digest("hex");
+  return `${h.slice(0, 8)}-${h.slice(8, 12)}-5${h.slice(13, 16)}-a${h.slice(17, 20)}-${h.slice(20, 32)}`;
+}
+
+const esquemaRepetir = z.object({ origen: z.iso.date("Elige el día que quieres repetir."), client_request_id: z.uuid("Vuelve a abrir la pantalla e intenta de nuevo.") });
+
+/**
+ * Anota hoy las mismas raciones que se dieron otro día (alimento, kilos y destino). Las lee el servidor del día elegido: el navegador solo dice qué día.
+ * Solo se repiten los alimentos que el inventario sigue; lo anotado se puede corregir o borrar después, ración por ración.
+ */
+export async function repetirSalidas(_: EstadoForm, form: FormData): Promise<EstadoForm> {
+  const { finca, rol } = await obtenerContexto();
+  if (!puedeEscribir(rol, "nutricion", finca.plan)) return { error: SIN_PERMISO };
+  const datos = esquemaRepetir.safeParse(Object.fromEntries(form));
+  if (!datos.success) return { error: datos.error.issues[0]?.message ?? "Revisa los datos." };
+  const hoy = hoyBogota();
+  if (datos.data.origen >= hoy) return { error: "Elige un día anterior a hoy." };
+
+  const supabase = await crearClienteServidor();
+  const [{ data: salidas }, { data: aperturas }] = await Promise.all([
+    supabase.from("inventario_alimento_movimientos").select("producto_id, cantidad, ubicacion_id, lote_id, created_at").eq("finca_id", finca.id).eq("tipo", "salida").eq("fecha", datos.data.origen).order("created_at").limit(200),
+    supabase.from("inventario_alimento_movimientos").select("producto_id").eq("finca_id", finca.id).eq("tipo", "apertura").limit(1000),
+  ]);
+  const plan = planearRepeticion(
+    (salidas ?? []).map((s) => ({ producto_id: s.producto_id, cantidad: Number(s.cantidad), ubicacion_id: s.ubicacion_id, lote_id: s.lote_id })),
+    new Set((aperturas ?? []).map((a) => a.producto_id)),
+  );
+  if (plan.length === 0) return { error: "Ese día no tiene raciones que se puedan repetir." };
+
+  const { error } = await supabase.from("inventario_alimento_movimientos").insert(
+    plan.map((r, i) => ({ finca_id: finca.id, producto_id: r.producto_id, tipo: "salida" as const, fecha: hoy, cantidad: r.cantidad, ubicacion_id: r.ubicacion_id, lote_id: r.lote_id, client_request_id: idDeRacion(datos.data.client_request_id, i) })),
+  );
+  // Doble toque: la misma solicitud ya se guardó.
+  if (error && !esRepetido(error)) return { error: mensajeAmigable(error.message) };
+  revalidatePath("/inventario");
+  revalidatePath("/");
+  for (const id of new Set(plan.map((r) => r.producto_id))) revalidatePath(`/inventario/alimento/${id}`);
+  redirect(`/inventario/alimento/repetir?hecho=${plan.length}`);
 }
 
 // ───────────────────────── Conteo y ajustes ─────────────────────────
