@@ -30,6 +30,10 @@ La segunda entrega será el alimento (concentrado, forraje, sales) con salidas m
 - **Un ajuste no se edita**, se elimina y se registra de nuevo (es un hecho con fecha y motivo; editarlo cambiaría la historia del stock). Las filas de la apertura sí se corrigen desde el conteo de apertura.
 - Semáforos (ver `semaforos.md`): rojo por lote vencido, agotado o descuadrado; ámbar por mínimo o por vencer.
 
+## Auditoría de celular (29 oct 2026)
+
+Lista (300 productos, nombres largos sin espacios, vacía), ficha (con y sin conteo, con y sin permiso de mover, con el aviso de eliminar abierto), conteo de apertura (corrigiendo, nuevo y con un lote agregado) y ajuste: a 360, 320, 768, 1024 y 1440 px, `scrollWidth == clientWidth` en todos y ninguna caja desbordada salvo el margen negativo deliberado de la fila de tarjetas (`FilaTarjetas`, igual que en Novedades). Se recorrió con datos de ejemplo (`FichaInventario` solo dibuja, la página trae los datos) y se probó escribir una cantidad de corrido en el ajuste (el foco se mantiene y la vista previa cuadra). **Sin recorrer con una sesión real** (guardar necesita la base).
+
 ## Pendiente
 
 - Validar con el veterinario la lógica de `dosis × animales × días` para tratamientos y desparasitaciones (la dosis se escribe por animal y, en tratamientos, por día).
