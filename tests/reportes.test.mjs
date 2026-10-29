@@ -19,6 +19,11 @@ import { construirOrdeno } from "../lib/reportes/informes/ordeno.ts";
 import { construirPeso } from "../lib/reportes/informes/peso.ts";
 import { construirRetiro } from "../lib/reportes/informes/retiro.ts";
 import { construirSanidad } from "../lib/reportes/informes/sanidad.ts";
+import { construirInvMedicamentos } from "../lib/reportes/informes/inv-medicamentos.ts";
+import { construirInvLotes } from "../lib/reportes/informes/inv-lotes.ts";
+import { construirInvMovMed } from "../lib/reportes/informes/inv-mov-med.ts";
+import { construirInvAlimento } from "../lib/reportes/informes/inv-alimento.ts";
+import { construirInvMovAlimento } from "../lib/reportes/informes/inv-mov-alimento.ts";
 import { construirLibroReporte, nombreArchivoReporte } from "../lib/reportes/excel.ts";
 import { MAX_FILAS_PANTALLA, limitarFilas } from "../lib/reportes/base.ts";
 
@@ -118,7 +123,8 @@ test("catálogo: cada rol ve los reportes de sus módulos y el plan Cría no ve 
   const ver = (rol, plan) => reportesVisibles((m) => puedeVer(rol, m, plan)).map((r) => r.id);
   assert.deepEqual(ver("ordenador", "hacienda"), ["inventario", "salidas", "ordeno"]);
   assert.deepEqual(ver("contador", "hacienda"), ["inventario", "salidas", "ordeno", "peso"]);
-  assert.equal(ver("veterinario", "hacienda").length, REPORTES.length);
+  const sinInventario = REPORTES.filter((r) => !r.soloGestion).length;
+  assert.equal(ver("veterinario", "hacienda").length, sinInventario, "el veterinario ve el módulo de inventario pero no sus reportes");
   assert.ok(!ver("propietario", "cria").includes("peso"));
   assert.ok(ver("propietario", "cria").includes("gestantes"));
 });
@@ -550,4 +556,142 @@ test("pantalla: con miles de filas se muestran las primeras con un aviso y las c
   assert.equal(completo.filas.length, 3500, "el resultado completo (el del Excel) no se toca");
   const poco = { ...completo, filas: filas.slice(0, 50) };
   assert.equal(limitarFilas(poco), poco);
+});
+
+// ───────────────────────── Reportes del inventario (solo propietario y administrador) ─────────────────────────
+test("catálogo del inventario: solo los ven el propietario y el administrador, desde el plan Intermedio", () => {
+  const INV = ["inv_medicamentos", "inv_lotes", "inv_mov_med", "inv_alimento", "inv_mov_alimento"];
+  const ver = (rol, plan, gestiona) => reportesVisibles((m) => puedeVer(rol, m, plan), gestiona).map((r) => r.id).filter((id) => INV.includes(id));
+  assert.deepEqual(ver("propietario", "hacienda", true), INV);
+  assert.deepEqual(ver("administrador", "profesional", true), INV);
+  assert.deepEqual(ver("veterinario", "hacienda", false), [], "el veterinario ve el inventario de medicamentos, no sus reportes");
+  assert.deepEqual(ver("ordenador", "hacienda", false), [], "el ordeñador ve el inventario de alimento, no sus reportes");
+  assert.deepEqual(ver("contador", "hacienda", false), []);
+  assert.deepEqual(ver("propietario", "cria", true), [], "el inventario empieza en el plan Intermedio");
+  // Aunque el rol «gestione», el módulo y el plan mandan: un veterinario nunca llega aunque se le pasara gestiona.
+  assert.deepEqual(ver("veterinario", "cria", true), []);
+  for (const id of INV) assert.ok(REPORTES.find((r) => r.id === id).soloGestion, `${id} debe ser solo de gestión`);
+  assert.deepEqual(REPORTES.filter((r) => r.periodo && INV.includes(r.id)).map((r) => r.id), ["inv_mov_med", "inv_mov_alimento"]);
+});
+
+const prod = (id, nombre, extra = {}) => ({ producto_id: id, nombre, tipo: "antibiotico", unidad: "ml", presentacion: "dosis", contenido_presentacion: 5, stock_minimo: 50, desde: "2026-08-01", stock: 200, vence_pronto: "2028-01-01", compras_sin_calcular: 0, aplicaciones_sin_dosis: 0, ...extra });
+
+test("inv_medicamentos: lo más grave primero, filtros por estado y avisos de lo que no se pudo sumar", () => {
+  const productos = [
+    prod("ok", "Bien"),
+    prod("bajo", "Bajo", { stock: 30 }),
+    prod("neg", "Descuadrado", { stock: -2 }),
+    prod("agot", "Agotado", { stock: 0 }),
+    prod("venc", "Vencido", { vence_pronto: "2026-10-01" }),
+    prod("pronto", "Por vencer", { vence_pronto: "2026-11-10" }),
+    prod("nuevo", "Sin contar", { desde: null, stock: null, vence_pronto: null }),
+    prod("sin", "Sin sumar", { compras_sin_calcular: 2, aplicaciones_sin_dosis: 1 }),
+  ];
+  const base = { hoy: "2026-10-29", estado: "todos", productos };
+  const r = construirInvMedicamentos(base);
+  assert.deepEqual(ids(r), ["venc", "neg", "agot", "bajo", "pronto", "ok", "sin", "nuevo"]);
+  assert.equal(valor(r.filas[0], "situacion"), "Lote vencido");
+  assert.equal(r.filas[0].tono, "alerta");
+  assert.equal(valor(r.filas.find((f) => f.id === "bajo"), "falta"), 20);
+  assert.equal(valor(r.filas.find((f) => f.id === "ok"), "presentaciones"), 40);
+  assert.equal(valor(r.filas.find((f) => f.id === "nuevo"), "existencias"), null);
+  assert.equal(indicador(r, "Piden atención"), "5");
+  assert.equal(indicador(r, "Por contar"), "1");
+  assert.equal(indicador(r, "Con lote vencido o por vencer"), "2");
+  assert.deepEqual(ids(construirInvMedicamentos({ ...base, estado: "atencion" })), ["venc", "neg", "agot", "bajo", "pronto"]);
+  assert.deepEqual(ids(construirInvMedicamentos({ ...base, estado: "por_contar" })), ["nuevo"]);
+  assert.deepEqual(ids(construirInvMedicamentos({ ...base, estado: "al_dia" })), ["ok", "sin"]);
+  assert.equal(r.notas.length, 2, "una nota por compras sin sumar y otra por aplicaciones sin dosis");
+  assert.ok(r.notas[0].includes("1 producto tiene"));
+  assert.equal(construirInvMedicamentos({ ...base, productos: [prod("a", "A")] }).notas.length, 0);
+});
+
+test("inv_lotes: solo lotes con existencias, del que vence primero, y filtros por vencimiento", () => {
+  const lote = (producto, l, vencimiento, stock) => ({ producto_id: producto, producto, tipo: "vacuna", unidad: "ml", lote: l, vencimiento, stock });
+  const lotes = [lote("A", "L3", "2028-01-01", 10), lote("B", "L1", "2026-10-01", 5), lote("C", "L2", "2026-11-10", 7), lote("D", null, null, -4), lote("E", "L9", "2027-01-01", 0), lote("F", "L8", null, 3)];
+  const r = construirInvLotes({ hoy: "2026-10-29", vencimiento: "todos", lotes });
+  assert.deepEqual(r.filas.map((f) => f.titulo), ["B · L1", "C · L2", "A · L3", "F · L8"], "sin los lotes en 0 ni el «sin lote» negativo; sin fecha al final");
+  assert.equal(valor(r.filas[0], "situacion"), "Vencido");
+  assert.equal(valor(r.filas[0], "dias"), -28);
+  assert.equal(valor(r.filas[1], "dias"), 12);
+  assert.deepEqual(construirInvLotes({ hoy: "2026-10-29", vencimiento: "vencido", lotes }).filas.map((f) => f.titulo), ["B · L1"]);
+  assert.deepEqual(construirInvLotes({ hoy: "2026-10-29", vencimiento: "por_vencer", lotes }).filas.map((f) => f.titulo), ["C · L2"]);
+  assert.deepEqual(construirInvLotes({ hoy: "2026-10-29", vencimiento: "vigente", lotes }).filas.map((f) => f.titulo), ["A · L3"]);
+  assert.deepEqual(construirInvLotes({ hoy: "2026-10-29", vencimiento: "sin_fecha", lotes }).filas.map((f) => f.titulo), ["F · L8"]);
+  assert.equal(indicador(r, "Lotes con existencias"), "4");
+  assert.equal(indicador(r, "Vencidos"), "1");
+  assert.equal(indicador(r, "El próximo en vencer"), "10 de nov de 2026");
+  assert.ok(r.notas[0].includes("vencidos"));
+  assert.equal(construirInvLotes({ hoy: "2026-10-29", vencimiento: "todos", lotes: [lote("A", "L3", "2028-01-01", 10)] }).notas.length, 0);
+});
+
+test("inv_mov_med: cuenta lo que entró, salió y se ajustó, con la apertura entre los ajustes y lo que no se pudo sumar", () => {
+  const m = (producto, tipo, cantidad, extra = {}) => ({ fecha: "2026-10-20", producto_id: producto, producto, unidad: "ml", tipo, cantidad, lote: "L1", detalle: "x", quien: "Marcela", ...extra });
+  const movimientos = [m("A", "compra", 80), m("A", "aplicacion", -12), m("B", "aplicacion", null, { detalle: "sin dosis" }), m("A", "ajuste", -5), m("B", "apertura", 40), m("B", "compra", null)];
+  const todos = construirInvMovMed({ tipo: "todos", movimientos, truncado: false });
+  assert.equal(todos.filas.length, 6);
+  assert.equal(indicador(todos, "Compras"), "2");
+  assert.equal(indicador(todos, "Aplicaciones"), "2");
+  assert.equal(indicador(todos, "Conteos y ajustes"), "2");
+  assert.equal(indicador(todos, "Productos con movimiento"), "2");
+  assert.equal(construirInvMovMed({ tipo: "compra", movimientos, truncado: false }).filas.length, 2);
+  assert.equal(construirInvMovMed({ tipo: "aplicacion", movimientos, truncado: false }).filas.length, 2);
+  assert.equal(construirInvMovMed({ tipo: "ajuste", movimientos, truncado: false }).filas.length, 2, "la apertura cuenta como conteo");
+  assert.ok(todos.notas.some((n) => n.startsWith("2 movimientos no se pudieron sumar")));
+  assert.ok(construirInvMovMed({ tipo: "todos", movimientos: [], truncado: true }).notas.some((n) => n.includes("20.000")));
+  assert.equal(valor(todos.filas[1], "cantidad"), -12);
+  assert.equal(new Set(todos.filas.map((f) => f.id)).size, 6, "cada fila tiene su identificador");
+});
+
+test("inv_alimento: lo que se acaba primero arriba, autonomía con los últimos 14 días y sin cifras inventadas", () => {
+  const al = (id, nombre, extra = {}) => ({ producto_id: id, nombre, rubro: "concentrado", unidad: "bultos", kg_por_unidad: 40, desde: "2026-10-01", stock_kg: 400, consumo_kg: 140, dias_con_salida: 14, compras_sin_calcular: 0, ...extra });
+  const alimentos = [al("ok", "Bien"), al("bajo", "Bajo", { stock_kg: 60 }), al("crit", "Crítico", { stock_kg: 30 }), al("agot", "Agotado", { stock_kg: 0 }), al("neg", "Descuadrado", { stock_kg: -5 }), al("sd", "Sin datos", { dias_con_salida: 1 }), al("nc", "Sin contar", { desde: null, stock_kg: null }), al("kg", "Sal", { unidad: "kg", kg_por_unidad: null, compras_sin_calcular: 1 })];
+  const base = { hoy: "2026-10-29", estado: "todos", plazoDias: 7, alimentos };
+  const r = construirInvAlimento(base);
+  assert.deepEqual(ids(r), ["neg", "agot", "crit", "bajo", "sd", "ok", "kg", "nc"]);
+  assert.equal(valor(r.filas.find((f) => f.id === "ok"), "autonomia_dias"), 40);
+  assert.equal(valor(r.filas.find((f) => f.id === "ok"), "consumo_dia_kg"), 10);
+  assert.equal(valor(r.filas.find((f) => f.id === "ok"), "en_unidades"), 10);
+  assert.equal(valor(r.filas.find((f) => f.id === "ok"), "unidad"), "bultos");
+  assert.equal(valor(r.filas.find((f) => f.id === "sd"), "autonomia_dias"), null, "con pocos días con salidas no se calcula");
+  assert.equal(valor(r.filas.find((f) => f.id === "kg"), "en_unidades"), null, "lo que se compra en kg no necesita unidades");
+  assert.equal(valor(r.filas.find((f) => f.id === "nc"), "existencias_kg"), null);
+  assert.equal(indicador(r, "Piden atención"), "4");
+  assert.equal(indicador(r, "Por contar"), "1");
+  assert.deepEqual(ids(construirInvAlimento({ ...base, estado: "atencion" })), ["neg", "agot", "crit", "bajo"]);
+  assert.deepEqual(ids(construirInvAlimento({ ...base, estado: "por_contar" })), ["nc"]);
+  assert.deepEqual(ids(construirInvAlimento({ ...base, estado: "al_dia" })), ["sd", "ok", "kg"]);
+  assert.equal(r.filas.find((f) => f.id === "ok").tono, "ok");
+  assert.equal(construirInvAlimento({ ...base, plazoDias: 50 }).filas.find((f) => f.id === "ok").tono, "aviso", "alcanza 40 días: con un aviso de 50 ya es poco; el plazo sale de Ajustes de la finca");
+  assert.ok(r.notas.some((n) => n.includes("1 alimento tiene")));
+});
+
+test("inv_mov_alimento: kg comprados, dados de comer y ajustados, y el cambio en la bodega", () => {
+  const m = (producto, tipo, kg, extra = {}) => ({ fecha: "2026-10-20", producto_id: producto, producto, tipo, kg, destino: null, detalle: "x", quien: "Wilson", ...extra });
+  const movimientos = [m("Lactancia", "compra", 440), m("Lactancia", "salida", -30), m("Lactancia", "salida", -31), m("Engorde", "salida", -90, { destino: "Ceba 2026-2" }), m("Sal", "ajuste", -2), m("Sal", "apertura", 33), m("Heno", "compra", null)];
+  const r = construirInvMovAlimento({ tipo: "todos", movimientos, truncado: false });
+  assert.equal(indicador(r, "Comprado"), "440 kg");
+  assert.equal(indicador(r, "Se dio de comer"), "151 kg");
+  assert.equal(r.indicadores.find((i) => i.etiqueta === "Se dio de comer").detalle, "El que más: Engorde (90 kg)");
+  assert.equal(indicador(r, "Ajustes"), "-2 kg", "la apertura no es un cambio en la bodega: es el punto de partida");
+  assert.equal(indicador(r, "Cambio en la bodega"), "287 kg", "440 − 151 − 2");
+  assert.equal(construirInvMovAlimento({ tipo: "salida", movimientos, truncado: false }).filas.length, 3);
+  assert.equal(construirInvMovAlimento({ tipo: "compra", movimientos, truncado: false }).filas.length, 2);
+  assert.equal(construirInvMovAlimento({ tipo: "ajuste", movimientos, truncado: false }).filas.length, 2);
+  assert.equal(valor(r.filas[3], "destino"), "Ceba 2026-2");
+  assert.ok(r.notas.some((n) => n.startsWith("1 compra no se pudo sumar")));
+});
+
+test("inventario: los reportes salen a Excel con números y fechas de verdad", async () => {
+  const resultado = construirInvMovMed({ tipo: "todos", truncado: false, movimientos: [{ fecha: "2026-10-20", producto_id: "A", producto: "Penicilina", unidad: "ml", tipo: "aplicacion", cantidad: -12.5, lote: "L1", detalle: "Tratamiento: 1 animal × 4 ml", quien: "Marcela" }, { fecha: "2026-10-19", producto_id: "A", producto: "Penicilina", unidad: "ml", tipo: "compra", cantidad: null, lote: null, detalle: "Compra sin cantidad", quien: null }] });
+  const def = REPORTES.find((x) => x.id === "inv_mov_med");
+  const wb = new ExcelJS.Workbook();
+  await wb.xlsx.load(await construirLibroReporte({ def, finca: "El Aprisco", resultado, periodo: { texto: "este año", desde: "2026-01-01", hasta: null }, filtros: [], hoy, generado: new Date("2026-10-29T12:00:00Z") }));
+  const ws = wb.getWorksheet("Movimiento de medicamentos");
+  assert.ok(ws, "la hoja lleva el nombre del reporte");
+  let cab = 1;
+  while (cab < 20 && ws.getRow(cab).getCell(1).value !== "Producto") cab++;
+  assert.deepEqual(ws.getRow(cab).values.filter(Boolean).slice(0, 3), ["Producto", "Fecha", "Movimiento"], "el producto va al Excel aunque en pantalla esté en el título");
+  assert.equal(ws.getRow(cab + 1).getCell(4).value, -12.5);
+  assert.equal(ws.getRow(cab + 2).getCell(4).value, null, "una compra que no se pudo sumar queda vacía, no en cero");
 });

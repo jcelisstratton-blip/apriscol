@@ -1542,6 +1542,15 @@ export type Database = {
           compras_sin_calcular: number;
         }[];
       };
+      inventario_lotes_finca: { Args: { p_finca: string }; Returns: { producto_id: string; producto: string; tipo: string; unidad: string | null; lote: string | null; vencimiento: string | null; stock: number }[] };
+      inventario_movimientos_med: {
+        Args: { p_finca: string; p_desde: string | null; p_hasta: string | null };
+        Returns: { fecha: string; producto_id: string; producto: string; unidad: string | null; tipo: string; cantidad: number | null; lote: string | null; detalle: string; quien: string | null }[];
+      };
+      inventario_movimientos_alimento: {
+        Args: { p_finca: string; p_desde: string | null; p_hasta: string | null };
+        Returns: { fecha: string; producto_id: string; producto: string; tipo: string; kg: number | null; destino: string | null; detalle: string; quien: string | null }[];
+      };
       inventario_lotes: { Args: { p_finca: string; p_producto: string }; Returns: { lote: string | null; vencimiento: string | null; stock: number }[] };
       lotes_sanidad: { Args: { p_finca: string }; Returns: { gasto_id: string; producto_id: string; lote: string; vencimiento: string | null; comprado: string }[] };
       veterinarios_finca: { Args: { p_finca: string }; Returns: { id: string; nombre: string; tarjeta_profesional: string | null }[] };

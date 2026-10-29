@@ -1,6 +1,8 @@
 import { ESCENA_FILTRO, ESCENA_REPORTE } from "@/lib/escenas-reportes";
 import { CC_ALTA, CC_BAJA, DIAS_MINIMOS_GDP, DIAS_SIN_PESAR, EDAD_DESTETE_MESES } from "@/lib/reportes/calculos";
 import { DIAS_PARTO_PROXIMO, DIAS_REPETIR_DX_DESDE, DIAS_REPETIR_DX_HASTA } from "@/lib/reproduccion";
+import { DIAS_AVISO_VENCIMIENTO } from "@/lib/inventario";
+import { DIAS_VENTANA_CONSUMO, MIN_DIAS_CON_SALIDA } from "@/lib/inventario-alimento";
 import type { FiltroDef, GrupoReporte, OpcionFiltro, ReporteDef, ReporteId } from "@/lib/reportes/tipos";
 import type { Especie, ModuloApp } from "@/lib/tipos";
 
@@ -20,6 +22,7 @@ export const GRUPOS_REPORTE: { id: GrupoReporte; titulo: string; detalle: string
   { id: "reproduccion", titulo: "Reproducción", detalle: "Quién está lista, gestante o por parir" },
   { id: "produccion", titulo: "Producción", detalle: "Leche, peso y condición corporal" },
   { id: "sanidad", titulo: "Sanidad", detalle: "Retiros y lo que está pendiente" },
+  { id: "inventario", titulo: "Inventario", detalle: "Existencias, lotes y movimientos de la bodega (propietario y administrador)" },
 ];
 
 export const REPORTES: ReporteDef[] = [
@@ -284,14 +287,137 @@ export const REPORTES: ReporteDef[] = [
     ],
     vacio: { titulo: "Todo al día", texto: "No hay dosis vencidas, ni animales por desparasitar, ni revisiones atrasadas." },
   },
+  {
+    id: "inv_medicamentos",
+    grupo: "inventario",
+    titulo: "Existencias de medicamentos",
+    detalle: "Qué queda de cada medicamento y vacuna",
+    modulo: "inventario",
+    soloGestion: true,
+    escena: ESCENA_REPORTE.inv_medicamentos,
+    porEspecie: false,
+    filtros: [
+      filtro("estado", "Estado", [
+        opcion("todos", "Todos", "Cada producto activo"),
+        opcion("atencion", "Piden atención", "Agotados, descuadrados, en el mínimo o con un lote por vencer"),
+        opcion("por_contar", "Por contar", "Sin conteo de apertura"),
+        opcion("al_dia", "Al día", "Con existencias suficientes"),
+      ]),
+    ],
+    ayuda: [
+      { titulo: "De dónde sale", texto: "Del conteo de apertura de cada producto más las compras y menos las aplicaciones registradas desde ese día. Lo calcula la base de datos: no se escribe a mano." },
+      { titulo: "Estados", texto: `Descuadrado: se aplicó más de lo que había registrado. Agotado: no queda nada. Stock bajo: en el mínimo o por debajo. Por contar: todavía no tiene conteo de apertura. Un lote vencido o que vence en ${DIAS_AVISO_VENCIMIENTO} días o menos también pide atención.` },
+      { titulo: "Unidades", texto: "Las existencias están en la unidad de la dosis del producto (ml, dosis, tableta…). Si el producto tiene presentación (por ejemplo, frasco de 100 ml), se muestra también en presentaciones." },
+    ],
+    vacio: { titulo: "Aún no hay productos", texto: "Cuando registres medicamentos y vacunas en Sanidad, aquí verás lo que queda de cada uno." },
+  },
+  {
+    id: "inv_lotes",
+    grupo: "inventario",
+    titulo: "Lotes y vencimientos",
+    detalle: "Cada lote con lo que queda y cuándo vence",
+    modulo: "inventario",
+    soloGestion: true,
+    escena: ESCENA_REPORTE.inv_lotes,
+    porEspecie: false,
+    filtros: [
+      filtro("vencimiento", "Vencimiento", [
+        opcion("todos", "Todos", "Lotes con existencias"),
+        opcion("vencido", "Vencidos", "Ya pasó su fecha"),
+        opcion("por_vencer", "Por vencer", `Vencen en ${DIAS_AVISO_VENCIMIENTO} días o menos`),
+        opcion("vigente", "Vigentes", "Con fecha lejana"),
+        opcion("sin_fecha", "Sin fecha", "No se anotó el vencimiento"),
+      ]),
+    ],
+    ayuda: [
+      { titulo: "Qué lista", texto: "Solo los lotes con existencias, del que vence primero al que vence último. El lote y su vencimiento se anotan al comprar o al hacer el conteo de apertura." },
+      { titulo: "Un lote vencido", texto: "No se debe aplicar. Sácalo de la bodega y dalo de baja desde el inventario, con el motivo «Vencido»." },
+      { titulo: "Primero lo que vence", texto: "Usa primero los lotes que vencen antes: la lista ya viene en ese orden." },
+    ],
+    vacio: { titulo: "No hay lotes para mostrar", texto: "Cuando haya medicamentos o vacunas con existencias, aquí verás cada lote y su vencimiento." },
+  },
+  {
+    id: "inv_mov_med",
+    grupo: "inventario",
+    titulo: "Movimiento de medicamentos",
+    detalle: "Compras, aplicaciones y ajustes del periodo",
+    modulo: "inventario",
+    soloGestion: true,
+    escena: ESCENA_REPORTE.inv_mov_med,
+    periodo: { etiqueta: "Movimientos del" },
+    porEspecie: false,
+    filtros: [
+      filtro("tipo", "Movimiento", [
+        opcion("todos", "Todos", "Todo lo que entró y salió"),
+        opcion("compra", "Compras", "Lo que entró a la bodega"),
+        opcion("aplicacion", "Aplicaciones", "Lo que se aplicó a los animales"),
+        opcion("ajuste", "Conteos y ajustes", "Aperturas, mermas y correcciones"),
+      ]),
+    ],
+    ayuda: [
+      { titulo: "Qué cuenta", texto: "Lo mismo que mueve las existencias: las compras con producto veterinario (suman), las aplicaciones (restan: dosis × animales × días del tratamiento) y los conteos y ajustes. Solo desde el conteo de apertura de cada producto." },
+      { titulo: "Lo que no se pudo sumar", texto: "Una compra sin cantidad, o de un producto sin presentación definida, y una aplicación sin dosis aparecen sin cantidad y lo dicen: arréglalas para que el inventario cuadre." },
+      { titulo: "Quién", texto: "Cada movimiento dice quién lo registró." },
+    ],
+    vacio: { titulo: "Sin movimientos", texto: "En este periodo no hubo compras, aplicaciones ni ajustes de medicamentos." },
+  },
+  {
+    id: "inv_alimento",
+    grupo: "inventario",
+    titulo: "Existencias de alimento",
+    detalle: "Qué queda y para cuántos días alcanza",
+    modulo: "nutricion",
+    soloGestion: true,
+    escena: ESCENA_REPORTE.inv_alimento,
+    porEspecie: false,
+    filtros: [
+      filtro("estado", "Estado", [
+        opcion("todos", "Todos", "Cada alimento"),
+        opcion("atencion", "Piden atención", "Agotados, descuadrados o que alcanzan poco"),
+        opcion("por_contar", "Por contar", "Sin conteo de apertura"),
+        opcion("al_dia", "Al día", "Alcanzan para más del plazo de aviso"),
+      ]),
+    ],
+    ayuda: [
+      { titulo: "Todo en kg", texto: "Lo que compras en bultos o pacas se pasa a kg con lo que pesa cada unidad; lo que se da de comer se anota en kg." },
+      { titulo: "Para cuántos días alcanza", texto: `Existencias ÷ lo que se dio por día en los últimos ${DIAS_VENTANA_CONSUMO} días. Con menos de ${MIN_DIAS_CON_SALIDA} días con salidas anotadas no se calcula: no se inventa una cifra.` },
+      { titulo: "Cuándo avisa", texto: "Ámbar si alcanza para menos de los días que fijaste en Ajustes de la finca; rojo si es menos de la mitad, si se agotó o si se dio de comer más de lo registrado." },
+    ],
+    vacio: { titulo: "Aún no hay alimentos", texto: "Los alimentos salen de tu catálogo de compras (concentrado, forraje, sales y suplementos, leche maternizada)." },
+  },
+  {
+    id: "inv_mov_alimento",
+    grupo: "inventario",
+    titulo: "Movimiento de alimento",
+    detalle: "Compras, lo que se dio de comer y ajustes",
+    modulo: "nutricion",
+    soloGestion: true,
+    escena: ESCENA_REPORTE.inv_mov_alimento,
+    periodo: { etiqueta: "Movimientos del" },
+    porEspecie: false,
+    filtros: [
+      filtro("tipo", "Movimiento", [
+        opcion("todos", "Todos", "Todo lo que entró y salió"),
+        opcion("compra", "Compras", "Lo que entró a la bodega"),
+        opcion("salida", "Lo que se dio", "Raciones anotadas por el equipo"),
+        opcion("ajuste", "Conteos y ajustes", "Aperturas, mermas y correcciones"),
+      ]),
+    ],
+    ayuda: [
+      { titulo: "Cuánto se consumió", texto: "Las cifras de arriba suman, en kg, lo comprado, lo que se dio de comer y los ajustes del periodo; el balance es lo que cambió la bodega." },
+      { titulo: "A quién se le dio", texto: "Cada salida puede decir el corral o el lote de ceba al que fue y quién la anotó." },
+      { titulo: "Lo que no se pudo sumar", texto: "Una compra sin cantidad o de un alimento sin el peso de cada unidad aparece sin kg y lo dice." },
+    ],
+    vacio: { titulo: "Sin movimientos", texto: "En este periodo no hubo compras, raciones ni ajustes de alimento." },
+  },
 ];
 
 const POR_ID = new Map<ReporteId, ReporteDef>(REPORTES.map((r) => [r.id, r]));
 export const esReporteId = (v: string | undefined | null): v is ReporteId => Boolean(v && POR_ID.has(v as ReporteId));
 export const definicionReporte = (id: ReporteId): ReporteDef => POR_ID.get(id)!;
 
-/** Los reportes que una persona puede abrir según los módulos que ve. */
-export const reportesVisibles = (puedeVer: (m: ModuloApp) => boolean): ReporteDef[] => REPORTES.filter((r) => puedeVer(r.modulo));
+/** Los reportes que una persona puede abrir según los módulos que ve; los del inventario, además, solo si gestiona la finca (propietario o administrador). */
+export const reportesVisibles = (puedeVer: (m: ModuloApp) => boolean, gestiona = false): ReporteDef[] => REPORTES.filter((r) => puedeVer(r.modulo) && (!r.soloGestion || gestiona));
 
 /** Todos los filtros de un reporte, empezando por la especie (si la finca tiene las dos). */
 export const filtrosDe = (def: ReporteDef, especies: Especie[]): FiltroDef[] => [...(def.porEspecie && especies.length > 1 ? [FILTRO_ESPECIE] : []), ...def.filtros];

@@ -50,6 +50,16 @@ Concentrado, forraje, sales y suplementos, y leche maternizada: los productos de
 - Semáforos: área **Alimento** (propietario, administrador y ordeñador), `senalAlimento`. Atajos «Anotar lo que se dio de comer» e «Inventario de alimento» en «Al grano».
 - Exportación: hojas «Inventario de medicamentos» e «Inventario de alimento (kg)» (en esta última no sale el lote de ceba).
 
+## Reportes
+
+Los reportes del inventario viven en **Reportes → Inventario** (`/reportes`, ver `reportes.md`) y solo los abren el propietario y el administrador: existencias de medicamentos, lotes y vencimientos, movimiento de medicamentos, existencias de alimento y movimiento de alimento. Los tres de «movimiento» y los lotes salen de funciones de lectura que validan `puede_gestionar` (`inventario_movimientos_med`, `inventario_movimientos_alimento`, `inventario_lotes_finca`).
+
+## Datos base del piloto (29 oct 2026)
+
+Para ver el movimiento, la finca piloto «Aprisco Piloto El Mirador» tiene conteos sembrados a partir de sus datos reales (todos llevan «Datos base del piloto» en las observaciones, para poder distinguirlos o limpiarlos):
+- **Medicamentos:** presentación y mínimo de los 10 productos; conteo de apertura al 1 de agosto por lote (los lotes salen de las compras y aplicaciones reales); dos ajustes (un frasco roto y un conteo físico). Quedan a la vista un producto **descuadrado** (ivermectina: se aplicó sin compra registrada), uno **por debajo del mínimo** (antibiótico intramamario), un **lote vencido** (albendazol: la compra del 28 de octubre se anotó con vencimiento del 1 de octubre) y uno **por vencer** (vacuna clostridial, 18 de noviembre).
+- **Alimento:** peso por unidad (concentrados de 40 kg, paca de 16 kg), conteo de apertura al 1 de octubre y lo que se dio de comer cada día (ración diaria de lactancia, crías, heno, sal y melaza; leche maternizada hasta el 24; el concentrado de engorde se copió del consumo del lote de ceba). Quedan **sal** que se acaba (1 día), **concentrado de lactancia** que alcanza poco (4 días), **leche maternizada** agotada, **engorde** sin consumo suficiente para calcular, y **ensilaje** por contar. El bloque nutricional es el conteo de prueba que hizo el propietario.
+
 ## Pendiente
 
 - Validar con el veterinario la lógica de `dosis × animales × días` para tratamientos y desparasitaciones (la dosis se escribe por animal y, en tratamientos, por día).

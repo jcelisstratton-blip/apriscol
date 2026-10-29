@@ -3,7 +3,7 @@ import { obtenerAjustes } from "@/lib/ajustes-servidor";
 import { obtenerContexto } from "@/lib/contexto";
 import { hoyBogota } from "@/lib/fechas";
 import { esPeriodo, rangoPeriodo, type Periodo } from "@/lib/periodos";
-import { puedeVer } from "@/lib/permisos";
+import { puedeGestionar, puedeVer } from "@/lib/permisos";
 import { crearClienteServidor } from "@/lib/supabase/server";
 import { limitarFilas, type ContextoReporte } from "@/lib/reportes/base";
 import { definicionReporte, filtrosDe, leerFiltros, textoFiltros } from "@/lib/reportes/catalogo";
@@ -38,7 +38,8 @@ const TEXTO_PERIODO: Record<Periodo, string> = { todo: "todo el historial", anio
 export async function prepararReporte(id: ReporteId, params: Record<string, string | undefined>, opciones: { completo?: boolean } = {}): Promise<ReporteListo | null> {
   const { finca, rol } = await obtenerContexto();
   const def = definicionReporte(id);
-  if (!puedeVer(rol, def.modulo, finca.plan)) return null;
+  // Los reportes del inventario son solo del propietario y el administrador (el veterinario y el ordeñador ven el módulo, no estos reportes).
+  if (!puedeVer(rol, def.modulo, finca.plan) || (def.soloGestion && !puedeGestionar(rol))) return null;
 
   const ajustes = await obtenerAjustes();
   const supabase = await crearClienteServidor();

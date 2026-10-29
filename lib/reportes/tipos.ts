@@ -45,8 +45,10 @@ export type ResultadoReporte = {
   notas: string[];
 };
 
-export type ReporteId = "inventario" | "salidas" | "vacias" | "por_palpar" | "gestantes" | "partos" | "sementales" | "ordeno" | "peso" | "retiro" | "sanidad";
-export type GrupoReporte = "poblacion" | "reproduccion" | "produccion" | "sanidad";
+export type ReporteId =
+  | "inventario" | "salidas" | "vacias" | "por_palpar" | "gestantes" | "partos" | "sementales" | "ordeno" | "peso" | "retiro" | "sanidad"
+  | "inv_medicamentos" | "inv_lotes" | "inv_mov_med" | "inv_alimento" | "inv_mov_alimento";
+export type GrupoReporte = "poblacion" | "reproduccion" | "produccion" | "sanidad" | "inventario";
 
 export type OpcionFiltro = { valor: string; etiqueta: string; detalle: string; escena: EscenaDef };
 export type FiltroDef = { clave: string; titulo: string; opciones: OpcionFiltro[] };
@@ -61,6 +63,8 @@ export type ReporteDef = {
   detalle: string;
   /** El módulo que debe poder ver la persona (decide también la base con su RLS). */
   modulo: ModuloApp;
+  /** Solo el propietario y el administrador lo ven (el veterinario y el ordeñador ven el módulo, pero no estos reportes). Lo comprueban el catálogo, el servidor y la base. */
+  soloGestion?: boolean;
   escena: EscenaDef;
   /** Si el reporte se puede mirar por fechas, y cómo se llama el periodo («Salidas entre…»). */
   periodo?: { etiqueta: string };

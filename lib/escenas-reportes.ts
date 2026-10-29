@@ -1,4 +1,4 @@
-import { Activity, ArchiveX, Ban, Baby, Bone, Bug, CalendarClock, CalendarX, Crown, Dna, Droplets, Eye, Footprints, Gauge, Heart, HeartCrack, HandCoins, Hourglass, Mars, Milk, PawPrint, Scale, Search, ShieldAlert, Skull, Sprout, Stethoscope, Syringe, Tag, Timer, TriangleAlert, Venus, Waves, Wallet } from "lucide-react";
+import { Activity, ArchiveX, ArrowRightLeft, Boxes, BellRing, CheckCheck, PackageSearch, Pill, Wheat, Ban, Baby, Bone, Bug, CalendarClock, CalendarX, Crown, Dna, Droplets, Eye, Footprints, Gauge, Heart, HeartCrack, HandCoins, Hourglass, Mars, Milk, PawPrint, Scale, Search, ShieldAlert, Skull, Sprout, Stethoscope, Syringe, Tag, Timer, TriangleAlert, Venus, Waves, Wallet } from "lucide-react";
 import { escena, ESC, ESCENA_HATO, type EscenaDef } from "@/lib/escenas";
 
 /** Las tarjetas de cada reporte en la pantalla de Reportes (un color por área de trabajo). */
@@ -15,6 +15,12 @@ export const ESCENA_REPORTE: Record<string, EscenaDef> = {
   retiro: escena(ShieldAlert, "arcilla", Timer),
   sanidad: escena(Syringe, "musgo", CalendarClock),
   costos: escena(Wallet, "ambar", HandCoins),
+  // inventario (solo propietario y administrador)
+  inv_medicamentos: escena(Pill, "ocre", Boxes),
+  inv_lotes: escena(CalendarX, "arcilla", Pill),
+  inv_mov_med: escena(ArrowRightLeft, "ocre", Pill),
+  inv_alimento: escena(Wheat, "ambar", Gauge),
+  inv_mov_alimento: escena(ArrowRightLeft, "ambar", Wheat),
 };
 
 /** Las opciones de los filtros de los reportes, por su valor. El mismo valor se ve igual en todos los reportes. */
@@ -73,4 +79,18 @@ export const ESCENA_FILTRO: Record<string, EscenaDef> = {
   famacha: escena(Eye, "arcilla", Bug),
   podologia: escena(Footprints, "ocre", Bone),
   pediluvio: escena(Waves, "ambar", Footprints),
+  // inventario: estado de las existencias
+  atencion: escena(BellRing, "arcilla", TriangleAlert),
+  por_contar: escena(PackageSearch, "ambar", Search),
+  al_dia: escena(CheckCheck, "oliva", Boxes),
+  // inventario: vencimiento de los lotes
+  vencido: escena(CalendarX, "arcilla", TriangleAlert),
+  por_vencer: escena(CalendarClock, "ambar", Timer),
+  vigente: escena(CheckCheck, "oliva", CalendarClock),
+  sin_fecha: escena(CalendarX, "grafito", Search),
+  // inventario: tipo de movimiento
+  compra: escena(Wallet, "oliva", Boxes),
+  aplicacion: escena(Syringe, "musgo", Pill),
+  salida: escena(Wheat, "ambar", ArrowRightLeft),
+  ajuste: escena(Gauge, "grafito", Boxes),
 };
