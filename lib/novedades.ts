@@ -80,10 +80,11 @@ export function resumenNovedad(n: CamposResumen): string {
 }
 
 /** La pantalla oficial donde se registra de verdad lo que contó una novedad (con el animal ya elegido). */
-export function direccionParaRegistrar(n: Pick<Novedad, "tipo" | "animal_id" | "categoria_producto" | "tipo_evento">): string {
+export function direccionParaRegistrar(n: Pick<Novedad, "id" | "tipo" | "animal_id" | "categoria_producto" | "tipo_evento">): string {
   switch (n.tipo) {
     case "compra":
-      return "/hato/gastos/nuevo";
+      // La novedad viaja con la compra: al guardarla queda atendida sola.
+      return `/hato/gastos/nuevo?novedad=${n.id}`;
     case "aplicacion": {
       const tipo = n.tipo_evento ?? (n.categoria_producto === "vacuna" ? "vacunacion" : n.categoria_producto === "desparasitante" ? "desparasitacion" : "tratamiento");
       return `/hato/sanidad/nuevo?animal=${n.animal_id}&tipo=${tipo}`;

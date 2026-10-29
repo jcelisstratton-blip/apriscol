@@ -708,6 +708,7 @@ export type Database = {
           kg_alimento: number
           lote_id: string
           observaciones: string | null
+          producto_id: string | null
           updated_at: string
         }
         Insert: {
@@ -722,6 +723,7 @@ export type Database = {
           kg_alimento: number
           lote_id: string
           observaciones?: string | null
+          producto_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -736,6 +738,7 @@ export type Database = {
           kg_alimento?: number
           lote_id?: string
           observaciones?: string | null
+          producto_id?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -751,6 +754,13 @@ export type Database = {
             columns: ["lote_id", "finca_id"]
             isOneToOne: false
             referencedRelation: "lotes_ceba"
+            referencedColumns: ["id", "finca_id"]
+          },
+          {
+            foreignKeyName: "consumo_lote_producto_fk"
+            columns: ["producto_id", "finca_id"]
+            isOneToOne: false
+            referencedRelation: "finca_productos"
             referencedColumns: ["id", "finca_id"]
           },
         ]

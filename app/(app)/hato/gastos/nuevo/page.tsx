@@ -22,7 +22,7 @@ const ID_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
  * Registrar un gasto. Desde la ficha de un animal (`?animal=`) ya viene cargado a ese animal y al guardar se vuelve a ella; con `?lote=` o `?ubicacion=`
  * viene cargado a ese lote o corral; con `?rubro=` ya viene el rubro.
  */
-export default async function PaginaGastoNuevo({ searchParams }: { searchParams: Promise<{ animal?: string; lote?: string; ubicacion?: string; rubro?: string }> }) {
+export default async function PaginaGastoNuevo({ searchParams }: { searchParams: Promise<{ animal?: string; lote?: string; ubicacion?: string; rubro?: string; novedad?: string }> }) {
   const { finca, rol } = await obtenerContexto();
   if (!puedeEscribir(rol, "contabilidad", finca.plan)) redirect("/hato?vista=gastos");
   const sp = await searchParams;
@@ -41,7 +41,7 @@ export default async function PaginaGastoNuevo({ searchParams }: { searchParams:
     supabase.from("lotes_ceba").select("id, nombre").eq("finca_id", finca.id).is("cerrado_en", null).order("nombre").limit(300),
   ]);
   const conSanidad = moduloEnPlan(finca.plan, "sanidad");
-  const { data: productosVet } = conSanidad ? await supabase.from("productos_veterinarios").select("id, nombre").eq("finca_id", finca.id).eq("activo", true).order("nombre").limit(500) : { data: [] };
+  const { data: productosVet } = conSanidad ? await supabase.from("productos_veterinarios").select("id, nombre, contenido_presentacion").eq("finca_id", finca.id).eq("activo", true).order("nombre").limit(500) : { data: [] };
   const rubroInicial = (RUBROS as string[]).includes(sp.rubro ?? "") ? (sp.rubro as RubroGasto) : undefined;
   const destinoInicial =
     sp.lote && ID_UUID.test(sp.lote) && (lotes ?? []).some((l) => l.id === sp.lote)
@@ -69,10 +69,12 @@ export default async function PaginaGastoNuevo({ searchParams }: { searchParams:
           destinoInicial={destinoInicial}
           animalDe={animal?.id}
           solicitud={randomUUID()}
+          novedadId={sp.novedad && ID_UUID.test(sp.novedad) ? sp.novedad : undefined}
           productos={productos.filter((p) => p.tipo === "compra" && p.activo)}
           terceros={terceros}
           productosVet={productosVet ?? []}
           conSanidad={conSanidad}
+          conInventario={moduloEnPlan(finca.plan, "inventario")}
         />
       </div>
     </>

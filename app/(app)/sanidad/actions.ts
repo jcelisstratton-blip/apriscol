@@ -128,7 +128,7 @@ async function leerEvento(form: FormData, fincaId: string, supabase: Cliente, ex
     fecha_vencimiento: limpiar.lote ? "" : loteVence,
     dosis: limpiar.dosis ? "" : (d.dosis ?? ""),
     unidad_dosis: !limpiar.dosis && d.dosis ? (d.unidad_dosis ?? "") : "",
-    via: limpiar.dosis ? "" : (d.via ?? ""),
+    via: limpiar.via ? "" : (d.via ?? ""),
     responsable: d.responsable ?? "",
     costo: d.costo ?? "",
     retiro_leche_dias: limpiar.retiro ? 0 : d.retiro_leche_dias,

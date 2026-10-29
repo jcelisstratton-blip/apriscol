@@ -8,6 +8,7 @@ import { FormConsumo } from "@/components/FormConsumo";
 import { obtenerContexto } from "@/lib/contexto";
 import { crearClienteServidor } from "@/lib/supabase/server";
 import { puedeEscribir } from "@/lib/permisos";
+import { cargarAlimentosCatalogo } from "@/lib/inventario-alimento-servidor";
 import { hoyBogota } from "@/lib/fechas";
 
 export const metadata: Metadata = { title: "Alimento del lote" };
@@ -29,7 +30,7 @@ export default async function PaginaConsumoNuevo({ params }: { params: Promise<{
       </Link>
       <Encabezado titulo="Alimento del lote" subtitulo={lote.nombre} />
       <div className="lg:max-w-xl">
-        <FormConsumo loteId={id} hoy={hoyBogota()} solicitud={randomUUID()} />
+        <FormConsumo loteId={id} hoy={hoyBogota()} solicitud={randomUUID()} alimentos={await cargarAlimentosCatalogo(supabase, finca.id)} />
       </div>
     </>
   );

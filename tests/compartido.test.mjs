@@ -389,8 +389,8 @@ test("novedades: la fecha sale de tres opciones y el resumen se lee en una frase
   assert.match(resumenNovedad({ ...base, tipo: "coprologico", tipo_muestra: "contaminada" }), /contaminada \(recogida del piso\)/);
   assert.equal(resumenNovedad({ ...base, tipo: "compra", grupo_compra: "sanidad", compra_producto_nombre: "Ivermectina" }), "Comprar · Sanidad · Ivermectina");
   assert.equal(resumenNovedad({ ...base, tipo: "compra", grupo_compra: "alimentacion" }), "Comprar · Alimentación · Otro producto");
-  assert.equal(direccionParaRegistrar({ tipo: "compra", animal_id: null, categoria_producto: null, tipo_evento: null }), "/hato/gastos/nuevo");
-  assert.equal(direccionParaRegistrar({ tipo: "aplicacion", animal_id: "a1", categoria_producto: null, tipo_evento: "vacunacion" }), "/hato/sanidad/nuevo?animal=a1&tipo=vacunacion");
+  assert.equal(direccionParaRegistrar({ id: "n1", tipo: "compra", animal_id: null, categoria_producto: null, tipo_evento: null }), "/hato/gastos/nuevo?novedad=n1");
+  assert.equal(direccionParaRegistrar({ id: "n2", tipo: "aplicacion", animal_id: "a1", categoria_producto: null, tipo_evento: "vacunacion" }), "/hato/sanidad/nuevo?animal=a1&tipo=vacunacion");
 });
 
 test("novedades: el producto se ofrece según lo que se hizo", () => {
@@ -524,4 +524,35 @@ test("alimento: kg, bultos y el peso por unidad", () => {
 import { singular } from "../lib/inventario-alimento.ts";
 test("alimento: el singular de la unidad de compra", () => {
   assert.deepEqual(["bultos", "pacas", "unidades", "kg", "sacos"].map(singular), ["bulto", "paca", "unidad", "kg", "saco"]);
+});
+
+import { avisoCompraInventario } from "../lib/inventario-alimento.ts";
+test("compras: avisa cuando no van a sumar al inventario y calla cuando sí suman", () => {
+  const base = { conLoteVeterinario: false, productoVet: undefined };
+  // Alimento: otra compra, sin peso por bulto, con peso y en kg.
+  assert.match(avisoCompraInventario({ ...base, rubro: "concentrado", producto: null }), /elígela de la lista/);
+  assert.match(avisoCompraInventario({ ...base, rubro: "forraje", producto: { unidad: "pacas", kg_por_unidad: null } }), /cuánto pesa cada paca/);
+  assert.equal(avisoCompraInventario({ ...base, rubro: "concentrado", producto: { unidad: "bultos", kg_por_unidad: 40 } }), null);
+  assert.equal(avisoCompraInventario({ ...base, rubro: "sales_suplementos", producto: { unidad: "kg", kg_por_unidad: null } }), null);
+  // Medicamentos: sin producto veterinario, sin presentación y completo.
+  const vet = { conLoteVeterinario: true, producto: null, rubro: "medicamentos" };
+  assert.match(avisoCompraInventario({ ...vet, productoVet: undefined }), /Elige el producto veterinario/);
+  assert.match(avisoCompraInventario({ ...vet, productoVet: { contenido_presentacion: null } }), /cómo viene el producto/);
+  assert.equal(avisoCompraInventario({ ...vet, productoVet: { contenido_presentacion: 100 } }), null);
+  // Lo que no es alimento ni medicamento no avisa nada.
+  assert.equal(avisoCompraInventario({ ...base, rubro: "mano_obra", producto: null }), null);
+});
+
+import { diasConSalidas, planearRepeticion } from "../lib/inventario-alimento.ts";
+test("repetir raciones: solo días anteriores, del más reciente al más antiguo, y solo alimentos que el inventario sigue", () => {
+  const salidas = [{ fecha: "2026-10-27" }, { fecha: "2026-10-29" }, { fecha: "2026-10-27" }, { fecha: "2026-10-25" }, { fecha: "2026-10-30" }];
+  assert.deepEqual(diasConSalidas(salidas, "2026-10-29"), ["2026-10-27", "2026-10-25"]);
+  assert.deepEqual(diasConSalidas([], "2026-10-29"), []);
+  const origen = [
+    { producto_id: "a", cantidad: 40, ubicacion_id: "c1", lote_id: null },
+    { producto_id: "b", cantidad: 12, ubicacion_id: null, lote_id: null },
+    { producto_id: "a", cantidad: 0, ubicacion_id: null, lote_id: null },
+  ];
+  assert.deepEqual(planearRepeticion(origen, new Set(["a"])), [origen[0]]);
+  assert.deepEqual(planearRepeticion(origen, new Set()), []);
 });

@@ -21,7 +21,10 @@ export default async function PaginaEditarProducto({ params }: { params: Promise
   const supabase = await crearClienteServidor();
   const { data: producto } = await supabase.from("productos_veterinarios").select("*").eq("id", id).eq("finca_id", finca.id).maybeSingle();
   if (!producto) notFound();
-  const { count } = await supabase.from("eventos_sanitarios").select("id", { count: "exact", head: true }).eq("finca_id", finca.id).eq("producto_id", id);
+  const [{ count }, { count: conteos }] = await Promise.all([
+    supabase.from("eventos_sanitarios").select("id", { count: "exact", head: true }).eq("finca_id", finca.id).eq("producto_id", id),
+    supabase.from("inventario_movimientos").select("id", { count: "exact", head: true }).eq("finca_id", finca.id).eq("producto_vet_id", id),
+  ]);
 
   return (
     <>
@@ -35,7 +38,12 @@ export default async function PaginaEditarProducto({ params }: { params: Promise
           <EliminarRegistro
             etiqueta="Eliminar este producto"
             resumen={producto.nombre}
-            consecuencia={count ? `Los ${count} ${count === 1 ? "registro" : "registros"} donde se usó conservan su nombre` : undefined}
+            consecuencia={[
+              count ? `Los ${count} ${count === 1 ? "registro" : "registros"} donde se usó conservan su nombre` : null,
+              conteos ? "También se borran sus conteos del inventario: dejará de contarse en la bodega" : null,
+            ]
+              .filter(Boolean)
+              .join(". ") || undefined}
             accion={eliminarProducto.bind(null, id)}
             destino="/sanidad?vista=productos"
             mensaje="Producto eliminado"

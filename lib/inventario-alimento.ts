@@ -114,3 +114,38 @@ export const aKg = (cantidad: number, factor: number): number => Math.round(cant
 
 export type MotivoAjusteAlimento = "conteo" | "perdida" | "dano" | "otro";
 export const MOTIVOS_AJUSTE_ALIMENTO: MotivoAjusteAlimento[] = ["conteo", "perdida", "dano", "otro"];
+
+/**
+ * Al registrar una compra: lo que impide que sume al inventario, dicho en una frase para la persona (o null si suma bien o no aplica).
+ * `producto` es el de la lista de la finca (null si la compra es «otra compra»); `productoVet` es el medicamento elegido
+ * (`undefined` = no se eligió, `null` = elegido sin definir cómo viene).
+ */
+export function avisoCompraInventario(e: {
+  rubro: string;
+  producto: { unidad: string | null; kg_por_unidad: number | null } | null;
+  conLoteVeterinario: boolean;
+  productoVet: { contenido_presentacion: number | null } | null | undefined;
+}): string | null {
+  if ((RUBROS_ALIMENTO as readonly string[]).includes(e.rubro)) {
+    if (!e.producto) return "Esta compra no sumará al inventario de alimento. Para que sume, elígela de la lista de productos.";
+    if (faltaPeso(e.producto)) return `Esta compra no sumará al inventario hasta que definas cuánto pesa cada ${singular(e.producto.unidad ?? "unidad")}. Se define en Inventario → Alimento.`;
+    return null;
+  }
+  if (e.conLoteVeterinario) {
+    if (e.productoVet === undefined) return "Elige el producto veterinario para que esta compra sume al inventario de medicamentos.";
+    if (e.productoVet === null || e.productoVet.contenido_presentacion === null) return "Esta compra no sumará al inventario hasta que definas cómo viene el producto (por ejemplo, frasco de 100 ml). Se define en la ficha del producto, en Inventario.";
+  }
+  return null;
+}
+
+export type SalidaRepetible = { producto_id: string; cantidad: number; ubicacion_id: string | null; lote_id: string | null };
+
+/** Los días anteriores a `hoy` que tienen salidas anotadas, del más reciente al más antiguo: lo que se ofrece repetir. */
+export function diasConSalidas(salidas: { fecha: string }[], hoy: string): string[] {
+  return [...new Set(salidas.map((s) => s.fecha).filter((f) => f < hoy))].sort().reverse();
+}
+
+/** Las raciones que se anotan al repetir un día: las mismas, solo de los alimentos que el inventario sigue (con conteo de apertura) y sin cantidades vacías. */
+export function planearRepeticion(origen: SalidaRepetible[], conApertura: Set<string>): SalidaRepetible[] {
+  return origen.filter((s) => conApertura.has(s.producto_id) && s.cantidad > 0);
+}

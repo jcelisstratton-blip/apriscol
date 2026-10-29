@@ -11,26 +11,28 @@ import { kg } from "@/lib/carne";
 import { pesos } from "@/lib/leche-calidad";
 import type { ConsumoLote } from "@/lib/tipos";
 
+type ConsumoConProducto = ConsumoLote & { producto: { nombre: string } | null };
+
 /** El alimento que ha comido un lote, del más reciente al más antiguo. */
 export function ListaConsumo({ fincaId, loteId, puedeEditar }: { fincaId: string; loteId: string; puedeEditar: boolean }) {
   const cargar = useCallback(
     async (desde: number, cantidad: number) => {
       const { data, count, error } = await crearClienteNavegador()
         .from("consumo_lote")
-        .select("*", { count: "exact" })
+        .select("*, producto:finca_productos(nombre)", { count: "exact" })
         .eq("finca_id", fincaId)
         .eq("lote_id", loteId)
         .order("fecha", { ascending: false })
         .order("created_at", { ascending: false })
         .range(desde, desde + cantidad - 1);
       if (error) throw new Error(error.message);
-      return { filas: (data ?? []) as ConsumoLote[], total: count ?? 0 };
+      return { filas: (data ?? []) as unknown as ConsumoConProducto[], total: count ?? 0 };
     },
     [fincaId, loteId],
   );
 
   return (
-    <ListaEscalable<ConsumoLote>
+    <ListaEscalable<ConsumoConProducto>
       rejilla="grid-cols-1 lg:grid-cols-2"
       cargar={cargar}
       clave={(c) => c.id}
@@ -39,7 +41,7 @@ export function ListaConsumo({ fincaId, loteId, puedeEditar }: { fincaId: string
           <div className="min-w-0 flex-1">
             <span className="block font-bold [overflow-wrap:anywhere]">
               {kg(c.kg_alimento)}
-              {c.alimento ? ` · ${c.alimento}` : ""}
+              {c.producto?.nombre ?? c.alimento ? ` · ${c.producto?.nombre ?? c.alimento}` : ""}
             </span>
             <span className="block text-sm text-humo">
               {formatoFecha(c.fecha, { day: "numeric", month: "short", year: "numeric" })}

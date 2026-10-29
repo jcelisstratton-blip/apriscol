@@ -77,6 +77,7 @@ export function FormEvento({
   puedeAgregarVeterinario,
   lotes,
   puedeComprar,
+  inventariados = [],
 }: {
   fincaId: string;
   especies: Especie[];
@@ -97,6 +98,8 @@ export function FormEvento({
   puedeAgregarVeterinario: boolean;
   /** Los lotes que registró quien compró (`lotes_sanidad`): el lote se elige de aquí, nunca se escribe. */
   lotes: LoteDisponible[];
+  /** Los productos que el inventario de bodega ya sigue: al elegir uno, el formulario recuerda anotar la dosis para que se descuente. */
+  inventariados?: string[];
   /** Quien puede registrar compras ve el enlace para agregar el lote que falta. */
   puedeComprar: boolean;
 }) {
@@ -134,8 +137,11 @@ export function FormEvento({
   const retiroPlegable = r.retiro === "plegado";
   const hayRetiro = retiroVisible || retiroPlegable;
   const dosisVisible = conProducto && r.dosisVisible;
-  const detallesDeProducto = conProducto && !r.dosisVisible;
-  const detallesAbiertos = Boolean(datos && (datos.costo || (detallesDeProducto && (datos.dosis || datos.via))));
+  const cantidadBano = conProducto && Boolean(r.cantidadBano) && productoId !== "";
+  const detallesDeProducto = conProducto && !r.dosisVisible && !r.cantidadBano;
+  // Si el producto está en el inventario, la dosis no se esconde: sin ella la aplicación no descuenta.
+  const seguido = productoId !== "" && inventariados.includes(productoId);
+  const detallesAbiertos = Boolean(datos && (datos.costo || (detallesDeProducto && (datos.dosis || datos.via)))) || (seguido && detallesDeProducto);
   const lotesDelProducto = lotes.filter((l) => l.producto_id === productoId);
   const retiroAbierto = Boolean(datos && (datos.retiro_leche_dias > 0 || datos.retiro_carne_dias > 0));
 
@@ -302,6 +308,20 @@ export function FormEvento({
               {(id) => <input id={id} name="producto_nombre" value={nombreProducto} onChange={(e) => setNombreProducto(e.target.value)} required maxLength={120} autoComplete="off" className={CLASE_INPUT} placeholder="Ej. Clostridial" />}
             </Campo>
           ) : null}
+        </>
+      ) : null}
+
+      {cantidadBano ? (
+        <>
+          <div className="grid grid-cols-1 gap-4 min-[420px]:grid-cols-2">
+            <Campo etiqueta="Producto usado en el baño" ayuda="Opcional. Lo que se gastó en total, no por animal.">
+              {(id) => <input id={id} name="dosis" defaultValue={coma(datos?.dosis)} inputMode="decimal" autoComplete="off" className={CLASE_INPUT} placeholder="Ej. 500" />}
+            </Campo>
+            <Campo etiqueta="Unidad">
+              {(id) => <Selector id={id} nombre="unidad_dosis" valor={unidad} onCambio={(v) => setUnidad(String(v))} titulo="Unidad" placeholder="Sin especificar" permitirVacio opciones={UNIDADES_DOSIS.map((u) => ({ valor: u, etiqueta: u }))} />}
+            </Campo>
+          </div>
+          {seguido ? <Aviso tipo="info">Este producto está en tu inventario: anota cuánto se gastó para que se descuente.</Aviso> : null}
         </>
       ) : null}
 
@@ -475,6 +495,7 @@ export function FormEvento({
         <div className="mt-4 space-y-5">
           {detallesDeProducto ? (
             <>
+              {seguido ? <Aviso tipo="info">Este producto está en tu inventario: anota la dosis y las unidades para que se descuente.</Aviso> : null}
               <div className="grid grid-cols-1 gap-4 min-[420px]:grid-cols-2">
                 <Campo etiqueta="Dosis">
                   {(id) => <input id={id} name="dosis" defaultValue={coma(datos?.dosis)} inputMode="decimal" autoComplete="off" className={CLASE_INPUT} placeholder="Ej. 2,5" />}
