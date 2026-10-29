@@ -25,7 +25,7 @@ export type VisibilidadMenu = {
   carne: boolean;
   sanidad: boolean;
   corrales: boolean;
-  /** Inventario de medicamentos y vacunas (propietario, administrador y veterinario). */
+  /** Inventario de la bodega: medicamentos y vacunas (propietario, administrador y veterinario) y alimento (propietario, administrador y ordeñador). */
   inventario: boolean;
   costos: boolean;
   reportes: boolean;
@@ -53,7 +53,7 @@ export function visibilidadMenu(rol: RolFinca, plan: PlanId): VisibilidadMenu {
     carne: ve("carne"),
     sanidad: ve("sanidad"),
     corrales: ve("corrales"),
-    inventario: ve("inventario"),
+    inventario: ve("inventario") || ve("nutricion"),
     costos: ve("contabilidad"),
     reportes: reportesVisibles(ve).length > 0 || ve("contabilidad"),
     proyecciones: puedeGestionar(rol) && ve("proyecciones"),

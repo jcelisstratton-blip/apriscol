@@ -10,7 +10,7 @@ export function puedeEscribir(rol: RolFinca, modulo: ModuloApp, plan: PlanId = "
       // Quien administra no crea novedades: las atiende (ver `atiendeNovedad`).
       return modulo !== "novedades";
     case "ordenador":
-      return modulo === "leche" || modulo === "novedades";
+      return modulo === "leche" || modulo === "novedades" || modulo === "nutricion";
     case "veterinario":
       return modulo === "sanidad" || modulo === "reproduccion" || modulo === "corrales" || modulo === "novedades";
     case "contador":
@@ -25,7 +25,7 @@ export function puedeVer(rol: RolFinca, modulo: ModuloApp, plan: PlanId = "hacie
     case "administrador":
       return true;
     case "ordenador":
-      return modulo === "hato" || modulo === "leche" || modulo === "novedades";
+      return modulo === "hato" || modulo === "leche" || modulo === "novedades" || modulo === "nutricion";
     case "veterinario":
       return ["hato", "genealogia", "sanidad", "reproduccion", "leche", "carne", "corrales", "novedades", "inventario"].includes(modulo);
     case "contador":

@@ -4,7 +4,7 @@ Pantalla `/semaforos` (entrada **Semáforos** al principio de «Producción y ma
 
 ## Quién ve qué (`lib/semaforos.ts#areasSemaforo`)
 
-Solo lo suyo, además de lo que permita su plan (Ceba pide el módulo Carne; Dinero, Contabilidad): **veterinario** → Reproducción y Sanidad; **ordeñador** → Leche; **propietario y administrador** → todo; **contador** → Dinero. Si luego se le abren más áreas a un rol, se cambia solo `AREAS_DEL_ROL`.
+Solo lo suyo, además de lo que permita su plan (Ceba pide el módulo Carne; Dinero, Contabilidad): **veterinario** → Reproducción, Sanidad e Inventario (de medicamentos); **ordeñador** → Leche y Alimento; **propietario y administrador** → todo; **contador** → Dinero. Si luego se le abren más áreas a un rol, se cambia solo `AREAS_DEL_ROL`.
 
 ## Las señales
 
@@ -43,6 +43,10 @@ Los plazos que ya eran ajustables (ventana de diagnóstico, secado, último terc
 
 Área **Inventario** (propietario, administrador y veterinario; desde el plan Intermedio): `senalInventario` en `lib/semaforos.ts`, con los datos de `inventario_productos`. **Rojo:** lote vencido, producto agotado o aplicado de más (descuadrado). **Ámbar:** stock en el mínimo o por debajo, o un lote que vence en 30 días o menos (`DIAS_AVISO_VENCIMIENTO`). Un producto «por contar» (sin conteo de apertura) no avisa. Detalle en `inventario.md`.
 
+## Alimento
+
+Área **Alimento** (propietario, administrador y ordeñador; desde el plan Intermedio): `senalAlimento`, con los datos de `inventario_alimento` y el plazo `stock_autonomia_dias` de Ajustes de la finca. **Rojo:** agotado, descuadrado o que alcanza para menos de la mitad del plazo. **Ámbar:** alcanza para menos del plazo. Sin al menos 3 días con salidas en las últimas dos semanas no se calcula nada. Detalle en `inventario.md`.
+
 ## En Hoy
 
 `components/ResumenSemaforos.tsx`: tarjeta «Semáforos» con los conteos y las 4 señales más urgentes (rojo primero), con enlace a la pantalla completa. Se calcula con el mismo `cargarSemaforos` y, si falla, no tumba la pantalla de inicio.
@@ -50,7 +54,7 @@ Los plazos que ya eran ajustables (ventana de diagnóstico, secado, último terc
 ## Pendiente (que no se olvide)
 
 - **Validar los plazos con un veterinario.** Los valores iniciales los puso el equipo de producto, no un especialista (partos 30 y 14 días, vacías 60 y 120, abortos 2 y 3 en 30 días, mortalidad de crías 10 % y 20 %, caída de producción).
-- **Alimento (autonomía del stock):** `stock_autonomia_dias` existe en Ajustes, pero la app todavía no lleva un inventario de alimento (solo el de medicamentos y vacunas, ver `inventario.md`), así que no hay de qué calcular esa señal. Se construye con la segunda entrega del inventario.
+- **Alimento (autonomía del stock):** `stock_autonomia_dias` existe en Ajustes, pero la app todavía no lleva un inventario de alimento (solo el de medicamentos y vacunas, ver `inventario.md`), así que no había de qué calcular esa señal; ya existe (ver «Alimento» arriba).
 - Las vacunas se reconocen por el nombre del producto; si algún día el catálogo guarda a qué enfermedad protege cada vacuna, se cambia ahí.
 - Aviso al entrar al escalón de 10 días: hoy lo cubre la tarjeta de Hoy (la señal de partos pasa a «vigílala a diario»); un aviso aparte (notificación) no existe.
 

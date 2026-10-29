@@ -80,7 +80,7 @@ export const CONTENIDO: Record<string, ContenidoOpcion> = {
   "/inventario": {
     escena: ESCENA_TODOS_INVENTARIO,
     lema: "Qué hay en la bodega",
-    puntos: ["Medicamentos y vacunas con lo que queda de cada uno", "Las compras suman y las aplicaciones restan, solas", "Aviso de stock bajo y de lotes por vencer"],
+    puntos: ["Medicamentos y vacunas con lo que queda de cada uno, y el alimento en kg", "Las compras suman y lo que se aplica o se da de comer resta, solo", "Aviso de lotes por vencer y de alimento que se acaba"],
     modulo: "inventario",
   },
   "/costos": {

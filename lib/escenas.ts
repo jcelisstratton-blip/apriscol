@@ -1,4 +1,4 @@
-import { Activity, ArchiveX, Bug, Hammer, Tags, Users, ArrowRightLeft, Baby, Banknote, Beef, Calendar, ClipboardList, Cloud, Crown, Droplets, Fence, FlaskConical, Heart, HeartHandshake, Layers, LayoutDashboard, ListChecks, LogOut, Mars, Microscope, Milk, Mountain, Package, PawPrint, Pill, Scale, ShieldPlus, SlidersHorizontal, Snowflake, Sprout, Syringe, TrendingUp, Trophy, Truck, Venus, Wallet, Receipt, Warehouse, Wheat } from "lucide-react";
+import { Activity, ArchiveX, Bug, Hammer, Tags, Users, ArrowRightLeft, Baby, Banknote, Beef, Calendar, ClipboardList, Cloud, Crown, Droplets, Fence, FlaskConical, Heart, HeartHandshake, Layers, LayoutDashboard, ListChecks, LogOut, Mars, Microscope, Milk, Mountain, Package, PawPrint, Pill, Scale, ShieldPlus, SlidersHorizontal, Snowflake, Sprout, Syringe, TrendingUp, Trophy, Truck, Venus, Wallet, Receipt, Warehouse, Wheat, Boxes } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 /** El color de una tarjeta de opción. Salen de la paleta de la app (musgo, ocre, arcilla…) y se adaptan solos al modo oscuro. */
@@ -66,6 +66,8 @@ export const ESCENA_PESTANA: Record<string, EscenaDef> = {
   empadronamiento: escena(Heart, "arcilla", Calendar),
   servicios: escena(HeartHandshake, "arcilla", Heart),
   partos: ESC.partos,
+  medicamentos: escena(Pill, "ocre", Boxes),
+  alimento: escena(Wheat, "ambar", Boxes),
 };
 
 export type PestanaTarjeta = { valor: string; etiqueta: string; href: string; escena: EscenaDef; detalle?: string; dato?: string };

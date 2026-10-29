@@ -31,7 +31,7 @@ test("menú: un ordeñador no ve lo que no puede abrir y los grupos vacíos desa
   const v = visibilidadMenu("ordenador", "profesional");
   assert.deepEqual(etiquetas(menuPrincipal(v)), [
     ["(inicio)", ["Mis novedades", "Hoy", "Hato"]],
-    ["Producción y manejo", ["Semáforos", "Leche"]],
+    ["Producción y manejo", ["Semáforos", "Leche", "Inventario"]], // el ordeñador ve el inventario de alimento, no el de medicamentos
     ["Dinero y análisis", ["Reportes"]], // el reporte de ordeño sí lo puede abrir
     ["Genealogía", ["Endogamia"]],
   ]);

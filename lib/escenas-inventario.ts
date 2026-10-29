@@ -1,6 +1,7 @@
-import { AlertTriangle, BellRing, Boxes, ClipboardList, PackageCheck, PackageMinus, PackageX, TriangleAlert } from "lucide-react";
+import { AlertTriangle, BellRing, Boxes, ClipboardList, HelpCircle, PackageCheck, PackageMinus, PackageX, TimerReset, TriangleAlert, Wheat } from "lucide-react";
 import { escena, type EscenaDef } from "@/lib/escenas";
 import type { EstadoStock, MotivoAjuste } from "@/lib/inventario";
+import type { EstadoAlimento } from "@/lib/inventario-alimento";
 
 /** Cada estado del stock, con su escena. */
 export const ESCENA_ESTADO_STOCK: Record<EstadoStock, EscenaDef> = {
@@ -22,3 +23,15 @@ export const ESCENA_MOTIVO_AJUSTE: Record<MotivoAjuste, EscenaDef> = {
   dano: escena(TriangleAlert, "grafito"),
   otro: escena(Boxes, "oliva"),
 };
+
+/** Cada estado de un alimento, con su escena. */
+export const ESCENA_ESTADO_ALIMENTO: Record<EstadoAlimento, EscenaDef> = {
+  sin_contar: escena(ClipboardList, "ambar", Wheat),
+  negativo: escena(TriangleAlert, "arcilla", Wheat),
+  agotado: escena(PackageX, "arcilla", Wheat),
+  critico: escena(TimerReset, "arcilla", Wheat),
+  bajo: escena(PackageMinus, "ambar", Wheat),
+  ok: escena(PackageCheck, "oliva", Wheat),
+  sin_datos: escena(HelpCircle, "grafito", Wheat),
+};
+export const ESCENA_TODOS_ALIMENTO: EscenaDef = escena(Wheat, "musgo", Boxes);

@@ -1,15 +1,15 @@
 import {
   Activity, ArrowRightLeft, Baby, Banknote, BarChart3, Beef, CalendarClock, ClipboardCheck, Droplets, FileText, FlaskConical, GitFork, HeartPulse, Download, FileSpreadsheet, Home, KeyRound, Layers, MapPin,
   Microscope, Package, PawPrint, Plus, Rocket, Scale, Shuffle, SlidersHorizontal, Snowflake, Syringe, Trophy, Truck, UserPlus, Users, Wallet, Wrench, Fence, Sheet, type LucideIcon,
-  HardHat, Gift, Inbox, Boxes,
+  HardHat, Gift, Inbox, Boxes, Utensils, Wheat,
 } from "lucide-react";
 import { puedeEscribir, puedeGestionar, puedeVer } from "@/lib/permisos";
 import { servicioEnPlan, type ServicioPlan } from "@/lib/planes";
 import type { ModuloApp, PlanId, RolFinca } from "@/lib/tipos";
 import { sinTildes } from "@/lib/texto";
 
-export type GrupoAtajo = "Hato" | "Leche" | "Reproducción" | "Sanidad" | "Carne" | "Corrales" | "Costos" | "Premios" | "Cuenta";
-export const GRUPOS_ATAJO: GrupoAtajo[] = ["Hato", "Leche", "Reproducción", "Sanidad", "Carne", "Corrales", "Costos", "Premios", "Cuenta"];
+export type GrupoAtajo = "Hato" | "Leche" | "Reproducción" | "Sanidad" | "Carne" | "Corrales" | "Inventario" | "Costos" | "Premios" | "Cuenta";
+export const GRUPOS_ATAJO: GrupoAtajo[] = ["Hato", "Leche", "Reproducción", "Sanidad", "Carne", "Corrales", "Inventario", "Costos", "Premios", "Cuenta"];
 
 /** «registrar» crea o anota algo; «ir» abre una pantalla. */
 export type TipoAtajo = "registrar" | "ir";
@@ -93,7 +93,11 @@ export const ATAJOS: Atajo[] = [
   { grupo: "Corrales", tipo: "ir", titulo: "Corrales y potreros", detalle: "Dónde está cada animal", href: "/hato?vista=corrales", Icono: Fence, modulo: "corrales" },
   { grupo: "Corrales", tipo: "ir", titulo: "Resumen de corrales", detalle: "Ocupación, movimientos y alertas", href: "/corrales", Icono: BarChart3, modulo: "corrales", clave: "hacinamiento cuarentena" },
 
-  { grupo: "Sanidad", tipo: "ir", titulo: "Inventario de medicamentos", detalle: "Qué queda de cada medicamento y vacuna, y los lotes por vencer", href: "/inventario", Icono: Boxes, modulo: "inventario", clave: "bodega stock existencias lotes vencimiento" },
+
+  // Inventario
+  { grupo: "Inventario", tipo: "registrar", titulo: "Anotar lo que se dio de comer", detalle: "Alimento, cuánto y qué día: en segundos", href: "/inventario/alimento/salida", Icono: Utensils, modulo: "nutricion", clave: "alimento concentrado forraje sal melaza dar de comer salida racion" },
+  { grupo: "Inventario", tipo: "ir", titulo: "Inventario de alimento", detalle: "Qué queda y para cuántos días alcanza", href: "/inventario?vista=alimento", Icono: Wheat, modulo: "nutricion", clave: "bodega stock existencias autonomia concentrado" },
+    { grupo: "Inventario", tipo: "ir", titulo: "Inventario de medicamentos", detalle: "Qué queda de cada medicamento y vacuna, y los lotes por vencer", href: "/inventario", Icono: Boxes, modulo: "inventario", clave: "bodega stock existencias lotes vencimiento" },
 
   // Costos
   { grupo: "Costos", tipo: "registrar", titulo: "Registrar una compra", detalle: "Alimento, sanidad, servicios y más: eliges y pones la cantidad", href: "/hato/gastos/nuevo", Icono: Wallet, modulo: "contabilidad", clave: "gasto costo factura compra concentrado" },

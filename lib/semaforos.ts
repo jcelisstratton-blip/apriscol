@@ -8,6 +8,7 @@ import { ETIQUETA_PRUEBA_CORTA, estadoDosis, estadoFechaPrograma, revisionAtrasa
 import { esBaja, mensajeBaja, type Tendencia } from "@/lib/produccion";
 import { estadoCuarentena, textoRotacion } from "@/lib/corrales";
 import { DIAS_AVISO_VENCIMIENTO, estadoStock, estadoVencimiento, textoStock, type FilaInventario } from "@/lib/inventario";
+import { autonomiaDias, diasTexto, estadoAlimento, textoKg, type FilaAlimento } from "@/lib/inventario-alimento";
 import type { CuarentenaAlerta, MantenimientoOrdeno, ModuloApp, PlanId, ReproHembra, RolFinca, TipoPrueba, UbicacionVista } from "@/lib/tipos";
 
 /**
@@ -16,19 +17,19 @@ import type { CuarentenaAlerta, MantenimientoOrdeno, ModuloApp, PlanId, ReproHem
  * Aquí viven las reglas (puras, con prueba); `lib/semaforos-servidor.ts` trae los datos y `components/Semaforos.tsx` los dibuja.
  */
 
-export type AreaSemaforo = "reproduccion" | "sanidad" | "leche" | "ceba" | "corrales" | "inventario" | "dinero";
-export const ETIQUETA_AREA: Record<AreaSemaforo, string> = { reproduccion: "Reproducción", sanidad: "Sanidad", leche: "Leche", ceba: "Ceba", corrales: "Corrales", inventario: "Inventario", dinero: "Dinero" };
-const MODULO_DE_AREA: Record<AreaSemaforo, ModuloApp> = { reproduccion: "reproduccion", sanidad: "sanidad", leche: "leche", ceba: "carne", corrales: "corrales", inventario: "inventario", dinero: "contabilidad" };
+export type AreaSemaforo = "reproduccion" | "sanidad" | "leche" | "ceba" | "corrales" | "inventario" | "alimento" | "dinero";
+export const ETIQUETA_AREA: Record<AreaSemaforo, string> = { reproduccion: "Reproducción", sanidad: "Sanidad", leche: "Leche", ceba: "Ceba", corrales: "Corrales", inventario: "Inventario", alimento: "Alimento", dinero: "Dinero" };
+const MODULO_DE_AREA: Record<AreaSemaforo, ModuloApp> = { reproduccion: "reproduccion", sanidad: "sanidad", leche: "leche", ceba: "carne", corrales: "corrales", inventario: "inventario", alimento: "nutricion", dinero: "contabilidad" };
 
 /**
  * Qué áreas ve cada rol: solo lo suyo. El veterinario, reproducción y sanidad; el ordeñador, leche; el contador, dinero; el propietario y el administrador, todo.
  * (Si luego se le abren más áreas a un rol, se cambia aquí y nada más.) Además deben estar en su plan.
  */
 const AREAS_DEL_ROL: Record<RolFinca, AreaSemaforo[]> = {
-  propietario: ["reproduccion", "sanidad", "leche", "ceba", "corrales", "inventario", "dinero"],
-  administrador: ["reproduccion", "sanidad", "leche", "ceba", "corrales", "inventario", "dinero"],
+  propietario: ["reproduccion", "sanidad", "leche", "ceba", "corrales", "inventario", "alimento", "dinero"],
+  administrador: ["reproduccion", "sanidad", "leche", "ceba", "corrales", "inventario", "alimento", "dinero"],
   veterinario: ["reproduccion", "sanidad", "inventario"],
-  ordenador: ["leche"],
+  ordenador: ["leche", "alimento"],
   contador: ["dinero"],
 };
 
@@ -607,6 +608,35 @@ export function senalInventario(filas: FilaInventario[], hoy: string): Senal {
       queSignifica: "Productos de la bodega que se agotaron, llegaron a su mínimo o tienen un lote vencido o por vencer.",
       regla: `Rojo: lote vencido, agotado o aplicado de más. Ámbar: en el mínimo o un lote que vence en ${DIAS_AVISO_VENCIMIENTO} días o menos.`,
       accion: { texto: "Ver Inventario", href: "/inventario" },
+    },
+    items,
+  );
+}
+
+// ───────────────────────── Alimento ─────────────────────────
+/**
+ * Alimentos que se acaban: rojo si se agotó, se dio de comer más de lo registrado o alcanza para menos de la mitad del plazo de aviso; ámbar si alcanza para menos
+ * del plazo (`stock_autonomia_dias`, en Ajustes de la finca). Sin días con salidas suficientes no se calcula nada, y lo que está «por contar» no avisa.
+ */
+export function senalAlimento(filas: FilaAlimento[], plazoDias: number, hoy: string): Senal {
+  const items: ItemSenal[] = [];
+  for (const f of filas) {
+    const href = `/inventario/alimento/${f.producto_id}`;
+    const estado = estadoAlimento(f, plazoDias, hoy);
+    const dias = autonomiaDias(f, hoy);
+    if (estado === "negativo") items.push({ clave: `negativo-${f.producto_id}`, etiqueta: f.nombre, detalle: "Se dio de comer más de lo que había registrado", nivel: "rojo", href, queHacer: "Cuenta lo que hay y ajusta las existencias.", orden: 1 });
+    else if (estado === "agotado") items.push({ clave: `agotado-${f.producto_id}`, etiqueta: f.nombre, detalle: "Se agotó", nivel: "rojo", href, queHacer: "Compra más antes de que falte.", orden: 0 });
+    else if (estado === "critico" && dias !== null) items.push({ clave: `critico-${f.producto_id}`, etiqueta: f.nombre, detalle: `Alcanza para ${diasTexto(dias)} (quedan ${textoKg(f, f.stock_kg ?? 0)})`, nivel: "rojo", href, queHacer: "Compra más antes de que falte.", orden: 2 + dias / 1000 });
+    else if (estado === "bajo" && dias !== null) items.push({ clave: `bajo-${f.producto_id}`, etiqueta: f.nombre, detalle: `Alcanza para ${diasTexto(dias)} (quedan ${textoKg(f, f.stock_kg ?? 0)})`, nivel: "ambar", href, orden: 3 + dias / 1000 });
+  }
+  return armarSenal(
+    {
+      id: "alimento",
+      area: "alimento",
+      titulo: "Alimento",
+      queSignifica: "Alimentos de la bodega que se agotaron o que alcanzan para pocos días, según lo que se les ha dado de comer en las últimas dos semanas.",
+      regla: `Rojo: se agotó, se dio de más o alcanza para menos de ${diasTexto(plazoDias / 2)}. Ámbar: alcanza para menos de ${diasTexto(plazoDias)} (se cambia en Ajustes de la finca).`,
+      accion: { texto: "Ver Inventario", href: "/inventario?vista=alimento" },
     },
     items,
   );

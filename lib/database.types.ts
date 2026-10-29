@@ -2129,6 +2129,7 @@ export type Database = {
           created_at: string
           finca_id: string
           id: string
+          kg_por_unidad: number | null
           linea: string | null
           nombre: string
           orden: number
@@ -2145,6 +2146,7 @@ export type Database = {
           created_at?: string
           finca_id: string
           id?: string
+          kg_por_unidad?: number | null
           linea?: string | null
           nombre: string
           orden?: number
@@ -2161,6 +2163,7 @@ export type Database = {
           created_at?: string
           finca_id?: string
           id?: string
+          kg_por_unidad?: number | null
           linea?: string | null
           nombre?: string
           orden?: number
@@ -2470,6 +2473,86 @@ export type Database = {
             columns: ["titular_id"]
             isOneToOne: false
             referencedRelation: "libro_titulares"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inventario_alimento_movimientos: {
+        Row: {
+          cantidad: number
+          client_request_id: string | null
+          created_at: string
+          created_by: string | null
+          fecha: string
+          finca_id: string
+          id: string
+          lote_id: string | null
+          motivo: string | null
+          observaciones: string | null
+          producto_id: string
+          tipo: string
+          ubicacion_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          cantidad: number
+          client_request_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          fecha: string
+          finca_id: string
+          id?: string
+          lote_id?: string | null
+          motivo?: string | null
+          observaciones?: string | null
+          producto_id: string
+          tipo: string
+          ubicacion_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          cantidad?: number
+          client_request_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          fecha?: string
+          finca_id?: string
+          id?: string
+          lote_id?: string | null
+          motivo?: string | null
+          observaciones?: string | null
+          producto_id?: string
+          tipo?: string
+          ubicacion_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inv_alimento_lote_fk"
+            columns: ["lote_id", "finca_id"]
+            isOneToOne: false
+            referencedRelation: "lotes_ceba"
+            referencedColumns: ["id", "finca_id"]
+          },
+          {
+            foreignKeyName: "inv_alimento_producto_fk"
+            columns: ["producto_id", "finca_id"]
+            isOneToOne: false
+            referencedRelation: "finca_productos"
+            referencedColumns: ["id", "finca_id"]
+          },
+          {
+            foreignKeyName: "inv_alimento_ubicacion_fk"
+            columns: ["ubicacion_id", "finca_id"]
+            isOneToOne: false
+            referencedRelation: "ubicaciones"
+            referencedColumns: ["id", "finca_id"]
+          },
+          {
+            foreignKeyName: "inventario_alimento_movimientos_finca_id_fkey"
+            columns: ["finca_id"]
+            isOneToOne: false
+            referencedRelation: "fincas"
             referencedColumns: ["id"]
           },
         ]
@@ -6334,6 +6417,21 @@ export type Database = {
       importar_libro_lote: {
         Args: { p_entidad?: string; p_lote: Json }
         Returns: Json
+      }
+      inventario_alimento: {
+        Args: { p_finca: string; p_hoy: string }
+        Returns: {
+          compras_sin_calcular: number
+          consumo_kg: number
+          desde: string
+          dias_con_salida: number
+          kg_por_unidad: number
+          nombre: string
+          producto_id: string
+          rubro: string
+          stock_kg: number
+          unidad: string
+        }[]
       }
       inventario_lotes: {
         Args: { p_finca: string; p_producto: string }

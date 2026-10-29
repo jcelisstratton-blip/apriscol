@@ -173,3 +173,15 @@ export const AYUDA_INVENTARIO: Ayuda = {
   ],
   enlace: { href: "/sanidad?vista=productos", texto: "Ver los productos de Sanidad" },
 };
+
+export const AYUDA_ALIMENTO: Ayuda = {
+  titulo: "Inventario de alimento",
+  puntos: [
+    { titulo: "Todo en kg", texto: "Lo que compras en bultos o pacas se pasa a kg con lo que pesa cada unidad, y lo que se da de comer se anota en kg (o en bultos, si la app sabe cuánto pesa uno)." },
+    { titulo: "Conteo de apertura", texto: "Cada alimento empieza con un conteo: cuánto hay hoy en la bodega. Desde ese día la app suma las compras y resta lo que se dé de comer." },
+    { titulo: "Anotar lo que se dio", texto: "Quien da el alimento anota cuál, cuánto y qué día en pocos segundos; el destino (un corral o un lote de ceba) es opcional." },
+    { titulo: "Para cuántos días alcanza", texto: "La app mira lo que se dio en las últimas dos semanas y calcula cuántos días duran las existencias. Con menos de 3 días con salidas anotadas no calcula: no inventa una cifra." },
+    { titulo: "Avisos", texto: "Te avisa cuando un alimento alcanza para menos de los días que fijaste en Ajustes de la finca, y en rojo cuando queda menos de la mitad. Si se da más de lo que había registrado, queda «Descuadrado»." },
+  ],
+  enlace: { href: "/mas/ajustes", texto: "Cambiar los días de aviso en Ajustes de la finca" },
+};

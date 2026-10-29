@@ -384,6 +384,24 @@ export type InventarioMovimiento = {
   updated_at: string;
 };
 
+/** Un movimiento del inventario de alimento, siempre en kg: la apertura, un ajuste con signo o una salida (lo que se dio de comer). */
+export type InventarioAlimentoMovimiento = {
+  id: string;
+  finca_id: string;
+  producto_id: string;
+  tipo: "apertura" | "ajuste" | "salida";
+  fecha: string;
+  cantidad: number;
+  motivo: "conteo" | "perdida" | "dano" | "otro" | null;
+  ubicacion_id: string | null;
+  lote_id: string | null;
+  observaciones: string | null;
+  client_request_id: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
 export type EventoSanitario = {
   id: string;
   finca_id: string;
@@ -518,6 +536,8 @@ export type Producto = {
   rubro: Exclude<RubroGasto, "mano_obra"> | null;
   linea: LineaVenta | null;
   unidad: string | null;
+  /** Alimento: cuánto pesa cada unidad en que se compra (un bulto, una paca), para pasar lo comprado a kg. */
+  kg_por_unidad: number | null;
   precio_habitual: number | null;
   automatico: boolean;
   activo: boolean;
@@ -1423,6 +1443,7 @@ export type Database = {
       solicitudes_reclamo: Tabla<SolicitudReclamo, "finca_id" | "titular_id">;
       plataforma_admins: Tabla<{ user_id: string; created_at: string }, "user_id">;
       productos_veterinarios: Tabla<ProductoVeterinario, "finca_id" | "nombre">;
+      inventario_alimento_movimientos: Tabla<InventarioAlimentoMovimiento, "finca_id" | "producto_id" | "tipo" | "fecha" | "cantidad">;
       inventario_movimientos: Tabla<InventarioMovimiento, "finca_id" | "producto_vet_id" | "tipo" | "fecha" | "cantidad">;
       eventos_sanitarios: Tabla<EventoSanitario, "finca_id" | "tipo">;
       evento_sanitario_animales: Tabla<EventoSanitarioAnimal, "evento_id" | "animal_id" | "finca_id">;
@@ -1504,6 +1525,21 @@ export type Database = {
           vence_pronto: string | null;
           compras_sin_calcular: number;
           aplicaciones_sin_dosis: number;
+        }[];
+      };
+      inventario_alimento: {
+        Args: { p_finca: string; p_hoy: string };
+        Returns: {
+          producto_id: string;
+          nombre: string;
+          rubro: string;
+          unidad: string | null;
+          kg_por_unidad: number | null;
+          desde: string | null;
+          stock_kg: number | null;
+          consumo_kg: number;
+          dias_con_salida: number;
+          compras_sin_calcular: number;
         }[];
       };
       inventario_lotes: { Args: { p_finca: string; p_producto: string }; Returns: { lote: string | null; vencimiento: string | null; stock: number }[] };

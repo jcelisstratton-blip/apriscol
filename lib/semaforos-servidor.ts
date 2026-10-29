@@ -7,10 +7,12 @@ import { aplicaFamacha } from "@/lib/famacha";
 import { diasDesde, sumarDias } from "@/lib/fechas";
 import { nombreEvento, plazosRevisionPezuna } from "@/lib/sanidad";
 import type { FilaInventario } from "@/lib/inventario";
+import type { FilaAlimento } from "@/lib/inventario-alimento";
 import {
   areasSemaforo,
   senalCalidad,
   senalCorrales,
+  senalAlimento,
   senalInventario,
   senalDosis,
   senalFamacha,
@@ -258,6 +260,11 @@ export async function cargarSemaforos({
   if (areas.has("inventario")) {
     const { data } = await supabase.rpc("inventario_productos", { p_finca: fincaId });
     senales.push(senalInventario((data ?? []) as FilaInventario[], hoy));
+  }
+
+  if (areas.has("alimento")) {
+    const { data } = await supabase.rpc("inventario_alimento", { p_finca: fincaId, p_hoy: hoy });
+    senales.push(senalAlimento((data ?? []) as FilaAlimento[], g.stock_autonomia_dias, hoy));
   }
 
   return senales;
