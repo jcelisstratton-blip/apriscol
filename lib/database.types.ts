@@ -6441,6 +6441,45 @@ export type Database = {
           vencimiento: string
         }[]
       }
+      inventario_lotes_finca: {
+        Args: { p_finca: string }
+        Returns: {
+          lote: string
+          producto: string
+          producto_id: string
+          stock: number
+          tipo: string
+          unidad: string
+          vencimiento: string
+        }[]
+      }
+      inventario_movimientos_alimento: {
+        Args: { p_desde: string; p_finca: string; p_hasta: string }
+        Returns: {
+          destino: string
+          detalle: string
+          fecha: string
+          kg: number
+          producto: string
+          producto_id: string
+          quien: string
+          tipo: string
+        }[]
+      }
+      inventario_movimientos_med: {
+        Args: { p_desde: string; p_finca: string; p_hasta: string }
+        Returns: {
+          cantidad: number
+          detalle: string
+          fecha: string
+          lote: string
+          producto: string
+          producto_id: string
+          quien: string
+          tipo: string
+          unidad: string
+        }[]
+      }
       inventario_productos: {
         Args: { p_finca: string }
         Returns: {

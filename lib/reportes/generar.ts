@@ -1,5 +1,10 @@
 import type { ContextoReporte } from "@/lib/reportes/base";
 import { informeGestantes } from "@/lib/reportes/informes/gestantes";
+import { informeInvAlimento } from "@/lib/reportes/informes/inv-alimento";
+import { informeInvLotes } from "@/lib/reportes/informes/inv-lotes";
+import { informeInvMedicamentos } from "@/lib/reportes/informes/inv-medicamentos";
+import { informeInvMovAlimento } from "@/lib/reportes/informes/inv-mov-alimento";
+import { informeInvMovMed } from "@/lib/reportes/informes/inv-mov-med";
 import { informeInventario } from "@/lib/reportes/informes/inventario";
 import { informeOrdeno } from "@/lib/reportes/informes/ordeno";
 import { informePartos } from "@/lib/reportes/informes/partos";
@@ -24,6 +29,11 @@ const INFORMES: Record<ReporteId, (c: ContextoReporte) => Promise<ResultadoRepor
   peso: informePeso,
   retiro: informeRetiro,
   sanidad: informeSanidad,
+  inv_medicamentos: informeInvMedicamentos,
+  inv_lotes: informeInvLotes,
+  inv_mov_med: informeInvMovMed,
+  inv_alimento: informeInvAlimento,
+  inv_mov_alimento: informeInvMovAlimento,
 };
 
 /** Arma un reporte con los datos de la finca y los filtros del contexto. */

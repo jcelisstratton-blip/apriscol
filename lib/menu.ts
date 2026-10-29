@@ -55,7 +55,7 @@ export function visibilidadMenu(rol: RolFinca, plan: PlanId): VisibilidadMenu {
     corrales: ve("corrales"),
     inventario: ve("inventario") || ve("nutricion"),
     costos: ve("contabilidad"),
-    reportes: reportesVisibles(ve).length > 0 || ve("contabilidad"),
+    reportes: reportesVisibles(ve, puedeGestionar(rol)).length > 0 || ve("contabilidad"),
     proyecciones: puedeGestionar(rol) && ve("proyecciones"),
     premios: ve("ferias"),
     equipo: puedeGestionar(rol) || ve("contabilidad"),
