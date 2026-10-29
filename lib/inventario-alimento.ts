@@ -149,3 +149,6 @@ export function diasConSalidas(salidas: { fecha: string }[], hoy: string): strin
 export function planearRepeticion(origen: SalidaRepetible[], conApertura: Set<string>): SalidaRepetible[] {
   return origen.filter((s) => conApertura.has(s.producto_id) && s.cantidad > 0);
 }
+
+/** El texto con que se marcan las raciones repetidas de un día (también lo lee la pantalla para no ofrecer repetirlo dos veces). */
+export const marcaRepeticion = (origen: string): string => `Repetido del ${origen}`;

@@ -23,13 +23,14 @@ export async function cargarDestinosSalida(supabase: Cliente, finca: { id: strin
 }
 
 /** Los alimentos del catálogo de la finca (los mismos que cuenta el inventario de alimento): lo que se ofrece al anotar el consumo de un lote. */
-export async function cargarAlimentosCatalogo(supabase: Cliente, fincaId: string): Promise<{ valor: string; etiqueta: string }[]> {
+/** `incluir`: el alimento que ya tiene un registro que se corrige, aunque se haya desactivado después. */
+export async function cargarAlimentosCatalogo(supabase: Cliente, fincaId: string, incluir?: string | null): Promise<{ valor: string; etiqueta: string }[]> {
   const { data } = await supabase
     .from("finca_productos")
     .select("id, nombre")
     .eq("finca_id", fincaId)
     .eq("tipo", "compra")
-    .eq("activo", true)
+    .or(incluir ? `activo.eq.true,id.eq.${incluir}` : "activo.eq.true")
     .in("rubro", [...RUBROS_ALIMENTO])
     .order("nombre")
     .limit(300);

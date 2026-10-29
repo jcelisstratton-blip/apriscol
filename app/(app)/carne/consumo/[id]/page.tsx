@@ -34,7 +34,7 @@ export default async function PaginaEditarConsumo({ params }: { params: Promise<
       </Link>
       <Encabezado titulo="Editar alimento" subtitulo={lote.nombre} />
       <div className="space-y-8 lg:max-w-xl">
-        <FormConsumo loteId={lote.id} hoy={hoyBogota()} consumo={consumo} alimentos={await cargarAlimentosCatalogo(supabase, finca.id)} />
+        <FormConsumo loteId={lote.id} hoy={hoyBogota()} consumo={consumo} alimentos={await cargarAlimentosCatalogo(supabase, finca.id, consumo.producto_id)} />
         {puedeGestionar(rol) ? (
           <EliminarRegistro
             etiqueta="Eliminar este registro"

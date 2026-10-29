@@ -543,7 +543,7 @@ test("compras: avisa cuando no van a sumar al inventario y calla cuando sí suma
   assert.equal(avisoCompraInventario({ ...base, rubro: "mano_obra", producto: null }), null);
 });
 
-import { diasConSalidas, planearRepeticion } from "../lib/inventario-alimento.ts";
+import { diasConSalidas, marcaRepeticion, planearRepeticion } from "../lib/inventario-alimento.ts";
 test("repetir raciones: solo días anteriores, del más reciente al más antiguo, y solo alimentos que el inventario sigue", () => {
   const salidas = [{ fecha: "2026-10-27" }, { fecha: "2026-10-29" }, { fecha: "2026-10-27" }, { fecha: "2026-10-25" }, { fecha: "2026-10-30" }];
   assert.deepEqual(diasConSalidas(salidas, "2026-10-29"), ["2026-10-27", "2026-10-25"]);
@@ -555,4 +555,5 @@ test("repetir raciones: solo días anteriores, del más reciente al más antiguo
   ];
   assert.deepEqual(planearRepeticion(origen, new Set(["a"])), [origen[0]]);
   assert.deepEqual(planearRepeticion(origen, new Set()), []);
+  assert.equal(marcaRepeticion("2026-10-28"), "Repetido del 2026-10-28");
 });
