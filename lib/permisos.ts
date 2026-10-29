@@ -10,7 +10,7 @@ export function puedeEscribir(rol: RolFinca, modulo: ModuloApp, plan: PlanId = "
       // Quien administra no crea novedades: las atiende (ver `atiendeNovedad`).
       return modulo !== "novedades";
     case "ordenador":
-      return modulo === "leche" || modulo === "novedades";
+      return modulo === "leche" || modulo === "novedades" || modulo === "nutricion";
     case "veterinario":
       return modulo === "sanidad" || modulo === "reproduccion" || modulo === "corrales" || modulo === "novedades";
     case "contador":
@@ -25,9 +25,9 @@ export function puedeVer(rol: RolFinca, modulo: ModuloApp, plan: PlanId = "hacie
     case "administrador":
       return true;
     case "ordenador":
-      return modulo === "hato" || modulo === "leche" || modulo === "novedades";
+      return modulo === "hato" || modulo === "leche" || modulo === "novedades" || modulo === "nutricion";
     case "veterinario":
-      return ["hato", "genealogia", "sanidad", "reproduccion", "leche", "carne", "corrales", "novedades"].includes(modulo);
+      return ["hato", "genealogia", "sanidad", "reproduccion", "leche", "carne", "corrales", "novedades", "inventario"].includes(modulo);
     case "contador":
       return ["hato", "leche", "carne", "contabilidad"].includes(modulo);
   }
@@ -48,6 +48,11 @@ export function tiposNovedadQueCrea(rol: RolFinca): TipoNovedadPermiso[] {
 /** Qué novedades le llegan a un perfil para atender: `compra`, `no_compra` (aplicar dosis y las anteriores) o `todas`. Sirve para contar y filtrar. */
 export function destinoNovedades(rol: RolFinca): "compra" | "no_compra" | "todas" | null {
   return rol === "propietario" ? "todas" : rol === "administrador" ? "compra" : rol === "veterinario" ? "no_compra" : null;
+}
+
+/** ¿Elimina novedades que envió otra persona? Solo el administrador; cada quien elimina las suyas. Espejo de `private.fincas_borran_novedades`. */
+export function borraNovedadAjena(rol: RolFinca): boolean {
+  return rol === "administrador";
 }
 
 /** ¿Atiende (marca vista o atendida) una novedad de este tipo? Comprar: administrador y propietario; las demás (aplicar dosis…): veterinario y propietario. */

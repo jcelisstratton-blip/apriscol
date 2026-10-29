@@ -5,7 +5,7 @@ export type SexoAnimal = "hembra" | "macho";
 export type Vocacion = "leche" | "carne" | "doble";
 export type RolFinca = "propietario" | "administrador" | "ordenador" | "veterinario" | "contador";
 export type ModuloApp =
-  | "hato" | "genealogia" | "leche" | "carne" | "sanidad" | "reproduccion" | "nutricion" | "ambiente" | "contabilidad" | "ferias" | "corrales" | "proyecciones" | "novedades";
+  | "hato" | "genealogia" | "leche" | "carne" | "sanidad" | "reproduccion" | "nutricion" | "ambiente" | "contabilidad" | "ferias" | "corrales" | "proyecciones" | "novedades" | "inventario";
 export type PlanId = "cria" | "hato" | "profesional" | "hacienda";
 export type UsoMacho = "reproductor" | "carne";
 export type Jornada = "manana" | "tarde" | "noche" | "unico";
@@ -357,7 +357,47 @@ export type ProductoVeterinario = {
   retiro_leche_dias: number;
   retiro_carne_dias: number;
   unidad_dosis: string | null;
+  /** Inventario: cómo viene (frasco, caja…), cuánto trae en la unidad de la dosis y el stock mínimo que dispara el aviso. */
+  presentacion: string | null;
+  contenido_presentacion: number | null;
+  stock_minimo: number | null;
   activo: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+/** Un conteo del inventario de medicamentos: la apertura (lo que había al empezar) o un ajuste con signo (conteo físico, vencido, pérdida…). */
+export type InventarioMovimiento = {
+  id: string;
+  finca_id: string;
+  producto_vet_id: string;
+  tipo: "apertura" | "ajuste";
+  fecha: string;
+  cantidad: number;
+  lote: string | null;
+  vencimiento: string | null;
+  motivo: "conteo" | "vencido" | "perdida" | "dano" | "otro" | null;
+  observaciones: string | null;
+  client_request_id: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+/** Un movimiento del inventario de alimento, siempre en kg: la apertura, un ajuste con signo o una salida (lo que se dio de comer). */
+export type InventarioAlimentoMovimiento = {
+  id: string;
+  finca_id: string;
+  producto_id: string;
+  tipo: "apertura" | "ajuste" | "salida";
+  fecha: string;
+  cantidad: number;
+  motivo: "conteo" | "perdida" | "dano" | "otro" | null;
+  ubicacion_id: string | null;
+  lote_id: string | null;
+  observaciones: string | null;
+  client_request_id: string | null;
+  created_by: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -496,6 +536,8 @@ export type Producto = {
   rubro: Exclude<RubroGasto, "mano_obra"> | null;
   linea: LineaVenta | null;
   unidad: string | null;
+  /** Alimento: cuánto pesa cada unidad en que se compra (un bulto, una paca), para pasar lo comprado a kg. */
+  kg_por_unidad: number | null;
   precio_habitual: number | null;
   automatico: boolean;
   activo: boolean;
@@ -1401,6 +1443,8 @@ export type Database = {
       solicitudes_reclamo: Tabla<SolicitudReclamo, "finca_id" | "titular_id">;
       plataforma_admins: Tabla<{ user_id: string; created_at: string }, "user_id">;
       productos_veterinarios: Tabla<ProductoVeterinario, "finca_id" | "nombre">;
+      inventario_alimento_movimientos: Tabla<InventarioAlimentoMovimiento, "finca_id" | "producto_id" | "tipo" | "fecha" | "cantidad">;
+      inventario_movimientos: Tabla<InventarioMovimiento, "finca_id" | "producto_vet_id" | "tipo" | "fecha" | "cantidad">;
       eventos_sanitarios: Tabla<EventoSanitario, "finca_id" | "tipo">;
       evento_sanitario_animales: Tabla<EventoSanitarioAnimal, "evento_id" | "animal_id" | "finca_id">;
       pruebas_sanitarias: Tabla<PruebaSanitaria, "finca_id" | "animal_id" | "prueba">;
@@ -1466,6 +1510,39 @@ export type Database = {
       quitar_semental: { Args: { p_finca: string; p_lote: string; p_macho: string }; Returns: undefined };
       agregar_veterinario: { Args: { p_finca: string; p_nombre: string; p_tarjeta: string; p_telefono: string }; Returns: { id: string; nombre: string; tarjeta_profesional: string | null }[] };
       corregir_crias: { Args: { p_finca: string; p_parto: string; p_crias: unknown }; Returns: number };
+      inventario_productos: {
+        Args: { p_finca: string };
+        Returns: {
+          producto_id: string;
+          nombre: string;
+          tipo: string;
+          unidad: string | null;
+          presentacion: string | null;
+          contenido_presentacion: number | null;
+          stock_minimo: number | null;
+          desde: string | null;
+          stock: number | null;
+          vence_pronto: string | null;
+          compras_sin_calcular: number;
+          aplicaciones_sin_dosis: number;
+        }[];
+      };
+      inventario_alimento: {
+        Args: { p_finca: string; p_hoy: string };
+        Returns: {
+          producto_id: string;
+          nombre: string;
+          rubro: string;
+          unidad: string | null;
+          kg_por_unidad: number | null;
+          desde: string | null;
+          stock_kg: number | null;
+          consumo_kg: number;
+          dias_con_salida: number;
+          compras_sin_calcular: number;
+        }[];
+      };
+      inventario_lotes: { Args: { p_finca: string; p_producto: string }; Returns: { lote: string | null; vencimiento: string | null; stock: number }[] };
       lotes_sanidad: { Args: { p_finca: string }; Returns: { gasto_id: string; producto_id: string; lote: string; vencimiento: string | null; comprado: string }[] };
       veterinarios_finca: { Args: { p_finca: string }; Returns: { id: string; nombre: string; tarjeta_profesional: string | null }[] };
       registrar_persona: { Args: { p_finca: string; p_persona: unknown; p_email?: string | null; p_rol?: string | null }; Returns: unknown };

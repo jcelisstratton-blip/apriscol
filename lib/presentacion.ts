@@ -1,5 +1,6 @@
 import { Activity, Inbox, CalendarCheck, Coins, Crown, Download, FileBarChart2, FileSpreadsheet, GitFork, Gift, Home, Package, Plus, SlidersHorizontal, Sprout, TrendingUp, Trophy, Users, Wallet, Wrench } from "lucide-react";
 import { escena, ESC, ESCENA_HATO, type EscenaDef } from "@/lib/escenas";
+import { ESCENA_TODOS_INVENTARIO } from "@/lib/escenas-inventario";
 import { menuFinca, menuPrincipal, visibilidadMenu, type EntradaMenu } from "@/lib/menu";
 import { MESES_REFERIDO, PORCENTAJE_REFERIDO } from "@/lib/referidos";
 import { moduloEnPlan, PLANES, SERVICIOS_PLAN, type ServicioPlan } from "@/lib/planes";
@@ -76,6 +77,12 @@ export const CONTENIDO: Record<string, ContenidoOpcion> = {
     puntos: ["No deja llenar un corral de más", "Rotación de potreros con días de descanso", "Cuarentena de los animales que llegan"],
     modulo: "corrales",
   },
+  "/inventario": {
+    escena: ESCENA_TODOS_INVENTARIO,
+    lema: "Qué hay en la bodega",
+    puntos: ["Medicamentos y vacunas con lo que queda de cada uno, y el alimento en kg", "Las compras suman y lo que se aplica o se da de comer resta, solo", "Aviso de lotes por vencer y de alimento que se acaba"],
+    modulo: "inventario",
+  },
   "/costos": {
     escena: ESCENA_HATO.gastos,
     lema: "Cuánto cuesta y cuánto deja",
@@ -145,7 +152,7 @@ export type GrupoFunciones = { id: string; rotulo: string; titulo: string; texto
 /** El encabezado de cada grupo: el mismo nombre del menú y una frase que dice qué se gana. */
 const ENCABEZADOS: Record<string, { rotulo: string; titulo: string; texto: string }> = {
   inicio: { rotulo: "Cada día", titulo: "Lo que toca hoy y cada animal con su historia", texto: "Abres la app y ves qué atender; entras a un animal y lo tienes todo." },
-  produccion: { rotulo: "Producción y manejo", titulo: "Del ordeño al corral, todo el manejo", texto: "Leche, partos, carne, sanidad y corrales, cada uno con sus reglas." },
+  produccion: { rotulo: "Producción y manejo", titulo: "Del ordeño al corral, todo el manejo", texto: "Leche, partos, carne, sanidad, corrales y la bodega, cada uno con sus reglas." },
   dinero: { rotulo: "Dinero y análisis", titulo: "Cuánto cuesta, cuánto deja y qué viene", texto: "Las cuentas de la finca, listados para decidir y una mirada hacia adelante." },
   genealogia: { rotulo: "Genealogía", titulo: "Conoce de dónde viene cada animal", texto: "El parentesco que cuida tu cría y el palmarés que la muestra." },
   finca: { rotulo: "Mi finca", titulo: "Tu finca, con tus reglas y tu equipo", texto: "Defines cómo trabaja tu aprisco, quién entra y qué hacer con tus datos." },

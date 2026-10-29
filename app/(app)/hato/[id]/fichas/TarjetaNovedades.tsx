@@ -7,7 +7,7 @@ import { Tarjeta } from "@/components/Tarjeta";
 import { formatoFecha } from "@/lib/fechas";
 import { eliminarNovedad } from "@/app/(app)/novedades/actions";
 import { ETIQUETA_ESTADO_NOVEDAD, TONO_ESTADO_NOVEDAD, resumenNovedad } from "@/lib/novedades";
-import { puedeEscribir, puedeVer } from "@/lib/permisos";
+import { borraNovedadAjena, puedeEscribir, puedeVer } from "@/lib/permisos";
 import type { CtxFicha } from "./contexto";
 
 /** Las novedades de este animal y el botón para enviar una (solo eligiendo opciones). Cada perfil ve las que le llegan y las que creó. */
@@ -35,9 +35,9 @@ export async function TarjetaNovedades({ c }: { c: CtxFicha }) {
                 Enviada por {n.enviada_por_nombre} · ocurrió el {formatoFecha(n.fecha, { day: "numeric", month: "short" })}
               </p>
               {n.observaciones ? <p className="mt-1 whitespace-pre-wrap text-sm [overflow-wrap:anywhere]">{n.observaciones}</p> : null}
-              {n.created_by === c.usuarioId ? (
+              {n.created_by === c.usuarioId || borraNovedadAjena(rol) ? (
                 <div className="mt-1">
-                  <EliminarRegistro etiqueta="Eliminar mi novedad" resumen={resumenNovedad(n)} accion={eliminarNovedad.bind(null, n.id)} destino={`/hato/${id}`} mensaje="Novedad eliminada" />
+                  <EliminarRegistro etiqueta={n.created_by === c.usuarioId ? "Eliminar mi novedad" : "Eliminar esta novedad"} resumen={resumenNovedad(n)} accion={eliminarNovedad.bind(null, n.id)} destino={`/hato/${id}`} mensaje="Novedad eliminada" />
                 </div>
               ) : null}
             </li>

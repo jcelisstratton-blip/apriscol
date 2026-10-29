@@ -18,7 +18,7 @@ import { EVENTO_CON_PRODUCTO, RESULTADOS_PRUEBA, TIPOS_EVENTO, TIPOS_PRODUCTO, T
 import { opcional } from "@/lib/validacion";
 import { leerTodo } from "@/lib/consultas";
 
-export type EstadoForm = { error?: string } | undefined;
+export type EstadoForm = { error?: string; /** Se guardó y la pantalla sigue (p. ej. «Guardar y registrar otro»). */ guardado?: boolean } | undefined;
 type Resultado = { ok: true } | { ok: false; error: string };
 
 /** Un número escrito a la colombiana: «25.000» son veinticinco mil, no veinticinco; «1,5» es uno y medio. */
@@ -511,6 +511,8 @@ export async function crearCoprologico(_: EstadoForm, form: FormData): Promise<E
   if (error?.code === "23505") return { error: COPROLOGICO_REPETIDO };
   if (error) return { error: mensajeAmigable(error.message) };
   refrescarCoprologico(leido.fila.animal_id, leido.fila.evento_id);
+  // «Guardar y registrar otro» solo existe para exámenes sueltos de diagnóstico; los de una prueba de eficacia vuelven a su desparasitación.
+  if (form.get("seguir") === "1" && !leido.fila.evento_id) return { guardado: true };
   redirect(leido.fila.evento_id ? `/sanidad/evento/${leido.fila.evento_id}?guardado=1` : `/hato/${leido.fila.animal_id}?guardado=1#sanidad`);
 }
 

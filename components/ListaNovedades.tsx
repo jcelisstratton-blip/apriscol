@@ -13,7 +13,7 @@ import { FilaTarjetas, TarjetaOpcion } from "@/components/TarjetaOpcion";
 import { ESCENA_ESTADO_NOVEDAD, ESCENA_TODAS_NOVEDADES } from "@/lib/escenas-novedades";
 import { eliminarNovedad } from "@/app/(app)/novedades/actions";
 import { crearClienteNavegador } from "@/lib/supabase/client";
-import { atiendeNovedad, destinoNovedades } from "@/lib/permisos";
+import { atiendeNovedad, borraNovedadAjena, destinoNovedades } from "@/lib/permisos";
 import { etiquetaAnimal } from "@/lib/animal";
 import { formatoFecha } from "@/lib/fechas";
 import { ESTADOS_NOVEDAD, ETIQUETA_ESTADO_NOVEDAD, TONO_ESTADO_NOVEDAD, direccionParaRegistrar, resumenNovedad, type EstadoNovedad } from "@/lib/novedades";
@@ -88,8 +88,8 @@ export function ListaNovedades({ fincaId, rol, reviso, estadoInicial, usuarioId 
               Enviada por <span className="font-semibold text-tinta">{n.enviada_por_nombre}</span> · {hora(n.created_at)} · ocurrió el {formatoFecha(n.fecha, { day: "numeric", month: "short" })}
             </p>
             {n.observaciones ? <p className="whitespace-pre-wrap text-sm [overflow-wrap:anywhere]">{n.observaciones}</p> : null}
-            {n.created_by === usuarioId ? (
-              <EliminarRegistro etiqueta="Eliminar mi novedad" resumen={resumenNovedad(n)} accion={async () => { const r = await eliminarNovedad(n.id); if (r.ok) setVersion((v) => v + 1); return r; }} destino="/novedades" mensaje="Novedad eliminada" />
+            {n.created_by === usuarioId || borraNovedadAjena(rol) ? (
+              <EliminarRegistro etiqueta={n.created_by === usuarioId ? "Eliminar mi novedad" : "Eliminar esta novedad"} resumen={resumenNovedad(n)} accion={async () => { const r = await eliminarNovedad(n.id); if (r.ok) setVersion((v) => v + 1); return r; }} destino="/novedades" mensaje="Novedad eliminada" />
             ) : null}
             {reviso && atiendeNovedad(rol, n.tipo) ? <AccionesNovedad id={n.id} estado={n.estado} registrar={direccionParaRegistrar(n)} textoRegistrar={n.tipo === "compra" ? "Registrar la compra" : undefined} alCambiar={() => setVersion((v) => v + 1)} /> : null}
           </div>

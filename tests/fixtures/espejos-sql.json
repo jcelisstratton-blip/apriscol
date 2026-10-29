@@ -1,5 +1,5 @@
 {
- "_origen": "Respuesta de la base (private.*) generada con tests/fixtures/generar-espejos.sql el 2026-10-21. Regenerar si cambia una función.",
+ "_origen": "Respuesta de la base (private.*) generada con tests/fixtures/generar-espejos.sql el 2026-10-29. Regenerar si cambia una función.",
  "grupo_rubro": {
   "otros": "operacion",
   "fletes": "logistica",
@@ -30,8 +30,10 @@
   "sanidad": 1,
   "ambiente": 2,
   "corrales": 2,
+  "novedades": 1,
   "nutricion": 2,
   "genealogia": 1,
+  "inventario": 2,
   "contabilidad": 3,
   "reproduccion": 1,
   "proyecciones": 3

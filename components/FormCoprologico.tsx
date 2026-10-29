@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState, useTransition } from "react";
+import { useActionState, useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { Aviso } from "@/components/Aviso";
 import { Boton, clasesBoton } from "@/components/Boton";
@@ -11,6 +11,8 @@ import { Insignia } from "@/components/Insignia";
 import { Selector } from "@/components/Selector";
 import { SelectorAnimal } from "@/components/SelectorAnimal";
 import { SelectorTarjetas } from "@/components/SelectorTarjetas";
+import { useToast } from "@/components/Toast";
+import { etiquetaAnimal } from "@/lib/animal";
 import { ESCENA_MUESTRA } from "@/lib/escenas-listas-sanidad";
 import type { VeterinarioRef } from "@/lib/veterinarios";
 import { crearCoprologico, editarCoprologico } from "@/app/(app)/sanidad/actions";
@@ -69,6 +71,11 @@ export function FormCoprologico({
   const animalId = animalFijo ?? elegido?.id ?? "";
   const [estado, enviar, pendiente] = useActionState(editando ? editarCoprologico : crearCoprologico, undefined);
   const [, iniciar] = useTransition();
+  const toast = useToast();
+  // «Guardar y registrar otro»: tras guardar se vacía lo propio de cada animal (animal, resultados, observaciones) y se conserva lo de la tanda de muestras.
+  const [ronda, setRonda] = useState(0);
+  const ultimoGuardado = useRef("");
+  const estadoAtendido = useRef<unknown>(undefined);
   const [tecnica, setTecnica] = useState<TecnicaCoprologico>(examen?.tecnica ?? "mcmaster");
   const [momento, setMomento] = useState<MomentoCoprologico>(examen?.momento ?? (evento ? (momentoInicial ?? "antes") : "diagnostico"));
   const [muestra, setMuestra] = useState<TipoMuestra | "">(examen?.tipo_muestra ?? "");
@@ -77,15 +84,31 @@ export function FormCoprologico({
   const [otros, setOtros] = useState<OtroParasito[]>((examen?.otros_parasitos ?? []) as OtroParasito[]);
 
   const eventoId = evento?.id ?? examen?.evento_id ?? "";
+  const puedeSeguir = !editando && !animalFijo && !eventoId;
+
+  useEffect(() => {
+    if (!estado?.guardado || estadoAtendido.current === estado) return;
+    estadoAtendido.current = estado;
+    toast.exito(`Examen guardado: ${ultimoGuardado.current}`);
+    setElegido(null);
+    setHpg("");
+    setOpg("");
+    setOtros([]);
+    setRonda((r) => r + 1);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [estado, toast]);
   const hpgNum = hpg.trim() ? leerNumero(hpg) : null;
   const lectura = hpgNum !== null && hpgNum >= 0 && momento === "diagnostico" ? interpretarHpg(hpgNum) : null;
 
   // Se envía con onSubmit (no con `action`): si hay un error, lo que la persona escribió no se borra.
   const alEnviar = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const datos = new FormData(e.currentTarget);
+    // El botón que se tocó viaja con el formulario: así el servidor sabe si es «Guardar y registrar otro».
+    const datos = new FormData(e.currentTarget, (e.nativeEvent as SubmitEvent).submitter);
+    ultimoGuardado.current = elegido ? etiquetaAnimal(elegido) : "";
     iniciar(() => enviar(datos));
   };
+  const noListo = (!hpg.trim() && !opg.trim()) || !animalId || (!editando && !muestra) || (muestra === "contaminada" && momento !== "diagnostico");
   const volver = eventoId ? `/sanidad/evento/${eventoId}` : animalFijo ? `/hato/${animalFijo}#sanidad` : "/sanidad?vista=coprologicos";
 
   return (
@@ -114,7 +137,7 @@ export function FormCoprologico({
       ) : null}
 
       {!animalFijo && fincaId ? (
-        <Campo etiqueta="Animal" ayuda="A quién se le tomó la muestra. Si fue de varios, anótalo en observaciones y registra el examen del más representativo.">
+        <Campo etiqueta="Animal" ayuda="A quién se le tomó la muestra. Cada animal lleva su propio examen: para registrar varios seguidos usa «Guardar y registrar otro».">
           {(idc) => <SelectorAnimal id={idc} nombre="animal_id_elegido" fincaId={fincaId} titulo="¿De qué animal es la muestra?" valor={elegido} onCambio={setElegido} vacio="Elegir animal" soloActivos />}
         </Campo>
       ) : null}
@@ -182,15 +205,20 @@ export function FormCoprologico({
         {(id) => <input id={id} name="laboratorio" defaultValue={examen?.laboratorio ?? ""} maxLength={120} autoComplete="off" className={CLASE_INPUT} />}
       </Campo>
       <Campo etiqueta="Observaciones" ayuda="Opcional: diarrea, condición corporal, si es una muestra de varios animales…">
-        {(id) => <textarea id={id} name="observaciones" defaultValue={examen?.observaciones ?? ""} rows={2} maxLength={300} className={`${CLASE_INPUT} py-3`} />}
+        {(id) => <textarea key={ronda} id={id} name="observaciones" defaultValue={examen?.observaciones ?? ""} rows={2} maxLength={300} className={`${CLASE_INPUT} py-3`} />}
       </Campo>
 
       {!animalId ? <Aviso tipo="atencion">Elige el animal para guardar.</Aviso> : !hpg.trim() && !opg.trim() ? <Aviso tipo="atencion">Escribe al menos un resultado (HPG u OPG) para guardar.</Aviso> : null}
       {estado?.error ? <Aviso tipo="error">{estado.error}</Aviso> : null}
       <div className="space-y-2">
-        <Boton type="submit" pendiente={pendiente} cargando="Guardando…" disabled={(!hpg.trim() && !opg.trim()) || !animalId || (!editando && !muestra) || (muestra === "contaminada" && momento !== "diagnostico")}>
+        <Boton type="submit" pendiente={pendiente} cargando="Guardando…" disabled={noListo}>
           {editando ? "Guardar cambios" : "Guardar examen"}
         </Boton>
+        {puedeSeguir ? (
+          <Boton type="submit" name="seguir" value="1" variante="secundario" pendiente={pendiente} cargando="Guardando…" disabled={noListo}>
+            Guardar y registrar otro
+          </Boton>
+        ) : null}
         <Link href={volver} className={clasesBoton("fantasma")}>
           Cancelar
         </Link>

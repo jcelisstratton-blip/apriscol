@@ -163,7 +163,7 @@ export const GRUPOS_AJUSTES: GrupoDefinicion[] = [
     id: "nutricion",
     titulo: "Alimentación e inventarios",
     detalle: "Cuánto alimento seco come un animal y con cuántos días de reserva te avisa la bodega.",
-    nota: "Estos valores quedan guardados y se usarán cuando llegue el control de bodega y raciones.",
+    nota: "Los días de aviso ya se usan en el inventario de alimento; los porcentajes de alimento seco se usarán cuando lleguen las raciones.",
     general: [
       { clave: "ms_mantenimiento_pct", etiqueta: "Alimento seco diario en mantenimiento", unidad: "% del peso vivo", ayuda: "Lo habitual es cerca de 3 %.", min: 1, max: 8, decimales: 1 },
       { clave: "ms_produccion_min_pct", etiqueta: "Alimento seco diario en gestación avanzada o lactancia: desde", unidad: "% del peso vivo", min: 1, max: 8, decimales: 1 },

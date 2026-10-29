@@ -103,7 +103,7 @@ export const planesSuperiores = (actual: PlanId): Plan[] => PLANES.filter((p) =>
 
 /** Desde qué plan se incluye cada módulo. Espejo de private.modulo_rango; la autoridad real es la base (RLS). */
 export function moduloEnPlan(plan: PlanId, modulo: ModuloApp): boolean {
-  const desde = ["carne", "contabilidad", "proyecciones"].includes(modulo) ? 3 : ["corrales", "ferias", "nutricion", "ambiente"].includes(modulo) ? 2 : 1;
+  const desde = ["carne", "contabilidad", "proyecciones"].includes(modulo) ? 3 : ["corrales", "ferias", "nutricion", "ambiente", "inventario"].includes(modulo) ? 2 : 1;
   return rangoPlan(plan) >= desde;
 }
 

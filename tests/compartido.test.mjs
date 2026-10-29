@@ -401,7 +401,7 @@ test("novedades: el producto se ofrece según lo que se hizo", () => {
   assert.equal(productosParaTipo("cirugia", p).length, 4);
 });
 
-import { atiendeNovedad, destinoNovedades, puedeEscribir, tiposNovedadQueCrea } from "../lib/permisos.ts";
+import { atiendeNovedad, borraNovedadAjena, destinoNovedades, puedeEscribir, tiposNovedadQueCrea } from "../lib/permisos.ts";
 test("novedades: cada perfil crea y atiende solo lo suyo (espejo de la base)", () => {
   assert.deepEqual(tiposNovedadQueCrea("ordenador"), ["compra", "aplicacion"]);
   assert.deepEqual(tiposNovedadQueCrea("veterinario"), ["compra"]);
@@ -413,4 +413,115 @@ test("novedades: cada perfil crea y atiende solo lo suyo (espejo de la base)", (
   assert.ok(atiendeNovedad("propietario", "compra") && atiendeNovedad("propietario", "aplicacion"));
   assert.ok(!atiendeNovedad("ordenador", "compra") && !atiendeNovedad("contador", "aplicacion"));
   assert.deepEqual(["propietario", "administrador", "veterinario", "ordenador"].map(destinoNovedades), ["todas", "compra", "no_compra", null]);
+  // Solo el administrador elimina novedades ajenas.
+  assert.deepEqual(["propietario", "administrador", "veterinario", "ordenador", "contador"].map(borraNovedadAjena), [false, true, false, false, false]);
+});
+
+import {
+  DIAS_AVISO_VENCIMIENTO,
+  aUnidades,
+  cambioDeAjuste,
+  enPresentaciones,
+  estadoStock,
+  estadoVencimiento,
+  faltaParaMinimo,
+  pideAtencion,
+  textoStock,
+} from "../lib/inventario.ts";
+
+const producto = { desde: "2026-10-01", stock: 50, stock_minimo: 20, vence_pronto: null };
+
+test("inventario: el estado del stock sale del conteo y del mínimo", () => {
+  assert.equal(estadoStock({ ...producto, desde: null, stock: null }), "sin_contar");
+  assert.equal(estadoStock({ ...producto, stock: -3 }), "negativo");
+  assert.equal(estadoStock({ ...producto, stock: 0 }), "agotado");
+  assert.equal(estadoStock({ ...producto, stock: 20 }), "bajo", "en el mínimo ya es bajo");
+  assert.equal(estadoStock({ ...producto, stock: 21 }), "ok");
+  assert.equal(estadoStock({ ...producto, stock_minimo: null, stock: 1 }), "ok", "sin mínimo nunca es bajo");
+});
+
+test("inventario: vencimientos y cuándo pide atención", () => {
+  const hoy = "2026-10-29";
+  assert.equal(estadoVencimiento(null, hoy), null);
+  assert.equal(estadoVencimiento("2026-10-28", hoy), "vencido");
+  assert.equal(estadoVencimiento("2026-10-29", hoy), "pronto", "vence hoy todavía sirve, pero se avisa");
+  assert.equal(estadoVencimiento("2026-11-28", hoy), DIAS_AVISO_VENCIMIENTO === 30 ? "pronto" : "ok");
+  assert.equal(estadoVencimiento("2026-11-29", hoy), "ok");
+  assert.equal(pideAtencion(producto, hoy), false);
+  assert.equal(pideAtencion({ ...producto, vence_pronto: "2026-11-10" }, hoy), true);
+  assert.equal(pideAtencion({ ...producto, stock: 5 }, hoy), true);
+  assert.equal(pideAtencion({ desde: null, stock: null, stock_minimo: null, vence_pronto: null }, hoy), false, "por contar no es alerta");
+});
+
+test("inventario: presentaciones, textos y ajustes", () => {
+  assert.equal(enPresentaciones(350, 100), 3.5);
+  assert.equal(enPresentaciones(350, null), null);
+  assert.equal(aUnidades(2.5, 100), 250);
+  assert.equal(textoStock({ unidad: "ml", presentacion: "frasco", contenido_presentacion: 100 }, 350), "3,5 frascos · 350 ml");
+  assert.equal(textoStock({ unidad: "ml", presentacion: "frasco", contenido_presentacion: 100 }, 100), "1 frasco · 100 ml");
+  assert.equal(textoStock({ unidad: null, presentacion: null, contenido_presentacion: null }, 1250), "1.250 unidades");
+  assert.equal(faltaParaMinimo({ stock: 8, stock_minimo: 20 }), 12);
+  assert.equal(faltaParaMinimo({ stock: 30, stock_minimo: 20 }), null);
+  // Conteo físico: lo contado menos lo que decía la app; los demás motivos siempre restan.
+  assert.equal(cambioDeAjuste("conteo", 90, 100), -10);
+  assert.equal(cambioDeAjuste("conteo", 110, 100), 10);
+  assert.equal(cambioDeAjuste("conteo", 100, 100), null);
+  assert.equal(cambioDeAjuste("vencido", 30, 100), -30);
+  assert.equal(cambioDeAjuste("perdida", -5, 100), -5);
+});
+
+import {
+  aKg,
+  alimentoPideAtencion,
+  autonomiaDias,
+  consumoDiarioKg,
+  estadoAlimento,
+  faltaPeso,
+  textoKg,
+  unidadesDeCantidad,
+} from "../lib/inventario-alimento.ts";
+
+const alimento = { desde: "2026-10-01", stock_kg: 400, consumo_kg: 140, dias_con_salida: 14, unidad: "bultos", kg_por_unidad: 40 };
+
+test("alimento: el consumo diario sale de los últimos 14 días (o de los que lleva contando)", () => {
+  const hoy = "2026-10-29";
+  assert.equal(consumoDiarioKg(alimento, hoy), 10);
+  assert.equal(autonomiaDias(alimento, hoy), 40);
+  // Lleva 5 días contando: el consumo se divide entre 5, no entre 14.
+  assert.equal(consumoDiarioKg({ ...alimento, desde: "2026-10-25", consumo_kg: 50, dias_con_salida: 5 }, hoy), 10);
+  // Con menos de 3 días con salidas no se inventa una cifra.
+  assert.equal(consumoDiarioKg({ ...alimento, dias_con_salida: 2 }, hoy), null);
+  assert.equal(autonomiaDias({ ...alimento, dias_con_salida: 2 }, hoy), null);
+  assert.equal(autonomiaDias({ ...alimento, stock_kg: 0 }, hoy), null);
+  assert.equal(consumoDiarioKg({ ...alimento, desde: null }, hoy), null);
+});
+
+test("alimento: el estado compara los días que alcanza con el plazo de aviso de Ajustes", () => {
+  const hoy = "2026-10-29";
+  assert.equal(estadoAlimento({ ...alimento, desde: null, stock_kg: null }, 7, hoy), "sin_contar");
+  assert.equal(estadoAlimento({ ...alimento, stock_kg: -5 }, 7, hoy), "negativo");
+  assert.equal(estadoAlimento({ ...alimento, stock_kg: 0 }, 7, hoy), "agotado");
+  assert.equal(estadoAlimento({ ...alimento, stock_kg: 30 }, 7, hoy), "critico", "3 días < 3,5");
+  assert.equal(estadoAlimento({ ...alimento, stock_kg: 60 }, 7, hoy), "bajo", "6 días");
+  assert.equal(estadoAlimento({ ...alimento, stock_kg: 70 }, 7, hoy), "ok", "7 días ya alcanza el plazo");
+  assert.equal(estadoAlimento({ ...alimento, dias_con_salida: 1 }, 7, hoy), "sin_datos");
+  assert.equal(alimentoPideAtencion({ ...alimento, stock_kg: 60 }, 7, hoy), true);
+  assert.equal(alimentoPideAtencion({ ...alimento, dias_con_salida: 1 }, 7, hoy), false, "sin datos no es alerta");
+});
+
+test("alimento: kg, bultos y el peso por unidad", () => {
+  assert.equal(textoKg(alimento, 140), "140 kg · 3,5 bultos");
+  assert.equal(textoKg({ unidad: "kg", kg_por_unidad: null }, 140), "140 kg");
+  assert.equal(textoKg({ unidad: "bultos", kg_por_unidad: null }, 140), "140 kg");
+  assert.equal(faltaPeso({ unidad: "bultos", kg_por_unidad: null }), true);
+  assert.equal(faltaPeso({ unidad: "kg", kg_por_unidad: null }), false);
+  assert.equal(faltaPeso({ unidad: "bultos", kg_por_unidad: 40 }), false);
+  assert.deepEqual(unidadesDeCantidad({ unidad: "bultos", kg_por_unidad: 40 }).map((u) => [u.nombre, u.factor]), [["kg", 1], ["bultos", 40]]);
+  assert.deepEqual(unidadesDeCantidad({ unidad: "kg", kg_por_unidad: null }).map((u) => u.nombre), ["kg"]);
+  assert.equal(aKg(2.5, 40), 100);
+});
+
+import { singular } from "../lib/inventario-alimento.ts";
+test("alimento: el singular de la unidad de compra", () => {
+  assert.deepEqual(["bultos", "pacas", "unidades", "kg", "sacos"].map(singular), ["bulto", "paca", "unidad", "kg", "saco"]);
 });

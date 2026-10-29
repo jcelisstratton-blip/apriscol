@@ -161,3 +161,27 @@ export const AYUDA_PROYECCIONES: Ayuda = {
   ],
   enlace: { href: "/mas/ajustes", texto: "Ajustes de la finca" },
 };
+
+export const AYUDA_INVENTARIO: Ayuda = {
+  titulo: "Inventario de medicamentos y vacunas",
+  puntos: [
+    { titulo: "Conteo de apertura", texto: "Cada producto empieza con un conteo: cuánto hay hoy en la bodega, por lote y con su vencimiento. Desde esa fecha la app lleva la cuenta sola." },
+    { titulo: "Entra y sale solo", texto: "Cada compra con producto veterinario suma (cantidad × lo que trae cada presentación) y cada aplicación resta (dosis × animales × días del tratamiento). Si corriges una compra o una aplicación, el inventario se corrige solo." },
+    { titulo: "Presentación", texto: "Dile a la app cómo viene el producto (por ejemplo, frasco de 100 ml). Sin eso no puede sumar las compras, y las verás marcadas como pendientes." },
+    { titulo: "Ajustes", texto: "Si lo que cuentas en la bodega no coincide, registra un conteo físico. Los vencidos, las pérdidas y los daños también se dan de baja ahí, con su motivo." },
+    { titulo: "Avisos", texto: "Te avisa cuando un producto llega a su mínimo, se agota o tiene un lote vencido o por vencer en 30 días. Una aplicación nunca se bloquea por falta de stock: si queda negativo, el producto aparece «Descuadrado»." },
+  ],
+  enlace: { href: "/sanidad?vista=productos", texto: "Ver los productos de Sanidad" },
+};
+
+export const AYUDA_ALIMENTO: Ayuda = {
+  titulo: "Inventario de alimento",
+  puntos: [
+    { titulo: "Todo en kg", texto: "Lo que compras en bultos o pacas se pasa a kg con lo que pesa cada unidad, y lo que se da de comer se anota en kg (o en bultos, si la app sabe cuánto pesa uno)." },
+    { titulo: "Conteo de apertura", texto: "Cada alimento empieza con un conteo: cuánto hay hoy en la bodega. Desde ese día la app suma las compras y resta lo que se dé de comer." },
+    { titulo: "Anotar lo que se dio", texto: "Quien da el alimento anota cuál, cuánto y qué día en pocos segundos; el destino (un corral o un lote de ceba) es opcional." },
+    { titulo: "Para cuántos días alcanza", texto: "La app mira lo que se dio en las últimas dos semanas y calcula cuántos días duran las existencias. Con menos de 3 días con salidas anotadas no calcula: no inventa una cifra." },
+    { titulo: "Avisos", texto: "Te avisa cuando un alimento alcanza para menos de los días que fijaste en Ajustes de la finca, y en rojo cuando queda menos de la mitad. Si se da más de lo que había registrado, queda «Descuadrado»." },
+  ],
+  enlace: { href: "/mas/ajustes", texto: "Cambiar los días de aviso en Ajustes de la finca" },
+};
