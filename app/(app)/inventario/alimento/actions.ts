@@ -10,7 +10,7 @@ import { puedeEscribir, puedeGestionar } from "@/lib/permisos";
 import { mensajeAmigable } from "@/lib/mensaje-amigable";
 import { hoyBogota } from "@/lib/fechas";
 import { cambioDeAjuste } from "@/lib/inventario";
-import { MOTIVOS_AJUSTE_ALIMENTO, RUBROS_ALIMENTO, aKg, compraEnKg, planearRepeticion, type FilaAlimento, type MotivoAjusteAlimento } from "@/lib/inventario-alimento";
+import { MOTIVOS_AJUSTE_ALIMENTO, RUBROS_ALIMENTO, aKg, compraEnKg, marcaRepeticion, planearRepeticion, type FilaAlimento, type MotivoAjusteAlimento } from "@/lib/inventario-alimento";
 import { decimal, esRepetido, noFutura, opcional } from "@/lib/validacion";
 
 export type EstadoForm = { error?: string; /** Se guardó y la pantalla sigue («Guardar y anotar otro»). */ guardado?: boolean } | undefined;
@@ -164,9 +164,13 @@ export async function repetirSalidas(_: EstadoForm, form: FormData): Promise<Est
     new Set((aperturas ?? []).map((a) => a.producto_id)),
   );
   if (plan.length === 0) return { error: "Ese día no tiene raciones que se puedan repetir." };
+  // Cada ración repetida lleva su día de origen: así un segundo toque (u otra persona) no las anota dos veces.
+  const marca = marcaRepeticion(datos.data.origen);
+  const { count: yaRepetidas } = await supabase.from("inventario_alimento_movimientos").select("id", { count: "exact", head: true }).eq("finca_id", finca.id).eq("tipo", "salida").eq("fecha", hoy).eq("observaciones", marca);
+  if (yaRepetidas) return { error: "Ya repetiste ese día hoy. Si necesitas otra ración, anótala con «Anotar lo que se dio»." };
 
   const { error } = await supabase.from("inventario_alimento_movimientos").insert(
-    plan.map((r, i) => ({ finca_id: finca.id, producto_id: r.producto_id, tipo: "salida" as const, fecha: hoy, cantidad: r.cantidad, ubicacion_id: r.ubicacion_id, lote_id: r.lote_id, client_request_id: idDeRacion(datos.data.client_request_id, i) })),
+    plan.map((r, i) => ({ finca_id: finca.id, producto_id: r.producto_id, tipo: "salida" as const, fecha: hoy, cantidad: r.cantidad, ubicacion_id: r.ubicacion_id, lote_id: r.lote_id, observaciones: marca, client_request_id: idDeRacion(datos.data.client_request_id, i) })),
   );
   // Doble toque: la misma solicitud ya se guardó.
   if (error && !esRepetido(error)) return { error: mensajeAmigable(error.message) };

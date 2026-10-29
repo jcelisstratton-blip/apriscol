@@ -14,7 +14,7 @@ import { crearClienteServidor } from "@/lib/supabase/server";
 import { puedeEscribir } from "@/lib/permisos";
 import { formatoFecha, hoyBogota, sumarDias } from "@/lib/fechas";
 import { cantidadTexto } from "@/lib/inventario";
-import { diasConSalidas } from "@/lib/inventario-alimento";
+import { diasConSalidas, marcaRepeticion } from "@/lib/inventario-alimento";
 import { cargarDestinosSalida } from "@/lib/inventario-alimento-servidor";
 
 export const metadata: Metadata = { title: "Repetir las raciones de un día" };
@@ -44,6 +44,7 @@ export default async function PaginaRepetirDia({ searchParams }: { searchParams:
   };
   const { data: productos } = delDia.length > 0 ? await supabase.from("finca_productos").select("id, nombre").eq("finca_id", finca.id).in("id", [...new Set(delDia.map((f) => f.producto_id))]) : { data: [] };
   const nombreProducto = new Map((productos ?? []).map((p) => [p.id, p.nombre]));
+  const { count: yaRepetidas } = dia ? await supabase.from("inventario_alimento_movimientos").select("id", { count: "exact", head: true }).eq("finca_id", finca.id).eq("tipo", "salida").eq("fecha", hoy).eq("observaciones", marcaRepeticion(dia)) : { count: 0 };
   const hecho = Number(sp.hecho);
 
   return (
@@ -86,7 +87,11 @@ export default async function PaginaRepetirDia({ searchParams }: { searchParams:
                 ))}
               </ul>
             </Tarjeta>
-            <FormRepetirDia origen={dia} cuantas={delDia.length} solicitud={randomUUID()} />
+            {yaRepetidas ? (
+              <Aviso tipo="info">Ya repetiste este día hoy. Elige otro día, o anota lo que falte con «Anotar lo que se dio».</Aviso>
+            ) : (
+              <FormRepetirDia origen={dia} cuantas={delDia.length} solicitud={randomUUID()} />
+            )}
           </>
         )}
       </div>
