@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { escaparHtml, interpretarComando, leerEvento, secretoValido, enviarTelegram, editarTelegram, responderAccion, LIMITE_MENSAJE } from "../lib/notificaciones/telegram.ts";
+import { validarParametros, horaCorta } from "../lib/notificaciones/parametros.ts";
 import { armarDetalleArea, armarResumen, datosArea, datosResumen, leerAccion } from "../lib/notificaciones/mensajes.ts";
 
 test("Telegram: comandos, secreto y eventos", () => {
@@ -187,4 +188,15 @@ test("Telegram en la app: enlace del bot, hora legible y descripción de los avi
   assert.equal(describirAvisos({ ...base, activo: false }), null);
   assert.equal(describirAvisos({ ...base, resumen: false }), null);
   assert.equal(describirAvisos(null), null);
+});
+
+test("Parámetros de aviso (superadmin): se validan antes de llegar a la base", () => {
+  const base = { activo: true, resumen: true, resumen_hora: "06:30", dias: [6, 1, 1, 3], nivel_minimo: "ambar", alertas: true, semanal: false, silencio_desde: "20:00", silencio_hasta: "05:00", max_diarios: 8 };
+  const ok = validarParametros(base);
+  assert.ok(ok.ok);
+  assert.deepEqual(ok.datos.dias, [1, 3, 6]);
+  assert.equal(horaCorta("06:30:00"), "06:30");
+  for (const malo of [{ resumen_hora: "6:30" }, { resumen_hora: "24:00" }, { silencio_desde: "" }, { silencio_hasta: "20:60" }, { dias: [] }, { dias: [0] }, { dias: [8] }, { dias: [1.5] }, { nivel_minimo: "todo" }, { max_diarios: 0 }, { max_diarios: 31 }, { max_diarios: 2.5 }]) {
+    assert.equal(validarParametros({ ...base, ...malo }).ok, false, JSON.stringify(malo));
+  }
 });
