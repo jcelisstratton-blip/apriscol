@@ -1,24 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { firmarJwt, leerJwt } from "../lib/notificaciones/jwt.ts";
 import { escaparHtml, interpretarComando, leerEvento, secretoValido, enviarTelegram, LIMITE_MENSAJE } from "../lib/notificaciones/telegram.ts";
 import { armarResumen } from "../lib/notificaciones/mensajes.ts";
-
-test("JWT: firma de persona y de servicio, vigencia corta y firma ajena rechazada", () => {
-  const ahora = 1_800_000_000_000;
-  const t = firmarJwt({ sub: "u1", role: "authenticated", secreto: "s3cret", ahora });
-  const c = leerJwt(t, "s3cret", ahora + 1000);
-  assert.equal(c?.sub, "u1");
-  assert.equal(c?.role, "authenticated");
-  assert.equal(c?.aud, "authenticated");
-  assert.equal(c?.exp, ahora / 1000 + 60);
-  assert.equal(leerJwt(t, "otro", ahora), null);
-  assert.equal(leerJwt(t, "s3cret", ahora + 61_000), null);
-  assert.equal(leerJwt(t + "x", "s3cret", ahora), null);
-  assert.equal(leerJwt(firmarJwt({ role: "service_role", secreto: "s3cret", ahora }), "s3cret", ahora)?.role, "service_role");
-  assert.throws(() => firmarJwt({ role: "authenticated", secreto: "s3cret" }), /identificador/);
-  assert.throws(() => firmarJwt({ sub: "u1", role: "authenticated", secreto: "" }), /secreto/);
-});
 
 test("Telegram: comandos, secreto y eventos", () => {
   assert.deepEqual(interpretarComando("/start AB12CD34"), { comando: "start", argumento: "AB12CD34" });

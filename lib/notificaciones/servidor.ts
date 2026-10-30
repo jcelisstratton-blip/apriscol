@@ -5,62 +5,80 @@ import { hoyBogota } from "@/lib/fechas";
 import { saludo } from "@/lib/animal";
 import { leerAjustesFinca } from "@/lib/ajustes-servidor";
 import { cargarSemaforos } from "@/lib/semaforos-servidor";
-import { firmarJwt } from "@/lib/notificaciones/jwt";
 import { armarResumen, type NivelMinimo } from "@/lib/notificaciones/mensajes";
 import { enviarTelegram, escaparHtml, interpretarComando, type EventoTelegram } from "@/lib/notificaciones/telegram";
 import type { Database, RolFinca } from "@/lib/tipos";
 
 /** Lo que el servidor necesita para hablar con Telegram y con la base sin la sesión de una persona. Todo viene del entorno: nada en el repo. */
-export type Entorno = { token: string; webhookSecret: string; despachoSecret: string; jwtSecret: string };
+export type Entorno = { token: string; webhookSecret: string; despachoSecret: string; secretKey: string };
 
 export function leerEntorno(): Partial<Entorno> {
   return {
     token: process.env.TELEGRAM_BOT_TOKEN,
     webhookSecret: process.env.TELEGRAM_WEBHOOK_SECRET,
     despachoSecret: process.env.DESPACHO_SECRET,
-    jwtSecret: process.env.SUPABASE_JWT_SECRET,
+    secretKey: process.env.SUPABASE_SECRET_KEY,
   };
 }
 
-/**
- * Un cliente de la base que actúa «como» una persona (con su rol y la seguridad por finca de siempre) o como el servicio. El JWT vale 60 segundos y se firma
- * en cada llamada: nunca se guarda ni se devuelve.
- */
-export function clienteComo(identidad: { userId: string } | "servicio", jwtSecret: string) {
+const SIN_SESION = { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } as const;
+
+/** Cliente con la llave secreta de Supabase (`sb_secret_…`): ve todo y se salta la seguridad por finca. Solo para las funciones del bot. Nunca al navegador. */
+export function clienteServicio(secretKey: string) {
   assertSupabaseEnv();
-  const jwt = identidad === "servicio" ? firmarJwt({ role: "service_role", secreto: jwtSecret }) : firmarJwt({ sub: identidad.userId, role: "authenticated", secreto: jwtSecret });
-  return createClient<Database>(SUPABASE_URL, SUPABASE_KEY, {
-    global: { headers: { Authorization: `Bearer ${jwt}` } },
-    auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
-  });
+  return createClient<Database>(SUPABASE_URL, secretKey, { auth: SIN_SESION });
+}
+
+/**
+ * Corre `fn` con un cliente que actúa «como» una persona: con su rol y la seguridad por finca de siempre, igual que si estuviera en la app. Para eso se pide a
+ * Supabase una sesión de esa persona (enlace de acceso de un solo uso, canjeado en el acto, sin correo) y al terminar se cierra. No se firma nada a mano: la sesión
+ * la emite Supabase con su llave vigente. Cada persona del reparto cuesta tres llamadas cortas.
+ */
+export async function conSesionDe<T>(userId: string, secretKey: string, fn: (supabase: ReturnType<typeof clienteServicio>) => Promise<T>): Promise<T> {
+  const admin = clienteServicio(secretKey);
+  const { data: usuario, error: errUsuario } = await admin.auth.admin.getUserById(userId);
+  if (errUsuario || !usuario.user?.email) throw new Error(`No se pudo leer a la persona: ${errUsuario?.message ?? "no tiene correo"}`);
+  const { data: enlace, error: errEnlace } = await admin.auth.admin.generateLink({ type: "magiclink", email: usuario.user.email });
+  if (errEnlace || !enlace.properties?.hashed_token) throw new Error(`No se pudo preparar el acceso: ${errEnlace?.message ?? "sin código"}`);
+  const anonimo = createClient<Database>(SUPABASE_URL, SUPABASE_KEY, { auth: SIN_SESION });
+  const { data: sesion, error: errSesion } = await anonimo.auth.verifyOtp({ token_hash: enlace.properties.hashed_token, type: "magiclink" });
+  if (errSesion || !sesion.session) throw new Error(`No se pudo abrir la sesión: ${errSesion?.message ?? "sin sesión"}`);
+  const jwt = sesion.session.access_token;
+  const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_KEY, { global: { headers: { Authorization: `Bearer ${jwt}` } }, auth: SIN_SESION });
+  try {
+    return await fn(supabase);
+  } finally {
+    await admin.auth.admin.signOut(jwt, "local").catch(() => undefined);
+  }
 }
 
 type Destino = { finca_id: string; user_id: string; rol: string };
 
 /** El resumen de una persona en una finca, calculado como lo vería ella en la app. `null` si la finca no puede usar la app (plan vencido o sin activar). */
-export async function resumenDe(destino: Destino, jwtSecret: string, ahora = new Date()) {
-  const supabase = clienteComo({ userId: destino.user_id }, jwtSecret);
-  const hoy = hoyBogota(ahora);
-  const [{ data: finca }, { data: perfil }, { data: pref }, { data: vigencia }] = await Promise.all([
-    supabase.from("fincas").select("id, nombre, plan").eq("id", destino.finca_id).maybeSingle(),
-    supabase.from("perfiles").select("nombre").eq("id", destino.user_id).maybeSingle(),
-    supabase.from("notificacion_preferencias").select("nivel_minimo").eq("finca_id", destino.finca_id).eq("user_id", destino.user_id).maybeSingle(),
-    supabase.rpc("estado_vigencia_finca", { p_finca: destino.finca_id }),
-  ]);
-  if (!finca) throw new Error("La persona ya no puede ver esta finca.");
-  if (vigencia === "bloqueada" || vigencia === "pendiente") return null;
-  const ajustes = await leerAjustesFinca(supabase, finca.id);
-  const senales = await cargarSemaforos({ supabase: supabase, fincaId: finca.id, rol: destino.rol as RolFinca, plan: finca.plan, hoy, ajustes });
-  const nivelMinimo: NivelMinimo = pref?.nivel_minimo === "rojo" ? "rojo" : "ambar";
-  return armarResumen({ nombre: perfil?.nombre ?? null, finca: finca.nombre, hoy, saludo: saludo(ahora), senales, nivelMinimo, urlBase: SITE_URL });
+export async function resumenDe(destino: Destino, secretKey: string, ahora = new Date()) {
+  return conSesionDe(destino.user_id, secretKey, async (supabase) => {
+    const hoy = hoyBogota(ahora);
+    const [{ data: finca }, { data: perfil }, { data: pref }, { data: vigencia }] = await Promise.all([
+      supabase.from("fincas").select("id, nombre, plan").eq("id", destino.finca_id).maybeSingle(),
+      supabase.from("perfiles").select("nombre").eq("id", destino.user_id).maybeSingle(),
+      supabase.from("notificacion_preferencias").select("nivel_minimo").eq("finca_id", destino.finca_id).eq("user_id", destino.user_id).maybeSingle(),
+      supabase.rpc("estado_vigencia_finca", { p_finca: destino.finca_id }),
+    ]);
+    if (!finca) throw new Error("La persona ya no puede ver esta finca.");
+    if (vigencia === "bloqueada" || vigencia === "pendiente") return null;
+    const ajustes = await leerAjustesFinca(supabase, finca.id);
+    const senales = await cargarSemaforos({ supabase, fincaId: finca.id, rol: destino.rol as RolFinca, plan: finca.plan, hoy, ajustes });
+    const nivelMinimo: NivelMinimo = pref?.nivel_minimo === "rojo" ? "rojo" : "ambar";
+    return armarResumen({ nombre: perfil?.nombre ?? null, finca: finca.nombre, hoy, saludo: saludo(ahora), senales, nivelMinimo, urlBase: SITE_URL });
+  });
 }
 
 /** Arma el resumen de una persona sin enviarlo ni anotarlo: sirve para comprobar todo el circuito (secreto JWT, permisos, reglas) antes de conectar Telegram. */
-export async function simularResumen(entorno: Pick<Entorno, "jwtSecret">, fincaId: string, userId: string): Promise<{ texto: string; mostrados: number; omitidos: number } | null> {
-  const servicio = clienteComo("servicio", entorno.jwtSecret);
+export async function simularResumen(entorno: Pick<Entorno, "secretKey">, fincaId: string, userId: string): Promise<{ texto: string; mostrados: number; omitidos: number } | null> {
+  const servicio = clienteServicio(entorno.secretKey);
   const { data: miembro } = await servicio.from("finca_miembros").select("rol").eq("finca_id", fincaId).eq("user_id", userId).maybeSingle();
   if (!miembro) return null;
-  return resumenDe({ finca_id: fincaId, user_id: userId, rol: miembro.rol }, entorno.jwtSecret);
+  return resumenDe({ finca_id: fincaId, user_id: userId, rol: miembro.rol }, entorno.secretKey);
 }
 
 const recorte = (e: unknown) => (typeof e === "string" ? e : e instanceof Error ? e.message : "Error desconocido").slice(0, 300);
@@ -72,7 +90,7 @@ export type ResultadoDespacho = { destinos: number; enviados: number; omitidos: 
  * la segunda no lo repite. Un fallo se anota y se reintenta en la siguiente vuelta (hasta 3 veces); si la persona bloqueó el bot, se pausa su vínculo.
  */
 export async function despachar(entorno: Entorno, ahora = new Date(), maximo = 30): Promise<ResultadoDespacho> {
-  const servicio = clienteComo("servicio", entorno.jwtSecret);
+  const servicio = clienteServicio(entorno.secretKey);
   const { data: destinos, error } = await servicio.rpc("notificaciones_destinos", { p_ahora: ahora.toISOString() });
   if (error) throw new Error(error.message);
   const lista = (destinos ?? []).slice(0, maximo);
@@ -82,7 +100,7 @@ export async function despachar(entorno: Entorno, ahora = new Date(), maximo = 3
     const { data: envioId } = await servicio.rpc("notificacion_reservar", { p_finca: d.finca_id, p_user: d.user_id, p_tipo: d.tipo, p_clave: d.clave });
     if (!envioId) return; // ya se envió (o se está enviando)
     try {
-      const resumen = await resumenDe(d, entorno.jwtSecret, ahora);
+      const resumen = await resumenDe(d, entorno.secretKey, ahora);
       if (!resumen) {
         await servicio.rpc("notificacion_resultado", { p_id: envioId, p_estado: "omitido", p_error: "La finca no tiene el plan al día." });
         salida.omitidos++;
@@ -116,7 +134,7 @@ const AYUDA =
 /** Atiende lo que llega al webhook: vincular con el código, pedir el resumen, pausar o reanudar. Siempre responde algo a una persona; nunca lanza hacia Telegram. */
 export async function atenderEvento(evento: EventoTelegram, entorno: Entorno): Promise<void> {
   if (evento.tipo === "otro") return;
-  const servicio = clienteComo("servicio", entorno.jwtSecret);
+  const servicio = clienteServicio(entorno.secretKey);
   if (evento.tipo === "bloqueo") {
     await servicio.rpc("telegram_chat_estado", { p_chat_id: evento.chatId, p_estado: "bloqueado" });
     return;
@@ -172,7 +190,7 @@ export async function atenderEvento(evento: EventoTelegram, entorno: Entorno): P
         try {
           const { data: miembro } = await servicio.from("finca_miembros").select("rol").eq("finca_id", v.finca_id).eq("user_id", v.user_id).maybeSingle();
           if (!miembro) continue;
-          const resumen = await resumenDe({ finca_id: v.finca_id, user_id: v.user_id, rol: miembro.rol }, entorno.jwtSecret);
+          const resumen = await resumenDe({ finca_id: v.finca_id, user_id: v.user_id, rol: miembro.rol }, entorno.secretKey);
           await responder(resumen?.texto ?? "Esta finca no tiene el plan al día, así que no puedo mostrarte el resumen.");
         } catch (e) {
           console.error("[apriscol:telegram] /hoy", recorte(e));
