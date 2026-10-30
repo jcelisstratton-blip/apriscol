@@ -61,6 +61,13 @@ const nombreCorto = (etiqueta: string) => etiqueta.split(" · ")[0];
 const dias = (n: number) => `${n} ${n === 1 ? "día" : "días"}`;
 const esHttps = (urlBase?: string) => Boolean(urlBase?.startsWith("https://"));
 
+/**
+ * Un botón que abre Apriscol dentro de Telegram, en la pantalla que dice `destino` (clave de `DESTINOS_MINIAPP`: «hoy», «semaforos» o un área). Así no sale el aviso
+ * con la dirección que Telegram muestra al abrir un enlace; la sesión se abre con la firma que Telegram entrega (`/telegram/entrar`).
+ */
+const botonApp = (texto: string, e: { urlBase?: string; fincaId: string }, destino: string): Boton[] =>
+  esHttps(e.urlBase) ? [{ texto, miniApp: `${e.urlBase}/telegram/entrar?f=${e.fincaId}&d=${destino}` }] : [];
+
 /** Las tareas (una por señal) de cada área, con las que tienen algo vencido primero; con nivel mínimo «rojo» no entra lo pendiente. */
 function agrupar(senales: Senal[], nivelMinimo: NivelMinimo): Area[] {
   const porArea = new Map<AreaSemaforo, Tarea[]>();
@@ -105,7 +112,7 @@ export function armarResumen(e: EntradaResumen): Resumen {
   const areas = agrupar(e.senales, e.nivelMinimo);
   const rojos = areas.reduce((n, a) => n + a.rojos, 0);
   const ambar = areas.reduce((n, a) => n + a.ambar, 0);
-  const finales: Boton[] = esHttps(e.urlBase) ? [{ texto: "Abrir Hoy", url: `${e.urlBase}/` }, { texto: "Ver semáforos", url: `${e.urlBase}/semaforos` }] : [];
+  const finales: Boton[] = [...botonApp("Abrir Hoy", e, "hoy"), ...botonApp("Ver semáforos", e, "semaforos")];
   const cabecera = cabeceraDe(e);
 
   if (areas.length === 0) return { texto: `${cabecera}\n\nTodo en orden: nada pide atención hoy.`, botones: finales.length ? [finales] : [], rojos: 0, ambar: 0 };
@@ -142,7 +149,7 @@ export function armarDetalleArea(e: EntradaResumen & { area: AreaSemaforo }): Re
   const areas = agrupar(e.senales, e.nivelMinimo);
   const a = areas.find((x) => x.area === e.area);
   const volver: Boton = { texto: "← Volver al resumen", accion: datosResumen(e.fincaId) };
-  const abrir: Boton[] = esHttps(e.urlBase) ? [{ texto: `Abrir ${ETIQUETA_AREA[e.area]} en la app`, url: `${e.urlBase}${RUTA_AREA[e.area]}` }] : [];
+  const abrir: Boton[] = botonApp(`Abrir ${ETIQUETA_AREA[e.area]} en la app`, e, e.area);
   if (!a) return { texto: `<b>${escaparHtml(ETIQUETA_AREA[e.area].toUpperCase())}</b>\nNada pide atención en esta área.`, botones: [[...abrir, volver]], rojos: 0, ambar: 0 };
 
   const nombres = (items: ItemSenal[]) => {

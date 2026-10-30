@@ -2,6 +2,8 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { escaparHtml, interpretarComando, leerEvento, secretoValido, enviarTelegram, editarTelegram, responderAccion, LIMITE_MENSAJE } from "../lib/notificaciones/telegram.ts";
 import { validarParametros, horaCorta } from "../lib/notificaciones/parametros.ts";
+import { createHmac } from "node:crypto";
+import { verificarInitData, rutaDeDestino, DESTINOS_MINIAPP, MAX_EDAD_FIRMA_SEG } from "../lib/notificaciones/miniapp.ts";
 import { armarDetalleArea, armarResumen, datosArea, datosResumen, leerAccion } from "../lib/notificaciones/mensajes.ts";
 
 test("Telegram: comandos, secreto y eventos", () => {
@@ -69,6 +71,10 @@ test("Telegram: los botones van como enlaces y, si Telegram los rechaza, el mens
   cuerpos.length = 0;
   await enviarTelegram("T0KEN", 1, "hola", [[{ texto: "Sanidad", accion: "ar:sanidad:x" }, { texto: "Abrir", url: "https://apriscol.shop/" }]], http([200]));
   assert.deepEqual(cuerpos[0].reply_markup.inline_keyboard, [[{ text: "Sanidad", callback_data: "ar:sanidad:x" }, { text: "Abrir", url: "https://apriscol.shop/" }]]);
+  // Un botón de Mini App viaja como web_app: abre Apriscol dentro de Telegram, sin el aviso de dirección.
+  cuerpos.length = 0;
+  await enviarTelegram("T0KEN", 1, "hola", [[{ texto: "Abrir Sanidad en la app", miniApp: "https://apriscol.shop/telegram/entrar?f=x&d=sanidad" }]], http([200]));
+  assert.deepEqual(cuerpos[0].reply_markup.inline_keyboard, [[{ text: "Abrir Sanidad en la app", web_app: { url: "https://apriscol.shop/telegram/entrar?f=x&d=sanidad" } }]]);
 });
 
 test("Telegram: editar un mensaje y responder a un botón", async () => {
@@ -118,7 +124,7 @@ test("resumen automático: corto, con los totales arriba, lo más urgente (una l
   // Botones: un botón de acción por área (con sus conteos), de a dos por fila, y al final Hoy y Semáforos como enlaces.
   assert.deepEqual(r.botones, [
     [{ texto: "Sanidad · 🔴 7 · 🟠 4", accion: datosArea("sanidad", FINCA) }, { texto: "Leche · 🟠 1", accion: datosArea("leche", FINCA) }],
-    [{ texto: "Abrir Hoy", url: "https://apriscol.shop/" }, { texto: "Ver semáforos", url: "https://apriscol.shop/semaforos" }],
+    [{ texto: "Abrir Hoy", miniApp: `https://apriscol.shop/telegram/entrar?f=${FINCA}&d=hoy` }, { texto: "Ver semáforos", miniApp: `https://apriscol.shop/telegram/entrar?f=${FINCA}&d=semaforos` }],
   ]);
   for (const fila of r.botones) for (const b of fila) if ("accion" in b) assert.ok(b.accion.length <= 64);
   // Con nivel mínimo rojo no llega nada pendiente, y un área sin vencidos ni pendientes visibles no tiene botón.
@@ -156,7 +162,7 @@ test("detalle de un área: tareas con sus vencidos y pendientes, nombres como te
   assert.doesNotMatch(r.texto, /MIR-C0046|LECHE/);
   assert.match(r.texto, /🔴 <b>4<\/b> vencidas · <i>la más atrasada: hace 324 días<\/i>/);
   assert.match(r.texto, /🟠 <b>2<\/b> pendientes · /);
-  assert.deepEqual(r.botones, [[{ texto: "Abrir Sanidad en la app", url: "https://apriscol.shop/sanidad" }, { texto: "← Volver al resumen", accion: datosResumen(FINCA) }]]);
+  assert.deepEqual(r.botones, [[{ texto: "Abrir Sanidad en la app", miniApp: `https://apriscol.shop/telegram/entrar?f=${FINCA}&d=sanidad` }, { texto: "← Volver al resumen", accion: datosResumen(FINCA) }]]);
   // Un área sin nada: lo dice y deja volver; sin https solo queda «volver».
   const vacia = armarDetalleArea({ ...BASE, area: "corrales", nivelMinimo: "ambar", urlBase: "http://localhost:3000" });
   assert.match(vacia.texto, /Nada pide atención/);
@@ -200,4 +206,67 @@ test("Parámetros de aviso (superadmin): se validan antes de llegar a la base", 
   for (const malo of [{ resumen_hora: "6:30" }, { resumen_hora: "24:00" }, { silencio_desde: "" }, { silencio_hasta: "20:60" }, { dias: [] }, { dias: [0] }, { dias: [8] }, { dias: [1.5] }, { nivel_minimo: "todo" }, { max_diarios: 0 }, { max_diarios: 31 }, { max_diarios: 2.5 }]) {
     assert.equal(validarParametros({ ...base, ...malo }).ok, false, JSON.stringify(malo));
   }
+});
+
+// Firma de Telegram escrita aparte del código de producción, siguiendo la especificación: llave = HMAC("WebAppData", token); hash = HMAC(llave, campos ordenados «k=v» unidos con salto de línea).
+function initDataFirmado(campos, token, { incluirSignature = true } = {}) {
+  const llave = createHmac("sha256", "WebAppData").update(token).digest();
+  const cadena = Object.entries(campos).filter(([k]) => incluirSignature || k !== "signature").sort(([a], [b]) => (a < b ? -1 : 1)).map(([k, v]) => `${k}=${v}`).join("\n");
+  const hash = createHmac("sha256", llave).update(cadena).digest("hex");
+  return new URLSearchParams({ ...campos, hash }).toString();
+}
+
+test("Mini App: la firma de Telegram se comprueba (válida, alterada, vencida, de otro bot, sin persona)", () => {
+  const TOKEN = "123456:TOKEN-DE-PRUEBA";
+  const AHORA = 1_800_000_000;
+  const campos = { auth_date: String(AHORA - 30), query_id: "AAH", signature: "firma-ed25519-ejemplo", user: JSON.stringify({ id: 777001, first_name: "Camilo" }) };
+
+  assert.deepEqual(verificarInitData(initDataFirmado(campos, TOKEN), TOKEN, AHORA), { ok: true, userId: 777001, authDate: AHORA - 30 });
+  // Si la versión de Telegram firma sin el campo «signature», también vale.
+  assert.equal(verificarInitData(initDataFirmado(campos, TOKEN, { incluirSignature: false }), TOKEN, AHORA).ok, true);
+
+  // Firma de otro bot, o un dato cambiado después de firmar (otro usuario, otra fecha): rechazada.
+  assert.deepEqual(verificarInitData(initDataFirmado(campos, "999:OTRO-BOT"), TOKEN, AHORA), { ok: false, motivo: "firma" });
+  const buena = new URLSearchParams(initDataFirmado(campos, TOKEN));
+  const otroUsuario = new URLSearchParams(buena);
+  otroUsuario.set("user", JSON.stringify({ id: 1, first_name: "Intruso" }));
+  assert.deepEqual(verificarInitData(otroUsuario.toString(), TOKEN, AHORA), { ok: false, motivo: "firma" });
+  const otraFecha = new URLSearchParams(buena);
+  otraFecha.set("auth_date", String(AHORA));
+  assert.deepEqual(verificarInitData(otraFecha.toString(), TOKEN, AHORA), { ok: false, motivo: "firma" });
+  // Un hash de otro largo o con letras que no son hexadecimales no rompe la comparación: simplemente no vale.
+  for (const hash of ["", "abc", "zz".repeat(32), "0".repeat(63), "0".repeat(65)]) {
+    const p = new URLSearchParams(buena);
+    p.set("hash", hash);
+    assert.equal(verificarInitData(p.toString(), TOKEN, AHORA).ok, false, hash);
+  }
+  const sinHash = new URLSearchParams(buena);
+  sinHash.delete("hash");
+  assert.deepEqual(verificarInitData(sinHash.toString(), TOKEN, AHORA), { ok: false, motivo: "formato" });
+
+  // Vieja (más de 10 minutos) o fechada en el futuro: rechazada aunque la firma sea de verdad.
+  const vieja = initDataFirmado({ ...campos, auth_date: String(AHORA - MAX_EDAD_FIRMA_SEG - 1) }, TOKEN);
+  assert.deepEqual(verificarInitData(vieja, TOKEN, AHORA), { ok: false, motivo: "vencido" });
+  assert.equal(verificarInitData(initDataFirmado({ ...campos, auth_date: String(AHORA - MAX_EDAD_FIRMA_SEG) }, TOKEN), TOKEN, AHORA).ok, true);
+  assert.deepEqual(verificarInitData(initDataFirmado({ ...campos, auth_date: String(AHORA + 3600) }, TOKEN), TOKEN, AHORA), { ok: false, motivo: "vencido" });
+
+  // Firmada pero sin persona utilizable.
+  for (const user of [undefined, "no-es-json", "null", JSON.stringify({ first_name: "Sin id" }), JSON.stringify({ id: "777001" }), JSON.stringify({ id: -5 }), JSON.stringify({ id: 1.5 })]) {
+    const c = { ...campos };
+    if (user === undefined) delete c.user;
+    else c.user = user;
+    assert.deepEqual(verificarInitData(initDataFirmado(c, TOKEN), TOKEN, AHORA), { ok: false, motivo: "usuario" }, String(user));
+  }
+  // Entradas absurdas.
+  for (const x of ["", "a".repeat(5000), "hash=abc"]) assert.equal(verificarInitData(x, TOKEN, AHORA).ok, false);
+  assert.equal(verificarInitData(initDataFirmado(campos, TOKEN), "", AHORA).ok, false);
+});
+
+test("Mini App: el botón solo puede llevar a las pantallas de la lista", () => {
+  assert.equal(rutaDeDestino("hoy"), "/");
+  assert.equal(rutaDeDestino("semaforos"), "/semaforos");
+  assert.equal(rutaDeDestino("sanidad"), "/sanidad");
+  assert.equal(rutaDeDestino("alimento"), "/inventario?vista=alimento");
+  for (const malo of ["", "https://malo.example", "//malo.example", "/admin", "../admin", "__proto__", "toString", "constructor", "SANIDAD"]) assert.equal(rutaDeDestino(malo), null, malo);
+  for (const ruta of Object.values(DESTINOS_MINIAPP)) assert.match(ruta, /^\/(?!\/)/); // todas rutas internas
 });

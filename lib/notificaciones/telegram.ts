@@ -67,14 +67,17 @@ export function leerEvento(cuerpo: unknown): EventoTelegram {
   return { tipo: "otro" };
 }
 
-/** Un botón del mensaje: abre una dirección (solo https) o le pide algo al bot (`accion`, hasta 64 caracteres). */
-export type Boton = { texto: string } & ({ url: string } | { accion: string });
+/**
+ * Un botón del mensaje: abre una dirección (solo https), abre Apriscol dentro de Telegram sin el aviso de dirección (`miniApp`, solo https y solo en chat privado)
+ * o le pide algo al bot (`accion`, hasta 64 caracteres).
+ */
+export type Boton = { texto: string } & ({ url: string } | { miniApp: string } | { accion: string });
 
 export type ResultadoEnvio = { ok: true; messageId: number } | { ok: false; error: string; bloqueado: boolean };
 
 type RespuestaTelegram = { ok?: boolean; description?: string; result?: { message_id?: number } };
 
-const teclado = (botones: Boton[][]) => ({ inline_keyboard: botones.map((fila) => fila.map((b) => ("url" in b ? { text: b.texto, url: b.url } : { text: b.texto, callback_data: b.accion }))) });
+const teclado = (botones: Boton[][]) => ({ inline_keyboard: botones.map((fila) => fila.map((b) => ("url" in b ? { text: b.texto, url: b.url } : "miniApp" in b ? { text: b.texto, web_app: { url: b.miniApp } } : { text: b.texto, callback_data: b.accion }))) });
 
 /** Llama a un método de Telegram. Un fallo de red no lleva el token (la dirección no se incluye), pero se recorta por si acaso. */
 async function llamar(token: string, metodo: string, cuerpo: object, http: typeof fetch): Promise<{ estado: number; datos: RespuestaTelegram | null } | { error: string }> {
