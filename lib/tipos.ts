@@ -1402,6 +1402,51 @@ export type { AncestroEndogamia } from "@/lib/endogamia";
 import type { AncestroEndogamia } from "@/lib/endogamia";
 import type { AjustesEspecie, AjustesFinca } from "@/lib/ajustes";
 
+export type TelegramVinculo = {
+  id: string;
+  finca_id: string;
+  user_id: string;
+  chat_id: number | null;
+  estado: "pendiente" | "activo" | "pausado" | "bloqueado";
+  codigo_hash: string | null;
+  codigo_expira: string | null;
+  vinculado_en: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type NotificacionPreferencias = {
+  finca_id: string;
+  user_id: string;
+  activo: boolean;
+  resumen: boolean;
+  resumen_hora: string;
+  dias: number[];
+  nivel_minimo: "rojo" | "ambar";
+  alertas: boolean;
+  semanal: boolean;
+  silencio_desde: string;
+  silencio_hasta: string;
+  max_diarios: number;
+  updated_by: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type NotificacionEnvio = {
+  id: string;
+  finca_id: string;
+  user_id: string;
+  tipo: "resumen" | "alerta" | "recordatorio" | "semanal" | "comando";
+  clave: string;
+  estado: "pendiente" | "enviado" | "fallido" | "omitido";
+  intentos: number;
+  error: string | null;
+  telegram_message_id: number | null;
+  enviado_en: string | null;
+  created_at: string;
+};
+
 export type Database = {
   __InternalSupabase: { PostgrestVersion: "14.18" };
   public: {
@@ -1446,6 +1491,9 @@ export type Database = {
       productos_veterinarios: Tabla<ProductoVeterinario, "finca_id" | "nombre">;
       inventario_alimento_movimientos: Tabla<InventarioAlimentoMovimiento, "finca_id" | "producto_id" | "tipo" | "fecha" | "cantidad">;
       inventario_movimientos: Tabla<InventarioMovimiento, "finca_id" | "producto_vet_id" | "tipo" | "fecha" | "cantidad">;
+      telegram_vinculos: Tabla<TelegramVinculo, "finca_id" | "user_id">;
+      notificacion_preferencias: Tabla<NotificacionPreferencias, "finca_id" | "user_id">;
+      notificacion_envios: Tabla<NotificacionEnvio, "finca_id" | "user_id" | "tipo" | "clave">;
       eventos_sanitarios: Tabla<EventoSanitario, "finca_id" | "tipo">;
       evento_sanitario_animales: Tabla<EventoSanitarioAnimal, "evento_id" | "animal_id" | "finca_id">;
       pruebas_sanitarias: Tabla<PruebaSanitaria, "finca_id" | "animal_id" | "prueba">;
@@ -1528,6 +1576,18 @@ export type Database = {
           aplicaciones_sin_dosis: number;
         }[];
       };
+      telegram_crear_codigo: { Args: { p_finca: string }; Returns: string };
+      telegram_desvincular: { Args: { p_finca: string }; Returns: undefined };
+      telegram_vincular: { Args: { p_codigo: string; p_chat_id: number }; Returns: { ok: boolean; motivo?: string; finca?: string; finca_id?: string; user_id?: string } };
+      telegram_chat_estado: { Args: { p_chat_id: number; p_estado: string }; Returns: number };
+      notificaciones_destinos: { Args: { p_ahora?: string }; Returns: { finca_id: string; user_id: string; chat_id: number; rol: string; finca_nombre: string; tipo: string; clave: string }[] };
+      notificacion_reservar: { Args: { p_finca: string; p_user: string; p_tipo: string; p_clave: string }; Returns: string | null };
+      notificacion_resultado: { Args: { p_id: string; p_estado: string; p_error?: string | null; p_message_id?: number | null }; Returns: undefined };
+      admin_notificaciones: {
+        Args: { p_finca: string };
+        Returns: { user_id: string; nombre: string | null; email: string; rol: string; vinculo: string; vinculado_en: string | null; activo: boolean; resumen: boolean; resumen_hora: string; dias: number[]; nivel_minimo: string; alertas: boolean; semanal: boolean; silencio_desde: string; silencio_hasta: string; max_diarios: number }[];
+      };
+      admin_guardar_notificaciones: { Args: { p_finca: string; p_user: string; p_datos: Record<string, unknown> }; Returns: undefined };
       inventario_alimento: {
         Args: { p_finca: string; p_hoy: string };
         Returns: {

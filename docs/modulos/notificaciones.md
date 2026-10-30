@@ -1,12 +1,12 @@
 # Avisos por Telegram
 
-Lo que hay que hacer cada día llega por Telegram a cada persona del equipo, según su rol. **Estado:** primera entrega de base de datos (30 oct 2026); faltan el servidor del bot, la pantalla y el flujo de n8n.
+Lo que hay que hacer cada día llega por Telegram a cada persona del equipo, según su rol. **Estado (30 oct 2026):** hechos la base de datos y el servidor del bot (webhook y despacho); faltan el botón «Conectar Telegram», la pantalla del superadministrador y el flujo de n8n.
 
 ## Decisiones (del dueño del producto, 30 oct 2026)
 
-- **Un solo bot de la plataforma** (nadie pone un token). El nombre lo elige el dueño; Telegram exige que el usuario del bot **termine en «bot»** (por ejemplo `apriscol_bot` o `ApriscolBot`; `botapriscol` no se acepta). El token es una variable de entorno del servidor (nunca en el repo) y se pide al dueño solo para configurar el bot, no a los clientes.
+- **Un solo bot de la plataforma:** `@apriscolbot` (nadie pone un token). Telegram exige que el usuario termine en «bot». El token es una variable de entorno del servidor (nunca en el repo) y solo lo configura el dueño. **Un token que se haya pegado en un chat o una captura hay que revocarlo** (@BotFather → `/revoke`) y poner el nuevo directo en el entorno.
 - **Cada persona se vincula sola** desde la app: «Conectar Telegram» pide un código de un solo uso (8 caracteres, vale 15 minutos, se guarda solo su hash) y lo envía al bot como `/start CODIGO`. Un chat no puede estar en dos personas de la misma finca. Chat 1 a 1: nada de grupos.
-- **n8n despacha, Apriscol decide.** Un solo workflow para todas las fincas, en una carpeta o proyecto de n8n llamado **apriscol** y con nombres «APRISCOL — …», separado de los flujos de Stratt-On. Cada 15 minutos pregunta a Apriscol qué mensajes toca enviar, los manda con Telegram y devuelve el resultado. El texto de cada mensaje lo arma Apriscol con las mismas reglas que Hoy y Semáforos (`cargarSemaforos`, `areasSemaforo`), para que nunca se contradigan.
+- **n8n dispara, Apriscol decide y envía.** Un solo workflow para todas las fincas, en una carpeta o proyecto de n8n llamado **apriscol** y con nombres «APRISCOL — …», separado de los flujos de Stratt-On. Cada 15 minutos llama a `POST /api/notificaciones/despachar` con `Authorization: Bearer <DESPACHO_SECRET>` y vigila que responda bien. Apriscol arma el texto con las mismas reglas que Hoy y Semáforos (`cargarSemaforos`, `areasSemaforo`), reserva el envío, lo manda a Telegram y anota el resultado: el token vive en un solo lugar y «reservado → enviado» no depende de un viaje entre sistemas.
 - **Los parámetros viven en la base de datos, no en el cron.** El cron es fijo (cada 15 minutos); la tabla `notificacion_preferencias` dice, por persona, cuándo y qué recibe. En el piloto los fija solo el **superadministrador**.
 - **Cómo corre la lógica sin sesión:** el servidor firma un JWT de corta vida (60 s) con el secreto JWT del proyecto, a nombre de la persona (`sub`, `role=authenticated`), y llama a `cargarSemaforos` con un cliente normal: las funciones que validan `auth.uid()` y la seguridad por finca se comportan exactamente como en la app. Un cliente de servicio a secas **no sirve**: esas funciones fallan sin `auth.uid()`. Para las funciones del bot se firma otro con `role=service_role`. Un solo secreto (`SUPABASE_JWT_SECRET`) en el entorno del servidor y de n8n; quien lo tenga puede hacerse pasar por cualquiera: nunca al repo ni al navegador.
 
@@ -22,6 +22,16 @@ Funciones: `telegram_crear_codigo` y `telegram_desvincular` (la persona); `admin
 
 Probado con transacciones que se deshacen (propietario, ajeno, superadministrador, servidor): código, vinculación una sola vez, permisos, ventana horaria, envío único, reintento y bloqueo.
 
+## Servidor del bot (`lib/notificaciones/`, `app/api/telegram`, `app/api/notificaciones`)
+
+- `jwt.ts` firma el JWT de 60 s; `telegram.ts` (comandos, secreto, envío con detección de bloqueo); `mensajes.ts` (`armarResumen`: rojo primero, ámbar según el nivel mínimo, hasta 12 casos con enlace al punto exacto, 4096 caracteres como tope); `servidor.ts` (`despachar`, `atenderEvento`, `simularResumen`). Pruebas en `tests/notificaciones.test.mjs`.
+- `POST /api/telegram/webhook`: exige `X-Telegram-Bot-Api-Secret-Token` = `TELEGRAM_WEBHOOK_SECRET`. Atiende `/start CODIGO` (vincula), `/hoy`, `/pausar`, `/reanudar` y `/ayuda`; solo chat privado. Un 403 al enviar o un `kicked` pausan el vínculo como `bloqueado`.
+- `POST /api/notificaciones/despachar`: exige `Bearer DESPACHO_SECRET`. Sin cuerpo manda lo que toca ahora; con `{"simular":{"finca_id","user_id"}}` devuelve el resumen de esa persona **sin enviarlo ni anotarlo** (para probar el circuito).
+- Rutas públicas para el filtro de sesión (`lib/supabase/proxy.ts`): las protege su secreto. Si falta una variable, responden 503. Errores en los registros de Vercel con la marca `[apriscol:telegram]`.
+- **Variables (solo servidor, Vercel y nunca en el repo):** `TELEGRAM_BOT_TOKEN`, `TELEGRAM_WEBHOOK_SECRET`, `DESPACHO_SECRET`, `SUPABASE_JWT_SECRET` y, público, `NEXT_PUBLIC_TELEGRAM_BOT=apriscolbot`.
+- **Registrar el webhook** (una vez, con el secreto elegido): `curl -sS "https://api.telegram.org/bot<TOKEN>/setWebhook" -d "url=https://apriscol.shop/api/telegram/webhook" -d "secret_token=<TELEGRAM_WEBHOOK_SECRET>" -d 'allowed_updates=["message","my_chat_member"]'`.
+- **Sin probar contra Telegram ni Supabase real** (el entorno de desarrollo no llega a esos hosts): la firma del JWT la acepta la base si `SUPABASE_JWT_SECRET` es el secreto JWT del proyecto (llaves heredadas HS256). La primera prueba es `simular` con `curl`; si responde el texto, el circuito está bien.
+
 ## Qué recibe cada rol (el alcance sale de `areasSemaforo`)
 
 - **Propietario y administrador:** lo más urgente en rojo y ámbar, partos de la semana, compras por pagar y ventas por cobrar vencidas, novedades sin atender e inventario crítico (el administrador, además, las novedades «Comprar», el alimento y el mantenimiento de la sala).
@@ -33,7 +43,7 @@ Reglas contra el ruido: una alerta no se repite si no cambió, tope diario por p
 
 ## Pendiente
 
-1. Servidor del bot: webhook con firma (`X-Telegram-Bot-Api-Secret-Token`), `/start CODIGO`, `/hoy`, `/pausar`, `/reanudar`; ruta que arma los mensajes y registra los resultados.
+1. Poner las variables en Vercel, registrar el webhook y probar `simular`.
 2. «Conectar Telegram» en la app y pantalla del superadministrador para los parámetros.
 3. Workflow de n8n (carpeta apriscol) con el Schedule de 15 minutos.
 4. Alertas con dedupe, recordatorios con hora y resumen semanal.

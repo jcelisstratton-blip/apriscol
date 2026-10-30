@@ -2567,6 +2567,165 @@ export type Database = {
           },
         ]
       }
+      notificacion_envios: {
+        Row: {
+          clave: string
+          created_at: string
+          enviado_en: string | null
+          error: string | null
+          estado: string
+          finca_id: string
+          id: string
+          intentos: number
+          telegram_message_id: number | null
+          tipo: string
+          user_id: string
+        }
+        Insert: {
+          clave: string
+          created_at?: string
+          enviado_en?: string | null
+          error?: string | null
+          estado?: string
+          finca_id: string
+          id?: string
+          intentos?: number
+          telegram_message_id?: number | null
+          tipo: string
+          user_id: string
+        }
+        Update: {
+          clave?: string
+          created_at?: string
+          enviado_en?: string | null
+          error?: string | null
+          estado?: string
+          finca_id?: string
+          id?: string
+          intentos?: number
+          telegram_message_id?: number | null
+          tipo?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notificacion_envios_miembro_fk"
+            columns: ["finca_id", "user_id"]
+            isOneToOne: false
+            referencedRelation: "finca_miembros"
+            referencedColumns: ["finca_id", "user_id"]
+          },
+        ]
+      }
+      notificacion_preferencias: {
+        Row: {
+          activo: boolean
+          alertas: boolean
+          created_at: string
+          dias: number[]
+          finca_id: string
+          max_diarios: number
+          nivel_minimo: string
+          resumen: boolean
+          resumen_hora: string
+          semanal: boolean
+          silencio_desde: string
+          silencio_hasta: string
+          updated_at: string
+          updated_by: string | null
+          user_id: string
+        }
+        Insert: {
+          activo?: boolean
+          alertas?: boolean
+          created_at?: string
+          dias?: number[]
+          finca_id: string
+          max_diarios?: number
+          nivel_minimo?: string
+          resumen?: boolean
+          resumen_hora?: string
+          semanal?: boolean
+          silencio_desde?: string
+          silencio_hasta?: string
+          updated_at?: string
+          updated_by?: string | null
+          user_id: string
+        }
+        Update: {
+          activo?: boolean
+          alertas?: boolean
+          created_at?: string
+          dias?: number[]
+          finca_id?: string
+          max_diarios?: number
+          nivel_minimo?: string
+          resumen?: boolean
+          resumen_hora?: string
+          semanal?: boolean
+          silencio_desde?: string
+          silencio_hasta?: string
+          updated_at?: string
+          updated_by?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notificacion_pref_miembro_fk"
+            columns: ["finca_id", "user_id"]
+            isOneToOne: false
+            referencedRelation: "finca_miembros"
+            referencedColumns: ["finca_id", "user_id"]
+          },
+        ]
+      }
+      telegram_vinculos: {
+        Row: {
+          chat_id: number | null
+          codigo_expira: string | null
+          codigo_hash: string | null
+          created_at: string
+          estado: string
+          finca_id: string
+          id: string
+          updated_at: string
+          user_id: string
+          vinculado_en: string | null
+        }
+        Insert: {
+          chat_id?: number | null
+          codigo_expira?: string | null
+          codigo_hash?: string | null
+          created_at?: string
+          estado?: string
+          finca_id: string
+          id?: string
+          updated_at?: string
+          user_id: string
+          vinculado_en?: string | null
+        }
+        Update: {
+          chat_id?: number | null
+          codigo_expira?: string | null
+          codigo_hash?: string | null
+          created_at?: string
+          estado?: string
+          finca_id?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+          vinculado_en?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "telegram_vinculos_miembro_fk"
+            columns: ["finca_id", "user_id"]
+            isOneToOne: false
+            referencedRelation: "finca_miembros"
+            referencedColumns: ["finca_id", "user_id"]
+          },
+        ]
+      }
       inventario_movimientos: {
         Row: {
           cantidad: number
@@ -6426,6 +6585,67 @@ export type Database = {
       }
       importar_libro_lote: {
         Args: { p_entidad?: string; p_lote: Json }
+        Returns: Json
+      }
+      admin_guardar_notificaciones: {
+        Args: { p_datos: Json; p_finca: string; p_user: string }
+        Returns: undefined
+      }
+      admin_notificaciones: {
+        Args: { p_finca: string }
+        Returns: {
+          activo: boolean
+          alertas: boolean
+          dias: number[]
+          email: string
+          max_diarios: number
+          nivel_minimo: string
+          nombre: string
+          resumen: boolean
+          resumen_hora: string
+          rol: string
+          semanal: boolean
+          silencio_desde: string
+          silencio_hasta: string
+          user_id: string
+          vinculado_en: string
+          vinculo: string
+        }[]
+      }
+      notificacion_reservar: {
+        Args: { p_clave: string; p_finca: string; p_tipo: string; p_user: string }
+        Returns: string
+      }
+      notificacion_resultado: {
+        Args: { p_error?: string; p_estado: string; p_id: string; p_message_id?: number }
+        Returns: undefined
+      }
+      notificaciones_destinos: {
+        Args: { p_ahora?: string }
+        Returns: {
+          chat_id: number
+          clave: string
+          finca_id: string
+          finca_nombre: string
+          rol: string
+          tipo: string
+          user_id: string
+        }[]
+      }
+      telegram_chat_estado: {
+        Args: { p_chat_id: number; p_estado: string }
+        Returns: number
+      }
+      telegram_crear_codigo: {
+        Args: { p_finca: string }
+        Returns: string
+      }
+      telegram_desvincular: {
+        Args: { p_finca: string }
+        Returns: undefined
+      }
+      telegram_vincular: {
+        Args: { p_chat_id: number; p_codigo: string }
         Returns: Json
       }
       inventario_alimento: {
