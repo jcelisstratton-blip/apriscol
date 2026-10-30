@@ -1,6 +1,6 @@
 # Avisos por Telegram
 
-Lo que hay que hacer cada día llega por Telegram a cada persona del equipo, según su rol. **Estado (30 oct 2026):** hechos la base de datos y el servidor del bot (webhook y despacho); faltan el botón «Conectar Telegram», la pantalla del superadministrador y el flujo de n8n.
+Lo que hay que hacer cada día llega por Telegram a cada persona del equipo, según su rol. **Estado (30 oct 2026):** hechos la base de datos, el servidor del bot (webhook y despacho, probado en producción: `/hoy` responde) y la pantalla «Más → Telegram» de cada persona; faltan la pantalla del superadministrador y el flujo de n8n.
 
 ## Decisiones (del dueño del producto, 30 oct 2026)
 
@@ -32,6 +32,10 @@ Probado con transacciones que se deshacen (propietario, ajeno, superadministrado
 - **Registrar el webhook** (una vez, con el secreto elegido): `curl -sS "https://api.telegram.org/bot<TOKEN>/setWebhook" -d "url=https://apriscol.shop/api/telegram/webhook" -d "secret_token=<TELEGRAM_WEBHOOK_SECRET>" -d 'allowed_updates=["message","my_chat_member"]'`.
 - **Sin probar contra Telegram ni Supabase real** (el entorno de desarrollo no llega a esos hosts): la firma del JWT la acepta la base si `SUPABASE_JWT_SECRET` es el secreto JWT del proyecto (llaves heredadas HS256). La primera prueba es `simular` con `curl`; si responde el texto, el circuito está bien.
 
+## Pantalla de la persona (`/mas/telegram`, entrada «Telegram» de Mi finca, para todos los roles)
+
+`ConectarTelegram` pide un código (`crearCodigoTelegram` → `telegram_crear_codigo`), abre `t.me/<bot>?start=<código>` y revisa cada 4 segundos si la conexión se confirmó (mientras el código vale, 15 minutos). Muestra el estado (Conectado, Pausado, Bot bloqueado, Sin conectar), lo que va a recibir (`describirAvisos`, a partir de los parámetros que fijó el equipo) y permite desconectar con confirmación. La app solo lee el **estado** del vínculo: el código y el chat no tienen permiso de lectura. El usuario del bot sale de `NEXT_PUBLIC_TELEGRAM_BOT` (por defecto `apriscolbot`; no es un secreto). Está omitida de la presentación (`lib/presentacion.ts`) mientras sea piloto.
+
 ## Qué recibe cada rol (el alcance sale de `areasSemaforo`)
 
 - **Propietario y administrador:** lo más urgente en rojo y ámbar, partos de la semana, compras por pagar y ventas por cobrar vencidas, novedades sin atender e inventario crítico (el administrador, además, las novedades «Comprar», el alimento y el mantenimiento de la sala).
@@ -44,7 +48,7 @@ Reglas contra el ruido: una alerta no se repite si no cambió, tope diario por p
 ## Pendiente
 
 1. Poner las variables en Vercel, registrar el webhook y probar `simular`.
-2. «Conectar Telegram» en la app y pantalla del superadministrador para los parámetros.
+2. Pantalla del superadministrador para los parámetros (`admin_notificaciones`, `admin_guardar_notificaciones`). Mientras no exista, los parámetros del piloto se fijan con la función desde el Editor SQL.
 3. Workflow de n8n (carpeta apriscol) con el Schedule de 15 minutos.
 4. Alertas con dedupe, recordatorios con hora y resumen semanal.
 5. Validar con el veterinario qué es «lo que hay que hacer hoy» para cada rol.

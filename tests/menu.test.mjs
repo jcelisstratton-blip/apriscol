@@ -14,7 +14,7 @@ test("menú: el propietario con plan Profesional ve todos los grupos, en este or
     ["Dinero y análisis", ["Costos", "Reportes", "Proyecciones", "Productos y terceros"]],
     ["Genealogía", ["Endogamia", "Premios"]],
   ]);
-  assert.deepEqual(menuFinca(v).map((e) => e.etiqueta), ["Datos de la finca", "Ajustes de la finca", "Equipo", "Referidos", "Cambiar el plan", "Exportar datos", "Agregar otra finca"]);
+  assert.deepEqual(menuFinca(v).map((e) => e.etiqueta), ["Datos de la finca", "Ajustes de la finca", "Equipo", "Telegram", "Referidos", "Cambiar el plan", "Exportar datos", "Agregar otra finca"]);
 });
 
 test("menú: en el plan más alto la entrada del plan dice «Plan de esta finca»", () => {
@@ -35,7 +35,7 @@ test("menú: un ordeñador no ve lo que no puede abrir y los grupos vacíos desa
     ["Dinero y análisis", ["Reportes"]], // el reporte de ordeño sí lo puede abrir
     ["Genealogía", ["Endogamia"]],
   ]);
-  assert.deepEqual(menuFinca(v).map((e) => e.etiqueta), ["Ajustes de la finca", "Referidos"]);
+  assert.deepEqual(menuFinca(v).map((e) => e.etiqueta), ["Ajustes de la finca", "Telegram", "Referidos"]);
   assert.ok(!menuFinca(visibilidadMenu("veterinario", "profesional")).some((e) => e.etiqueta === "Agregar otra finca"));
   assert.ok(!menuFinca(visibilidadMenu("contador", "profesional")).some((e) => e.etiqueta === "Agregar otra finca" || e.etiqueta === "Datos de la finca"));
   assert.ok(menuFinca(visibilidadMenu("administrador", "profesional")).some((e) => e.etiqueta === "Agregar otra finca"));
