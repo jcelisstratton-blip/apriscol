@@ -149,7 +149,7 @@ export function armarDetalleArea(e: EntradaResumen & { area: AreaSemaforo }): Re
   const areas = agrupar(e.senales, e.nivelMinimo);
   const a = areas.find((x) => x.area === e.area);
   const volver: Boton = { texto: "← Volver al resumen", accion: datosResumen(e.fincaId) };
-  const abrir: Boton[] = botonApp(`Abrir ${ETIQUETA_AREA[e.area]} en la app`, e, e.area);
+  const abrir: Boton[] = botonApp("Ver estas tareas en la app", e, e.area);
   if (!a) return { texto: `<b>${escaparHtml(ETIQUETA_AREA[e.area].toUpperCase())}</b>\nNada pide atención en esta área.`, botones: [[...abrir, volver]], rojos: 0, ambar: 0 };
 
   const nombres = (items: ItemSenal[]) => {

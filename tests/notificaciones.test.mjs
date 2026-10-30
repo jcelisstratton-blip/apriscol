@@ -73,8 +73,8 @@ test("Telegram: los botones van como enlaces y, si Telegram los rechaza, el mens
   assert.deepEqual(cuerpos[0].reply_markup.inline_keyboard, [[{ text: "Sanidad", callback_data: "ar:sanidad:x" }, { text: "Abrir", url: "https://apriscol.shop/" }]]);
   // Un botón de Mini App viaja como web_app: abre Apriscol dentro de Telegram, sin el aviso de dirección.
   cuerpos.length = 0;
-  await enviarTelegram("T0KEN", 1, "hola", [[{ texto: "Abrir Sanidad en la app", miniApp: "https://apriscol.shop/telegram/entrar?f=x&d=sanidad" }]], http([200]));
-  assert.deepEqual(cuerpos[0].reply_markup.inline_keyboard, [[{ text: "Abrir Sanidad en la app", web_app: { url: "https://apriscol.shop/telegram/entrar?f=x&d=sanidad" } }]]);
+  await enviarTelegram("T0KEN", 1, "hola", [[{ texto: "Ver estas tareas en la app", miniApp: "https://apriscol.shop/telegram/entrar?f=x&d=sanidad" }]], http([200]));
+  assert.deepEqual(cuerpos[0].reply_markup.inline_keyboard, [[{ text: "Ver estas tareas en la app", web_app: { url: "https://apriscol.shop/telegram/entrar?f=x&d=sanidad" } }]]);
 });
 
 test("Telegram: editar un mensaje y responder a un botón", async () => {
@@ -162,7 +162,7 @@ test("detalle de un área: tareas con sus vencidos y pendientes, nombres como te
   assert.doesNotMatch(r.texto, /MIR-C0046|LECHE/);
   assert.match(r.texto, /🔴 <b>4<\/b> vencidas · <i>la más atrasada: hace 324 días<\/i>/);
   assert.match(r.texto, /🟠 <b>2<\/b> pendientes · /);
-  assert.deepEqual(r.botones, [[{ texto: "Abrir Sanidad en la app", miniApp: `https://apriscol.shop/telegram/entrar?f=${FINCA}&d=sanidad` }, { texto: "← Volver al resumen", accion: datosResumen(FINCA) }]]);
+  assert.deepEqual(r.botones, [[{ texto: "Ver estas tareas en la app", miniApp: `https://apriscol.shop/telegram/entrar?f=${FINCA}&d=sanidad` }, { texto: "← Volver al resumen", accion: datosResumen(FINCA) }]]);
   // Un área sin nada: lo dice y deja volver; sin https solo queda «volver».
   const vacia = armarDetalleArea({ ...BASE, area: "corrales", nivelMinimo: "ambar", urlBase: "http://localhost:3000" });
   assert.match(vacia.texto, /Nada pide atención/);
@@ -265,8 +265,8 @@ test("Mini App: la firma de Telegram se comprueba (válida, alterada, vencida, d
 test("Mini App: el botón solo puede llevar a las pantallas de la lista", () => {
   assert.equal(rutaDeDestino("hoy"), "/");
   assert.equal(rutaDeDestino("semaforos"), "/semaforos");
-  assert.equal(rutaDeDestino("sanidad"), "/sanidad");
-  assert.equal(rutaDeDestino("alimento"), "/inventario?vista=alimento");
+  assert.equal(rutaDeDestino("sanidad"), "/semaforos#sanidad"); // las mismas tareas que lista el bot, no la pantalla general del módulo
+  assert.equal(rutaDeDestino("alimento"), "/semaforos#alimento");
   for (const malo of ["", "https://malo.example", "//malo.example", "/admin", "../admin", "__proto__", "toString", "constructor", "SANIDAD"]) assert.equal(rutaDeDestino(malo), null, malo);
   for (const ruta of Object.values(DESTINOS_MINIAPP)) assert.match(ruta, /^\/(?!\/)/); // todas rutas internas
 });
