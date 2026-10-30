@@ -4,8 +4,8 @@ import { SUPABASE_KEY, SUPABASE_URL } from "@/lib/env";
 import type { Database } from "@/lib/tipos";
 
 // «/invitacion»: quien recibe el enlace sin tener cuenta debe poder ver a qué lo invitan y crearla (la pantalla pide sesión solo para aceptar).
-// «/api/telegram» y «/api/notificaciones» no llevan sesión: las protege el secreto de cada una (webhook de Telegram y llamada de n8n).
-const PUBLICAS = ["/login", "/registro", "/recuperar", "/auth", "/terminos", "/privacidad", "/api/csp", "/api/telegram", "/api/notificaciones", "/invitacion"];
+// «/api/telegram» y «/api/notificaciones» no llevan sesión: las protege el secreto de cada una (webhook de Telegram y llamada de n8n). «/telegram» es la Mini App del bot: abre la sesión con la firma de Telegram (`/api/telegram/sesion`).
+const PUBLICAS = ["/login", "/registro", "/recuperar", "/auth", "/terminos", "/privacidad", "/api/csp", "/api/telegram", "/api/notificaciones", "/telegram", "/invitacion"];
 
 /** Refresca la sesión en cada navegación y manda a /login a quien no la tenga. */
 export async function actualizarSesion(request: NextRequest) {
