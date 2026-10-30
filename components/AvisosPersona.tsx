@@ -57,7 +57,7 @@ export function AvisosPersona({
     iniciar(async () => {
       setError(null);
       const r = await guardar(fincaId, userId, p);
-      if (r.ok) toast.exito("Avisos guardados");
+      if (r.ok) toast.exito(p.activo ? "Avisos guardados" : "Guardado. Los avisos siguen apagados");
       else setError(r.error);
     });
 
@@ -73,10 +73,24 @@ export function AvisosPersona({
         <Insignia tono={TONO[vinculo]}>{ETIQUETA_VINCULO[vinculo]}</Insignia>
       </div>
 
-      <label className="flex min-h-11 items-center gap-3 text-[0.9375rem] font-semibold">
-        <input type="checkbox" className="size-5 accent-musgo" checked={p.activo} onChange={(e) => cambiar("activo", e.target.checked)} />
-        Enviarle el resumen por Telegram
-      </label>
+      <div className="flex min-h-12 items-center justify-between gap-3 rounded-2xl bg-lana px-3.5 py-2">
+        <div className="min-w-0">
+          <p id={`avisos-${userId}`} className="text-[0.9375rem] font-semibold">
+            Resumen por Telegram
+          </p>
+          <p className={`text-sm ${p.activo ? "text-ok" : "text-humo"}`}>{p.activo ? "Activado" : "Apagado: no recibe nada"}</p>
+        </div>
+        <button
+          type="button"
+          role="switch"
+          aria-checked={p.activo}
+          aria-labelledby={`avisos-${userId}`}
+          onClick={() => cambiar("activo", !p.activo)}
+          className={`relative h-8 w-14 shrink-0 rounded-full transition-colors ${p.activo ? "bg-musgo" : "bg-arena"}`}
+        >
+          <span className={`absolute left-1 top-1 size-6 rounded-full bg-papel shadow transition-transform ${p.activo ? "translate-x-6" : "translate-x-0"}`} />
+        </button>
+      </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Campo etiqueta="Hora del resumen" ayuda="Hora de Colombia.">
