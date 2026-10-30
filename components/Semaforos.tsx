@@ -54,7 +54,7 @@ export function Semaforos({ senales }: { senales: Senal[] }) {
       ) : null}
 
       {areas.map((area) => (
-        <section key={area} aria-label={ETIQUETA_AREA[area]}>
+        <section key={area} id={area} aria-label={ETIQUETA_AREA[area]} className="scroll-mt-4">
           <h2 className="mb-2 text-sm font-bold uppercase tracking-wide text-humo">{ETIQUETA_AREA[area]}</h2>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {conAviso
