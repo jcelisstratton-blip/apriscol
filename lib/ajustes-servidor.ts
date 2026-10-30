@@ -11,23 +11,27 @@ import type { Especie } from "@/lib/tipos";
  */
 export const obtenerAjustes = cache(async (): Promise<AjustesCompletos> => {
   const { finca } = await obtenerContexto();
-  const supabase = await crearClienteServidor();
+  return leerAjustesFinca(await crearClienteServidor(), finca.id);
+});
+
+/** Lo mismo con el cliente que se le pase: lo usan los avisos por Telegram, que corren sin la sesión de una pantalla. */
+export async function leerAjustesFinca(supabase: Awaited<ReturnType<typeof crearClienteServidor>>, fincaId: string): Promise<AjustesCompletos> {
   const leer = () =>
     Promise.all([
-      supabase.from("finca_ajustes").select("*").eq("finca_id", finca.id).maybeSingle(),
-      supabase.from("finca_ajustes_especie").select("*").eq("finca_id", finca.id),
+      supabase.from("finca_ajustes").select("*").eq("finca_id", fincaId).maybeSingle(),
+      supabase.from("finca_ajustes_especie").select("*").eq("finca_id", fincaId),
     ]);
 
   let [general, porEspecie] = await leer();
   if (!general.data || (porEspecie.data ?? []).length < 2) {
-    await supabase.rpc("asegurar_ajustes_finca", { p_finca: finca.id });
+    await supabase.rpc("asegurar_ajustes_finca", { p_finca: fincaId });
     [general, porEspecie] = await leer();
   }
   if (!general.data || (porEspecie.data ?? []).length < 2) throw new Error("No se pudieron leer los ajustes de la finca.");
 
   const filas = new Map<Especie, AjustesEspecie>((porEspecie.data ?? []).map((f) => [f.especie, f]));
   return { general: general.data, especie: { caprino: filas.get("caprino")!, ovino: filas.get("ovino")! } };
-});
+}
 
 /** Rango biológico de la gestación de cada especie y su valor de fábrica, del catálogo `parametros_especie`. */
 export const obtenerRangosGestacion = cache(async (): Promise<Record<Especie, RangoGestacion>> => {
