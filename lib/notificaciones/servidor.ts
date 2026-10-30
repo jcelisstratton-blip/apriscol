@@ -5,8 +5,8 @@ import { hoyBogota } from "@/lib/fechas";
 import { saludo } from "@/lib/animal";
 import { leerAjustesFinca } from "@/lib/ajustes-servidor";
 import { cargarSemaforos } from "@/lib/semaforos-servidor";
-import { armarResumen, type NivelMinimo } from "@/lib/notificaciones/mensajes";
-import { enviarTelegram, escaparHtml, interpretarComando, type EventoTelegram } from "@/lib/notificaciones/telegram";
+import { armarResumen, type NivelMinimo, type Resumen } from "@/lib/notificaciones/mensajes";
+import { enviarTelegram, escaparHtml, interpretarComando, type BotonUrl, type EventoTelegram } from "@/lib/notificaciones/telegram";
 import type { Database, RolFinca } from "@/lib/tipos";
 
 /** Lo que el servidor necesita para hablar con Telegram y con la base sin la sesión de una persona. Todo viene del entorno: nada en el repo. */
@@ -74,7 +74,7 @@ export async function resumenDe(destino: Destino, secretKey: string, ahora = new
 }
 
 /** Arma el resumen de una persona sin enviarlo ni anotarlo: sirve para comprobar todo el circuito (secreto JWT, permisos, reglas) antes de conectar Telegram. */
-export async function simularResumen(entorno: Pick<Entorno, "secretKey">, fincaId: string, userId: string): Promise<{ texto: string; mostrados: number; omitidos: number } | null> {
+export async function simularResumen(entorno: Pick<Entorno, "secretKey">, fincaId: string, userId: string): Promise<Resumen | null> {
   const servicio = clienteServicio(entorno.secretKey);
   const { data: miembro } = await servicio.from("finca_miembros").select("rol").eq("finca_id", fincaId).eq("user_id", userId).maybeSingle();
   if (!miembro) return null;
@@ -106,7 +106,7 @@ export async function despachar(entorno: Entorno, ahora = new Date(), maximo = 3
         salida.omitidos++;
         return;
       }
-      const r = await enviarTelegram(entorno.token, d.chat_id, resumen.texto);
+      const r = await enviarTelegram(entorno.token, d.chat_id, resumen.texto, resumen.botones);
       if (r.ok) {
         await servicio.rpc("notificacion_resultado", { p_id: envioId, p_estado: "enviado", p_message_id: r.messageId });
         salida.enviados++;
@@ -139,8 +139,8 @@ export async function atenderEvento(evento: EventoTelegram, entorno: Entorno): P
     await servicio.rpc("telegram_chat_estado", { p_chat_id: evento.chatId, p_estado: "bloqueado" });
     return;
   }
-  const responder = async (texto: string) => {
-    const r = await enviarTelegram(entorno.token, evento.chatId, texto);
+  const responder = async (texto: string, botones: BotonUrl[][] = []) => {
+    const r = await enviarTelegram(entorno.token, evento.chatId, texto, botones);
     if (!r.ok) console.error("[apriscol:telegram] respuesta no enviada:", r.error);
     return r;
   };
@@ -191,7 +191,8 @@ export async function atenderEvento(evento: EventoTelegram, entorno: Entorno): P
           const { data: miembro } = await servicio.from("finca_miembros").select("rol").eq("finca_id", v.finca_id).eq("user_id", v.user_id).maybeSingle();
           if (!miembro) continue;
           const resumen = await resumenDe({ finca_id: v.finca_id, user_id: v.user_id, rol: miembro.rol }, entorno.secretKey);
-          await responder(resumen?.texto ?? "Esta finca no tiene el plan al día, así que no puedo mostrarte el resumen.");
+          if (resumen) await responder(resumen.texto, resumen.botones);
+          else await responder("Esta finca no tiene el plan al día, así que no puedo mostrarte el resumen.");
         } catch (e) {
           console.error("[apriscol:telegram] /hoy", recorte(e));
           await responder("No pude armar tu resumen ahora. Intenta de nuevo en unos minutos.");

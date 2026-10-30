@@ -111,6 +111,8 @@ test("semáforos: dosis y programas — vencida en rojo, hoy o en 7 días en ám
   const d = (clave, fecha, tipo = "dosis") => ({ clave, titulo: clave, fecha, animales: 3, tipo, href: "/" });
   const s = senalDosis([d("vencida", dia(-2)), d("hoy", dia(0)), d("sem", dia(6)), d("lejos", dia(20)), d("prog", dia(-1), "programa")], HOY);
   assert.deepEqual(s.items.map((i) => [i.clave, i.nivel]), [["vencida", "rojo"], ["prog", "rojo"], ["hoy", "ambar"], ["sem", "ambar"]]);
+  // Cada caso dice cuántos días lleva vencido (0 = todavía no vence): sirve para separar lo vencido de lo pendiente.
+  assert.deepEqual(s.items.map((i) => [i.clave, i.atrasoDias]), [["vencida", 2], ["prog", 1], ["hoy", 0], ["sem", 0]]);
 });
 
 test("semáforos: retiro — ámbar mientras dura; el que ya terminó no aparece", () => {

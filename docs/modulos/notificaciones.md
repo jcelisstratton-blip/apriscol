@@ -36,6 +36,12 @@ Probado con transacciones que se deshacen (propietario, ajeno, superadministrado
 
 `ConectarTelegram` pide un código (`crearCodigoTelegram` → `telegram_crear_codigo`), abre `t.me/<bot>?start=<código>` y revisa cada 4 segundos si la conexión se confirmó (mientras el código vale, 15 minutos). Muestra el estado (Conectado, Pausado, Bot bloqueado, Sin conectar), lo que va a recibir (`describirAvisos`, a partir de los parámetros que fijó el equipo) y permite desconectar con confirmación. La app solo lee el **estado** del vínculo: el código y el chat no tienen permiso de lectura. El usuario del bot sale de `NEXT_PUBLIC_TELEGRAM_BOT` (por defecto `apriscolbot`; no es un secreto). Está omitida de la presentación (`lib/presentacion.ts`) mientras sea piloto.
 
+## Cómo se ve el resumen (`lib/notificaciones/mensajes.ts`)
+
+Arriba, finca, fecha y saludo; luego los totales (🔴 vencidos o urgentes · 🟠 pendientes); luego **un bloque por área** (las que tienen algo vencido primero) con **una línea por tarea y su cantidad**, y debajo **botones de enlace** (uno por área con su cantidad, más «Abrir Hoy» y «Ver semáforos»). Lo que tiene fecha límite (`ItemSenal.atrasoDias`, hoy las dosis y programas) se separa en «vencidas» (con la más atrasada: «hace 324 días») y «pendientes»; el resto muestra hasta 3 nombres (sin el arete, con enlace a la ficha) y «y N más». El detalle largo (qué hacer con cada animal) queda en la app. Si no cabe en 4096 caracteres se quitan los nombres y quedan las tareas con su cantidad. Los botones solo se envían con una dirección `https` (Telegram rechaza `localhost`); si Telegram los rechaza, el mensaje se reenvía sin ellos.
+
+**Dirección de los enlaces:** `SITE_URL` (`lib/env.ts`) usa `NEXT_PUBLIC_SITE_URL` si existe; si no, en producción `https://$VERCEL_PROJECT_PRODUCTION_URL` (o `https://apriscol.shop`) y solo en desarrollo `http://localhost:3000`. Antes caía siempre a localhost en producción porque la variable no está en Vercel.
+
 ## Qué recibe cada rol (el alcance sale de `areasSemaforo`)
 
 - **Propietario y administrador:** lo más urgente en rojo y ámbar, partos de la semana, compras por pagar y ventas por cobrar vencidas, novedades sin atender e inventario crítico (el administrador, además, las novedades «Comprar», el alimento y el mantenimiento de la sala).

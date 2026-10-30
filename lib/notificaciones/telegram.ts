@@ -60,17 +60,33 @@ export function leerEvento(cuerpo: unknown): EventoTelegram {
   return { tipo: "otro" };
 }
 
+/** Un botón que abre una dirección (los de Telegram solo aceptan https). */
+export type BotonUrl = { texto: string; url: string };
+
 export type ResultadoEnvio = { ok: true; messageId: number } | { ok: false; error: string; bloqueado: boolean };
 
-/** Envía un mensaje (HTML). Un 403 quiere decir que la persona bloqueó el bot o borró el chat: no se vuelve a intentar. */
-export async function enviarTelegram(token: string, chatId: number, texto: string, http: typeof fetch = fetch): Promise<ResultadoEnvio> {
-  try {
+/**
+ * Envía un mensaje (HTML), con botones de enlace debajo si se piden. Un 403 quiere decir que la persona bloqueó el bot o borró el chat: no se vuelve a intentar.
+ * Si Telegram rechaza los botones (dirección no válida), se reintenta el mismo mensaje sin ellos: es mejor que llegue sin botones a que no llegue.
+ */
+export async function enviarTelegram(token: string, chatId: number, texto: string, botones: BotonUrl[][] = [], http: typeof fetch = fetch): Promise<ResultadoEnvio> {
+  const intentar = async (conBotones: boolean): Promise<{ r: Response; datos: { ok?: boolean; description?: string; result?: { message_id?: number } } | null }> => {
     const r = await http(`https://api.telegram.org/bot${token}/sendMessage`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ chat_id: chatId, text: texto.slice(0, LIMITE_MENSAJE), parse_mode: "HTML", link_preview_options: { is_disabled: true } }),
+      body: JSON.stringify({
+        chat_id: chatId,
+        text: texto.slice(0, LIMITE_MENSAJE),
+        parse_mode: "HTML",
+        link_preview_options: { is_disabled: true },
+        ...(conBotones ? { reply_markup: { inline_keyboard: botones.map((fila) => fila.map((b) => ({ text: b.texto, url: b.url }))) } } : {}),
+      }),
     });
-    const datos = (await r.json().catch(() => null)) as { ok?: boolean; description?: string; result?: { message_id?: number } } | null;
+    return { r, datos: (await r.json().catch(() => null)) as { ok?: boolean; description?: string; result?: { message_id?: number } } | null };
+  };
+  try {
+    let { r, datos } = await intentar(botones.length > 0);
+    if (r.status === 400 && botones.length > 0) ({ r, datos } = await intentar(false));
     if (r.ok && datos?.ok && typeof datos.result?.message_id === "number") return { ok: true, messageId: datos.result.message_id };
     return { ok: false, error: (datos?.description ?? `Telegram respondió ${r.status}`).slice(0, 300), bloqueado: r.status === 403 };
   } catch (e) {

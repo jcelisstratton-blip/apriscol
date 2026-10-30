@@ -50,6 +50,8 @@ export type ItemSenal = {
   href: string;
   /** Qué hacer ahora con este caso, en una frase (opcional). */
   queHacer?: string;
+  /** Solo en lo que tiene fecha límite: cuántos días lleva vencido (0 = todavía no vence). Sirve para separar lo vencido de lo pendiente. */
+  atrasoDias?: number;
   /** Más chico = más urgente dentro de su nivel. */
   orden: number;
 };
@@ -413,6 +415,7 @@ export function senalDosis(pendientes: DosisPendiente[], hoy: string): Senal {
       nivel: e.tono === "alerta" ? "rojo" : "ambar",
       href: p.href,
       orden: e.dias,
+      atrasoDias: e.dias < 0 ? -e.dias : 0,
     });
   }
   return armarSenal(
