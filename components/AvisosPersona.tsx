@@ -2,7 +2,6 @@
 
 import { useState, useTransition } from "react";
 import { ListChecks, Siren } from "lucide-react";
-import { guardarAvisos } from "@/app/(admin)/admin/fincas/[id]/avisos/actions";
 import { Aviso } from "@/components/Aviso";
 import { Boton } from "@/components/Boton";
 import { Campo, CLASE_INPUT } from "@/components/Campo";
@@ -13,14 +12,19 @@ import { escena } from "@/lib/escenas";
 import { ETIQUETA_VINCULO, type EstadoVinculo } from "@/lib/notificaciones/enlace";
 import { DIAS_SEMANA, MAX_DIARIOS, type ParametrosAvisos } from "@/lib/notificaciones/parametros";
 
+type Resultado = { ok: true } | { ok: false; error: string };
+
 const TONO: Record<EstadoVinculo, "neutro" | "ok" | "aviso" | "alerta"> = { pendiente: "neutro", activo: "ok", pausado: "aviso", bloqueado: "alerta" };
 const NIVELES = [
   { valor: "ambar" as const, etiqueta: "Urgente y pendiente", detalle: "Rojos y naranjas", escena: escena(ListChecks, "ambar") },
   { valor: "rojo" as const, etiqueta: "Solo urgente", detalle: "Solo lo vencido", escena: escena(Siren, "arcilla") },
 ];
 
-/** Superadmin: los parámetros de aviso de una persona de la finca (hora, días, nivel). Se guarda con un botón; lo que ya estaba no se pierde si falla. */
-export function AvisosPersonaAdmin({
+/**
+ * Los parámetros de aviso de una persona de la finca (resumen, hora, días, nivel). Se guarda con un botón; lo que ya estaba no se pierde si falla.
+ * La acción de guardar viene de quien la usa: el superadmin (que además fija el máximo diario) o el propietario y el administrador de la finca.
+ */
+export function AvisosPersona({
   fincaId,
   userId,
   nombre,
@@ -28,6 +32,8 @@ export function AvisosPersonaAdmin({
   rol,
   vinculo,
   inicial,
+  guardar,
+  conMaximo = false,
 }: {
   fincaId: string;
   userId: string;
@@ -36,6 +42,9 @@ export function AvisosPersonaAdmin({
   rol: string;
   vinculo: EstadoVinculo;
   inicial: ParametrosAvisos;
+  guardar: (fincaId: string, userId: string, parametros: ParametrosAvisos) => Promise<Resultado>;
+  /** Solo el superadmin fija el máximo de mensajes al día. */
+  conMaximo?: boolean;
 }) {
   const toast = useToast();
   const [p, setP] = useState<ParametrosAvisos>(inicial);
@@ -44,10 +53,10 @@ export function AvisosPersonaAdmin({
   const cambiar = <K extends keyof ParametrosAvisos>(k: K, v: ParametrosAvisos[K]) => setP((a) => ({ ...a, [k]: v }));
   const alternarDia = (d: number) => cambiar("dias", p.dias.includes(d) ? p.dias.filter((x) => x !== d) : [...p.dias, d]);
 
-  const guardar = () =>
+  const alGuardar = () =>
     iniciar(async () => {
       setError(null);
-      const r = await guardarAvisos(fincaId, userId, p);
+      const r = await guardar(fincaId, userId, p);
       if (r.ok) toast.exito("Avisos guardados");
       else setError(r.error);
     });
@@ -73,11 +82,13 @@ export function AvisosPersonaAdmin({
         <Campo etiqueta="Hora del resumen" ayuda="Hora de Colombia.">
           {(id) => <input id={id} type="time" className={CLASE_INPUT} value={p.resumen_hora} onChange={(e) => cambiar("resumen_hora", e.target.value)} />}
         </Campo>
-        <Campo etiqueta="Máximo de mensajes al día" ayuda={`De 1 a ${MAX_DIARIOS}.`}>
-          {(id) => (
-            <input id={id} type="number" inputMode="numeric" min={1} max={MAX_DIARIOS} className={CLASE_INPUT} value={p.max_diarios} onChange={(e) => cambiar("max_diarios", Number(e.target.value))} />
-          )}
-        </Campo>
+        {conMaximo ? (
+          <Campo etiqueta="Máximo de mensajes al día" ayuda={`De 1 a ${MAX_DIARIOS}.`}>
+            {(id) => (
+              <input id={id} type="number" inputMode="numeric" min={1} max={MAX_DIARIOS} className={CLASE_INPUT} value={p.max_diarios} onChange={(e) => cambiar("max_diarios", Number(e.target.value))} />
+            )}
+          </Campo>
+        ) : null}
       </div>
 
       <div className="space-y-1.5">
@@ -106,7 +117,7 @@ export function AvisosPersonaAdmin({
       </div>
 
       {error ? <Aviso tipo="error">{error}</Aviso> : null}
-      <Boton pendiente={pendiente} cargando="Guardando…" onClick={guardar}>
+      <Boton pendiente={pendiente} cargando="Guardando…" onClick={alGuardar}>
         Guardar avisos
       </Boton>
     </section>

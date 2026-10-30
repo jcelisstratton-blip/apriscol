@@ -74,7 +74,7 @@ export function ConectarTelegram({ finca, estado, bot, avisos }: { finca: string
       {estado === "activo" ? (
         <div className="space-y-2">
           <p className="text-[0.9375rem]">Recibes los avisos de esta finca en tu Telegram.</p>
-          <p className="text-[0.9375rem] text-humo">{avisos ?? "El equipo de Apriscol todavía no te activó los avisos: cuando lo haga, te llegan aquí."}</p>
+          <p className="text-[0.9375rem] text-humo">{avisos ?? "El propietario o el administrador de tu finca todavía no te activó los avisos: cuando lo haga, te llegan aquí."}</p>
           <p className="text-sm text-humo">En el chat con el bot: /hoy para ver tu resumen ahora, /pausar para silenciarlo y /reanudar para volver a recibirlo.</p>
         </div>
       ) : estado === "pausado" ? (
@@ -84,7 +84,7 @@ export function ConectarTelegram({ finca, estado, bot, avisos }: { finca: string
       ) : (
         <div className="space-y-1">
           <p className="text-[0.9375rem]">Recibe en Telegram lo que hay que hacer cada día en tu finca. Tarda menos de un minuto.</p>
-          <p className="text-sm text-humo">Conéctalo con tu propio Telegram. A qué hora te llega y qué incluye lo fija el equipo de Apriscol.</p>
+          <p className="text-sm text-humo">Conéctalo con tu propio Telegram. A qué hora te llega y qué incluye lo fija el propietario o el administrador de tu finca.</p>
         </div>
       )}
 

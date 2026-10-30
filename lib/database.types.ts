@@ -6570,6 +6570,31 @@ export type Database = {
         }
         Returns: string
       }
+      equipo_notificaciones: {
+        Args: { p_finca: string }
+        Returns: {
+          activo: boolean
+          alertas: boolean
+          dias: number[]
+          email: string
+          max_diarios: number
+          nivel_minimo: string
+          nombre: string
+          resumen: boolean
+          resumen_hora: string
+          rol: string
+          semanal: boolean
+          silencio_desde: string
+          silencio_hasta: string
+          user_id: string
+          vinculado_en: string
+          vinculo: string
+        }[]
+      }
+      guardar_notificaciones_equipo: {
+        Args: { p_datos: Json; p_finca: string; p_user: string }
+        Returns: undefined
+      }
       guardar_programa_sanitario: {
         Args: {
           p_animales: string[]
