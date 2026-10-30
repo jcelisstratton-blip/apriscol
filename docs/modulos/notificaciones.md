@@ -66,3 +66,5 @@ Reglas contra el ruido: una alerta no se repite si no cambió, tope diario por p
 3. Workflow de n8n (carpeta apriscol) con el Schedule de 15 minutos.
 4. Alertas con dedupe, recordatorios con hora y resumen semanal.
 5. Validar con el veterinario qué es «lo que hay que hacer hoy» para cada rol.
+
+**Dos pasos, dos personas:** la persona conecta **su propio** Telegram desde «Más → Telegram» (sin eso no hay chat al que enviar y el despacho la omite) y el superadmin le activa el resumen y fija su hora (sin eso queda conectada pero no recibe nada). La pantalla de conexión lo dice en una línea.

@@ -82,7 +82,10 @@ export function ConectarTelegram({ finca, estado, bot, avisos }: { finca: string
       ) : estado === "bloqueado" ? (
         <Aviso tipo="atencion">Bloqueaste el bot en Telegram. Desbloquéalo y escribe /reanudar en el chat, o conecta de nuevo.</Aviso>
       ) : (
-        <p className="text-[0.9375rem]">Recibe en Telegram lo que hay que hacer cada día en tu finca. Tarda menos de un minuto.</p>
+        <div className="space-y-1">
+          <p className="text-[0.9375rem]">Recibe en Telegram lo que hay que hacer cada día en tu finca. Tarda menos de un minuto.</p>
+          <p className="text-sm text-humo">Conéctalo con tu propio Telegram. A qué hora te llega y qué incluye lo fija el equipo de Apriscol.</p>
+        </div>
       )}
 
       {esperando && codigo ? (
