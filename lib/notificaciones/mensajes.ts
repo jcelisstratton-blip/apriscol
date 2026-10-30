@@ -147,10 +147,8 @@ export function armarDetalleArea(e: EntradaResumen & { area: AreaSemaforo }): Re
 
   const nombres = (items: ItemSenal[]) => {
     const unicos = [...new Map(items.map((i) => [nombreCorto(i.etiqueta), i])).values()];
-    const vistos = unicos.slice(0, NOMBRES_DETALLE).map((i) => {
-      const n = escaparHtml(nombreCorto(i.etiqueta));
-      return e.urlBase ? `<a href="${escaparHtml(e.urlBase + i.href)}">${n}</a>` : n;
-    });
+    // Los nombres van como texto, sin enlace: cada enlace dentro del texto hace que Telegram muestre su aviso con la dirección completa. La salida a la app es el botón de abajo.
+    const vistos = unicos.slice(0, NOMBRES_DETALLE).map((i) => escaparHtml(nombreCorto(i.etiqueta)));
     const resto = unicos.length - vistos.length;
     return vistos.join(", ") + (resto > 0 ? ` y ${resto} más` : "");
   };
