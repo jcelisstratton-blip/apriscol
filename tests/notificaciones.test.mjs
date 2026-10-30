@@ -144,14 +144,15 @@ test("resumen automático: sin casos todo está en orden; sin https no hay enlac
   assert.equal(r.botones.flat().filter((b) => "accion" in b).length, 8);
 });
 
-test("detalle de un área: tareas con sus vencidos y pendientes, nombres con enlace, y botones para abrir la app y volver", () => {
+test("detalle de un área: tareas con sus vencidos y pendientes, nombres como texto (sin enlaces dentro del mensaje), y botones para abrir la app y volver", () => {
   const r = armarDetalleArea({ ...BASE, area: "sanidad", nivelMinimo: "ambar" });
   assert.match(r.texto, /^<b>SANIDAD<\/b> · 🔴 7 · 🟠 4/);
   // Cada tarea una vez, con una línea por nivel.
   assert.equal((r.texto.match(/<b>Anemia por parásitos \(FAMACHA\)<\/b>/g) ?? []).length, 1);
-  assert.match(r.texto, /🔴 <b>1<\/b> · <a href="https:\/\/apriscol\.shop\/hato\/m1">Animal m1<\/a>/);
+  assert.match(r.texto, /🔴 <b>1<\/b> · Animal m1/);
   assert.match(r.texto, /🟠 <b>2<\/b> · /);
-  assert.match(r.texto, /<a href="https:\/\/apriscol\.shop\/hato\/p1">Chispa<\/a>, <a href="https:\/\/apriscol\.shop\/hato\/p2">Milagros<\/a>/);
+  assert.match(r.texto, /Chispa, Milagros/);
+  assert.doesNotMatch(r.texto, /<a |https?:\/\//); // ningún enlace en el texto: Telegram no muestra su aviso de dirección
   assert.doesNotMatch(r.texto, /MIR-C0046|LECHE/);
   assert.match(r.texto, /🔴 <b>4<\/b> vencidas · <i>la más atrasada: hace 324 días<\/i>/);
   assert.match(r.texto, /🟠 <b>2<\/b> pendientes · /);
