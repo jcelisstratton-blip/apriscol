@@ -1,0 +1,40 @@
+{
+  "name": "APRISCOL — Avisos Telegram",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": { "interval": [{ "field": "minutes", "minutesInterval": 15 }] }
+      },
+      "id": "a1f0c0de-0001-4000-8000-000000000001",
+      "name": "Cada 15 minutos",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://apriscol.shop/api/notificaciones/despachar",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={}",
+        "options": { "timeout": 65000, "response": { "response": { "neverError": false } } }
+      },
+      "id": "a1f0c0de-0002-4000-8000-000000000002",
+      "name": "Despachar avisos",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [260, 0],
+      "retryOnFail": false,
+      "credentials": { "httpHeaderAuth": { "id": "REEMPLAZAR", "name": "Apriscol — Despacho" } }
+    }
+  ],
+  "connections": {
+    "Cada 15 minutos": { "main": [[{ "node": "Despachar avisos", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1", "timezone": "America/Bogota" },
+  "active": false,
+  "pinData": {}
+}

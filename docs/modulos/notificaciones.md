@@ -48,7 +48,7 @@ Probado con transacciones que se deshacen (propietario, ajeno, superadministrado
 
 **Parámetros por persona (superadmin):** `/admin/fincas/<id>/avisos` (enlace en la ficha de la finca) lista el equipo con su estado de conexión y deja fijar, por persona, si recibe el resumen, la hora (Colombia), los días, el nivel (urgente y pendiente, o solo urgente) y el máximo de mensajes al día. Lo valida `lib/notificaciones/parametros.ts` y lo guarda `admin_guardar_notificaciones` (que vuelve a comprobar que quien llama es superadmin y que la persona es de la finca). Alertas, resumen semanal y silencio se conservan tal como están hasta que existan esos envíos.
 
-**Lo que NO está todavía:** nada se envía solo. Los parámetros y `notificaciones_destinos` existen, pero falta el flujo de n8n que llama a `/api/notificaciones/despachar` cada 15 minutos.
+**Envío automático (n8n):** `n8n/APRISCOL — Avisos Telegram.json` es el flujo: un disparador cada 15 minutos que llama `POST /api/notificaciones/despachar` con `Authorization: Bearer <DESPACHO_SECRET>`. El secreto vive solo en una credencial «Header Auth» de n8n llamada «Apriscol — Despacho» (nombre `Authorization`, valor `Bearer <secreto>`); el JSON del repo lleva `REEMPLAZAR` en el id de la credencial. Se importa en n8n, se elige la credencial, se prueba con «Execute workflow» (responde `{ok, ...}` con cuántos salieron) y solo después se activa. El envío es idempotente por persona y día (`notificacion_reservar`), así que una ejecución repetida no duplica mensajes.
 
 ## Qué recibe cada rol (el alcance sale de `areasSemaforo`)
 
