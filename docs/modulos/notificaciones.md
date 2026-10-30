@@ -1,13 +1,13 @@
 # Avisos por Telegram
 
-Lo que hay que hacer cada día llega por Telegram a cada persona del equipo, según su rol. **Estado (30 oct 2026):** hechos la base de datos, el servidor del bot (webhook y despacho, probado en producción: `/hoy` responde) y la pantalla «Más → Telegram» de cada persona; faltan la pantalla del superadministrador y el flujo de n8n.
+Lo que hay que hacer cada día llega por Telegram a cada persona del equipo, según su rol. **Estado (30 oct 2026):** hechos la base de datos, el servidor del bot (webhook y despacho, probado en producción: `/hoy` responde), la pantalla «Más → Telegram» de cada persona, la gestión de avisos por el propietario y el administrador (y la del superadmin) y el flujo de n8n del repo; falta activarlo en n8n y ver el primer envío automático.
 
 ## Decisiones (del dueño del producto, 30 oct 2026)
 
 - **Un solo bot de la plataforma:** `@apriscolbot` (nadie pone un token). Telegram exige que el usuario termine en «bot». El token es una variable de entorno del servidor (nunca en el repo) y solo lo configura el dueño. **Un token que se haya pegado en un chat o una captura hay que revocarlo** (@BotFather → `/revoke`) y poner el nuevo directo en el entorno.
 - **Cada persona se vincula sola** desde la app: «Conectar Telegram» pide un código de un solo uso (8 caracteres, vale 15 minutos, se guarda solo su hash) y lo envía al bot como `/start CODIGO`. Un chat no puede estar en dos personas de la misma finca. Chat 1 a 1: nada de grupos.
 - **n8n dispara, Apriscol decide y envía.** Un solo workflow para todas las fincas, en una carpeta o proyecto de n8n llamado **apriscol** y con nombres «APRISCOL — …», separado de los flujos de Stratt-On. Cada 15 minutos llama a `POST /api/notificaciones/despachar` con `Authorization: Bearer <DESPACHO_SECRET>` y vigila que responda bien. Apriscol arma el texto con las mismas reglas que Hoy y Semáforos (`cargarSemaforos`, `areasSemaforo`), reserva el envío, lo manda a Telegram y anota el resultado: el token vive en un solo lugar y «reservado → enviado» no depende de un viaje entre sistemas.
-- **Los parámetros viven en la base de datos, no en el cron.** El cron es fijo (cada 15 minutos); la tabla `notificacion_preferencias` dice, por persona, cuándo y qué recibe. En el piloto los fija solo el **superadministrador**.
+- **Los parámetros viven en la base de datos, no en el cron.** El cron es fijo (cada 15 minutos); la tabla `notificacion_preferencias` dice, por persona, cuándo y qué recibe. Los fijan el **propietario y el administrador** de cada finca para su equipo (y el superadministrador, que además fija el tope diario).
 - **Cómo corre la lógica sin sesión:** el servidor usa la llave secreta de Supabase (`sb_secret_…`, solo para las funciones del bot) y, para armar el resumen de una persona, le pide a Supabase una sesión **de esa persona** (`auth.admin.generateLink` de tipo magiclink + `verifyOtp`, sin correo, canjeada en el acto y cerrada al terminar con `signOut`). Así `cargarSemaforos` corre con su rol y la seguridad por finca de siempre, y las funciones que validan `auth.uid()` se comportan igual que en la app. **No se firman tokens a mano:** se intentó con el secreto JWT heredado (HS256) y Supabase lo rechaza (`No suitable key or wrong key type`) porque el proyecto ya firma con ECC (P-256); el HS256 quedó solo para verificar sesiones viejas. Costo: tres llamadas cortas por persona y una entrada de inicio de sesión en Supabase por cada resumen.
 
 ## Datos (`20261030131339_notificaciones_telegram`)
@@ -15,10 +15,10 @@ Lo que hay que hacer cada día llega por Telegram a cada persona del equipo, seg
 | Tabla | Qué guarda | Quién la lee |
 |---|---|---|
 | `telegram_vinculos` | chat de cada persona por finca, estado (`pendiente`, `activo`, `pausado`, `bloqueado`), hash del código vigente | la persona ve lo suyo (sin `codigo_hash` ni `chat_id`: columnas sin permiso) |
-| `notificacion_preferencias` | activo, resumen y su hora, días ISO 1–7, nivel mínimo (`rojo`/`ambar`), alertas, semanal, silencio, tope diario | la persona ve lo suyo; solo el superadministrador escribe |
+| `notificacion_preferencias` | activo, resumen y su hora, días ISO 1–7, nivel mínimo (`rojo`/`ambar`), alertas, semanal, silencio, tope diario | la persona ve lo suyo; escriben el propietario y el administrador (por función) y el superadministrador |
 | `notificacion_envios` | un registro por aviso (`tipo` + `clave`, única por persona): evita repetir y deja rastro; hasta 3 intentos | solo el servidor |
 
-Funciones: `telegram_crear_codigo` y `telegram_desvincular` (la persona); `admin_notificaciones` y `admin_guardar_notificaciones` (superadministrador, validan `es_admin_plataforma`); `telegram_vincular`, `telegram_chat_estado`, `notificaciones_destinos`, `notificacion_reservar`, `notificacion_resultado` (**solo `service_role`**). `notificaciones_destinos(p_ahora)` calcula con la hora de Bogotá a quién le toca el resumen: activo, día elegido, ya pasó su hora (margen de 3 horas), sin envío de hoy; un fallo se reintenta hasta 3 veces. Límite conocido: un resumen programado después de las 21:00 no cuenta bien su margen (cruza la medianoche).
+Funciones: `telegram_crear_codigo` y `telegram_desvincular` (la persona); `equipo_notificaciones` y `guardar_notificaciones_equipo` (propietario y administrador de esa finca, y el superadministrador: validan `private.gestiona_avisos`); `admin_notificaciones` y `admin_guardar_notificaciones` (superadministrador, validan `es_admin_plataforma`); `telegram_vincular`, `telegram_chat_estado`, `notificaciones_destinos`, `notificacion_reservar`, `notificacion_resultado` (**solo `service_role`**). `notificaciones_destinos(p_ahora)` calcula con la hora de Bogotá a quién le toca el resumen: activo, día elegido, ya pasó su hora (margen de 3 horas), sin envío de hoy; un fallo se reintenta hasta 3 veces. Límite conocido: un resumen programado después de las 21:00 no cuenta bien su margen (cruza la medianoche).
 
 Probado con transacciones que se deshacen (propietario, ajeno, superadministrador, servidor): código, vinculación una sola vez, permisos, ventana horaria, envío único, reintento y bloqueo.
 
@@ -46,7 +46,9 @@ Probado con transacciones que se deshacen (propietario, ajeno, superadministrado
 
 **Dirección de los enlaces:** `SITE_URL` (`lib/env.ts`) usa `NEXT_PUBLIC_SITE_URL` si existe; si no, en producción `https://$VERCEL_PROJECT_PRODUCTION_URL` (o `https://apriscol.shop`) y solo en desarrollo `http://localhost:3000`. Antes caía siempre a localhost en producción porque la variable no está en Vercel.
 
-**Parámetros por persona (superadmin):** `/admin/fincas/<id>/avisos` (enlace en la ficha de la finca) lista el equipo con su estado de conexión y deja fijar, por persona, si recibe el resumen, la hora (Colombia), los días, el nivel (urgente y pendiente, o solo urgente) y el máximo de mensajes al día. Lo valida `lib/notificaciones/parametros.ts` y lo guarda `admin_guardar_notificaciones` (que vuelve a comprobar que quien llama es superadmin y que la persona es de la finca). Alertas, resumen semanal y silencio se conservan tal como están hasta que existan esos envíos.
+**Quién fija los avisos:** el **propietario y el administrador de cada finca** manejan los de su equipo en «Equipo → Avisos por Telegram» (`/mas/miembros/avisos`): si la persona recibe el resumen, la hora (Colombia), los días y el nivel (urgente y pendiente, o solo urgente). Lo guarda `guardar_notificaciones_equipo`, que comprueba el rol dentro de la base de datos: un administrador **no** cambia los avisos del propietario y el resto de roles no ve ni cambia nada. La finca sale de la sesión, nunca del navegador. **Por defecto los avisos están apagados**: conectar el Telegram no los activa; alguien del equipo de gestión los enciende. Cada persona controla lo suyo (`/pausar`, `/reanudar`, desconectar) y solo recibe quien conectó su propio Telegram.
+
+**El superadmin** conserva `/admin/fincas/<id>/avisos` (enlace en la ficha de la finca) para soporte: ve y cambia lo mismo y además fija el **máximo de mensajes al día**, que ni el propietario ni el administrador tocan; alertas, resumen semanal y silencio quedan guardados tal cual hasta que existan esos envíos. Valida `lib/notificaciones/parametros.ts`. El componente de tarjeta (`components/AvisosPersona.tsx`) es el mismo en las dos pantallas.
 
 **Envío automático (n8n):** `n8n/APRISCOL — Avisos Telegram.json` es el flujo: un disparador cada 15 minutos que llama `POST /api/notificaciones/despachar` con `Authorization: Bearer <DESPACHO_SECRET>`. El secreto vive solo en una credencial «Header Auth» de n8n llamada «Apriscol — Despacho» (nombre `Authorization`, valor `Bearer <secreto>`); el JSON del repo lleva `REEMPLAZAR` en el id de la credencial. Se importa en n8n, se elige la credencial, se prueba con «Execute workflow» (responde `{ok, ...}` con cuántos salieron) y solo después se activa. El envío es idempotente por persona y día (`notificacion_reservar`), así que una ejecución repetida no duplica mensajes.
 
@@ -61,10 +63,9 @@ Reglas contra el ruido: una alerta no se repite si no cambió, tope diario por p
 
 ## Pendiente
 
-1. Poner las variables en Vercel, registrar el webhook y probar `simular`.
-2. Pantalla del superadministrador para los parámetros (`admin_notificaciones`, `admin_guardar_notificaciones`). Mientras no exista, los parámetros del piloto se fijan con la función desde el Editor SQL.
-3. Workflow de n8n (carpeta apriscol) con el Schedule de 15 minutos.
-4. Alertas con dedupe, recordatorios con hora y resumen semanal.
-5. Validar con el veterinario qué es «lo que hay que hacer hoy» para cada rol.
+1. Activar el flujo de n8n y confirmar el primer envío automático (el de las 6:30 a. m. de un día con avisos activos).
+2. Interruptor global para apagar todos los envíos desde la plataforma, y tope diario de plataforma.
+3. Alertas con dedupe, recordatorios con hora y resumen semanal.
+4. Validar con el veterinario qué es «lo que hay que hacer hoy» para cada rol.
 
-**Dos pasos, dos personas:** la persona conecta **su propio** Telegram desde «Más → Telegram» (sin eso no hay chat al que enviar y el despacho la omite) y el superadmin le activa el resumen y fija su hora (sin eso queda conectada pero no recibe nada). La pantalla de conexión lo dice en una línea.
+**Dos pasos, dos personas:** la persona conecta **su propio** Telegram desde «Más → Telegram» (sin eso no hay chat al que enviar y el despacho la omite) y el propietario o el administrador le activa el resumen y fija su hora (sin eso queda conectada pero no recibe nada). La pantalla de conexión lo dice en una línea.

@@ -3,9 +3,10 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ChevronLeft, Users } from "lucide-react";
 import { Aviso } from "@/components/Aviso";
-import { AvisosPersonaAdmin } from "@/components/AvisosPersonaAdmin";
+import { AvisosPersona } from "@/components/AvisosPersona";
 import { Encabezado } from "@/components/Encabezado";
 import { EstadoVacio } from "@/components/EstadoVacio";
+import { guardarAvisos } from "./actions";
 import { ETIQUETA_ROL } from "@/lib/permisos";
 import { crearClienteServidor } from "@/lib/supabase/server";
 import type { RolFinca } from "@/lib/tipos";
@@ -39,7 +40,9 @@ export default async function PaginaAvisosFinca({ params }: { params: Promise<{ 
         <ul className="grid grid-cols-1 gap-3 lg:max-w-2xl">
           {personas.map((p) => (
             <li key={p.user_id} className="min-w-0">
-              <AvisosPersonaAdmin
+              <AvisosPersona
+                guardar={guardarAvisos}
+                conMaximo
                 fincaId={id}
                 userId={p.user_id}
                 nombre={p.nombre || p.email}

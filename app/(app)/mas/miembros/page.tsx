@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Banknote, ChevronLeft, Plus, Users } from "lucide-react";
+import { Banknote, ChevronLeft, Plus, Send, Users } from "lucide-react";
 import { AvisoGuardado } from "@/components/AvisoGuardado";
 import { AyudaModulo } from "@/components/AyudaModulo";
 import { clasesBoton } from "@/components/Boton";
@@ -131,6 +131,14 @@ export default async function PaginaMiembros({ searchParams }: { searchParams: P
                     ))}
                   </ul>
                 </Tarjeta>
+
+                <Link href="/mas/miembros/avisos" className="flex min-h-14 items-center gap-3 rounded-3xl bg-papel px-4 ring-1 ring-arena transition active:scale-[0.99]">
+                  <Send className="size-5 shrink-0 text-musgo" strokeWidth={1.8} aria-hidden="true" />
+                  <span className="min-w-0">
+                    <span className="block font-semibold">Avisos por Telegram</span>
+                    <span className="block text-sm text-humo">Qué recibe cada persona del equipo y a qué hora</span>
+                  </span>
+                </Link>
 
                 {pendientes.length > 0 ? (
                   <Tarjeta titulo="Invitaciones pendientes">

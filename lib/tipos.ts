@@ -1588,6 +1588,11 @@ export type Database = {
         Returns: { user_id: string; nombre: string | null; email: string; rol: string; vinculo: string; vinculado_en: string | null; activo: boolean; resumen: boolean; resumen_hora: string; dias: number[]; nivel_minimo: string; alertas: boolean; semanal: boolean; silencio_desde: string; silencio_hasta: string; max_diarios: number }[];
       };
       admin_guardar_notificaciones: { Args: { p_finca: string; p_user: string; p_datos: Record<string, unknown> }; Returns: undefined };
+      equipo_notificaciones: {
+        Args: { p_finca: string };
+        Returns: { user_id: string; nombre: string | null; email: string; rol: string; vinculo: string; vinculado_en: string | null; activo: boolean; resumen: boolean; resumen_hora: string; dias: number[]; nivel_minimo: string; alertas: boolean; semanal: boolean; silencio_desde: string; silencio_hasta: string; max_diarios: number }[];
+      };
+      guardar_notificaciones_equipo: { Args: { p_finca: string; p_user: string; p_datos: Record<string, unknown> }; Returns: undefined };
       inventario_alimento: {
         Args: { p_finca: string; p_hoy: string };
         Returns: {
