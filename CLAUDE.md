@@ -106,6 +106,7 @@ El detalle de cada módulo vive en `docs/modulos/`. Léelo antes de cambiar su c
 - [`docs/modulos/novedades.md`](docs/modulos/novedades.md) — Novedades: avisos «Comprar» (al administrador) y «Aplicar dosis» (al veterinario), solo por selección; los crean el ordeñador y el veterinario, los atienden el administrador, el veterinario y el propietario
 - [`docs/modulos/inventario.md`](docs/modulos/inventario.md) — Inventario de bodega: medicamentos y vacunas, y alimento en kg. El stock se calcula (conteo de apertura + compras − aplicaciones o salidas), solo se guardan los conteos; propietario y administrador lo mueven, el veterinario ve los medicamentos y el ordeñador anota lo que se da de comer
 - [`docs/modulos/semaforos.md`](docs/modulos/semaforos.md) — Semáforos: lo que pide atención en el hato en rojo, ámbar y verde, por rol; reglas puras en `lib/semaforos.ts`
+- [`docs/modulos/notificaciones.md`](docs/modulos/notificaciones.md) — Avisos por Telegram: un bot de la plataforma, vínculo por código, parámetros por persona que fija el superadministrador, n8n solo despacha; solo `service_role` escribe lo del bot
 - [`docs/modulos/referidos.md`](docs/modulos/referidos.md) — Referidos: Referidos
 - [`docs/modulos/presentacion-planes.md`](docs/modulos/presentacion-planes.md) — Pantalla de entrada, legales y planes: Pantalla de entrada
 
