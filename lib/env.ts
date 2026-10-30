@@ -1,7 +1,16 @@
 // Variables públicas: se leen de forma literal para que Next las incruste en el cliente.
 export const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
 export const SUPABASE_KEY = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? "";
-export const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000").replace(/\/$/, "");
+/**
+ * La dirección pública de la app. `NEXT_PUBLIC_SITE_URL` manda si existe; si no, en producción se usa el dominio que Vercel da al proyecto (o, de último, el oficial)
+ * y solo en desarrollo, localhost: un enlace a localhost en un mensaje de Telegram no abre nada.
+ */
+export const SITE_URL = (
+  process.env.NEXT_PUBLIC_SITE_URL ??
+  (process.env.VERCEL_ENV === "production" || process.env.NODE_ENV === "production"
+    ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL ?? "apriscol.shop"}`
+    : "http://localhost:3000")
+).replace(/\/$/, "");
 
 export function assertSupabaseEnv() {
   if (!SUPABASE_URL || !SUPABASE_KEY) {
