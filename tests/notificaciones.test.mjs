@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { escaparHtml, interpretarComando, leerEvento, secretoValido, enviarTelegram, LIMITE_MENSAJE } from "../lib/notificaciones/telegram.ts";
-import { armarResumen } from "../lib/notificaciones/mensajes.ts";
+import { escaparHtml, interpretarComando, leerEvento, secretoValido, enviarTelegram, editarTelegram, responderAccion, LIMITE_MENSAJE } from "../lib/notificaciones/telegram.ts";
+import { armarDetalleArea, armarResumen, datosArea, datosResumen, leerAccion } from "../lib/notificaciones/mensajes.ts";
 
 test("Telegram: comandos, secreto y eventos", () => {
   assert.deepEqual(interpretarComando("/start AB12CD34"), { comando: "start", argumento: "AB12CD34" });
@@ -21,6 +21,11 @@ test("Telegram: comandos, secreto y eventos", () => {
   assert.equal(leerEvento({ message: { text: "hola", chat: { id: -9, type: "group" } } }).privado, false);
   assert.deepEqual(leerEvento({ my_chat_member: { chat: { id: 7, type: "private" }, new_chat_member: { status: "kicked" } } }), { tipo: "bloqueo", chatId: 7 });
   assert.equal(leerEvento({ my_chat_member: { chat: { id: 7, type: "private" }, new_chat_member: { status: "member" } } }).tipo, "otro");
+  const FINCA = "5e1f0a11-0000-4000-8000-000000000001";
+  assert.deepEqual(leerEvento({ callback_query: { id: "cb1", data: `res:${FINCA}`, message: { message_id: 42, chat: { id: 7, type: "private" } } } }), { tipo: "accion", id: "cb1", chatId: 7, messageId: 42, datos: `res:${FINCA}` });
+  assert.equal(leerEvento({ callback_query: { id: "cb1", data: "x", message: { message_id: 42, chat: { id: -9, type: "group" } } } }).tipo, "otro");
+  assert.equal(leerEvento({ callback_query: { id: "cb1", data: "x" } }).tipo, "otro");
+  assert.equal(leerEvento({ callback_query: { id: "cb1", data: "x".repeat(200), message: { message_id: 1, chat: { id: 7, type: "private" } } } }).datos.length, 64);
   assert.equal(leerEvento(null).tipo, "otro");
   assert.equal(leerEvento({ edited_message: {} }).tipo, "otro");
 });
@@ -59,62 +64,113 @@ test("Telegram: los botones van como enlaces y, si Telegram los rechaza, el mens
   cuerpos.length = 0;
   await enviarTelegram("T0KEN", 1, "hola", [], http([200]));
   assert.ok(!("reply_markup" in cuerpos[0]));
+  // Un botón de acción viaja como callback_data; uno de enlace, como url.
+  cuerpos.length = 0;
+  await enviarTelegram("T0KEN", 1, "hola", [[{ texto: "Sanidad", accion: "ar:sanidad:x" }, { texto: "Abrir", url: "https://apriscol.shop/" }]], http([200]));
+  assert.deepEqual(cuerpos[0].reply_markup.inline_keyboard, [[{ text: "Sanidad", callback_data: "ar:sanidad:x" }, { text: "Abrir", url: "https://apriscol.shop/" }]]);
+});
+
+test("Telegram: editar un mensaje y responder a un botón", async () => {
+  const llamadas = [];
+  const http = (estado, cuerpo) => async (u, o) => { llamadas.push({ u, cuerpo: JSON.parse(o.body) }); return { ok: estado < 400, status: estado, json: async () => cuerpo }; };
+  assert.deepEqual(await editarTelegram("T0KEN", 7, 42, "nuevo", [[{ texto: "← Volver", accion: "res:x" }]], http(200, { ok: true, result: { message_id: 42 } })), { ok: true });
+  assert.match(llamadas[0].u, /editMessageText$/);
+  assert.deepEqual([llamadas[0].cuerpo.chat_id, llamadas[0].cuerpo.message_id], [7, 42]);
+  // Pedir el mismo contenido que ya está no es un error.
+  assert.deepEqual(await editarTelegram("T0KEN", 7, 42, "igual", [], http(400, { ok: false, description: "Bad Request: message is not modified" })), { ok: true });
+  const mal = await editarTelegram("T0KEN", 7, 42, "x", [], http(400, { ok: false, description: "Bad Request: message to edit not found" }));
+  assert.equal(mal.ok, false);
+  llamadas.length = 0;
+  await responderAccion("T0KEN", "cb1", "Ese botón ya no sirve", http(200, { ok: true }));
+  assert.match(llamadas[0].u, /answerCallbackQuery$/);
+  assert.deepEqual(llamadas[0].cuerpo, { callback_query_id: "cb1", text: "Ese botón ya no sirve" });
 });
 
 const item = (clave, nivel, orden, extra = {}) => ({ clave, etiqueta: `Animal ${clave}`, detalle: `detalle ${clave}`, nivel, href: `/hato/${clave}`, orden, ...extra });
 const senal = (id, area, titulo, items) => ({ id, area, titulo, nivel: "rojo", resumen: "", items, queSignifica: "", regla: "" });
 
-test("resumen: arriba los totales, por área, vencido (rojo) y pendiente (ámbar) separados, con botones a cada área", () => {
-  const dosis = (clave, nivel, atraso) => item(clave, nivel, nivel === "rojo" ? -atraso : 3, { etiqueta: `Producto ${clave}`, atrasoDias: atraso });
-  const senales = [
-    senal("dosis", "sanidad", "Dosis y programas por aplicar", [dosis("a", "rojo", 324), dosis("b", "rojo", 20), dosis("c", "rojo", 5), dosis("d", "rojo", 1), dosis("e", "ambar", 0), dosis("f", "ambar", 0)]),
-    senal("copro", "sanidad", "Cargas de parásitos altas (coprológico)", [item("p1", "rojo", 1, { etiqueta: "Chispa · MIR-C0046" }), item("p2", "rojo", 2, { etiqueta: "Milagros · MIR-C0170" })]),
-    senal("frio", "leche", "Cadena de frío", [item("t", "ambar", 1, { etiqueta: "Tanque de frío" })]),
-  ];
-  const base = { nombre: "Camilo Celis", finca: "Aprisco <El Mirador>", hoy: "2026-10-30", saludo: "Buenos días", senales, urlBase: "https://apriscol.shop" };
-  const r = armarResumen({ ...base, nivelMinimo: "ambar" });
-  assert.equal(r.rojos, 6);
-  assert.equal(r.ambar, 3);
+const FINCA = "5e1f0a11-0000-4000-8000-000000000001";
+const dosisItem = (clave, nivel, atraso) => item(clave, nivel, nivel === "rojo" ? -atraso : 3, { etiqueta: `Producto ${clave}`, atrasoDias: atraso });
+const SENALES = [
+  senal("dosis", "sanidad", "Dosis y programas por aplicar", [dosisItem("a", "rojo", 324), dosisItem("b", "rojo", 20), dosisItem("c", "rojo", 5), dosisItem("d", "rojo", 1), dosisItem("e", "ambar", 0), dosisItem("f", "ambar", 0)]),
+  senal("copro", "sanidad", "Cargas de parásitos altas (coprológico)", [item("p1", "rojo", 1, { etiqueta: "Chispa · MIR-C0046" }), item("p2", "rojo", 2, { etiqueta: "Milagros · MIR-C0170" })]),
+  senal("famacha", "sanidad", "Anemia por parásitos (FAMACHA)", [item("m1", "rojo", 1), item("m2", "ambar", 2), item("m3", "ambar", 3)]),
+  senal("frio", "leche", "Cadena de frío", [item("t", "ambar", 1, { etiqueta: "Tanque de frío" })]),
+];
+const BASE = { nombre: "Camilo Celis", finca: "Aprisco <El Mirador>", fincaId: FINCA, hoy: "2026-10-30", saludo: "Buenos días", senales: SENALES, urlBase: "https://apriscol.shop" };
+
+test("resumen automático: corto, con los totales arriba, lo más urgente (una línea por tarea) y un botón por área", () => {
+  const r = armarResumen({ ...BASE, nivelMinimo: "ambar" });
+  assert.equal(r.rojos, 7);
+  assert.equal(r.ambar, 5);
   assert.match(r.texto, /Aprisco &lt;El Mirador&gt;/);
   assert.match(r.texto, /Buenos días, Camilo/);
-  assert.match(r.texto, /🔴 <b>6<\/b> vencidos o urgentes {3}🟠 <b>3<\/b> pendientes/);
-  // Las dosis vencidas no se listan una por una: se cuentan y se dice cuál lleva más atraso.
-  assert.match(r.texto, /🔴 Dosis y programas por aplicar · vencidas · <b>4<\/b>\n\s+<i>la más atrasada: hace 324 días<\/i>/);
-  assert.match(r.texto, /🟠 Dosis y programas por aplicar · pendientes · <b>2<\/b>/);
-  // Lo no fechado muestra nombres sin el arete, con enlace a su ficha.
-  assert.match(r.texto, /<a href="https:\/\/apriscol\.shop\/hato\/p1">Chispa<\/a>, <a href="https:\/\/apriscol\.shop\/hato\/p2">Milagros<\/a>/);
-  assert.doesNotMatch(r.texto, /MIR-C0046/);
-  // El área con vencidos va primero.
-  assert.ok(r.texto.indexOf("SANIDAD") < r.texto.indexOf("LECHE"));
-  // Botones: una pareja por fila (con la cantidad de casos) y una última con Hoy y Semáforos.
+  assert.match(r.texto, /🔴 <b>7<\/b> vencidos o urgentes {3}🟠 <b>5<\/b> pendientes/);
+  assert.match(r.texto, /<b>Lo más urgente<\/b>/);
+  // Una sola línea por tarea, con el número de casos vencidos; las fechadas dicen cuál lleva más atraso.
+  assert.match(r.texto, /🔴 <b>4<\/b> · Dosis y programas por aplicar <i>\(la más atrasada: hace 324 días\)<\/i>/);
+  assert.match(r.texto, /🔴 <b>2<\/b> · Cargas de parásitos altas \(coprológico\)/);
+  assert.equal((r.texto.match(/Anemia por parásitos/g) ?? []).length, 1);
+  // El resumen no lista nombres: eso se ve al tocar el área.
+  assert.doesNotMatch(r.texto, /Chispa|<a href/);
+  assert.match(r.texto, /Toca un área para ver el detalle/);
+  // Botones: un botón de acción por área (con sus conteos), de a dos por fila, y al final Hoy y Semáforos como enlaces.
   assert.deepEqual(r.botones, [
-    [{ texto: "Sanidad · 8", url: "https://apriscol.shop/sanidad" }, { texto: "Leche · 1", url: "https://apriscol.shop/leche" }],
+    [{ texto: "Sanidad · 🔴 7 · 🟠 4", accion: datosArea("sanidad", FINCA) }, { texto: "Leche · 🟠 1", accion: datosArea("leche", FINCA) }],
     [{ texto: "Abrir Hoy", url: "https://apriscol.shop/" }, { texto: "Ver semáforos", url: "https://apriscol.shop/semaforos" }],
   ]);
-  // Con nivel mínimo rojo no llega nada pendiente.
-  const urgente = armarResumen({ ...base, nivelMinimo: "rojo" });
+  for (const fila of r.botones) for (const b of fila) if ("accion" in b) assert.ok(b.accion.length <= 64);
+  // Con nivel mínimo rojo no llega nada pendiente, y un área sin vencidos ni pendientes visibles no tiene botón.
+  const urgente = armarResumen({ ...BASE, nivelMinimo: "rojo" });
   assert.equal(urgente.ambar, 0);
   assert.doesNotMatch(urgente.texto, /🟠/);
-  assert.doesNotMatch(urgente.texto, /Leche|LECHE/);
+  assert.ok(!JSON.stringify(urgente.botones).includes("leche"));
 });
 
-test("resumen: sin casos todo está en orden; sin dirección https no hay botones; si no cabe, se quitan los nombres pero no las tareas", () => {
-  const vacio = armarResumen({ nombre: null, finca: "Finca", hoy: "2026-10-30", saludo: "Buenas tardes", senales: [], nivelMinimo: "ambar", urlBase: "https://apriscol.shop" });
+test("resumen automático: sin casos todo está en orden; sin https no hay enlaces pero sí botones de área; muchísimas tareas se recortan", () => {
+  const vacio = armarResumen({ ...BASE, senales: [], nombre: null, saludo: "Buenas tardes", nivelMinimo: "ambar" });
   assert.match(vacio.texto, /Todo en orden/);
   assert.doesNotMatch(vacio.texto, /, null/);
   assert.equal(vacio.botones.length, 1);
-  const local = armarResumen({ nombre: "Ana", finca: "Finca", hoy: "2026-10-30", saludo: "Hola", senales: [senal("z", "sanidad", "Sanidad", [item("n", "rojo", 1)])], nivelMinimo: "ambar", urlBase: "http://localhost:3000" });
-  assert.deepEqual(local.botones, []);
-  const sinBase = armarResumen({ nombre: "Ana", finca: "Finca", hoy: "2026-10-30", saludo: "Hola", senales: [senal("z", "sanidad", "Sanidad", [item("n", "rojo", 1)])], nivelMinimo: "ambar" });
-  assert.deepEqual(sinBase.botones, []);
-  assert.doesNotMatch(sinBase.texto, /<a href/);
-  // Muchísimas áreas con tareas de nombres largos: cabe en un mensaje y conserva cada tarea con su cantidad.
+  const local = armarResumen({ ...BASE, nivelMinimo: "ambar", urlBase: "http://localhost:3000" });
+  assert.ok(local.botones.length > 0 && local.botones.flat().every((b) => "accion" in b));
   const areas = ["reproduccion", "sanidad", "leche", "ceba", "corrales", "inventario", "alimento", "dinero"];
-  const largas = areas.flatMap((area, a) => Array.from({ length: 6 }, (_, t) => senal(`s${a}${t}`, area, `Tarea número ${t} del área ${area} con un título bastante largo`, Array.from({ length: 3 }, (_, k) => item(`${a}${t}${k}`, "rojo", k, { etiqueta: `${"N".repeat(40)} ${k}`, detalle: "x".repeat(150) })))));
-  const r = armarResumen({ nombre: "Ana", finca: "Finca", hoy: "2026-10-30", saludo: "Hola", senales: largas, nivelMinimo: "ambar", urlBase: "https://apriscol.shop" });
+  const largas = areas.flatMap((area, a) => Array.from({ length: 6 }, (_, t) => senal(`s${a}${t}`, area, `Tarea número ${t} del área ${area} con un título bastante largo`, Array.from({ length: 3 }, (_, k) => item(`${a}${t}${k}`, "rojo", k)))));
+  const r = armarResumen({ ...BASE, senales: largas, nivelMinimo: "ambar" });
   assert.ok(r.texto.length <= LIMITE_MENSAJE);
   assert.equal(r.rojos, 8 * 6 * 3);
-  assert.match(r.texto, /Tarea número 5 del área dinero/);
+  assert.match(r.texto, /… y 42 tareas más/);
+  assert.equal(r.botones.flat().filter((b) => "accion" in b).length, 8);
+});
+
+test("detalle de un área: tareas con sus vencidos y pendientes, nombres con enlace, y botones para abrir la app y volver", () => {
+  const r = armarDetalleArea({ ...BASE, area: "sanidad", nivelMinimo: "ambar" });
+  assert.match(r.texto, /^<b>SANIDAD<\/b> · 🔴 7 · 🟠 4/);
+  // Cada tarea una vez, con una línea por nivel.
+  assert.equal((r.texto.match(/<b>Anemia por parásitos \(FAMACHA\)<\/b>/g) ?? []).length, 1);
+  assert.match(r.texto, /🔴 <b>1<\/b> · <a href="https:\/\/apriscol\.shop\/hato\/m1">Animal m1<\/a>/);
+  assert.match(r.texto, /🟠 <b>2<\/b> · /);
+  assert.match(r.texto, /<a href="https:\/\/apriscol\.shop\/hato\/p1">Chispa<\/a>, <a href="https:\/\/apriscol\.shop\/hato\/p2">Milagros<\/a>/);
+  assert.doesNotMatch(r.texto, /MIR-C0046|LECHE/);
+  assert.match(r.texto, /🔴 <b>4<\/b> vencidas · <i>la más atrasada: hace 324 días<\/i>/);
+  assert.match(r.texto, /🟠 <b>2<\/b> pendientes · /);
+  assert.deepEqual(r.botones, [[{ texto: "Abrir Sanidad en la app", url: "https://apriscol.shop/sanidad" }, { texto: "← Volver al resumen", accion: datosResumen(FINCA) }]]);
+  // Un área sin nada: lo dice y deja volver; sin https solo queda «volver».
+  const vacia = armarDetalleArea({ ...BASE, area: "corrales", nivelMinimo: "ambar", urlBase: "http://localhost:3000" });
+  assert.match(vacia.texto, /Nada pide atención/);
+  assert.deepEqual(vacia.botones, [[{ texto: "← Volver al resumen", accion: datosResumen(FINCA) }]]);
+  // Con demasiadas tareas se corta con «… y N tareas más».
+  const largas = Array.from({ length: 80 }, (_, t) => senal(`z${t}`, "sanidad", `Tarea ${t} ${"muy larga ".repeat(8)}`, Array.from({ length: 9 }, (_, k) => item(`z${t}${k}`, "rojo", k, { etiqueta: `Nombre ${t}-${k} ${"X".repeat(30)}` }))));
+  const grande = armarDetalleArea({ ...BASE, senales: largas, area: "sanidad", nivelMinimo: "ambar" });
+  assert.ok(grande.texto.length <= LIMITE_MENSAJE);
+  assert.match(grande.texto, /… y \d+ tareas más en la app/);
+});
+
+test("botones de acción: lo que llega de Telegram se valida (área, finca y forma) antes de usarlo", () => {
+  assert.deepEqual(leerAccion(datosArea("sanidad", FINCA)), { tipo: "area", area: "sanidad", fincaId: FINCA });
+  assert.deepEqual(leerAccion(datosResumen(FINCA)), { tipo: "resumen", fincaId: FINCA });
+  for (const malo of ["", "ar:sanidad", "ar:inventada:" + FINCA, "ar:__proto__:" + FINCA, "ar:toString:" + FINCA, "ar:sanidad:no-es-uuid", "res:no-es-uuid", "res:" + FINCA + ":extra", "x:y:z", "ar:sanidad:" + FINCA + ":mas"]) assert.equal(leerAccion(malo), null, malo);
+  assert.ok(datosArea("alimento", FINCA).length <= 64);
 });
 
 import { describirAvisos, enlaceBot, horaLegible } from "../lib/notificaciones/enlace.ts";
