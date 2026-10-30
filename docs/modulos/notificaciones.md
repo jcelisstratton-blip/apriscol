@@ -29,7 +29,7 @@ Probado con transacciones que se deshacen (propietario, ajeno, superadministrado
 - `POST /api/notificaciones/despachar`: exige `Bearer DESPACHO_SECRET`. Sin cuerpo manda lo que toca ahora; con `{"simular":{"finca_id","user_id"}}` devuelve el resumen de esa persona **sin enviarlo ni anotarlo** (para probar el circuito).
 - Rutas públicas para el filtro de sesión (`lib/supabase/proxy.ts`): las protege su secreto. Si falta una variable, responden 503. Errores en los registros de Vercel con la marca `[apriscol:telegram]`.
 - **Variables (solo servidor, Vercel y nunca en el repo):** `TELEGRAM_BOT_TOKEN`, `TELEGRAM_WEBHOOK_SECRET`, `DESPACHO_SECRET`, `SUPABASE_SECRET_KEY` (Supabase → API Keys → Secret keys; ve todo, tratarla como el token) y, público y opcional, `NEXT_PUBLIC_TELEGRAM_BOT` (por defecto `apriscolbot`).
-- **Registrar el webhook** (una vez, con el secreto elegido): `curl -sS "https://api.telegram.org/bot<TOKEN>/setWebhook" -d "url=https://apriscol.shop/api/telegram/webhook" -d "secret_token=<TELEGRAM_WEBHOOK_SECRET>" -d 'allowed_updates=["message","my_chat_member"]'`.
+- **Registrar el webhook** (una vez, con el secreto elegido): `curl -sS "https://api.telegram.org/bot<TOKEN>/setWebhook" -d "url=https://apriscol.shop/api/telegram/webhook" -d "secret_token=<TELEGRAM_WEBHOOK_SECRET>" -d 'allowed_updates=["message","my_chat_member","callback_query"]'`.
 - **Sin probar contra Telegram ni Supabase real desde el entorno de desarrollo** (no llega a esos hosts). La primera prueba es `simular` con `curl`: si responde el texto, el circuito está bien; si no, dice en qué paso falló. **Aprendizaje:** una respuesta «todavía no estás vinculado» puede esconder un error de la base; por eso `/hoy` registra y responde distinto cuando la consulta falla.
 
 ## Pantalla de la persona (`/mas/telegram`, entrada «Telegram» de Mi finca, para todos los roles)
@@ -38,9 +38,15 @@ Probado con transacciones que se deshacen (propietario, ajeno, superadministrado
 
 ## Cómo se ve el resumen (`lib/notificaciones/mensajes.ts`)
 
-Arriba, finca, fecha y saludo; luego los totales (🔴 vencidos o urgentes · 🟠 pendientes); luego **un bloque por área** (las que tienen algo vencido primero) con **una línea por tarea y su cantidad**, y debajo **botones de enlace** (uno por área con su cantidad, más «Abrir Hoy» y «Ver semáforos»). Lo que tiene fecha límite (`ItemSenal.atrasoDias`, hoy las dosis y programas) se separa en «vencidas» (con la más atrasada: «hace 324 días») y «pendientes»; el resto muestra hasta 3 nombres (sin el arete, con enlace a la ficha) y «y N más». El detalle largo (qué hacer con cada animal) queda en la app. Si no cabe en 4096 caracteres se quitan los nombres y quedan las tareas con su cantidad. Los botones solo se envían con una dirección `https` (Telegram rechaza `localhost`); si Telegram los rechaza, el mensaje se reenvía sin ellos.
+**Resumen automático (corto):** finca, fecha y saludo; los totales (🔴 vencidos o urgentes · 🟠 pendientes); «Lo más urgente» (hasta 6 tareas, **una línea por tarea** con su número de casos vencidos; las que tienen fecha límite dicen cuál lleva más atraso) y un **botón por área** con sus conteos. Los botones **no abren la web: piden el detalle y el bot lo muestra en el mismo chat**.
+
+**Detalle de un área (al tocar su botón):** el mensaje se edita en su lugar (no llena el chat) y muestra cada tarea una vez, con una línea por nivel (🔴 vencidas / 🟠 pendientes), los nombres sin el arete y con enlace a su ficha (hasta 5, «y N más»); si no cabe en 4096 caracteres se corta con «y N tareas más en la app». Debajo: «Abrir <área> en la app» y «← Volver al resumen». «Abrir Hoy» y «Ver semáforos» (enlaces) van en el resumen. Los enlaces solo se envían con una dirección `https` (Telegram rechaza `localhost`); si Telegram rechaza los botones, el mensaje se reenvía sin ellos.
+
+**Botones de acción:** llevan `ar:<área>:<finca>` o `res:<finca>` (≤ 64 caracteres). Lo que llega de Telegram **no se da por bueno**: `leerAccion` valida la forma, el área y la finca, y el servidor comprueba que ese chat esté vinculado a esa finca antes de armar nada. Hay que **registrar el webhook con `callback_query` en `allowed_updates`** (ver arriba); sin eso Telegram no entrega los toques y los botones no hacen nada.
 
 **Dirección de los enlaces:** `SITE_URL` (`lib/env.ts`) usa `NEXT_PUBLIC_SITE_URL` si existe; si no, en producción `https://$VERCEL_PROJECT_PRODUCTION_URL` (o `https://apriscol.shop`) y solo en desarrollo `http://localhost:3000`. Antes caía siempre a localhost en producción porque la variable no está en Vercel.
+
+**Lo que NO está todavía:** nada se envía solo. Los parámetros por persona (`notificacion_preferencias`) y la función `notificaciones_destinos` existen, pero faltan la pantalla del superadministrador para fijarlos y el flujo de n8n que llama a `/api/notificaciones/despachar` cada 15 minutos.
 
 ## Qué recibe cada rol (el alcance sale de `areasSemaforo`)
 

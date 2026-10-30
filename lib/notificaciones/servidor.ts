@@ -5,8 +5,8 @@ import { hoyBogota } from "@/lib/fechas";
 import { saludo } from "@/lib/animal";
 import { leerAjustesFinca } from "@/lib/ajustes-servidor";
 import { cargarSemaforos } from "@/lib/semaforos-servidor";
-import { armarResumen, type NivelMinimo, type Resumen } from "@/lib/notificaciones/mensajes";
-import { enviarTelegram, escaparHtml, interpretarComando, type BotonUrl, type EventoTelegram } from "@/lib/notificaciones/telegram";
+import { armarDetalleArea, armarResumen, leerAccion, type EntradaResumen, type NivelMinimo, type Resumen } from "@/lib/notificaciones/mensajes";
+import { editarTelegram, enviarTelegram, escaparHtml, interpretarComando, responderAccion, type Boton, type EventoTelegram } from "@/lib/notificaciones/telegram";
 import type { Database, RolFinca } from "@/lib/tipos";
 
 /** Lo que el servidor necesita para hablar con Telegram y con la base sin la sesión de una persona. Todo viene del entorno: nada en el repo. */
@@ -54,8 +54,8 @@ export async function conSesionDe<T>(userId: string, secretKey: string, fn: (sup
 
 type Destino = { finca_id: string; user_id: string; rol: string };
 
-/** El resumen de una persona en una finca, calculado como lo vería ella en la app. `null` si la finca no puede usar la app (plan vencido o sin activar). */
-export async function resumenDe(destino: Destino, secretKey: string, ahora = new Date()) {
+/** Los datos de una persona en una finca, como los vería ella en la app. `null` si la finca no puede usar la app (plan vencido o sin activar). */
+export async function contextoDe(destino: Destino, secretKey: string, ahora = new Date()): Promise<EntradaResumen | null> {
   return conSesionDe(destino.user_id, secretKey, async (supabase) => {
     const hoy = hoyBogota(ahora);
     const [{ data: finca }, { data: perfil }, { data: pref }, { data: vigencia }] = await Promise.all([
@@ -69,8 +69,14 @@ export async function resumenDe(destino: Destino, secretKey: string, ahora = new
     const ajustes = await leerAjustesFinca(supabase, finca.id);
     const senales = await cargarSemaforos({ supabase, fincaId: finca.id, rol: destino.rol as RolFinca, plan: finca.plan, hoy, ajustes });
     const nivelMinimo: NivelMinimo = pref?.nivel_minimo === "rojo" ? "rojo" : "ambar";
-    return armarResumen({ nombre: perfil?.nombre ?? null, finca: finca.nombre, hoy, saludo: saludo(ahora), senales, nivelMinimo, urlBase: SITE_URL });
+    return { nombre: perfil?.nombre ?? null, finca: finca.nombre, fincaId: finca.id, hoy, saludo: saludo(ahora), senales, nivelMinimo, urlBase: SITE_URL };
   });
+}
+
+/** El resumen de una persona en una finca. */
+export async function resumenDe(destino: Destino, secretKey: string, ahora = new Date()): Promise<Resumen | null> {
+  const contexto = await contextoDe(destino, secretKey, ahora);
+  return contexto ? armarResumen(contexto) : null;
 }
 
 /** Arma el resumen de una persona sin enviarlo ni anotarlo: sirve para comprobar todo el circuito (secreto JWT, permisos, reglas) antes de conectar Telegram. */
@@ -131,6 +137,36 @@ const AYUDA =
   "/hoy — tu resumen ahora\n/pausar — dejo de escribirte\n/reanudar — vuelvo a escribirte\n\n" +
   "Para vincular tu cuenta: en Apriscol abre <b>Más → Telegram</b>, toca «Conectar» y luego el enlace que te sale.";
 
+/**
+ * Atiende un botón del resumen: «ver el detalle de un área» o «volver al resumen». Solo se muestra lo de una finca a la que ese chat está vinculado (el dato del botón
+ * viene de Telegram y no se da por bueno), y el mensaje se edita en su lugar para no llenar el chat.
+ */
+async function atenderAccion(evento: Extract<EventoTelegram, { tipo: "accion" }>, entorno: Entorno, servicio: ReturnType<typeof clienteServicio>): Promise<void> {
+  const accion = leerAccion(evento.datos);
+  if (!accion) {
+    await responderAccion(entorno.token, evento.id, "Ese botón ya no sirve. Escribe /hoy para ver tu resumen.");
+    return;
+  }
+  const { data: vinculo, error } = await servicio.from("telegram_vinculos").select("user_id").eq("chat_id", evento.chatId).eq("finca_id", accion.fincaId).neq("estado", "pendiente").maybeSingle();
+  if (error) console.error("[apriscol:telegram] botón consulta:", recorte(error.message));
+  if (!vinculo) {
+    await responderAccion(entorno.token, evento.id, error ? "No pude consultar tu cuenta. Intenta de nuevo." : "Ese aviso ya no está vinculado a tu cuenta.");
+    return;
+  }
+  await responderAccion(entorno.token, evento.id); // quita el círculo de «cargando» de inmediato: armar el detalle tarda unos segundos
+  try {
+    const { data: miembro } = await servicio.from("finca_miembros").select("rol").eq("finca_id", accion.fincaId).eq("user_id", vinculo.user_id).maybeSingle();
+    if (!miembro) return;
+    const contexto = await contextoDe({ finca_id: accion.fincaId, user_id: vinculo.user_id, rol: miembro.rol }, entorno.secretKey);
+    if (!contexto) return;
+    const r = accion.tipo === "area" ? armarDetalleArea({ ...contexto, area: accion.area }) : armarResumen(contexto);
+    const e = await editarTelegram(entorno.token, evento.chatId, evento.messageId, r.texto, r.botones);
+    if (!e.ok) console.error("[apriscol:telegram] detalle no enviado:", e.error);
+  } catch (e) {
+    console.error("[apriscol:telegram] botón:", recorte(e));
+  }
+}
+
 /** Atiende lo que llega al webhook: vincular con el código, pedir el resumen, pausar o reanudar. Siempre responde algo a una persona; nunca lanza hacia Telegram. */
 export async function atenderEvento(evento: EventoTelegram, entorno: Entorno): Promise<void> {
   if (evento.tipo === "otro") return;
@@ -139,7 +175,11 @@ export async function atenderEvento(evento: EventoTelegram, entorno: Entorno): P
     await servicio.rpc("telegram_chat_estado", { p_chat_id: evento.chatId, p_estado: "bloqueado" });
     return;
   }
-  const responder = async (texto: string, botones: BotonUrl[][] = []) => {
+  if (evento.tipo === "accion") {
+    await atenderAccion(evento, entorno, servicio);
+    return;
+  }
+  const responder = async (texto: string, botones: Boton[][] = []) => {
     const r = await enviarTelegram(entorno.token, evento.chatId, texto, botones);
     if (!r.ok) console.error("[apriscol:telegram] respuesta no enviada:", r.error);
     return r;
