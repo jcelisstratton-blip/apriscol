@@ -27,6 +27,7 @@ export type ContenidoOpcion = {
 export const OMITIDAS: Record<string, string> = {
   "/mas/finca": "Datos básicos de la finca: no convence a nadie de registrarse.",
   "/mas/plan": "Los planes tienen su propia sección.",
+  "/mas/telegram": "Los avisos por Telegram están en piloto: se presentan en la página cuando el equipo los active para todas las fincas.",
 };
 
 export const CONTENIDO: Record<string, ContenidoOpcion> = {

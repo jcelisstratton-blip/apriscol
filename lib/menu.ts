@@ -1,4 +1,4 @@
-import { Inbox, Activity, Baby, Beef, Boxes, Download, Droplets, Fence, FileBarChart2, Gift, GitFork, Home, MapPin, Package, PawPrint, Plus, Rocket, SlidersHorizontal, Syringe, TrendingUp, Trophy, Users, Wallet, type LucideIcon } from "lucide-react";
+import { Inbox, Activity, Baby, Beef, Boxes, Download, Droplets, Fence, FileBarChart2, Gift, GitFork, Home, MapPin, Package, PawPrint, Plus, Rocket, Send, SlidersHorizontal, Syringe, TrendingUp, Trophy, Users, Wallet, type LucideIcon } from "lucide-react";
 import { puedeGestionar, puedeVer, revisaNovedades } from "@/lib/permisos";
 import { reportesVisibles } from "@/lib/reportes/catalogo";
 import { areasSemaforo } from "@/lib/semaforos";
@@ -120,6 +120,7 @@ export function menuFinca(v: VisibilidadMenu): EntradaMenu[] {
     ...(v.datosFinca ? [{ href: "/mas/finca", etiqueta: "Datos de la finca", Icono: MapPin }] : []),
     { href: "/mas/ajustes", etiqueta: "Ajustes de la finca", Icono: SlidersHorizontal },
     ...(v.equipo ? [{ href: "/mas/miembros", etiqueta: "Equipo", Icono: Users }] : []),
+    { href: "/mas/telegram", etiqueta: "Telegram", Icono: Send },
     { href: "/mas/referidos", etiqueta: "Referidos", Icono: Gift, acento: true },
     ...(v.propietario ? [{ href: "/mas/plan", etiqueta: v.planMejorable ? "Cambiar el plan" : "Plan de esta finca", Icono: Rocket, acento: true }] : []),
     ...(v.propietario ? [{ href: "/mas/exportar", etiqueta: "Exportar datos", Icono: Download }] : []),

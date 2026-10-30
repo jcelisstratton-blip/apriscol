@@ -92,3 +92,19 @@ test("resumen: sin casos dice que todo está en orden; con muchísimos casos cor
   assert.ok(r.omitidos > 0);
   assert.match(r.texto, /casos más en la app/);
 });
+
+import { describirAvisos, enlaceBot, horaLegible } from "../lib/notificaciones/enlace.ts";
+test("Telegram en la app: enlace del bot, hora legible y descripción de los avisos", () => {
+  assert.equal(enlaceBot("apriscolbot", "AB12CD34"), "https://t.me/apriscolbot?start=AB12CD34");
+  assert.equal(horaLegible("06:30:00"), "6:30 a. m.");
+  assert.equal(horaLegible("00:05:00"), "12:05 a. m.");
+  assert.equal(horaLegible("12:00:00"), "12:00 p. m.");
+  assert.equal(horaLegible("18:45:00"), "6:45 p. m.");
+  const base = { activo: true, resumen: true, resumen_hora: "06:30:00", dias: [1, 2, 3, 4, 5, 6, 7], nivel_minimo: "ambar" };
+  assert.equal(describirAvisos(base), "Resumen todos los días a las 6:30 a. m., con lo urgente (rojo) y lo que se programa (ámbar).");
+  assert.match(describirAvisos({ ...base, dias: [1, 2, 3, 4, 5], nivel_minimo: "rojo" }), /de lunes a viernes a las 6:30 a\. m\., con solo lo urgente \(rojo\)\./);
+  assert.match(describirAvisos({ ...base, dias: [6, 1] }), /lun, sáb/);
+  assert.equal(describirAvisos({ ...base, activo: false }), null);
+  assert.equal(describirAvisos({ ...base, resumen: false }), null);
+  assert.equal(describirAvisos(null), null);
+});
