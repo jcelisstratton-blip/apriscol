@@ -1,3 +1,5 @@
+import Link from "next/link";
+import { Send } from "lucide-react";
 import { AccionVigencia } from "@/components/AccionVigencia";
 import { BotonesRecordatorio } from "@/components/BotonesRecordatorio";
 import { Insignia } from "@/components/Insignia";
@@ -69,6 +71,14 @@ export function FichaFincaVista({ ficha, nequi }: { ficha: FichaFinca; nequi: Da
         </dl>
         <AccionVigencia fincaId={finca.id} plan={finca.plan} venceEn={finca.plan_vence_en} correo={dueno.email} cuentaPruebas={dueno.cuenta_pruebas} />
       </Tarjeta>
+
+      <Link href={`/admin/fincas/${finca.id}/avisos`} className="flex min-h-14 items-center gap-3 rounded-3xl bg-papel px-4 ring-1 ring-arena transition active:scale-[0.99]">
+        <Send className="size-5 shrink-0 text-musgo" strokeWidth={1.8} />
+        <span className="min-w-0">
+          <span className="block font-semibold">Avisos por Telegram</span>
+          <span className="block text-sm text-humo">Hora, días y nivel del resumen de cada persona</span>
+        </span>
+      </Link>
 
       <Tarjeta titulo="Uso">
         <dl className="divide-y divide-arena">
