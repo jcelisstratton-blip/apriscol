@@ -11,7 +11,11 @@ export const maxDuration = 30;
 export async function POST(req: Request) {
   const entorno = leerEntorno();
   if (!entorno.token || !entorno.webhookSecret || !entorno.jwtSecret) return new Response("El bot no está configurado.", { status: 503 });
-  if (!secretoValido(req.headers.get("x-telegram-bot-api-secret-token"), entorno.webhookSecret)) return new Response("No autorizado.", { status: 401 });
+  if (!secretoValido(req.headers.get("x-telegram-bot-api-secret-token"), entorno.webhookSecret)) {
+    // Sin valores: solo que el secreto con que se registró el webhook no es el que tiene este despliegue.
+    console.warn("[apriscol:telegram] webhook rechazado: el secreto no coincide");
+    return new Response("No autorizado.", { status: 401 });
+  }
 
   const cuerpo = await req.json().catch(() => null);
   try {

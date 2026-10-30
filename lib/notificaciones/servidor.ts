@@ -63,7 +63,7 @@ export async function simularResumen(entorno: Pick<Entorno, "jwtSecret">, fincaI
   return resumenDe({ finca_id: fincaId, user_id: userId, rol: miembro.rol }, entorno.jwtSecret);
 }
 
-const recorte = (e: unknown) => (e instanceof Error ? e.message : "Error desconocido").slice(0, 300);
+const recorte = (e: unknown) => (typeof e === "string" ? e : e instanceof Error ? e.message : "Error desconocido").slice(0, 300);
 
 export type ResultadoDespacho = { destinos: number; enviados: number; omitidos: number; fallidos: number };
 
@@ -121,7 +121,11 @@ export async function atenderEvento(evento: EventoTelegram, entorno: Entorno): P
     await servicio.rpc("telegram_chat_estado", { p_chat_id: evento.chatId, p_estado: "bloqueado" });
     return;
   }
-  const responder = (texto: string) => enviarTelegram(entorno.token, evento.chatId, texto);
+  const responder = async (texto: string) => {
+    const r = await enviarTelegram(entorno.token, evento.chatId, texto);
+    if (!r.ok) console.error("[apriscol:telegram] respuesta no enviada:", r.error);
+    return r;
+  };
   if (!evento.privado) {
     await responder("Solo funciono en un chat privado conmigo. Escríbeme directamente.");
     return;
@@ -134,7 +138,8 @@ export async function atenderEvento(evento: EventoTelegram, entorno: Entorno): P
         await responder(AYUDA);
         return;
       }
-      const { data } = await servicio.rpc("telegram_vincular", { p_codigo: argumento.slice(0, 32), p_chat_id: evento.chatId });
+      const { data, error } = await servicio.rpc("telegram_vincular", { p_codigo: argumento.slice(0, 32), p_chat_id: evento.chatId });
+      if (error) console.error("[apriscol:telegram] vincular:", recorte(error.message));
       if (data?.ok) {
         await responder(`Listo. Desde ahora te aviso lo que hay que hacer en <b>${escaparHtml(data.finca ?? "tu finca")}</b>.\n\nUsa /hoy para ver tu resumen ahora, o /pausar si quieres silenciarme.`);
       } else if (data?.motivo === "chat_en_uso") {
@@ -152,7 +157,13 @@ export async function atenderEvento(evento: EventoTelegram, entorno: Entorno): P
       return;
     }
     case "hoy": {
-      const { data: vinculos } = await servicio.from("telegram_vinculos").select("finca_id, user_id").eq("chat_id", evento.chatId).neq("estado", "pendiente").limit(3);
+      const { data: vinculos, error } = await servicio.from("telegram_vinculos").select("finca_id, user_id").eq("chat_id", evento.chatId).neq("estado", "pendiente").limit(3);
+      if (error) {
+        // Sin esto, una llave mal puesta se vería como «todavía no estás vinculado».
+        console.error("[apriscol:telegram] /hoy consulta:", recorte(error.message));
+        await responder("No pude consultar tu cuenta ahora. Intenta de nuevo en unos minutos.");
+        return;
+      }
       if (!vinculos || vinculos.length === 0) {
         await responder("Todavía no estás vinculado. En Apriscol abre <b>Más → Telegram</b> y toca «Conectar».");
         return;
