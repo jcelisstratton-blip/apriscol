@@ -134,6 +134,14 @@ export function unidadDeConteo(f: Pick<FilaInventario, "unidad" | "presentacion"
   return f.presentacion && f.contenido_presentacion ? { nombre: f.presentacion, factor: f.contenido_presentacion } : { nombre: f.unidad ?? "unidades", factor: 1 };
 }
 
+/** Valor del «lote» del formulario de ajuste cuando se cuenta todo el producto junto (sin separar por lote). */
+export const LOTE_TOTAL = "__total__";
+
+/** Dirección del formulario para corregir con un conteo de todo lo que hay del producto, sin elegir lote. */
+export function rutaConteoTotal(productoId: string): string {
+  return `/inventario/${productoId}/ajustar?motivo=conteo&lote=total`;
+}
+
 /** Dirección del formulario de ajuste ya abierto en «Vencido» y con el lote (y toda su cantidad) elegido. Sin lote, la pantalla toma el primero vencido. */
 export function rutaBajaLote(productoId: string, lote?: string | null): string {
   return `/inventario/${productoId}/ajustar?motivo=vencido${lote ? `&lote=${encodeURIComponent(lote)}` : ""}`;
@@ -147,6 +155,7 @@ export function ajusteInicial(
   motivo: string | undefined,
   lote: string | undefined,
 ): { motivo: MotivoAjuste; lote: string | null; cantidad: string } | null {
+  if (motivo === "conteo" && lote === "total") return lotes.length < 2 ? null : { motivo: "conteo", lote: LOTE_TOTAL, cantidad: "" };
   if (motivo !== "vencido") return null;
   const vencidos = lotes.filter((l) => l.vencimiento && l.stock > 0.004 && estadoVencimiento(l.vencimiento, hoy) === "vencido");
   const elegido = (lote ? vencidos.find((l) => l.lote === lote) : null) ?? vencidos[0];
@@ -184,11 +193,13 @@ export function pasosInventario(f: Pick<FilaInventario, "producto_id" | "desde" 
   if (estado === "negativo") {
     pasos.push({
       clave: "descuadrado",
-      titulo: `Se aplicó más de lo que decía la app (total ${textoStock(f, f.stock)})`,
+      titulo: `Se aplicó más de lo que la app tenía: el total quedó en ${textoStock(f, f.stock)}`,
+      accion: { texto: "Contar lo que hay y corregir", href: rutaConteoTotal(f.producto_id) },
       pasos: [
-        "Cuenta lo que hay de verdad en la bodega.",
-        "Toca «Ajustar existencias», motivo «Conteo físico», elige el lote y escribe lo que contaste: la app cuadra la diferencia.",
-        "Si entró producto que no registraste, registra la compra en Hato → Compras.",
+        "Qué significa: la app suma lo que entró (conteo de apertura y compras) y resta lo que se aplicó; se aplicó más de lo que entró. Algo no se registró, o se dio de baja algo que sí se usó.",
+        "Si compraste producto y no lo registraste: regístralo en Hato → Compras y el inventario sube solo.",
+        "Si diste de baja un lote vencido (o perdido) que en realidad sí se aplicó: elimina ese ajuste abajo, en «Conteos y ajustes» («Eliminar este ajuste»).",
+        "Si no es ninguna de las dos: cuenta cuántas hay hoy en la bodega, en total, y usa el botón: la app corrige la diferencia (si ya no queda nada, escribe 0).",
       ],
     });
   } else if (estado === "agotado") {
