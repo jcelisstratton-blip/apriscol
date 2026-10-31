@@ -3,7 +3,7 @@
  * fecha de apertura de cada producto. Aquí viven las reglas puras que lo interpretan (estado, vencimiento, unidades), para que la pantalla, el semáforo y
  * Hoy digan lo mismo. Todo se cuenta en la unidad de la dosis del producto (ml, dosis, tableta…); la presentación (frasco = 100 ml) solo traduce.
  */
-import { diasHasta } from "@/lib/fechas";
+import { diasHasta, formatoFecha } from "@/lib/fechas";
 
 /** Una fila de `inventario_productos`. */
 export type FilaInventario = {
@@ -86,7 +86,8 @@ export function aUnidades(presentaciones: number, contenido: number): number {
   return Math.round(presentaciones * contenido * 100) / 100;
 }
 
-export const plural = (palabra: string, n: number): string => (Math.abs(n) === 1 ? palabra : /[aeiou]$/i.test(palabra) ? `${palabra}s` : `${palabra}es`);
+/** Plural de la unidad: «dosis» no cambia («3 dosis», no «dosises»); las que terminan en vocal llevan «s» y el resto «es». */
+export const plural = (palabra: string, n: number): string => (Math.abs(n) === 1 || /s$/i.test(palabra) ? palabra : /[aeiou]$/i.test(palabra) ? `${palabra}s` : `${palabra}es`);
 
 /** «350 ml», o «3,5 frascos · 350 ml» si el producto tiene presentación. */
 export function textoStock(f: Pick<FilaInventario, "unidad" | "presentacion" | "contenido_presentacion">, cantidad: number): string {
@@ -131,4 +132,59 @@ export function cambioDeAjuste(motivo: MotivoAjuste, cantidad: number, stockActu
 /** En qué cuenta la persona: en presentaciones (frascos) si el producto tiene una definida; si no, en la unidad de la dosis. `factor` pasa lo que escribe a la unidad de la dosis. */
 export function unidadDeConteo(f: Pick<FilaInventario, "unidad" | "presentacion" | "contenido_presentacion">): { nombre: string; factor: number } {
   return f.presentacion && f.contenido_presentacion ? { nombre: f.presentacion, factor: f.contenido_presentacion } : { nombre: f.unidad ?? "unidades", factor: 1 };
+}
+
+/** Un problema del producto y qué hacer, paso a paso, para la ficha. */
+export type PasoInventario = { clave: string; titulo: string; pasos: string[] };
+
+const fechaCorta = (iso: string) => formatoFecha(iso, { day: "numeric", month: "short", year: "numeric" });
+
+/**
+ * Qué hay que hacer con un producto, dicho con las pantallas reales («Ajustar existencias», «Conteo físico»…). Lo que no se puede resolver aquí
+ * (comprar, corregir una fecha mal escrita) se dice con el lugar donde se hace. Un producto sin problemas devuelve una lista vacía.
+ */
+export function pasosInventario(f: Pick<FilaInventario, "desde" | "stock" | "stock_minimo" | "presentacion" | "unidad" | "contenido_presentacion">, lotes: FilaLote[], hoy: string): PasoInventario[] {
+  const pasos: PasoInventario[] = [];
+  if (!f.desde || f.stock === null) return pasos;
+  for (const l of lotes) {
+    if (estadoVencimiento(l.vencimiento, hoy) !== "vencido" || l.stock <= 0.004 || !l.vencimiento) continue;
+    pasos.push({
+      clave: `vencido-${l.lote ?? "sin"}`,
+      titulo: `El lote ${l.lote ?? "sin nombre"} venció el ${fechaCorta(l.vencimiento)} y aún cuenta ${textoStock(f, l.stock)}`,
+      pasos: [
+        "Si el lote ya no se debe usar: sácalo de la bodega, toca «Ajustar existencias», elige el motivo «Vencido», ese lote y la cantidad que quedaba.",
+        "Si la fecha de vencimiento está mal escrita: corrígela en la compra (Hato → Compras) o en el conteo de apertura, y el aviso se quita solo.",
+      ],
+    });
+  }
+  const estado = estadoStock(f);
+  if (estado === "negativo") {
+    pasos.push({
+      clave: "descuadrado",
+      titulo: `Se aplicó más de lo que decía la app (total ${textoStock(f, f.stock)})`,
+      pasos: [
+        "Cuenta lo que hay de verdad en la bodega.",
+        "Toca «Ajustar existencias», motivo «Conteo físico», elige el lote y escribe lo que contaste: la app cuadra la diferencia.",
+        "Si entró producto que no registraste, registra la compra en Hato → Compras.",
+      ],
+    });
+  } else if (estado === "agotado") {
+    pasos.push({ clave: "agotado", titulo: "Se agotó", pasos: ["Avisa al administrador para que lo compre.", "Cuando llegue, registra la compra en Hato → Compras: el inventario sube solo."] });
+  } else if (estado === "bajo") {
+    const falta = faltaParaMinimo(f);
+    pasos.push({
+      clave: "bajo",
+      titulo: `Está en el mínimo o por debajo (quedan ${textoStock(f, f.stock)})`,
+      pasos: [`Compra lo que falta${falta !== null ? ` (para volver al mínimo, ${textoStock(f, falta)})` : ""}.`, "Registra la compra en Hato → Compras: el inventario sube solo."],
+    });
+  }
+  const pronto = lotes.filter((l) => l.vencimiento && l.stock > 0.004 && estadoVencimiento(l.vencimiento, hoy) === "pronto");
+  for (const l of pronto) {
+    pasos.push({
+      clave: `pronto-${l.lote ?? "sin"}`,
+      titulo: `El lote ${l.lote ?? "sin nombre"} vence el ${fechaCorta(l.vencimiento!)}`,
+      pasos: ["Úsalo primero en las próximas aplicaciones (escribe este lote al registrarlas)."],
+    });
+  }
+  return pasos;
 }
