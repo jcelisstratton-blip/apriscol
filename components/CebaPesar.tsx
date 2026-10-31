@@ -3,6 +3,8 @@
 import { useCallback, useState, useTransition } from "react";
 import Link from "next/link";
 import { Check, Scale } from "lucide-react";
+import { Aviso } from "@/components/Aviso";
+import { Insignia } from "@/components/Insignia";
 import { Boton } from "@/components/Boton";
 import { CampoBusqueda } from "@/components/CampoBusqueda";
 import { CLASE_INPUT } from "@/components/Campo";
@@ -25,6 +27,10 @@ export type AnimalCeba = {
   ultimoPeso: number | null;
   ultimaFecha: string | null;
   gdpReciente: number | null;
+  /** Gana menos del mínimo de la finca. */
+  gdpBajo: boolean;
+  /** Lo pesaron hace poco: ya se atendió. */
+  pesadoReciente: boolean;
 };
 
 const SIN_LOTE = "sin";
@@ -34,7 +40,7 @@ const MIN_PARA_BUSCAR = 8;
  * Hato → Ceba: los animales en engorde con su último peso. Se escribe el peso de cada uno y se guarda al instante (un peso por animal y día;
  * volver a guardarlo el mismo día lo corrige). Arriba, el día del pesaje y el filtro por lote.
  */
-export function CebaPesar({ animales, lotes, hoy, puedeEditar }: { animales: AnimalCeba[]; lotes: { id: string; nombre: string }[]; hoy: string; puedeEditar: boolean }) {
+export function CebaPesar({ animales, lotes, hoy, puedeEditar, gdpMinimo }: { animales: AnimalCeba[]; lotes: { id: string; nombre: string }[]; hoy: string; puedeEditar: boolean; gdpMinimo: number }) {
   const toast = useToast();
   const [fecha, setFecha] = useState(hoy);
   const [lote, setLote] = useState<string>("todos");
@@ -76,6 +82,8 @@ export function CebaPesar({ animales, lotes, hoy, puedeEditar }: { animales: Ani
 
   const t = sinTildes(busqueda);
   const visibles = animales.filter((a) => (lote === "todos" ? true : lote === SIN_LOTE ? a.loteId === null : a.loteId === lote)).filter((a) => !t || sinTildes(a.etiqueta).includes(t));
+  const bajosPendientes = animales.filter((a) => a.gdpBajo && !a.pesadoReciente).length;
+  const bajosAtendidos = animales.filter((a) => a.gdpBajo && a.pesadoReciente).length;
   const hayLoteSuelto = animales.some((a) => a.loteId === null);
 
   return (
@@ -84,6 +92,16 @@ export function CebaPesar({ animales, lotes, hoy, puedeEditar }: { animales: Ani
         {puedeEditar ? "Escribe el peso de cada animal y toca «Guardar». " : "Los animales en engorde con su último peso. "}
         Con dos pesos separados al menos 7 días se calcula cuánto gana por día.
       </p>
+      {bajosPendientes + bajosAtendidos > 0 ? (
+        <Aviso tipo={bajosPendientes > 0 ? "atencion" : "info"}>
+          {bajosPendientes > 0
+            ? `${bajosPendientes} ${bajosPendientes === 1 ? "animal gana" : "animales ganan"} menos de ${gdpMinimo} g al día.`
+            : `Los ${bajosAtendidos === 1 ? "animal con" : bajosAtendidos + " animales con"} ganancia baja ya están pesados.`}{" "}
+          <Link href="/semaforos?area=ceba&s=ceba-gdp" className="font-semibold underline underline-offset-4">
+            Ver qué hacer
+          </Link>
+        </Aviso>
+      ) : null}
       {puedeEditar ? (
       <div className="space-y-1.5 rounded-3xl bg-papel p-4 ring-1 ring-arena">
         <label htmlFor="dia-pesaje" className="block text-sm font-semibold">
@@ -142,6 +160,11 @@ export function CebaPesar({ animales, lotes, hoy, puedeEditar }: { animales: Ani
                   {a.ultimoPeso !== null ? `Último: ${kg(a.ultimoPeso)} el ${formatoFecha(a.ultimaFecha, { day: "numeric", month: "short" })}` : "Sin pesos todavía"}
                   {a.gdpReciente !== null ? ` · ${gdp(a.gdpReciente)}` : ""}
                 </p>
+                {a.gdpBajo ? (
+                  <p>
+                    <Insignia tono={a.pesadoReciente ? "ok" : "aviso"}>{a.pesadoReciente ? "Ganancia baja · ya pesado" : "Ganancia baja"}</Insignia>
+                  </p>
+                ) : null}
                 {puedeEditar ? (
                   <div className="flex items-center gap-2">
                     <input
