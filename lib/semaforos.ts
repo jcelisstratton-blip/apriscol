@@ -949,7 +949,7 @@ export function senalesDinero(compras: CompraPorPagar[], ventas: VentaPorCobrar[
   const cobrar: ItemSenal[] = [];
   for (const v of ventas) {
     const nivel = nivelDe(v.cobro_vence);
-    if (nivel) cobrar.push({ clave: `cobrar-${v.clave}`, etiqueta: `${v.producto}${v.tercero ? ` · ${v.tercero}` : ""}`, detalle: `${pesos(Number(v.valor))} · ${texto(v.cobro_vence, "lo esperabas")}`.replace("lo esperabas en", "lo esperas en").replace("lo esperabas hoy", "lo esperas hoy"), nivel, href: hrefVenta(v.origen, v.origen_id), queHacer: v.tercero ? `Cobra a ${v.tercero} y registra el cobro en la venta.` : "Cobra y registra el cobro en la venta.", orden: diasHasta(v.cobro_vence, hoy) });
+    if (nivel) cobrar.push({ clave: `cobrar-${v.clave}`, etiqueta: `${v.producto}${v.tercero ? ` · ${v.tercero}` : ""}`, detalle: `${pesos(Number(v.valor))} · ${texto(v.cobro_vence, "lo esperabas")}`.replace("lo esperabas en", "lo esperas en").replace("lo esperabas hoy", "lo esperas hoy"), nivel, href: hrefVenta(v.origen, v.origen_id), queHacer: `${v.tercero ? `Cobra a ${v.tercero}` : "Cobra"} y registra el cobro${v.origen === "animal" ? ": en la ficha, en «Cobro», toca «Marcar como cobrada»." : " en la venta."}`, orden: diasHasta(v.cobro_vence, hoy) });
   }
   return [
     armarSenal(

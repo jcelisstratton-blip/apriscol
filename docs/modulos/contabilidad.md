@@ -69,3 +69,6 @@ Al agregar a alguien en Equipo (`FormInvitar`), con el perfil elegido se abre su
 **Qué no se registra en «Registrar una venta»:** la **leche** (entra sola desde Leche → Despachos) y los **animales** vendidos o sacrificados (desde su salida del hato). La pantalla lo dice arriba, con el enlace a Despachos.
 
 **Los avisos de dinero del semáforo llevan a SU registro**, no a la lista general: una venta registrada abre su edición (`/hato/ventas/<id>/editar`), un despacho de leche abre ese despacho (`/leche/despachos/<id>`), la venta de un animal abre su ficha en «Salida del hato» (`/hato/<id>#salida`) y una compra por pagar abre su edición (`/hato/gastos/<id>/editar`). Cada caso dice qué hacer («Cobra a <comprador> y registra el cobro en la venta», «Paga y marca la compra como pagada»). Las vacunas anuales y las pezuñas llevan a «Programar» (`/hato/sanidad/programar`).
+
+## Cobro de un animal vendido
+La ficha de un animal vendido o sacrificado con valor muestra, en «Salida del hato», el bloque **Cobro** (estado y fecha esperada) con el botón «Marcar como cobrada» / «Devolver a por cobrar» (`CobroVenta`, mismo `marcarCobro` que la lista de ventas; permiso de contabilidad). El semáforo «Ventas por cobrar» lleva a ese punto (`/hato/<id>#salida`).

@@ -7,6 +7,7 @@ import { formatoFecha, litros } from "@/lib/fechas";
 import { pesos } from "@/lib/ferias";
 import { ETIQUETA_MOTIVO_BAJA, ETIQUETA_TIPO_BAJA } from "@/lib/bajas";
 import { DeshacerBaja } from "@/components/DeshacerBaja";
+import { CobroVenta } from "@/components/CobroVenta";
 import { ETIQUETA_CONFORMACION, ETIQUETA_ENGRASAMIENTO, ETIQUETA_GRASA_VISCERAL, kg, pctUno } from "@/lib/carne";
 import { controlesDeSalida, etiquetaResumen, resumenControles } from "@/lib/controles";
 import type { CtxFicha } from "./contexto";
@@ -50,6 +51,19 @@ export async function TarjetaSalida({ c }: { c: CtxFicha }) {
           ) : null}
         </dl>
         {baja.data?.detalle ? <p className="mt-3 whitespace-pre-wrap text-[0.9375rem] text-humo">{baja.data.detalle}</p> : null}
+        {baja.data && baja.data.valor && (baja.data.tipo === "venta" || baja.data.tipo === "sacrificio") ? (
+          <div className="mt-3 space-y-2 border-t border-arena pt-3">
+            <p className="text-sm font-semibold">Cobro</p>
+            <p>
+              {baja.data.cobrado_en ? (
+                <Insignia tono="ok">Cobrado el {formatoFecha(baja.data.cobrado_en)}</Insignia>
+              ) : (
+                <Insignia tono="aviso">Por cobrar{baja.data.cobro_vence ? ` · se espera el ${formatoFecha(baja.data.cobro_vence)}` : ""}</Insignia>
+              )}
+            </p>
+            {puedeEscribir(rol, "contabilidad", finca.plan) ? <CobroVenta origen="animal" id={id} cobrado={Boolean(baja.data.cobrado_en)} /> : null}
+          </div>
+        ) : null}
         {baja.data && puedeEscribir(rol, "hato", finca.plan) ? (
           <Link href={`/hato/${id}/baja/editar`} className="mt-2 inline-flex min-h-11 items-center gap-1.5 text-sm font-semibold text-musgo underline-offset-4 hover:underline">
             Corregir datos de la salida
