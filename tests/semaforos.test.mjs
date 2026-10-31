@@ -156,6 +156,12 @@ test("semáforos: corrales — cupo pasado y potrero que debe salir en rojo", ()
   const s = senalCorrales([u("a", { hacinada: true }), u("b", { estado: "debe_salir" })]);
   assert.deepEqual(s.items.map((i) => [i.clave, i.nivel]), [["cupo-a", "rojo"], ["rotacion-b", "rojo"]]);
   assert.equal(senalCorrales([]).nivel, "verde");
+  // Cada caso dice qué hacer: cuántos animales sacar o que el lote debe pasar a otro potrero.
+  const lleno = senalCorrales([u("c", { hacinada: true, capacidad: 10, ocupantes: 13 })]).items[0];
+  assert.match(lleno.detalle, /tiene 13 animales y le caben 10/);
+  assert.equal(lleno.queHacer, "Pasa 3 animales a otra instalación.");
+  assert.equal(senalCorrales([u("d", { hacinada: true, capacidad: 10, ocupantes: 11 })]).items[0].queHacer, "Pasa 1 animal a otra instalación.");
+  assert.equal(s.items[1].queHacer, "Pasa el lote a otro potrero para que este descanse 35 días.");
 });
 
 test("semáforos: los plazos de partos salen de Ajustes (no son fijos)", () => {

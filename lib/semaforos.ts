@@ -568,9 +568,26 @@ export function senalCorrales(ubicaciones: UbicacionVista[]): Senal {
   const items: ItemSenal[] = [];
   for (const u of ubicaciones) {
     if (u.hacinada) {
-      items.push({ clave: `cupo-${u.id}`, etiqueta: u.nombre, detalle: `Pasó su cupo: ${u.ocupantes} animales`, nivel: "rojo", href: `/hato/corrales/${u.id}`, orden: 0 });
+      const sobran = u.capacidad ? u.ocupantes - u.capacidad : 0;
+      items.push({
+        clave: `cupo-${u.id}`,
+        etiqueta: u.nombre,
+        detalle: u.capacidad ? `Pasó su cupo: tiene ${u.ocupantes} animales y le caben ${u.capacidad}` : `Pasó su cupo: ${u.ocupantes} animales`,
+        nivel: "rojo",
+        href: `/hato/corrales/${u.id}`,
+        queHacer: sobran > 0 ? `Pasa ${sobran} ${sobran === 1 ? "animal" : "animales"} a otra instalación.` : "Pasa algunos animales a otra instalación.",
+        orden: 0,
+      });
     } else if (u.estado === "debe_salir") {
-      items.push({ clave: `rotacion-${u.id}`, etiqueta: u.nombre, detalle: textoRotacion(u), nivel: "rojo", href: `/hato/corrales/${u.id}`, orden: 1 });
+      items.push({
+        clave: `rotacion-${u.id}`,
+        etiqueta: u.nombre,
+        detalle: textoRotacion(u),
+        nivel: "rojo",
+        href: `/hato/corrales/${u.id}`,
+        queHacer: `Pasa el lote a otro potrero para que este descanse ${u.dias_descanso_min} días.`,
+        orden: 1,
+      });
     }
   }
   return armarSenal(
