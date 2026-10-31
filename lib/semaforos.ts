@@ -844,7 +844,8 @@ export function senalMantenimiento(filas: MantenimientoOrdeno[], hoy: string): S
     etiqueta: `${ETIQUETA_MANTENIMIENTO[p.registro.tipo as keyof typeof ETIQUETA_MANTENIMIENTO] ?? p.registro.tipo}${p.registro.equipo ? ` · ${p.registro.equipo}` : ""}`,
     detalle: p.dias < 0 ? `Atrasada ${dias(-p.dias)}` : p.dias === 0 ? "Toca hoy" : `Toca en ${dias(p.dias)}`,
     nivel: p.dias < 0 ? ("rojo" as const) : ("ambar" as const),
-    href: "/leche",
+    href: `/leche/equipo/nuevo?de=${p.registro.id}`,
+    queHacer: "Haz la tarea y toca «Guardar registro»: la hoja ya viene con lo de la vez anterior y la próxima fecha calculada.",
     orden: p.dias,
   }));
   return armarSenal(
@@ -855,7 +856,7 @@ export function senalMantenimiento(filas: MantenimientoOrdeno[], hoy: string): S
       queHacer: "Haz el lavado o la revisión que toca y regístralo, para que la próxima fecha se calcule.",
       queSignifica: "Lavados, revisión de presión y de pulsadores del equipo de ordeño que ya tocan o están por tocar.",
       regla: "Ámbar: toca en los próximos 7 días. Rojo: ya está atrasada.",
-      accion: { texto: "Ver Leche", href: "/leche" },
+      accion: { texto: "Ver el equipo en Leche", href: "/leche?vista=frio" },
     },
     items,
   );

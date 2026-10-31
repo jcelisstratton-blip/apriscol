@@ -14,11 +14,11 @@ import type { MantenimientoOrdeno, TipoMantenimiento } from "@/lib/tipos";
 const coma = (n: number | null | undefined) => (n == null ? "" : String(n).replace(".", ","));
 
 /** Registrar o corregir una tarea del equipo de ordeño: lavados, presión de vacío, pulsadores o una revisión. */
-export function FormMantenimiento({ hoy, registro, solicitud }: { hoy: string; registro?: MantenimientoOrdeno; solicitud?: string }) {
+export function FormMantenimiento({ hoy, registro, solicitud, base }: { hoy: string; registro?: MantenimientoOrdeno; solicitud?: string; base?: Partial<MantenimientoOrdeno> }) {
   const editando = Boolean(registro);
   const [estado, enviar, pendiente] = useActionState(editando ? editarMantenimiento : crearMantenimiento, undefined);
   const [, iniciar] = useTransition();
-  const [tipo, setTipo] = useState<TipoMantenimiento>(registro?.tipo ?? "lavado_alcalino");
+  const [tipo, setTipo] = useState<TipoMantenimiento>(registro?.tipo ?? base?.tipo ?? "lavado_alcalino");
 
   const alEnviar = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -47,15 +47,15 @@ export function FormMantenimiento({ hoy, registro, solicitud }: { hoy: string; r
       ) : null}
 
       <Campo etiqueta="Equipo" ayuda="Opcional. La ordeñadora, el tanque… si tienes más de uno.">
-        {(id) => <input id={id} name="equipo" defaultValue={registro?.equipo ?? ""} maxLength={80} autoComplete="off" className={CLASE_INPUT} />}
+        {(id) => <input id={id} name="equipo" defaultValue={registro?.equipo ?? base?.equipo ?? ""} maxLength={80} autoComplete="off" className={CLASE_INPUT} />}
       </Campo>
 
       <Campo etiqueta="Responsable" ayuda="Opcional.">
-        {(id) => <input id={id} name="responsable" defaultValue={registro?.responsable ?? ""} maxLength={120} autoComplete="off" className={CLASE_INPUT} />}
+        {(id) => <input id={id} name="responsable" defaultValue={registro?.responsable ?? base?.responsable ?? ""} maxLength={120} autoComplete="off" className={CLASE_INPUT} />}
       </Campo>
 
       <Campo etiqueta="Próxima vez" ayuda="Opcional. Queda marcada en «Frío y equipo» cuando llegue esa fecha.">
-        {(id) => <input id={id} name="proxima_fecha" type="date" defaultValue={registro?.proxima_fecha ?? ""} min={hoy} className={CLASE_INPUT} />}
+        {(id) => <input id={id} name="proxima_fecha" type="date" defaultValue={registro?.proxima_fecha ?? base?.proxima_fecha ?? ""} min={hoy} className={CLASE_INPUT} />}
       </Campo>
 
       <Campo etiqueta="Observaciones" ayuda="Opcional.">

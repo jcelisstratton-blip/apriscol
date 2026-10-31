@@ -27,7 +27,7 @@ Solo lo suyo, además de lo que permita su plan (Ceba pide el módulo Carne; Din
 | Sanidad | Vacunas anuales | faltan 30 días o menos para repetir la campaña de rabia o de clostridiosis | vencida o sin ninguna campaña; se reconoce por el nombre del producto y solo se evalúa si la finca definió el plazo en Ajustes → Sanidad |
 | Leche | Cadena de frío (7 días) | hasta 2 °C fuera de 4–6 °C | más de 2 °C fuera |
 | Leche | Calidad del tanque (último análisis de 60 días) | células al 80 % del límite, crioscopia fría, grasa o proteína fuera de rango | residuos positivos, células sobre el límite, posible agua |
-| Leche | Mantenimiento de la sala de ordeño | toca en los próximos 7 días | atrasado |
+| Leche | Mantenimiento de la sala de ordeño | toca en los próximos 7 días | atrasado | Cada caso abre «Registrar» con el tipo, el equipo y el responsable de la vez anterior y la próxima fecha con el mismo intervalo (`/leche/equipo/nuevo?de=<id>`).
 | Leche | Producción que baja | baja notable (`produccion_tendencia`) | baja fuerte |
 | Ceba | Pesaje atrasado | pasó el plazo de las reglas de ceba | el doble del plazo o nunca pesado |
 | Ceba | Ganancia de peso baja | menos del mínimo de Ajustes → Ceba | menos de la mitad |
