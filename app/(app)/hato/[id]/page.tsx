@@ -5,6 +5,7 @@ import { ChevronLeft, Pencil } from "lucide-react";
 import { Aviso } from "@/components/Aviso";
 import { AvisoGuardado } from "@/components/AvisoGuardado";
 import { Insignia } from "@/components/Insignia";
+import { ScrollAncla } from "@/components/ScrollAncla";
 import { Tarjeta } from "@/components/Tarjeta";
 import { VisorFoto } from "@/components/VisorFoto";
 import { obtenerAjustes } from "@/lib/ajustes-servidor";
@@ -65,6 +66,7 @@ export default async function FichaAnimal({ params, searchParams }: { params: Pr
   return (
     <>
       <AvisoGuardado activo={guardado === "1"} />
+      <ScrollAncla />
       <div className="mt-3 flex items-center justify-between gap-3">
         <Link href="/hato" className="-ml-2 inline-flex min-h-11 items-center gap-1 rounded-full px-2 text-[0.9375rem] font-semibold text-musgo">
           <ChevronLeft className="size-5" strokeWidth={2} /> Hato
@@ -102,7 +104,8 @@ export default async function FichaAnimal({ params, searchParams }: { params: Pr
           <Aviso tipo="atencion">
             En periodo de retiro
             {miRetiro.retiro_leche_hasta ? ` · la leche no va al tanque hasta el ${formatoFecha(miRetiro.retiro_leche_hasta)}` : ""}
-            {miRetiro.retiro_carne_hasta ? ` · no puede salir para consumo hasta el ${formatoFecha(miRetiro.retiro_carne_hasta)}` : ""}.
+            {miRetiro.retiro_carne_hasta ? ` · no puede salir para consumo hasta el ${formatoFecha(miRetiro.retiro_carne_hasta)}` : ""}.{" "}
+            El retiro solo afecta la leche y la carne: no impide servirla, hacerle el diagnóstico ni registrar su parto.
           </Aviso>
         ) : null}
 

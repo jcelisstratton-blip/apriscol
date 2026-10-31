@@ -179,6 +179,7 @@ export function senalesDiagnostico(filas: ReproHembra[], hoy: string, ventana: V
             : `Diagnóstico dudoso hace ${dias(s.dias)}: toca repetirlo (hasta el ${corta(s.hasta)})`,
       nivel,
       href: fichaAnimal(f.animal_id, "reproduccion"),
+      queHacer: s.clase === "diagnostico" ? "En su ficha, en «Reproducción», toca «Diagnóstico» y registra el resultado (gestante, vacía o dudosa)." : "En su ficha, en «Reproducción», toca «Repetir diagnóstico» y registra el nuevo resultado.",
       orden: -s.dias,
     };
     (s.clase === "diagnostico" ? confirmar : repetir).push(item);
@@ -222,7 +223,8 @@ export function senalSecado(filas: ReproHembra[], hoy: string, secadoDiasAntes: 
         etiqueta: etiqueta(f.animal_id),
         detalle: d < 0 ? `Pasó su fecha prevista y sigue en ordeño` : `Faltan ${dias(d)} para parir y sigue en ordeño: toca secarla`,
         nivel: justo ? "rojo" : "ambar",
-        href: fichaAnimal(f.animal_id, "reproduccion"),
+        href: fichaAnimal(f.animal_id, "lactancia"),
+        queHacer: d < 0 ? "Si ya parió, registra el parto (abre su lactancia nueva). Si no, en su ficha, en «Lactancia», toca «Secar» para dejar de ordeñarla." : "En su ficha, en «Lactancia», toca «Secar (sacar del ordeño)».",
         orden: d,
       });
     } else if (enUltimoTercio(f, hoy, ultimoTercioDia)) {
@@ -232,6 +234,7 @@ export function senalSecado(filas: ReproHembra[], hoy: string, secadoDiasAntes: 
         detalle: `Día ${diasDesde(f.ultimo_servicio!, hoy)} de gestación: refuerza su alimentación`,
         nivel: "ambar",
         href: fichaAnimal(f.animal_id, "reproduccion"),
+        queHacer: "Dale más alimento desde ahora (es cuando el feto más crece) y vigila su condición corporal. No hay nada que registrar en su ficha.",
         orden: 100 + diasHasta(f.fecha_prevista_parto!, hoy),
       });
     }
@@ -266,6 +269,7 @@ export function senalVaciaSinServicio(filas: ReproHembra[], hoy: string, avisoDi
       detalle: `Parió el ${corta(f.ultimo_parto)} (hace ${dias(d)}) y sigue sin servirse`,
       nivel: d >= urgenteDias ? "rojo" : "ambar",
       href: fichaAnimal(f.animal_id, "reproduccion"),
+      queHacer: "En su ficha, en «Reproducción», toca «Servicio» y registra la monta o la inseminación. Si está en retiro de leche o carne, igual se puede servir: el retiro no lo impide.",
       orden: -d,
     });
   }
