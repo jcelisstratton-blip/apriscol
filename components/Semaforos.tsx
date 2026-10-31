@@ -7,6 +7,7 @@ import { Boton } from "@/components/Boton";
 import { Insignia } from "@/components/Insignia";
 import { Sheet } from "@/components/Sheet";
 import { Tarjeta } from "@/components/Tarjeta";
+import { armarCola, guardarCola } from "@/lib/cola-semaforo";
 import { ETIQUETA_AREA, type AreaSemaforo, type Nivel, type Senal } from "@/lib/semaforos";
 
 const TRAMO = 20;
@@ -118,9 +119,12 @@ export function Semaforos({ senales, abiertaInicial = null }: { senales: Senal[]
               <div>
                 <h3 className="mb-1 text-sm font-bold">Qué hay que mirar</h3>
                 <ul className="divide-y divide-arena">
-                  {actual.items.slice(0, cuantos).map((i) => (
+                  {actual.items.slice(0, cuantos).map((i, n) => (
                     <li key={i.clave}>
-                      <Link href={i.href} className="flex min-h-14 items-center justify-between gap-3 py-2">
+                      <Link
+                        href={i.href}
+                        onClick={() => guardarCola(armarCola(actual, actual.items.map((x) => ({ etiqueta: x.etiqueta, href: x.href })), n))}
+                        className="flex min-h-14 items-center justify-between gap-3 py-2">
                         <span className="min-w-0 [overflow-wrap:anywhere]">
                           <span className="block font-semibold">{i.etiqueta}</span>
                           <span className="block text-sm text-humo">{i.detalle}</span>
