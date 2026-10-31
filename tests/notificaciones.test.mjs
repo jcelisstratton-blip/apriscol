@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { escaparHtml, interpretarComando, leerEvento, secretoValido, enviarTelegram, editarTelegram, responderAccion, LIMITE_MENSAJE } from "../lib/notificaciones/telegram.ts";
 import { validarParametros, horaCorta } from "../lib/notificaciones/parametros.ts";
 import { createHmac } from "node:crypto";
-import { verificarInitData, rutaDeDestino, DESTINOS_MINIAPP, MAX_EDAD_FIRMA_SEG } from "../lib/notificaciones/miniapp.ts";
+import { verificarInitData, rutaDeDestino, rutaInternaSegura, DESTINOS_CLAVE, MAX_EDAD_FIRMA_SEG } from "../lib/notificaciones/miniapp.ts";
 import { armarDetalleArea, armarResumen, datosArea, datosResumen, leerAccion } from "../lib/notificaciones/mensajes.ts";
 
 test("Telegram: comandos, secreto y eventos", () => {
@@ -124,7 +124,7 @@ test("resumen automático: corto, con los totales arriba, lo más urgente (una l
   // Botones: un botón de acción por área (con sus conteos), de a dos por fila, y al final Hoy y Semáforos como enlaces.
   assert.deepEqual(r.botones, [
     [{ texto: "Sanidad · 🔴 7 · 🟠 4", accion: datosArea("sanidad", FINCA) }, { texto: "Leche · 🟠 1", accion: datosArea("leche", FINCA) }],
-    [{ texto: "Abrir Hoy", miniApp: `https://apriscol.shop/telegram/entrar?f=${FINCA}&d=hoy` }, { texto: "Ver semáforos", miniApp: `https://apriscol.shop/telegram/entrar?f=${FINCA}&d=semaforos` }],
+    [{ texto: "Abrir Hoy", miniApp: `https://apriscol.shop/telegram/entrar?f=${FINCA}&d=%2F` }, { texto: "Ver semáforos", miniApp: `https://apriscol.shop/telegram/entrar?f=${FINCA}&d=%2Fsemaforos` }],
   ]);
   for (const fila of r.botones) for (const b of fila) if ("accion" in b) assert.ok(b.accion.length <= 64);
   // Con nivel mínimo rojo no llega nada pendiente, y un área sin vencidos ni pendientes visibles no tiene botón.
@@ -162,7 +162,19 @@ test("detalle de un área: tareas con sus vencidos y pendientes, nombres como te
   assert.doesNotMatch(r.texto, /MIR-C0046|LECHE/);
   assert.match(r.texto, /🔴 <b>4<\/b> vencidas · <i>la más atrasada: hace 324 días<\/i>/);
   assert.match(r.texto, /🟠 <b>2<\/b> pendientes · /);
-  assert.deepEqual(r.botones, [[{ texto: "Ver estas tareas en la app", miniApp: `https://apriscol.shop/telegram/entrar?f=${FINCA}&d=sanidad` }, { texto: "← Volver al resumen", accion: datosResumen(FINCA) }]]);
+  // Un botón por cada tarea listada, en el mismo orden del texto (con cuántos casos tiene), a SU lista en Semáforos con solo esa área; y al final «Ver toda el área» y volver.
+  const app = (ruta) => `https://apriscol.shop/telegram/entrar?f=${FINCA}&d=${encodeURIComponent(ruta)}`;
+  assert.deepEqual(r.botones, [
+    [{ texto: "Dosis y programas por aplicar (6)", miniApp: app("/semaforos?area=sanidad&s=dosis") }],
+    [{ texto: "Cargas de parásitos altas (coprológico) (2)", miniApp: app("/semaforos?area=sanidad&s=copro") }],
+    [{ texto: "Anemia por parásitos (FAMACHA) (3)", miniApp: app("/semaforos?area=sanidad&s=famacha") }],
+    [{ texto: "Ver toda el área", miniApp: app("/semaforos?area=sanidad") }, { texto: "← Volver al resumen", accion: datosResumen(FINCA) }],
+  ]);
+  // Una tarea con UN solo caso lleva directo a la pantalla de ese caso; si su ruta no fuera segura, cae a la lista de la tarea.
+  const leche = armarDetalleArea({ ...BASE, area: "leche", nivelMinimo: "ambar" });
+  assert.deepEqual(leche.botones[0], [{ texto: "Cadena de frío · Tanque de frío", miniApp: app("/hato/t") }]);
+  const rara = armarDetalleArea({ ...BASE, area: "leche", nivelMinimo: "ambar", senales: [senal("frio", "leche", "Cadena de frío", [item("t", "ambar", 1, { etiqueta: "Tanque", href: "https://malo.example/x" })])] });
+  assert.deepEqual(rara.botones[0], [{ texto: "Cadena de frío (1)", miniApp: app("/semaforos?area=leche&s=frio") }]);
   // Un área sin nada: lo dice y deja volver; sin https solo queda «volver».
   const vacia = armarDetalleArea({ ...BASE, area: "corrales", nivelMinimo: "ambar", urlBase: "http://localhost:3000" });
   assert.match(vacia.texto, /Nada pide atención/);
@@ -262,11 +274,18 @@ test("Mini App: la firma de Telegram se comprueba (válida, alterada, vencida, d
   assert.equal(verificarInitData(initDataFirmado(campos, TOKEN), "", AHORA).ok, false);
 });
 
-test("Mini App: el botón solo puede llevar a las pantallas de la lista", () => {
+test("Mini App: el botón solo puede llevar a rutas internas permitidas", () => {
+  // Las claves de los botones que ya están en chats viejos siguen sirviendo y llevan a lo mismo que ahora.
   assert.equal(rutaDeDestino("hoy"), "/");
   assert.equal(rutaDeDestino("semaforos"), "/semaforos");
-  assert.equal(rutaDeDestino("sanidad"), "/semaforos#sanidad"); // las mismas tareas que lista el bot, no la pantalla general del módulo
-  assert.equal(rutaDeDestino("alimento"), "/semaforos#alimento");
-  for (const malo of ["", "https://malo.example", "//malo.example", "/admin", "../admin", "__proto__", "toString", "constructor", "SANIDAD"]) assert.equal(rutaDeDestino(malo), null, malo);
-  for (const ruta of Object.values(DESTINOS_MINIAPP)) assert.match(ruta, /^\/(?!\/)/); // todas rutas internas
+  assert.equal(rutaDeDestino("sanidad"), "/semaforos?area=sanidad");
+  assert.equal(rutaDeDestino("alimento"), "/semaforos?area=alimento");
+  for (const ruta of Object.values(DESTINOS_CLAVE)) assert.equal(rutaInternaSegura(ruta), ruta);
+  // Rutas internas de la app: con consulta y ancla, las que genera el servidor.
+  for (const buena of ["/", "/semaforos?area=sanidad&s=dosis", "/hato/abc-123#sanidad", "/hato/sanidad/nuevo?refuerzo=5e1f0a11-0000-4000-8000-000000000001", "/inventario?vista=alimento"]) assert.equal(rutaDeDestino(buena), buena, buena);
+  // Nada que salga del sitio, suba carpetas, use otro esquema o toque lo que un botón del bot nunca necesita.
+  const malas = ["", "https://malo.example", "//malo.example", "/\\malo.example", "javascript:alert(1)", "/../admin", "/hato/../x", "/hato/%2e%2e/x", "/hato/a:b", "/hato/a b", "/api/telegram/sesion", "/telegram/entrar", "/admin/fincas", "/login", "/auth/callback", "/cambiar-clave", "__proto__", "toString", "constructor", "SANIDAD", "/" + "a".repeat(400)];
+  for (const mala of malas) assert.equal(rutaDeDestino(mala), null, mala);
+  assert.equal(rutaDeDestino(undefined), null);
 });
+

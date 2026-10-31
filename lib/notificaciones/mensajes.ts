@@ -1,5 +1,6 @@
 import { ETIQUETA_AREA, type AreaSemaforo, type ItemSenal, type Senal } from "@/lib/semaforos";
 import { formatoFecha } from "@/lib/fechas";
+import { rutaInternaSegura } from "@/lib/notificaciones/destinos";
 import { LIMITE_MENSAJE, escaparHtml, type Boton } from "@/lib/notificaciones/telegram";
 
 export type NivelMinimo = "rojo" | "ambar";
@@ -54,19 +55,22 @@ export type EntradaResumen = {
   urlBase?: string;
 };
 
-type Tarea = { titulo: string; rojos: ItemSenal[]; ambar: ItemSenal[] };
+type Tarea = { id: string; titulo: string; rojos: ItemSenal[]; ambar: ItemSenal[] };
 type Area = { area: AreaSemaforo; tareas: Tarea[]; rojos: number; ambar: number };
 
 const nombreCorto = (etiqueta: string) => etiqueta.split(" · ")[0];
+const recortar = (t: string, max: number) => (t.length > max ? `${t.slice(0, max - 1)}…` : t);
+/** Cuántas tareas llevan su propio botón en el detalle de un área (el resto se ve con «Ver toda el área»). */
+const MAX_BOTONES_TAREA = 8;
 const dias = (n: number) => `${n} ${n === 1 ? "día" : "días"}`;
 const esHttps = (urlBase?: string) => Boolean(urlBase?.startsWith("https://"));
 
 /**
- * Un botón que abre Apriscol dentro de Telegram, en la pantalla que dice `destino` (clave de `DESTINOS_MINIAPP`: «hoy», «semaforos» o un área). Así no sale el aviso
- * con la dirección que Telegram muestra al abrir un enlace; la sesión se abre con la firma que Telegram entrega (`/telegram/entrar`).
+ * Un botón que abre Apriscol dentro de Telegram, en la ruta interna que dice `ruta` (ya revisada: `rutaInternaSegura`). Así no sale el aviso con la dirección que Telegram
+ * muestra al abrir un enlace; la sesión se abre con la firma que Telegram entrega (`/telegram/entrar`).
  */
-const botonApp = (texto: string, e: { urlBase?: string; fincaId: string }, destino: string): Boton[] =>
-  esHttps(e.urlBase) ? [{ texto, miniApp: `${e.urlBase}/telegram/entrar?f=${e.fincaId}&d=${destino}` }] : [];
+const botonApp = (texto: string, e: { urlBase?: string; fincaId: string }, ruta: string): Boton[] =>
+  esHttps(e.urlBase) && rutaInternaSegura(ruta) ? [{ texto, miniApp: `${e.urlBase}/telegram/entrar?f=${e.fincaId}&d=${encodeURIComponent(ruta)}` }] : [];
 
 /** Las tareas (una por señal) de cada área, con las que tienen algo vencido primero; con nivel mínimo «rojo» no entra lo pendiente. */
 function agrupar(senales: Senal[], nivelMinimo: NivelMinimo): Area[] {
@@ -75,7 +79,7 @@ function agrupar(senales: Senal[], nivelMinimo: NivelMinimo): Area[] {
     const rojos = s.items.filter((i) => i.nivel === "rojo");
     const ambar = nivelMinimo === "ambar" ? s.items.filter((i) => i.nivel === "ambar") : [];
     if (rojos.length + ambar.length === 0) continue;
-    porArea.set(s.area, [...(porArea.get(s.area) ?? []), { titulo: s.titulo, rojos, ambar }]);
+    porArea.set(s.area, [...(porArea.get(s.area) ?? []), { id: s.id, titulo: s.titulo, rojos, ambar }]);
   }
   return [...porArea.entries()]
     .map(([area, tareas]) => ({
@@ -112,7 +116,7 @@ export function armarResumen(e: EntradaResumen): Resumen {
   const areas = agrupar(e.senales, e.nivelMinimo);
   const rojos = areas.reduce((n, a) => n + a.rojos, 0);
   const ambar = areas.reduce((n, a) => n + a.ambar, 0);
-  const finales: Boton[] = [...botonApp("Abrir Hoy", e, "hoy"), ...botonApp("Ver semáforos", e, "semaforos")];
+  const finales: Boton[] = [...botonApp("Abrir Hoy", e, "/"), ...botonApp("Ver semáforos", e, "/semaforos")];
   const cabecera = cabeceraDe(e);
 
   if (areas.length === 0) return { texto: `${cabecera}\n\nTodo en orden: nada pide atención hoy.`, botones: finales.length ? [finales] : [], rojos: 0, ambar: 0 };
@@ -149,8 +153,8 @@ export function armarDetalleArea(e: EntradaResumen & { area: AreaSemaforo }): Re
   const areas = agrupar(e.senales, e.nivelMinimo);
   const a = areas.find((x) => x.area === e.area);
   const volver: Boton = { texto: "← Volver al resumen", accion: datosResumen(e.fincaId) };
-  const abrir: Boton[] = botonApp("Ver estas tareas en la app", e, e.area);
-  if (!a) return { texto: `<b>${escaparHtml(ETIQUETA_AREA[e.area].toUpperCase())}</b>\nNada pide atención en esta área.`, botones: [[...abrir, volver]], rojos: 0, ambar: 0 };
+  const verArea: Boton[] = botonApp("Ver toda el área", e, `/semaforos?area=${e.area}`);
+  if (!a) return { texto: `<b>${escaparHtml(ETIQUETA_AREA[e.area].toUpperCase())}</b>\nNada pide atención en esta área.`, botones: [[volver]], rojos: 0, ambar: 0 };
 
   const nombres = (items: ItemSenal[]) => {
     const unicos = [...new Map(items.map((i) => [nombreCorto(i.etiqueta), i])).values()];
@@ -180,5 +184,17 @@ export function armarDetalleArea(e: EntradaResumen & { area: AreaSemaforo }): Re
   }
   const faltan = a.tareas.length - bloques.length;
   const texto = `${encabezado}\n\n${bloques.join("\n\n")}${faltan > 0 ? `\n\n… y ${faltan} ${faltan === 1 ? "tarea más" : "tareas más"} en la app.` : ""}`;
-  return { texto, botones: [[...abrir, volver]], rojos: a.rojos, ambar: a.ambar };
+
+  // Un botón por tarea de las que se listan arriba: lleva directo a lo suyo. Si la tarea tiene UN solo caso, a la pantalla donde se atiende ese caso; si tiene varios, a su
+  // lista en Semáforos (ya con la tarea abierta y solo esa área). Así nadie tiene que adivinar dónde está lo que acaba de leer.
+  const botonesTarea: Boton[][] = a.tareas.slice(0, Math.min(bloques.length, MAX_BOTONES_TAREA)).flatMap((t) => {
+    const items = [...t.rojos, ...t.ambar];
+    const unico = items.length === 1 ? items[0] : null;
+    const directa = unico ? rutaInternaSegura(unico.href) : null;
+    const ruta = directa ?? `/semaforos?area=${e.area}&s=${t.id}`;
+    const etiqueta = unico && directa ? `${t.titulo} · ${nombreCorto(unico.etiqueta)}` : `${t.titulo} (${items.length})`;
+    const boton = botonApp(recortar(etiqueta, 60), e, ruta);
+    return boton.length > 0 ? [boton] : [];
+  });
+  return { texto, botones: [...botonesTarea, [...verArea, volver]], rojos: a.rojos, ambar: a.ambar };
 }

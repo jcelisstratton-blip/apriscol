@@ -1,5 +1,4 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
-import { RUTA_AREA } from "@/lib/notificaciones/mensajes";
 
 /**
  * «Abrir en la app» sin el aviso de dirección de Telegram: el botón abre Apriscol dentro de Telegram (una Mini App) y Telegram entrega, firmado con el token del
@@ -11,19 +10,8 @@ export const MAX_EDAD_FIRMA_SEG = 600;
 /** Margen para relojes un poco adelantados. */
 const MARGEN_FUTURO_SEG = 60;
 
-/**
- * A dónde puede llevar el botón: solo estas pantallas, por clave. Nunca una dirección que venga del navegador. El botón de un área lleva a los semáforos de ESA área
- * (`/semaforos#sanidad`): son las mismas tareas que el bot acaba de listar, con los mismos nombres, y desde ahí cada una abre sus animales y la pantalla donde se atiende.
- * Llevar a la pantalla general del módulo dejaba esas tareas enterradas.
- */
-export const DESTINOS_MINIAPP: Record<string, string> = {
-  hoy: "/",
-  semaforos: "/semaforos",
-  ...Object.fromEntries(Object.keys(RUTA_AREA).map((area) => [area, `/semaforos#${area}`])),
-};
-
-/** La ruta de una clave de destino, o null si no es una de las permitidas. */
-export const rutaDeDestino = (clave: string): string | null => (Object.hasOwn(DESTINOS_MINIAPP, clave) ? DESTINOS_MINIAPP[clave] : null);
+/** A dónde puede llevar un botón (claves de mensajes anteriores o rutas internas revisadas): las reglas viven en `destinos.ts`. */
+export { DESTINOS_CLAVE, rutaDeDestino, rutaInternaSegura } from "@/lib/notificaciones/destinos";
 
 export type VerificacionMiniApp = { ok: true; userId: number; authDate: number } | { ok: false; motivo: "formato" | "firma" | "vencido" | "usuario" };
 
