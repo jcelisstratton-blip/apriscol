@@ -78,6 +78,7 @@ export function FormEvento({
   lotes,
   puedeComprar,
   inventariados = [],
+  aplicar = false,
 }: {
   fincaId: string;
   especies: Especie[];
@@ -100,6 +101,11 @@ export function FormEvento({
   lotes: LoteDisponible[];
   /** Los productos que el inventario de bodega ya sigue: al elegir uno, el formulario recuerda anotar la dosis para que se descuente. */
   inventariados?: string[];
+  /**
+   * «Aplicar la siguiente dosis» o «Aplicar lo programado»: casi todo viene de la vez anterior, así que se muestra como un resumen (con «Cambiar») y solo se piden a la vista
+   * la fecha, los animales, la dosis, el lote y quién aplicó. Nada se quita: lo que se guarda es lo mismo, y si algo falta o hay un error, todo se muestra.
+   */
+  aplicar?: boolean;
   /** Quien puede registrar compras ve el enlace para agregar el lote que falta. */
   puedeComprar: boolean;
 }) {
@@ -129,6 +135,7 @@ export function FormEvento({
   const [proxima, setProxima] = useState(datos?.proxima_fecha ?? "");
   const [loteGasto, setLoteGasto] = useState(datos?.id && datos.lote_producto ? "actual" : "");
   const [animales, setAnimales] = useState<AnimalElegido[]>(animalesIniciales);
+  const [cambiando, setCambiando] = useState(false);
 
   const r = REGLAS[tipo];
   const conMedicamento = tipo === "podologia" && medicamento === "si";
@@ -155,6 +162,15 @@ export function FormEvento({
   const frasesRetiro = textoRetiro(fecha, totalLeche, totalCarne);
   const ultimoDia = dt > 1 ? sumarDias(fecha, extraDias) : null;
   const faltanAnimales = !animalFijo && animales.length === 0;
+  // Al aplicar lo que viene de antes se resume lo conocido; si falta el producto o la categoría, o hubo un error al guardar, se muestra todo para poder completarlo.
+  const productoListo = !conProducto || (productoId !== "" && (productoId !== NUEVO_PRODUCTO || nombreProducto.trim() !== ""));
+  const categoriaLista = !CATEGORIAS[tipo] || categoria !== "";
+  // Los campos obligatorios que quedarían escondidos deben venir llenos: el navegador no puede avisar de un campo que no se ve.
+  const solucionLista = !r.solucion || (concentracion.trim() !== "" && minutos.trim() !== "");
+  const resumible = aplicar && !editando && productoListo && categoriaLista && solucionLista;
+  const compacto = resumible && !cambiando && !estado?.error;
+  const nombreDelProducto = productos.find((p) => p.id === productoId)?.nombre ?? nombreProducto;
+  const detalleResumen = [CATEGORIAS[tipo]?.find((o) => o.valor === categoria)?.etiqueta, via ? `vía ${ETIQUETA_VIA[via].toLowerCase()}` : null].filter(Boolean).join(" · ");
 
   const elegirProducto = (v: string) => {
     setProductoId(v);
@@ -213,6 +229,32 @@ export function FormEvento({
       <input type="hidden" name="retiro_leche_dias" value={String(totalLeche)} />
       <input type="hidden" name="retiro_carne_dias" value={String(totalCarne)} />
 
+      {resumible ? (
+        <div className="space-y-2 rounded-3xl bg-lana p-4">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="font-semibold [overflow-wrap:anywhere]">
+                {ETIQUETA_EVENTO[tipo]}
+                {nombreDelProducto ? ` · ${nombreDelProducto}` : ""}
+              </p>
+              {detalleResumen ? <p className="text-sm text-humo [overflow-wrap:anywhere]">{detalleResumen}</p> : null}
+            </div>
+            <button type="button" onClick={() => setCambiando((v) => !v)} aria-expanded={cambiando} className="inline-flex min-h-11 shrink-0 items-center rounded-full px-3 text-sm font-semibold text-musgo ring-1 ring-arena">
+              {cambiando ? "Ocultar" : "Cambiar"}
+            </button>
+          </div>
+          {hayRetiro ? (
+            <p className="text-sm">
+              {etiquetaLeche > 0 || etiquetaCarne > 0
+                ? `Retiro: leche ${etiquetaLeche} ${etiquetaLeche === 1 ? "día" : "días"} · carne ${etiquetaCarne} ${etiquetaCarne === 1 ? "día" : "días"}`
+                : "Sin retiro de leche ni de carne"}
+            </p>
+          ) : null}
+          <p className="text-xs text-humo">Son los mismos datos de la vez anterior. Cámbialos solo si hoy es distinto.</p>
+        </div>
+      ) : null}
+
+      <div className={compacto ? "hidden" : "space-y-5"}>
       <Campo etiqueta="¿Qué se hizo?">
         {(id) => (
           <SelectorTarjetas
@@ -325,6 +367,8 @@ export function FormEvento({
         </>
       ) : null}
 
+      </div>
+
       {dosisVisible ? (
         <>
           <div className="grid grid-cols-1 gap-4 min-[420px]:grid-cols-2">
@@ -335,19 +379,21 @@ export function FormEvento({
               {(id) => <Selector id={id} nombre="unidad_dosis" valor={unidad} onCambio={(v) => setUnidad(String(v))} titulo="Unidad de la dosis" placeholder="Sin especificar" permitirVacio opciones={UNIDADES_DOSIS.map((u) => ({ valor: u, etiqueta: u }))} />}
             </Campo>
           </div>
-          <Campo etiqueta="Vía">
-            {(id) => (
-              <SelectorTarjetas
-                id={id}
-                nombre="via"
-                valor={via}
-                onCambio={(v) => setVia(v as ViaAplicacion | "")}
-                titulo="¿Por dónde se aplicó?"
-                permitirVacio={!r.dosisObligatoria}
-                opciones={VIAS.map((v) => ({ valor: v, etiqueta: ETIQUETA_VIA[v], escena: ESCENA_VIA[v] }))}
-              />
-            )}
-          </Campo>
+          <div className={compacto ? "hidden" : undefined}>
+            <Campo etiqueta="Vía">
+              {(id) => (
+                <SelectorTarjetas
+                  id={id}
+                  nombre="via"
+                  valor={via}
+                  onCambio={(v) => setVia(v as ViaAplicacion | "")}
+                  titulo="¿Por dónde se aplicó?"
+                  permitirVacio={!r.dosisObligatoria}
+                  opciones={VIAS.map((v) => ({ valor: v, etiqueta: ETIQUETA_VIA[v], escena: ESCENA_VIA[v] }))}
+                />
+              )}
+            </Campo>
+          </div>
         </>
       ) : null}
 
@@ -373,6 +419,7 @@ export function FormEvento({
         </Campo>
       )}
 
+      <div className={compacto ? "hidden" : "space-y-5"}>
       {retiroVisible ? (
         <div className="space-y-3 rounded-3xl border border-arena p-4">
           <p className="font-semibold">Retiro</p>
@@ -421,6 +468,7 @@ export function FormEvento({
           </div>
         </details>
       ) : null}
+      </div>
       {tipo === "pediluvio" ? <Aviso tipo="info">Si el producto que usaste indica retiro en la etiqueta, regístralo como «Tratamiento».</Aviso> : null}
 
       <div className="space-y-2 rounded-3xl border border-arena p-4">
