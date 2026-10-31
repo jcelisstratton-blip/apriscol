@@ -53,6 +53,8 @@ export type ItemSenal = {
   queHacer?: string;
   /** Solo en lo que tiene fecha límite: cuántos días lleva vencido (0 = todavía no vence). Sirve para separar lo vencido de lo pendiente. */
   atrasoDias?: number;
+  /** Si está, el caso ya se atendió hace poco y no cuenta como pendiente: es lo que se muestra («Pesado hoy»). */
+  atendido?: string;
   /** Más chico = más urgente dentro de su nivel. */
   orden: number;
 };
@@ -65,6 +67,8 @@ export type Senal = {
   /** «2 en rojo · 5 en ámbar» o «En orden». */
   resumen: string;
   items: ItemSenal[];
+  /** Casos que la persona ya atendió hace poco (p. ej. un animal pesado hoy): no cuentan en el nivel ni en el resumen y se ven aparte, para que no parezcan pendientes. */
+  atendidos: ItemSenal[];
   /** Qué hacer con esta tarea, en una o dos frases claras (siempre se escribe: toda señal nueva lleva la suya). */
   queHacer: string;
   queSignifica: string;
@@ -83,12 +87,14 @@ type BaseSenal = Pick<Senal, "id" | "area" | "titulo" | "queHacer" | "queSignifi
 /** Arma la señal: ordena (rojo primero, luego lo más urgente), calcula su nivel y su resumen. */
 export function armarSenal(base: BaseSenal, items: ItemSenal[]): Senal {
   if (!base.queHacer?.trim()) throw new Error(`La señal «${base.id}» no dice qué hacer.`);
+  const atendidos = items.filter((i) => i.atendido);
+  items = items.filter((i) => !i.atendido);
   const ordenados = [...items].sort((a, b) => (a.nivel === b.nivel ? a.orden - b.orden : a.nivel === "rojo" ? -1 : 1));
   const rojos = ordenados.filter((i) => i.nivel === "rojo").length;
   const ambar = ordenados.length - rojos;
   const nivel: Nivel = rojos > 0 ? "rojo" : ambar > 0 ? "ambar" : "verde";
   const partes = [rojos > 0 ? `${rojos} en rojo` : null, ambar > 0 ? `${ambar} en ámbar` : null].filter(Boolean);
-  return { ...base, nivel, resumen: partes.length ? partes.join(" · ") : "En orden", items: ordenados };
+  return { ...base, nivel, resumen: partes.length ? partes.join(" · ") : "En orden", items: ordenados, atendidos };
 }
 
 /** Cuántos rojos y ámbar hay en total, para el encabezado. */
@@ -876,6 +882,8 @@ export function senalMantenimiento(filas: MantenimientoOrdeno[], hoy: string): S
 }
 
 // ───────────────────────── Ceba ─────────────────────────
+/** Días desde el último peso en los que un animal de ganancia baja se ve como «ya atendido». */
+export const DIAS_PESADO_RECIENTE = 3;
 export type AnimalEnCeba = { animalId: string; ultimaFecha: string | null; gdpRecienteG: number | null; limiteDias: number };
 
 export function senalesCeba(animales: AnimalEnCeba[], gdpMinimaG: number, hoy: string, etiqueta: Etiqueta): Senal[] {
@@ -894,16 +902,18 @@ export function senalesCeba(animales: AnimalEnCeba[], gdpMinimaG: number, hoy: s
       });
     }
     if (a.gdpRecienteG != null && a.gdpRecienteG < gdpMinimaG) {
+      // Pesado hace poco: la persona ya hizo lo que le tocaba (pesarlo). No es un pendiente nuevo; se ve aparte unos días y, si sigue ganando poco, vuelve.
+      const reciente = sin !== null && sin <= DIAS_PESADO_RECIENTE;
       ganancia.push({
         clave: `gdp-${a.animalId}`,
         etiqueta: etiqueta(a.animalId),
         detalle: `Gana ${Math.round(a.gdpRecienteG)} g/día; el mínimo es ${gdpMinimaG}${a.ultimaFecha ? ` · último peso ${corta(a.ultimaFecha)}` : ""}`,
         nivel: a.gdpRecienteG < gdpMinimaG / 2 ? "rojo" : "ambar",
         href: fichaAnimal(a.animalId, "crecimiento"),
-        queHacer:
-          sin !== null && sin <= 3
-            ? `Ya lo pesaste ${sin === 0 ? "hoy" : `hace ${dias(sin)}`}: pesarlo otra vez no cambia nada. Revisa su ración y su sanidad (desparasitación) y vuelve a pesarlo el ${corta(sumarDias(a.ultimaFecha!, a.limiteDias))}.`
-            : "Revisa su ración y su sanidad (desparasitación) y pésalo de nuevo para ver si mejoró.",
+        queHacer: reciente
+          ? `Ya está pesado. Revisa su ración y su sanidad (desparasitación); vuelve a pesarlo el ${corta(sumarDias(a.ultimaFecha!, a.limiteDias))}.`
+          : "Revisa su ración y su sanidad (desparasitación) y pésalo de nuevo para ver si mejoró.",
+        atendido: reciente ? (sin === 0 ? "Pesado hoy" : `Pesado hace ${dias(sin!)}`) : undefined,
         orden: a.gdpRecienteG,
       });
     }
@@ -927,7 +937,7 @@ export function senalesCeba(animales: AnimalEnCeba[], gdpMinimaG: number, hoy: s
         area: "ceba",
         titulo: "Ganancia de peso baja",
         queHacer: "Revisa la alimentación y la sanidad de los que ganan poco; no basta con pesarlos otra vez.",
-        sigueAqui: "Pesar no sube la ganancia: el animal sigue aquí hasta que, en un pesaje posterior, su ganancia diaria pase del mínimo. Si ya lo pesaste hoy, el caso dice cuándo volver a pesar.",
+        sigueAqui: "Los animales que pesaste en los últimos 3 días pasan a «Ya atendidos» y no cuentan como pendientes. Si pasado ese tiempo siguen ganando poco, vuelven a la lista; salen de verdad cuando, en un pesaje, su ganancia supera el mínimo.",
         queSignifica: "Animales en engorde cuya ganancia diaria reciente está por debajo del mínimo de la finca.",
         regla: `Ámbar: gana menos de ${gdpMinimaG} g/día (Ajustes → Ceba). Rojo: menos de la mitad.`,
         accion: { texto: "Ver Carne", href: "/carne" },
