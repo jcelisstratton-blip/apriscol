@@ -72,6 +72,9 @@ export default async function PaginaUbicacion({ params, searchParams }: { params
   const nombres: Record<string, string> = Object.fromEntries((todas ?? []).map((x) => [x.id, x.nombre]));
 
   const corral = u.tipo === "corral";
+  const sobran = u.hacinada ? u.ocupantes - (u.capacidad ?? 0) : 0;
+  // Un potrero con animales que ya pasó sus días de ocupación: lo primero que se le dice a la persona es qué hacer.
+  const debeSalir = !corral && u.estado === "debe_salir" && u.ocupantes > 0;
   const m2 = u.area_m2 && u.ocupantes > 0 ? u.area_m2 / u.ocupantes : null;
   const filas: { titulo: string; valor: React.ReactNode }[] = [
     { titulo: "Tipo", valor: `${ETIQUETA_TIPO_UBICACION[u.tipo]} · ${ETIQUETA_USO[u.uso]}` },
@@ -101,6 +104,28 @@ export default async function PaginaUbicacion({ params, searchParams }: { params
         }
       />
 
+      {u.activa && (u.hacinada || debeSalir) ? (
+        <div className="mb-4 space-y-3 lg:max-w-2xl">
+          {u.hacinada ? (
+            <Aviso tipo="atencion">
+              <strong>Pasó su cupo.</strong> Tiene {u.ocupantes} animales y le caben {u.capacidad}. <strong>Qué hacer:</strong> pasa {sobran} {sobran === 1 ? "animal" : "animales"} a otra instalación; el
+              hacinamiento sube el estrés, las peleas y las enfermedades.
+            </Aviso>
+          ) : null}
+          {debeSalir ? (
+            <Aviso tipo="atencion">
+              <strong>Ya debe desocuparse.</strong> Lleva {u.dias_ocupacion} días y el máximo son {u.dias_ocupacion_max}. <strong>Qué hacer:</strong> pasa el lote a otro potrero para que este descanse al menos{" "}
+              {u.dias_descanso_min} días.
+            </Aviso>
+          ) : null}
+          {puedeEditar ? (
+            <Link href={`/hato/corrales/mover?de=${u.id}`} className={clasesBoton("primario")}>
+              <ArrowRightLeft className="size-5" strokeWidth={2} aria-hidden="true" /> {u.hacinada ? `Pasar ${sobran} a otra instalación` : "Rotar el lote"}
+            </Link>
+          ) : null}
+        </div>
+      ) : null}
+
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:items-start">
         <div className="min-w-0 space-y-4">
           <Tarjeta titulo="Ahora">
@@ -116,13 +141,6 @@ export default async function PaginaUbicacion({ params, searchParams }: { params
               </div>
             </div>
             {!corral && textoRotacion(u) ? <p className="mt-2 text-[0.9375rem] text-humo">{textoRotacion(u)}</p> : null}
-            {u.hacinada ? (
-              <div className="mt-3">
-                <Aviso tipo="atencion">
-                  Tiene {u.ocupantes} animales y le caben {u.capacidad}. El hacinamiento sube el estrés, las peleas y las enfermedades: pasa {u.ocupantes - (u.capacidad ?? 0)} a otra instalación.
-                </Aviso>
-              </div>
-            ) : null}
             {corral && !u.agua ? (
               <p className="mt-3 flex items-center gap-1.5 text-sm font-semibold text-rojo">
                 <Droplets className="size-4" strokeWidth={1.75} aria-hidden="true" /> Sin agua permanente

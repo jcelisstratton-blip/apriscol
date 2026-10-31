@@ -173,6 +173,10 @@ test("detalle de un área: tareas con sus vencidos y pendientes, nombres como te
   // Una tarea con UN solo caso lleva directo a la pantalla de ese caso; si su ruta no fuera segura, cae a la lista de la tarea.
   const leche = armarDetalleArea({ ...BASE, area: "leche", nivelMinimo: "ambar" });
   assert.deepEqual(leche.botones[0], [{ texto: "Cadena de frío · Tanque de frío", miniApp: app("/hato/t") }]);
+  // Un solo caso: el mensaje dice por qué está ahí y qué hacer, sin abrir la app. Con varios casos no se repite en cada uno.
+  const corral = armarDetalleArea({ ...BASE, area: "corrales", nivelMinimo: "ambar", senales: [senal("corrales", "corrales", "Cupo y rotación", [item("c1", "rojo", 0, { etiqueta: "Potrero Ovinos 1", detalle: "Pasó su cupo: tiene 13 animales y le caben 10", queHacer: "Pasa 3 animales a otra instalación." })])] });
+  assert.match(corral.texto, /🔴 <b>1<\/b> · Potrero Ovinos 1\n   Pasó su cupo: tiene 13 animales y le caben 10\. <b>Qué hacer:<\/b> Pasa 3 animales a otra instalación\./);
+  assert.doesNotMatch(r.texto, /Qué hacer/);
   const rara = armarDetalleArea({ ...BASE, area: "leche", nivelMinimo: "ambar", senales: [senal("frio", "leche", "Cadena de frío", [item("t", "ambar", 1, { etiqueta: "Tanque", href: "https://malo.example/x" })])] });
   assert.deepEqual(rara.botones[0], [{ texto: "Cadena de frío (1)", miniApp: app("/semaforos?area=leche&s=frio") }]);
   // Un área sin nada: lo dice y deja volver; sin https solo queda «volver».

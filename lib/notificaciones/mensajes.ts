@@ -166,7 +166,10 @@ export function armarDetalleArea(e: EntradaResumen & { area: AreaSemaforo }): Re
   const linea = (emoji: string, items: ItemSenal[], sufijo: string) => {
     const atraso = emoji === "🔴" ? masAtrasado(items) : null;
     const cola = atraso !== null && items.length > 1 ? `<i>la más atrasada: hace ${dias(atraso)}</i>` : nombres(items);
-    return `${emoji} <b>${items.length}</b>${sufijo} · ${cola}`;
+    // Un solo caso: se dice por qué está ahí y qué hacer, para que se sepa antes de abrir la app. Con varios, el detalle de cada uno está en su lista.
+    const uno = items.length === 1 ? items[0] : null;
+    const explica = uno ? `\n   ${escaparHtml(uno.detalle)}.${uno.queHacer ? ` <b>Qué hacer:</b> ${escaparHtml(uno.queHacer)}` : ""}` : "";
+    return `${emoji} <b>${items.length}</b>${sufijo} · ${cola}${explica}`;
   };
 
   const encabezado = `<b>${escaparHtml(ETIQUETA_AREA[e.area].toUpperCase())}</b> · ${conteos(a.rojos, a.ambar)}`;
