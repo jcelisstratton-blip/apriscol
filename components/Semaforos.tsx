@@ -27,8 +27,8 @@ function IconoNivel({ nivel }: { nivel: Nivel }) {
  * Panel de semáforos: una tarjeta por señal que no está en verde (rojo primero), agrupadas por área. Al tocar una se abre qué significa, la regla,
  * los animales o elementos afectados y la acción sugerida. Lo que está en orden se resume en una línea.
  */
-export function Semaforos({ senales }: { senales: Senal[] }) {
-  const [abierta, setAbierta] = useState<string | null>(null);
+export function Semaforos({ senales, abiertaInicial = null }: { senales: Senal[]; /** La señal que se abre al entrar (viene del enlace del bot de Telegram). */ abiertaInicial?: string | null }) {
+  const [abierta, setAbierta] = useState<string | null>(abiertaInicial && senales.some((s) => s.id === abiertaInicial) ? abiertaInicial : null);
   const [cuantos, setCuantos] = useState(TRAMO);
   const actual = senales.find((s) => s.id === abierta) ?? null;
 
