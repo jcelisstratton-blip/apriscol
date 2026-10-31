@@ -261,6 +261,17 @@ test("semáforos: ceba — pesaje atrasado y ganancia baja, con rojo al doble de
   assert.deepEqual(ganancia.items.map((i) => [i.clave, i.nivel]), [["gdp-muyLento", "rojo"], ["gdp-lento", "ambar"]]);
 });
 
+test("semáforos: ganancia baja — si ya se pesó, el caso lo dice y no manda a pesar de nuevo", () => {
+  const a = (animalId, ultima) => ({ animalId, ultimaFecha: dia(-ultima), gdpRecienteG: 100, limiteDias: 30 });
+  const [, ganancia] = senalesCeba([a("hoy", 0), a("viejo", 20)], 150, HOY, etiqueta);
+  const hoy = ganancia.items.find((i) => i.clave === "gdp-hoy");
+  const viejo = ganancia.items.find((i) => i.clave === "gdp-viejo");
+  assert.match(hoy.queHacer, /Ya lo pesaste hoy/);
+  assert.match(hoy.queHacer, /vuelve a pesarlo el/);
+  assert.doesNotMatch(viejo.queHacer, /Ya lo pesaste/);
+  assert.ok(ganancia.sigueAqui, "explica por qué sigue en la lista aunque ya se haya pesado");
+});
+
 test("semáforos: dinero — vencido en rojo, en los próximos 7 días en ámbar, lejos no cuenta", () => {
   const compra = (id, vence) => ({ id, descripcion: `Compra ${id}`, monto: 100000, vence });
   const venta = (clave, vence) => ({ clave, producto: "Queso", tercero: null, valor: 50000, cobro_vence: vence });

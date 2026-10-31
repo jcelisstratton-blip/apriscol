@@ -71,9 +71,14 @@ export type Senal = {
   regla: string;
   accion?: { texto: string; href: string };
   nota?: string;
+  /**
+   * Para las señales que NO se quitan al registrar algo (dependen de una tendencia, de un resultado nuevo o del paso del tiempo): por qué el caso
+   * sigue en la lista aunque la persona ya haya hecho lo que tocaba, y qué lo saca. Evita que parezca que «no se guardó».
+   */
+  sigueAqui?: string;
 };
 
-type BaseSenal = Pick<Senal, "id" | "area" | "titulo" | "queHacer" | "queSignifica" | "regla" | "accion" | "nota">;
+type BaseSenal = Pick<Senal, "id" | "area" | "titulo" | "queHacer" | "queSignifica" | "regla" | "accion" | "nota" | "sigueAqui">;
 
 /** Arma la señal: ordena (rojo primero, luego lo más urgente), calcula su nivel y su resumen. */
 export function armarSenal(base: BaseSenal, items: ItemSenal[]): Senal {
@@ -305,6 +310,7 @@ export function senalAbortos(abortos: AbortoReciente[], hoy: string, etiqueta: E
       area: "reproduccion",
       titulo: "Abortos agrupados",
       queHacer: "Llama a tu veterinario hoy: varios abortos juntos pueden ser un brote infeccioso. Registra cada aborto.",
+      sigueAqui: "Registrar el aborto no lo quita: la señal cuenta los abortos de los últimos días y baja sola cuando pasa esa ventana sin nuevos.",
       queSignifica: `Abortos de los últimos ${ABORTOS_VENTANA_DIAS} días. Varios juntos pueden ser un brote infeccioso y piden llamar al veterinario.`,
       regla: `Ámbar: ${ABORTOS_AMBAR} abortos en ${ABORTOS_VENTANA_DIAS} días (o uno de causa infecciosa). Rojo: ${ABORTOS_ROJO} o más.`,
       accion: { texto: "Ver Reproducción", href: "/reproduccion" },
@@ -342,6 +348,7 @@ export function senalMortalidadCrias(nacidas: number, muertes: MuerteCria[], hoy
       area: "reproduccion",
       titulo: "Mortalidad de crías",
       queHacer: "Revisa con tu veterinario qué pasó en los partos y en los primeros días de las crías, empezando por las muertes más recientes.",
+      sigueAqui: "Revisar o registrar no cambia el porcentaje: baja cuando pasa la ventana de días o nacen crías vivas que lo diluyan.",
       queSignifica: `De las crías que nacieron en los últimos ${MORTALIDAD_VENTANA_DIAS} días, las que nacieron muertas o murieron después, frente a todas las que nacieron.`,
       regla: `Ámbar: más de ${MORTALIDAD_AMBAR_PCT} %. Rojo: más de ${MORTALIDAD_ROJO_PCT} %. Con menos de ${MORTALIDAD_MIN_CRIAS} crías en el periodo no se evalúa.`,
       accion: { texto: "Ver Reproducción", href: "/reproduccion" },
@@ -469,6 +476,7 @@ export function senalRetiro(filas: FilaRetiro[], hoy: string, etiqueta: Etiqueta
       area: "sanidad",
       titulo: "Animales en periodo de retiro",
       queHacer: "No mandes al tanque la leche de estos animales ni los vendas o sacrifiques hasta que termine su periodo de retiro.",
+      sigueAqui: "Es cuestión de tiempo: el animal sale solo cuando termina su periodo de retiro.",
       queSignifica: "Animales tratados cuya leche no puede ir al tanque o cuya carne no puede salir a consumo hasta que pase el retiro del medicamento.",
       regla: "Ámbar mientras dure el retiro. La app ya descarta esa leche y avisa antes de vender o sacrificar; no hay rojo porque no es una falla, es una restricción.",
       nota: "Respeta la fecha: la leche o la carne con residuos de medicamento no se puede vender.",
@@ -501,6 +509,7 @@ export function senalFrio(lecturas: LecturaFrio[], hoy: string): Senal {
       area: "leche",
       titulo: "Cadena de frío",
       queHacer: "Revisa que el tanque esté enfriando bien (termostato y equipo) y vuelve a medir la temperatura. Si sigue fuera de rango, la leche está en riesgo.",
+      sigueAqui: "Cuenta las lecturas de los últimos 7 días: arreglar el equipo no las borra. Baja sola cuando las lecturas nuevas quedan en rango y las malas salen de esos 7 días.",
       queSignifica: "Lecturas de temperatura del tanque de los últimos 7 días fuera del rango seguro (4 a 6 °C).",
       regla: "Ámbar: hasta 2 °C fuera del rango. Rojo: más de 2 °C fuera, la leche está en riesgo.",
       accion: { texto: "Ver Leche", href: "/leche" },
@@ -545,6 +554,7 @@ export function senalCalidad(a: AnalisisTanque | null, l: LimitesCalidad): Senal
       area: "leche",
       titulo: "Calidad de la leche",
       queHacer: "Abre el último análisis y mira qué valor falló. Si hay residuos de antibióticos, esa leche no debe ir al tanque.",
+      sigueAqui: "Sale cuando un análisis nuevo viene dentro de lo normal; revisar el anterior no cambia el resultado.",
       queSignifica: "El último análisis del tanque (de los últimos 60 días): células somáticas, crioscopia, residuos de antibióticos, grasa y proteína.",
       regla: "Rojo: residuos positivos, células sobre el límite o crioscopia con posible agua. Ámbar: células cerca del límite (80 %), crioscopia más fría de lo habitual, o grasa o proteína fuera de rango.",
       accion: { texto: "Ver Leche", href: "/leche" },
@@ -573,6 +583,7 @@ export function senalProduccion(tendencias: Tendencia[], etiqueta: Etiqueta): Se
       area: "leche",
       titulo: "Producción que baja",
       queHacer: "Revisa a las que bajan, empezando por las de baja fuerte: mastitis, parásitos, alimentación, celo o estrés.",
+      sigueAqui: "Sale cuando su producción de los últimos días vuelve cerca de su promedio; revisar al animal no la cambia hasta que se ordeñe de nuevo.",
       queSignifica: "Hembras en ordeño cuya producción de los últimos días bajó frente a su propio promedio.",
       regla: "Ámbar: baja notable frente a su promedio. Rojo: baja fuerte, hay que revisarla ya (mastitis, parásitos, alimentación, celo o estrés).",
       accion: { texto: "Ver Leche", href: "/leche" },
@@ -726,6 +737,7 @@ export function senalPruebas(filas: FilaPrueba[], hoy: string, etiqueta: Etiquet
       area: "sanidad",
       titulo: "Pruebas de laboratorio",
       queHacer: "Con tu veterinario, define qué hacer con cada positivo o sospechoso (aislarlo, repetir la prueba) y registra el resultado.",
+      sigueAqui: "Registrar que lo revisaste no la quita: sale con una prueba nueva que dé negativo o cuando el veterinario la descarte.",
       queSignifica: "Animales cuya última prueba (CAE, brucelosis, paratuberculosis, CMT, cultivo) salió positiva, sospechosa o sin resultado.",
       regla: `Rojo: positivo de CAE, brucelosis o paratuberculosis, o un sospechoso que no se repitió en ${DIAS_REPETIR_SOSPECHOSO} días. Ámbar: sospechoso reciente, positivo de CMT o cultivo de los últimos ${DIAS_PRUEBA_TRANSITORIA} días, o sin resultado.`,
       accion: { texto: "Ver Sanidad", href: "/sanidad" },
@@ -750,6 +762,7 @@ export function senalCuarentena(filas: CuarentenaAlerta[], etiqueta: Etiqueta): 
       area: "sanidad",
       titulo: "Cuarentena de animales nuevos",
       queHacer: "Pasa a cuarentena a los que entraron sin pasar por ella, y mantén a los que están en cuarentena hasta que cumplan los 21 días.",
+      sigueAqui: "Si entró sin cuarentena, sale cuando lo pasas a cuarentena; si está en ella, cuando cumple los 21 días.",
       queSignifica: "Animales que llegaron de afuera y no pasaron por cuarentena, o que siguen en ella sin cumplir el mínimo.",
       regla: "Rojo: el animal entró y no está en cuarentena. Ámbar: está en cuarentena y aún no cumple los 21 días mínimos.",
       accion: { texto: "Ver Corrales", href: "/corrales" },
@@ -884,9 +897,13 @@ export function senalesCeba(animales: AnimalEnCeba[], gdpMinimaG: number, hoy: s
       ganancia.push({
         clave: `gdp-${a.animalId}`,
         etiqueta: etiqueta(a.animalId),
-        detalle: `Gana ${Math.round(a.gdpRecienteG)} g/día; el mínimo es ${gdpMinimaG}`,
+        detalle: `Gana ${Math.round(a.gdpRecienteG)} g/día; el mínimo es ${gdpMinimaG}${a.ultimaFecha ? ` · último peso ${corta(a.ultimaFecha)}` : ""}`,
         nivel: a.gdpRecienteG < gdpMinimaG / 2 ? "rojo" : "ambar",
         href: fichaAnimal(a.animalId, "crecimiento"),
+        queHacer:
+          sin !== null && sin <= 3
+            ? `Ya lo pesaste ${sin === 0 ? "hoy" : `hace ${dias(sin)}`}: pesarlo otra vez no cambia nada. Revisa su ración y su sanidad (desparasitación) y vuelve a pesarlo el ${corta(sumarDias(a.ultimaFecha!, a.limiteDias))}.`
+            : "Revisa su ración y su sanidad (desparasitación) y pésalo de nuevo para ver si mejoró.",
         orden: a.gdpRecienteG,
       });
     }
@@ -909,7 +926,8 @@ export function senalesCeba(animales: AnimalEnCeba[], gdpMinimaG: number, hoy: s
         id: "ceba-gdp",
         area: "ceba",
         titulo: "Ganancia de peso baja",
-        queHacer: "Revisa la alimentación y la sanidad de los que ganan poco y vuelve a pesarlos pronto.",
+        queHacer: "Revisa la alimentación y la sanidad de los que ganan poco; no basta con pesarlos otra vez.",
+        sigueAqui: "Pesar no sube la ganancia: el animal sigue aquí hasta que, en un pesaje posterior, su ganancia diaria pase del mínimo. Si ya lo pesaste hoy, el caso dice cuándo volver a pesar.",
         queSignifica: "Animales en engorde cuya ganancia diaria reciente está por debajo del mínimo de la finca.",
         regla: `Ámbar: gana menos de ${gdpMinimaG} g/día (Ajustes → Ceba). Rojo: menos de la mitad.`,
         accion: { texto: "Ver Carne", href: "/carne" },
