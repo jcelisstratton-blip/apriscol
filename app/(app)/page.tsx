@@ -1,3 +1,4 @@
+import { ListaRetiro } from "@/components/ListaRetiro";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ChevronRight, Droplets, Inbox, Rabbit } from "lucide-react";
@@ -307,20 +308,8 @@ export default async function PaginaHoy({ searchParams }: { searchParams: Promis
 
           {enRetiro.length > 0 ? (
             <Tarjeta titulo="En periodo de retiro">
-              <ul className="divide-y divide-arena">
-                {enRetiro.map((r) => (
-                  <li key={r.animal_id}>
-                    <Link href={`/hato/${r.animal_id}#sanidad`} className="flex min-h-14 items-center justify-between gap-3 py-2">
-                      <span className="min-w-0 font-semibold">{nombres.get(r.animal_id) ?? "Animal"}</span>
-                      <span className="flex shrink-0 flex-col items-end gap-1">
-                        {r.retiro_leche_hasta ? <Insignia tono="aviso">Leche hasta {formatoFecha(r.retiro_leche_hasta, { day: "numeric", month: "short" })}</Insignia> : null}
-                        {r.retiro_carne_hasta ? <Insignia tono="alerta">Carne hasta {formatoFecha(r.retiro_carne_hasta, { day: "numeric", month: "short" })}</Insignia> : null}
-                      </span>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </Tarjeta>
+                <ListaRetiro animales={enRetiro.map((r) => ({ id: r.animal_id, nombre: nombres.get(r.animal_id) ?? "Animal", lecheHasta: r.retiro_leche_hasta, carneHasta: r.retiro_carne_hasta }))} />
+              </Tarjeta>
           ) : null}
 
           {gastosVencidos.length > 0 ? (
