@@ -32,6 +32,11 @@ export function Semaforos({ senales, abiertaInicial = null }: { senales: Senal[]
   const [abierta, setAbierta] = useState<string | null>(abiertaInicial && senales.some((s) => s.id === abiertaInicial) ? abiertaInicial : null);
   const [cuantos, setCuantos] = useState(TRAMO);
   const actual = senales.find((s) => s.id === abierta) ?? null;
+  // Si varios casos traen exactamente el mismo «qué hacer», se dice una sola vez arriba y no en cada uno; el caso que difiere conserva el suyo.
+  const conteoTextos = new Map<string, number>();
+  for (const i of actual?.items ?? []) if (i.queHacer) conteoTextos.set(i.queHacer, (conteoTextos.get(i.queHacer) ?? 0) + 1);
+  const [textoComun, vecesComun] = [...conteoTextos.entries()].sort((a, b) => b[1] - a[1])[0] ?? ["", 0];
+  const comun = vecesComun >= 2 ? textoComun : null;
 
   const conAviso = senales.filter((s) => s.nivel !== "verde");
   const enOrden = senales.filter((s) => s.nivel === "verde");
@@ -115,6 +120,12 @@ export function Semaforos({ senales, abiertaInicial = null }: { senales: Senal[]
                 <p className="mt-1 text-[0.9375rem] text-humo">{actual.sigueAqui}</p>
               </details>
             ) : null}
+            {comun ? (
+              <div className="rounded-2xl bg-lana p-3.5">
+                <h3 className="text-sm font-bold">{vecesComun === actual.items.length ? "En cada caso" : `En ${vecesComun} de los ${actual.items.length} casos`}</h3>
+                <p className="mt-0.5 text-[0.9375rem]">{comun}</p>
+              </div>
+            ) : null}
             {actual.nota ? <p className="rounded-2xl bg-arena/60 p-3 text-sm text-humo">{actual.nota}</p> : null}
 
             {actual.items.length === 0 ? (
@@ -134,7 +145,7 @@ export function Semaforos({ senales, abiertaInicial = null }: { senales: Senal[]
                         <span className="min-w-0 [overflow-wrap:anywhere]">
                           <span className="block font-semibold">{i.etiqueta}</span>
                           <span className="block text-sm text-humo">{i.detalle}</span>
-                          {i.queHacer ? <span className="mt-0.5 block text-sm font-medium">Qué hacer: {i.queHacer}</span> : null}
+                          {i.queHacer && i.queHacer !== comun ? <span className="mt-0.5 block text-sm font-medium">Qué hacer: {i.queHacer}</span> : null}
                         </span>
                         <span className="flex shrink-0 items-center gap-1">
                           <Insignia tono={i.nivel === "rojo" ? "alerta" : "aviso"}>{i.nivel === "rojo" ? "Rojo" : "Ámbar"}</Insignia>

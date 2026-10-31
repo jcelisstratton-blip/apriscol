@@ -231,10 +231,13 @@ export function senalSecado(filas: ReproHembra[], hoy: string, secadoDiasAntes: 
       items.push({
         clave: `tercio-${f.animal_id}`,
         etiqueta: etiqueta(f.animal_id),
-        detalle: `Día ${diasDesde(f.ultimo_servicio!, hoy)} de gestación: refuerza su alimentación`,
+        detalle: `Día ${diasDesde(f.ultimo_servicio!, hoy)} de gestación · parto previsto el ${corta(f.fecha_prevista_parto!)}${diasHasta(f.fecha_prevista_parto!, hoy) <= 7 ? " (ya casi)" : ""}`,
         nivel: "ambar",
         href: fichaAnimal(f.animal_id, "reproduccion"),
-        queHacer: "Dale más alimento desde ahora (es cuando el feto más crece) y vigila su condición corporal. No hay nada que registrar en su ficha.",
+        queHacer:
+          diasHasta(f.fecha_prevista_parto!, hoy) <= 7
+            ? "Está por parir: prepara la maternidad y vigílala (mira «Partos que se acercan»). Su ración ya debería estar reforzada."
+            : "Es solo un aviso: no hay nada que registrar. Pídele a quien da de comer que le suba la ración hasta el parto.",
         orden: 100 + diasHasta(f.fecha_prevista_parto!, hoy),
       });
     }
