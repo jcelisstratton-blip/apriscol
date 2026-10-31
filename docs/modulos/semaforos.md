@@ -72,3 +72,6 @@ vacía o sin datos → Servicio.
 **La explicación se pliega.** «Qué significa» y «Cuándo se pone en cada color» (con el enlace a Ajustes) van dentro de «¿Cómo funciona esta señal?», cerrado por defecto: lo primero que se ve es qué hacer y los casos concretos.
 
 **Criterio con lo clínico.** Las instrucciones solo dicen lo que ya dicen las reglas de la app (por ejemplo, desparasitar FAMACHA 4 o 5, los 21 días mínimos de cuarentena, no mandar al tanque la leche en retiro) y, donde hay decisión del veterinario, lo remiten a él. **Pendientes de revisión por el veterinario antes de darlas por definitivas:** abortos agrupados, mortalidad de crías, coprológico, pruebas de laboratorio, calidad de la leche, cadena de frío y ganancia de peso baja.
+
+## Recorrer los casos de una señal
+Al abrir un caso de una señal que tiene **varios** (cuatro animales sin pesar, tres vacunas…), la lista queda guardada en la pestaña (`lib/cola-semaforo.ts`, `sessionStorage`) y `ColaSemaforo` (en el layout de la app) muestra arriba, en cualquier pantalla a la que se llegue, «Caso N de M», **Anterior / Siguiente** y «Volver a la lista» (reabre la señal con la lista al día). Se quita con la «x» y no aparece en `/semaforos`. Una señal con un solo caso no la usa. El caso se ubica por la ruta; en una pantalla intermedia (el formulario de registrar) se queda en el último.
