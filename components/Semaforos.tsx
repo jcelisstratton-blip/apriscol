@@ -90,7 +90,7 @@ export function Semaforos({ senales, abiertaInicial = null }: { senales: Senal[]
           <div className="flex flex-wrap gap-2">
             {enOrden.map((s) => (
               <button key={s.id} type="button" onClick={() => abrir(s.id)} className="inline-flex min-h-11 items-center gap-1.5 rounded-full bg-ok/10 px-3.5 text-sm font-semibold text-ok ring-1 ring-ok/20">
-                <CheckCircle2 className="size-4" strokeWidth={2.2} aria-hidden="true" /> {s.titulo}
+                <CheckCircle2 className="size-4" strokeWidth={2.2} aria-hidden="true" /> {s.titulo}{s.atendidos.length > 0 ? ` · ${s.atendidos.length} ya ${s.atendidos.length === 1 ? "atendido" : "atendidos"}` : ""}
               </button>
             ))}
           </div>
