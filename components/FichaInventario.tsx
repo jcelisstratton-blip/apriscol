@@ -47,6 +47,11 @@ export function FichaInventario({ f, lotes, conteos, puedeMover, hoy }: { f: Fil
                       <li key={t}>{t}</li>
                     ))}
                   </ul>
+                  {p.accion && puedeMover ? (
+                    <Link href={p.accion.href} className={`${clasesBoton("primario")} mt-2`}>
+                      {p.accion.texto}
+                    </Link>
+                  ) : null}
                 </li>
               ))}
             </ol>

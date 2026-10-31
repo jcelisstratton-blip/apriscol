@@ -134,8 +134,30 @@ export function unidadDeConteo(f: Pick<FilaInventario, "unidad" | "presentacion"
   return f.presentacion && f.contenido_presentacion ? { nombre: f.presentacion, factor: f.contenido_presentacion } : { nombre: f.unidad ?? "unidades", factor: 1 };
 }
 
+/** Dirección del formulario de ajuste ya abierto en «Vencido» y con el lote (y toda su cantidad) elegido. Sin lote, la pantalla toma el primero vencido. */
+export function rutaBajaLote(productoId: string, lote?: string | null): string {
+  return `/inventario/${productoId}/ajustar?motivo=vencido${lote ? `&lote=${encodeURIComponent(lote)}` : ""}`;
+}
+
+/** Lo que trae el formulario de ajuste al abrirse desde un aviso: motivo, lote y la cantidad que queda en él (en la unidad en que se cuenta). */
+export function ajusteInicial(
+  f: Pick<FilaInventario, "unidad" | "presentacion" | "contenido_presentacion">,
+  lotes: FilaLote[],
+  hoy: string,
+  motivo: string | undefined,
+  lote: string | undefined,
+): { motivo: MotivoAjuste; lote: string | null; cantidad: string } | null {
+  if (motivo !== "vencido") return null;
+  const vencidos = lotes.filter((l) => l.vencimiento && l.stock > 0.004 && estadoVencimiento(l.vencimiento, hoy) === "vencido");
+  const elegido = (lote ? vencidos.find((l) => l.lote === lote) : null) ?? vencidos[0];
+  if (!elegido) return null;
+  const { factor } = unidadDeConteo(f);
+  const n = Math.round((elegido.stock / factor) * 100) / 100;
+  return { motivo: "vencido", lote: elegido.lote, cantidad: String(n).replace(".", ",") };
+}
+
 /** Un problema del producto y qué hacer, paso a paso, para la ficha. */
-export type PasoInventario = { clave: string; titulo: string; pasos: string[] };
+export type PasoInventario = { clave: string; titulo: string; pasos: string[]; /** Botón que hace el paso principal sin volver a preguntar lo que ya se sabe (p. ej. dar de baja ese lote). */ accion?: { texto: string; href: string } };
 
 const fechaCorta = (iso: string) => formatoFecha(iso, { day: "numeric", month: "short", year: "numeric" });
 
@@ -143,7 +165,7 @@ const fechaCorta = (iso: string) => formatoFecha(iso, { day: "numeric", month: "
  * Qué hay que hacer con un producto, dicho con las pantallas reales («Ajustar existencias», «Conteo físico»…). Lo que no se puede resolver aquí
  * (comprar, corregir una fecha mal escrita) se dice con el lugar donde se hace. Un producto sin problemas devuelve una lista vacía.
  */
-export function pasosInventario(f: Pick<FilaInventario, "desde" | "stock" | "stock_minimo" | "presentacion" | "unidad" | "contenido_presentacion">, lotes: FilaLote[], hoy: string): PasoInventario[] {
+export function pasosInventario(f: Pick<FilaInventario, "producto_id" | "desde" | "stock" | "stock_minimo" | "presentacion" | "unidad" | "contenido_presentacion">, lotes: FilaLote[], hoy: string): PasoInventario[] {
   const pasos: PasoInventario[] = [];
   if (!f.desde || f.stock === null) return pasos;
   for (const l of lotes) {
@@ -151,6 +173,7 @@ export function pasosInventario(f: Pick<FilaInventario, "desde" | "stock" | "sto
     pasos.push({
       clave: `vencido-${l.lote ?? "sin"}`,
       titulo: `El lote ${l.lote ?? "sin nombre"} venció el ${fechaCorta(l.vencimiento)} y aún cuenta ${textoStock(f, l.stock)}`,
+      accion: { texto: "Dar de baja este lote", href: rutaBajaLote(f.producto_id, l.lote) },
       pasos: [
         "Si el lote ya no se debe usar: sácalo de la bodega, toca «Ajustar existencias», elige el motivo «Vencido», ese lote y la cantidad que quedaba.",
         "Si la fecha de vencimiento está mal escrita: corrígela en la compra (Hato → Compras) o en el conteo de apertura, y el aviso se quita solo.",

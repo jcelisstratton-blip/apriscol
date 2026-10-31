@@ -16,15 +16,15 @@ import { formatoFecha } from "@/lib/fechas";
 const SIN_LOTE = "__sin_lote__";
 
 /** Corregir las existencias de un producto: lo que contaste frente a lo que decía la app, o dar de baja lo vencido, perdido o dañado. */
-export function FormAjuste({ producto, lotes, hoy }: { producto: Pick<FilaInventario, "producto_id" | "unidad" | "presentacion" | "contenido_presentacion">; lotes: FilaLote[]; hoy: string }) {
+export function FormAjuste({ producto, lotes, hoy, inicial }: { producto: Pick<FilaInventario, "producto_id" | "unidad" | "presentacion" | "contenido_presentacion">; lotes: FilaLote[]; hoy: string; /** Lo que ya se sabe al venir de un aviso: motivo, lote y cantidad. */ inicial?: { motivo: MotivoAjuste; lote: string | null; cantidad: string } | null }) {
   const u = unidadDeConteo(producto);
   const [estado, enviar, pendiente] = useActionState(guardarAjuste, undefined);
   const [, iniciar] = useTransition();
-  const [motivo, setMotivo] = useState<MotivoAjuste>("conteo");
+  const [motivo, setMotivo] = useState<MotivoAjuste>(inicial?.motivo ?? "conteo");
   // «Sin lote» es un lote más (las aplicaciones sin lote restan ahí); se distingue de «no he elegido» con un valor propio.
   const clave = (l: FilaLote) => l.lote ?? SIN_LOTE;
-  const [lote, setLote] = useState<string>(lotes.length === 1 ? clave(lotes[0]) : "");
-  const [cantidad, setCantidad] = useState("");
+  const [lote, setLote] = useState<string>(inicial ? (inicial.lote ?? SIN_LOTE) : lotes.length === 1 ? clave(lotes[0]) : "");
+  const [cantidad, setCantidad] = useState(inicial?.cantidad ?? "");
 
   const elegido = lotes.find((l) => clave(l) === lote);
   const n = cantidad.trim() ? leerNumero(cantidad) : null;
@@ -42,6 +42,13 @@ export function FormAjuste({ producto, lotes, hoy }: { producto: Pick<FilaInvent
       <input type="hidden" name="producto_id" value={producto.producto_id} />
       <input type="hidden" name="motivo" value={motivo} />
       <input type="hidden" name="lote" value={lote === SIN_LOTE ? "" : lote} />
+
+      {inicial && elegido ? (
+        <Aviso tipo="atencion">
+          Vas a dar de baja el lote {elegido.lote ?? "sin nombre"}
+          {elegido.vencimiento ? `, vencido el ${formatoFecha(elegido.vencimiento, { day: "numeric", month: "short", year: "numeric" })}` : ""}: quedan {textoStock(producto, elegido.stock)}. Ya está todo elegido; revisa la cantidad y guarda.
+        </Aviso>
+      ) : null}
 
       <div className="space-y-2">
         <p className="text-sm font-semibold">¿Por qué ajustas?</p>
