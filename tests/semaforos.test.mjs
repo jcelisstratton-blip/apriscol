@@ -395,3 +395,14 @@ test("semáforos de reproducción: cada caso dice el botón exacto y la secada l
   assert.match(s.items[0].href, /#lactancia$/);
   assert.match(s.items[0].queHacer, /Secar/);
 });
+
+test("semáforos: los casos que antes no decían cómo resolverse ahora llevan a donde se resuelven", () => {
+  const c = senalCuarentena([{ animal_id: "a", situacion: "falta_cuarentena", dias: 19 }, { animal_id: "b", situacion: "en_cuarentena", dias: 11 }], etiqueta);
+  assert.equal(c.items.find((i) => i.clave === "cuarentena-a").href, "/hato/corrales/mover?animal=a");
+  assert.match(c.items.find((i) => i.clave === "cuarentena-a").queHacer, /corral de cuarentena/);
+  assert.match(c.items.find((i) => i.clave === "cuarentena-b").queHacer, /21 días/);
+  const s = senalSecado([hembra("b", { en_lactancia: true, ultimo_servicio: dia(-145), fecha_prevista_parto: dia(5) })], HOY, 60, 100, etiqueta);
+  assert.equal(s.accion.href, "/leche/secar", "con hembras por secar, la acción es secar varias a la vez");
+  const sinSecar = senalSecado([], HOY, 60, 100, etiqueta);
+  assert.equal(sinSecar.accion.href, "/reproduccion");
+});

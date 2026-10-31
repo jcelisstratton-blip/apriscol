@@ -129,3 +129,28 @@ export async function sacarDelOrdeno(animalId: string): Promise<{ ok: true } | {
   revalidatePath("/");
   return { ok: true };
 }
+
+/**
+ * Seca a varias hembras a la vez: cierra la lactancia abierta de cada una hoy, en una sola instrucción (todas o ninguna). Las que no tienen lactancia
+ * abierta se ignoran y se avisa cuántas se secaron de verdad.
+ */
+export async function secarVarias(animalIds: string[]): Promise<{ ok: true; secadas: number } | { ok: false; error: string }> {
+  const { finca, rol } = await obtenerContexto();
+  if (!puedeEscribir(rol, "leche", finca.plan)) return { ok: false, error: "No tienes permiso para esto en esta finca." };
+  const ids = z.array(z.uuid()).min(1, "Elige al menos una hembra.").max(200, "Elige máximo 200 hembras a la vez.").safeParse([...new Set(animalIds)]);
+  if (!ids.success) return { ok: false, error: ids.error.issues[0]?.message ?? "Animales no válidos." };
+
+  const supabase = await crearClienteServidor();
+  const { data, error } = await supabase
+    .from("lactancias")
+    .update({ fecha_secado: hoyBogota() })
+    .in("animal_id", ids.data)
+    .eq("finca_id", finca.id)
+    .is("fecha_secado", null)
+    .select("id");
+  if (error) return { ok: false, error: mensajeAmigable(error.message) };
+  revalidatePath("/leche");
+  revalidatePath("/reproduccion");
+  revalidatePath("/");
+  return { ok: true, secadas: data?.length ?? 0 };
+}
