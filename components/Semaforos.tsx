@@ -109,6 +109,12 @@ export function Semaforos({ senales, abiertaInicial = null }: { senales: Senal[]
               <h3 className="text-sm font-bold">Qué hacer</h3>
               <p className="mt-0.5 text-[0.9375rem]">{actual.queHacer}</p>
             </div>
+            {actual.sigueAqui && actual.items.length > 0 ? (
+              <details className="rounded-2xl border border-arena p-3.5">
+                <summary className="flex min-h-11 cursor-pointer list-none items-center text-sm font-bold">¿Ya lo hiciste y sigue aquí?</summary>
+                <p className="mt-1 text-[0.9375rem] text-humo">{actual.sigueAqui}</p>
+              </details>
+            ) : null}
             {actual.nota ? <p className="rounded-2xl bg-arena/60 p-3 text-sm text-humo">{actual.nota}</p> : null}
 
             {actual.items.length === 0 ? (
