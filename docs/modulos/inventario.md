@@ -38,6 +38,8 @@ La ficha abre con la tarjeta **Qué hacer** (`pasosInventario`, en `lib/inventar
 
 **Descuadrado:** la tarjeta explica la causa (entró menos de lo que se aplicó: falta una compra, o se dio de baja algo que sí se usó) y ofrece los tres caminos: registrar la compra, eliminar el ajuste equivocado en «Conteos y ajustes», o **contar todo el producto** (`/inventario/<id>/ajustar?motivo=conteo&lote=total`). En ese conteo la persona escribe cuántas hay hoy en la bodega sumando todos los lotes (`LOTE_TOTAL`, opción «Todo el producto (total)» con varios lotes) y la diferencia con el total que decía la app queda como ajuste en «Sin lote» (`guardarAjuste`); si ya no queda nada, 0. El caso rojo del semáforo lleva ahí.
 
+**Para que no se descuadre:** al registrar una aplicación con un producto del inventario, el lote **ya viene elegido** (`loteSugerido`: el vigente que vence primero) y los lotes vencidos **no se ofrecen** (`lotesVigentes`): «vencido es vencido». Así casi ninguna aplicación queda «sin lote» y un lote vencido no tapa un faltante.
+
 ## Auditoría de celular (29 oct 2026)
 
 Lista (300 productos, nombres largos sin espacios, vacía), ficha (con y sin conteo, con y sin permiso de mover, con el aviso de eliminar abierto), conteo de apertura (corrigiendo, nuevo y con un lote agregado) y ajuste: a 360, 320, 768, 1024 y 1440 px, `scrollWidth == clientWidth` en todos y ninguna caja desbordada salvo el margen negativo deliberado de la fila de tarjetas (`FilaTarjetas`, igual que en Novedades). Se recorrió con datos de ejemplo (`FichaInventario` solo dibuja, la página trae los datos) y se probó escribir una cantidad de corrido en el ajuste (el foco se mantiene y la vista previa cuadra). **Sin recorrer con una sesión real** (guardar necesita la base).
