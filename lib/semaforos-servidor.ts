@@ -248,7 +248,7 @@ export async function cargarSemaforos({
     ]);
     const compras: CompraPorPagar[] = (gastos.data ?? []).map((x) => ({ id: x.id, descripcion: x.descripcion, monto: Number(x.monto), vence: x.vence! }));
     const porCobrar: VentaPorCobrar[] = (ventas.data ?? [])
-      .flatMap((v) => (!v.cobrado && v.cobro_vence !== null && v.cobro_vence <= limite ? [{ clave: `${v.origen}-${v.origen_id}`, producto: v.producto, tercero: v.tercero ?? null, valor: Number(v.valor), cobro_vence: v.cobro_vence }] : []));
+      .flatMap((v) => (!v.cobrado && v.cobro_vence !== null && v.cobro_vence <= limite ? [{ clave: `${v.origen}-${v.origen_id}`, origen: v.origen, origen_id: v.origen_id, producto: v.producto, tercero: v.tercero ?? null, valor: Number(v.valor), cobro_vence: v.cobro_vence }] : []));
     senales.push(...senalesDinero(compras, porCobrar, hoy));
   }
 

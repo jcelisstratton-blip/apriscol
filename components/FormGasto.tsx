@@ -1,5 +1,6 @@
 "use client";
 
+import { precioDeCada } from "@/lib/unidades";
 import { useActionState, useState, useTransition } from "react";
 import Link from "next/link";
 import { Aviso } from "@/components/Aviso";
@@ -244,7 +245,7 @@ export function FormGasto({
             <Campo etiqueta={`Cuántos ${unidad || "unidades"}`}>
               {(id) => <input id={id} value={cantidad} onChange={(e) => setCantidad(e.target.value)} required inputMode="decimal" autoComplete="off" enterKeyHint="next" placeholder="Ej. 20" className={CLASE_INPUT} />}
             </Campo>
-            <Campo etiqueta={`Precio de cada ${unidad ? unidad.replace(/s$/, "") : "unidad"}`} ayuda={elegido.precio_habitual != null ? "Es el último precio que pagaste; cámbialo si subió." : "Solo la primera vez: queda guardado para la próxima."}>
+            <Campo etiqueta={precioDeCada(unidad)} ayuda={elegido.precio_habitual != null ? "Es el último precio que pagaste; cámbialo si subió." : "Solo la primera vez: queda guardado para la próxima."}>
               {(id) => <input id={id} value={precio} onChange={(e) => setPrecio(e.target.value)} required inputMode="decimal" autoComplete="off" enterKeyHint="next" placeholder="Ej. 62.500" className={CLASE_INPUT} />}
             </Campo>
           </div>

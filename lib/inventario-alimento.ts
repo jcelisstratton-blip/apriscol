@@ -3,6 +3,7 @@
  * el peso de cada unidad, y lo que se da de comer se anota en kg. Las existencias las calcula la base (`inventario_alimento`); aquí viven las reglas puras que las
  * interpretan —autonomía en días, estado, textos—, para que la pantalla y el semáforo digan lo mismo.
  */
+import { singular } from "@/lib/unidades";
 import { diasDesde } from "@/lib/fechas";
 import { cantidadTexto } from "@/lib/inventario";
 
@@ -107,7 +108,8 @@ export function unidadesDeCantidad(f: Pick<FilaAlimento, "unidad" | "kg_por_unid
 }
 
 /** «bultos» → «bulto», «pacas» → «paca», «unidades» → «unidad». */
-export const singular = (palabra: string): string => (/ades$/i.test(palabra) ? palabra.slice(0, -2) : /[aeiou]s$/i.test(palabra) ? palabra.slice(0, -1) : palabra);
+/** El singular de la unidad de compra («bultos» → «bulto»): una sola definición, en `lib/unidades.ts`. */
+export { singular };
 
 /** Redondea a los 2 decimales con que se guarda. */
 export const aKg = (cantidad: number, factor: number): number => Math.round(cantidad * factor * 100) / 100;

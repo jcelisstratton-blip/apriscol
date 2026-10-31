@@ -1,5 +1,6 @@
 "use client";
 
+import { textoPorUnidad } from "@/lib/unidades";
 import { useCallback, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Plus } from "lucide-react";
@@ -83,7 +84,7 @@ export function GestionCatalogos({ vista, productos, terceros, puedeEditar }: { 
 const CLASE_FILA = "flex min-h-14 w-full items-center justify-between gap-3 rounded-2xl bg-papel px-3.5 py-2.5 text-left ring-1 ring-arena";
 
 function FilaProducto({ p, alAbrir }: { p: Producto; alAbrir?: () => void }) {
-  const detalle = [p.unidad ? `Por ${p.unidad.replace(/s$/, "")}` : null, p.precio_habitual != null ? `último precio ${pesos(p.precio_habitual)}` : "sin precio todavía"].filter(Boolean).join(" · ");
+  const detalle = [textoPorUnidad(p.unidad) ?? null, p.precio_habitual != null ? `último precio ${pesos(p.precio_habitual)}` : "sin precio todavía"].filter(Boolean).join(" · ");
   const contenido = (
     <>
       <span className="min-w-0">
