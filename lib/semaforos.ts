@@ -247,7 +247,7 @@ export function senalSecado(filas: ReproHembra[], hoy: string, secadoDiasAntes: 
       queHacer: "Seca a las que ya deben secarse (deja de ordeñarlas) y refuerza el alimento de las que entraron al último tercio de gestación.",
       queSignifica: "Gestantes en ordeño que ya deben secarse, y gestantes que entraron al último tercio y necesitan más alimento.",
       regla: `Ámbar: faltan ${secadoDiasAntes} días o menos para parir y sigue en ordeño (secarla), o lleva ${ultimoTercioDia} días de gestación o más (reforzar). Rojo: faltan 7 días o menos y sigue en ordeño.`,
-      accion: { texto: "Ver Reproducción", href: "/reproduccion" },
+      accion: items.some((i) => i.clave.startsWith("secar-")) ? { texto: "Secar varias a la vez", href: "/leche/secar" } : { texto: "Ver Reproducción", href: "/reproduccion" },
     },
     items,
   );
@@ -347,7 +347,7 @@ export function senalMortalidadCrias(nacidas: number, muertes: MuerteCria[], hoy
   const nivel: NivelItem | null = !suficiente ? null : pct > MORTALIDAD_ROJO_PCT ? "rojo" : pct > MORTALIDAD_AMBAR_PCT ? "ambar" : null;
   const items: ItemSenal[] = [];
   if (nivel) {
-    items.push({ clave: "mortalidad-resumen", etiqueta: `Mortalidad de ${pct} %`, detalle: `${n} de ${nacidas} crías en ${MORTALIDAD_VENTANA_DIAS} días`, nivel, href: "/reproduccion", orden: -1 });
+    items.push({ clave: "mortalidad-resumen", etiqueta: `Mortalidad de ${pct} %`, detalle: `${n} de ${nacidas} crías en ${MORTALIDAD_VENTANA_DIAS} días`, nivel, href: "/reproduccion?vista=partos", queHacer: "Abre los partos del periodo, mira cuáles crías murieron o nacieron muertas y habla con tu veterinario de las causas.", orden: -1 });
     for (const m of muertes) {
       items.push({ clave: m.clave, etiqueta: m.texto, detalle: `${m.animalId ? "Murió" : "Nació muerta"} el ${corta(m.fecha)}`, nivel, href: m.animalId ? fichaAnimal(m.animalId) : "/reproduccion", orden: diasDesde(m.fecha, hoy) });
     }
@@ -509,7 +509,8 @@ export function senalFrio(lecturas: LecturaFrio[], hoy: string): Senal {
       etiqueta: etiquetaMomento,
       detalle: `${Number(l.temperatura_c).toLocaleString("es-CO", { maximumFractionDigits: 1 })} °C el ${corta(l.fecha)}: ${e.texto.toLowerCase()}`,
       nivel: e.tono === "alerta" ? "rojo" : "ambar",
-      href: `/leche/frio/${l.id}`,
+      href: "/leche/frio/nuevo",
+      queHacer: "Revisa el tanque (termostato y equipo) y registra una lectura nueva de temperatura; si queda en rango, la alerta se quita.",
       orden: diasDesde(l.fecha, hoy),
     });
   }
@@ -567,7 +568,7 @@ export function senalCalidad(a: AnalisisTanque | null, l: LimitesCalidad): Senal
       sigueAqui: "Sale cuando un análisis nuevo viene dentro de lo normal; revisar el anterior no cambia el resultado.",
       queSignifica: "El último análisis del tanque (de los últimos 60 días): células somáticas, crioscopia, residuos de antibióticos, grasa y proteína.",
       regla: "Rojo: residuos positivos, células sobre el límite o crioscopia con posible agua. Ámbar: células cerca del límite (80 %), crioscopia más fría de lo habitual, o grasa o proteína fuera de rango.",
-      accion: { texto: "Ver Leche", href: "/leche" },
+      accion: { texto: "Registrar un análisis nuevo", href: "/leche/calidad/nuevo" },
       nota: a ? undefined : "No hay un análisis del tanque en los últimos 60 días.",
     },
     items,
@@ -583,7 +584,7 @@ export function senalProduccion(tendencias: Tendencia[], etiqueta: Etiqueta): Se
       etiqueta: etiqueta(t.animal_id),
       detalle: mensajeBaja(t),
       nivel: t.nivel === "critico" ? "rojo" : "ambar",
-      href: fichaAnimal(t.animal_id),
+      href: fichaAnimal(t.animal_id, "lactancia"),
       orden: t.variacion,
     });
   }
@@ -760,10 +761,10 @@ export function senalCuarentena(filas: CuarentenaAlerta[], etiqueta: Etiqueta): 
   const items: ItemSenal[] = [];
   for (const c of filas) {
     if (c.situacion === "falta_cuarentena") {
-      items.push({ clave: `cuarentena-${c.animal_id}`, etiqueta: etiqueta(c.animal_id), detalle: `Entró hace ${dias(c.dias)} y no pasó por cuarentena`, nivel: "rojo", href: fichaAnimal(c.animal_id), orden: -c.dias });
+      items.push({ clave: `cuarentena-${c.animal_id}`, etiqueta: etiqueta(c.animal_id), detalle: `Entró hace ${dias(c.dias)} y no pasó por cuarentena`, nivel: "rojo", href: `/hato/corrales/mover?animal=${c.animal_id}`, queHacer: "Llévalo ya a un corral de cuarentena: el formulario abre con él elegido; escoge el corral de cuarentena y guarda.", orden: -c.dias });
     } else {
       const e = estadoCuarentena(c.dias);
-      if (e.tono === "aviso") items.push({ clave: `cuarentena-${c.animal_id}`, etiqueta: etiqueta(c.animal_id), detalle: `En cuarentena: ${e.texto}`, nivel: "ambar", href: fichaAnimal(c.animal_id), orden: c.dias });
+      if (e.tono === "aviso") items.push({ clave: `cuarentena-${c.animal_id}`, etiqueta: etiqueta(c.animal_id), detalle: `En cuarentena: ${e.texto}`, nivel: "ambar", href: fichaAnimal(c.animal_id), queHacer: "No hagas nada todavía: déjalo en cuarentena, separado del hato, hasta cumplir los 21 días.", orden: c.dias });
     }
   }
   return armarSenal(
