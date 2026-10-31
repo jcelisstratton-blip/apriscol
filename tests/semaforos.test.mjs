@@ -250,6 +250,8 @@ test("semáforos: mantenimiento de la sala — atrasada en rojo, próxima en ám
   const m = (tipo, proxima) => ({ id: tipo, finca_id: "f", tipo, equipo: "Sala", fecha: dia(-30), created_at: dia(-30), proxima_fecha: proxima });
   const s = senalMantenimiento([m("lavado_alcalino", dia(-2)), m("presion_vacio", dia(4)), m("revision", dia(40))], HOY);
   assert.deepEqual(s.items.map((i) => i.nivel), ["rojo", "ambar"]);
+  // Cada caso lleva a registrar esa tarea, con lo de la vez anterior (no a la pantalla general de Leche).
+  assert.deepEqual(s.items.map((i) => i.href), ["/leche/equipo/nuevo?de=lavado_alcalino", "/leche/equipo/nuevo?de=presion_vacio"]);
 });
 
 test("semáforos: ceba — pesaje atrasado y ganancia baja, con rojo al doble del plazo o a la mitad del mínimo", () => {
