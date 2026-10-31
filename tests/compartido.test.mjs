@@ -584,3 +584,19 @@ test("inventario: «dosis» no cambia en plural y los pasos dicen qué hacer con
   assert.deepEqual(pasosInventario({ ...f, desde: null, stock: null }, [], "2026-10-31"), []);
   assert.deepEqual(pasosInventario({ ...f, stock: 100 }, [{ lote: "Z", vencimiento: "2027-05-01", stock: 100 }], "2026-10-31"), []);
 });
+
+import { ajusteInicial, rutaBajaLote } from "../lib/inventario.ts";
+test("inventario: dar de baja un lote vencido abre el formulario con motivo, lote y cantidad ya puestos", () => {
+  const f = { unidad: "ml", presentacion: "frasco", contenido_presentacion: 100 };
+  const lotes = [
+    { lote: "A1", vencimiento: "2026-10-01", stock: 350 },
+    { lote: null, vencimiento: null, stock: -116 },
+    { lote: "B2", vencimiento: "2026-12-01", stock: 200 },
+  ];
+  assert.equal(rutaBajaLote("p1", "A 1"), "/inventario/p1/ajustar?motivo=vencido&lote=A%201");
+  assert.equal(rutaBajaLote("p1"), "/inventario/p1/ajustar?motivo=vencido");
+  assert.deepEqual(ajusteInicial(f, lotes, "2026-10-31", "vencido", undefined), { motivo: "vencido", lote: "A1", cantidad: "3,5" });
+  assert.deepEqual(ajusteInicial(f, lotes, "2026-10-31", "vencido", "A1"), { motivo: "vencido", lote: "A1", cantidad: "3,5" });
+  assert.equal(ajusteInicial(f, lotes, "2026-10-31", undefined, undefined), null);
+  assert.equal(ajusteInicial(f, [lotes[2]], "2026-10-31", "vencido", undefined), null, "sin lote vencido no se inventa uno");
+});
