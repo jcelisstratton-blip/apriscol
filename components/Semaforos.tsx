@@ -109,7 +109,7 @@ export function Semaforos({ senales, abiertaInicial = null }: { senales: Senal[]
               <h3 className="text-sm font-bold">Qué hacer</h3>
               <p className="mt-0.5 text-[0.9375rem]">{actual.queHacer}</p>
             </div>
-            {actual.sigueAqui && actual.items.length > 0 ? (
+            {actual.sigueAqui && (actual.items.length > 0 || actual.atendidos.length > 0) ? (
               <details className="rounded-2xl border border-arena p-3.5">
                 <summary className="flex min-h-11 cursor-pointer list-none items-center text-sm font-bold">¿Ya lo hiciste y sigue aquí?</summary>
                 <p className="mt-1 text-[0.9375rem] text-humo">{actual.sigueAqui}</p>
@@ -156,6 +156,31 @@ export function Semaforos({ senales, abiertaInicial = null }: { senales: Senal[]
                 ) : null}
               </div>
             )}
+
+            {actual.atendidos.length > 0 ? (
+              <div>
+                <h3 className="mb-1 flex items-center gap-1.5 text-sm font-bold">
+                  <CheckCircle2 className="size-4 text-ok" strokeWidth={2.2} aria-hidden="true" /> Ya atendidos ({actual.atendidos.length})
+                </h3>
+                <ul className="divide-y divide-arena">
+                  {actual.atendidos.map((i) => (
+                    <li key={i.clave}>
+                      <Link href={i.href} className="flex min-h-14 items-center justify-between gap-3 py-2">
+                        <span className="min-w-0 [overflow-wrap:anywhere]">
+                          <span className="block font-semibold">{i.etiqueta}</span>
+                          <span className="block text-sm text-humo">{i.detalle}</span>
+                          {i.queHacer ? <span className="mt-0.5 block text-sm font-medium">{i.queHacer}</span> : null}
+                        </span>
+                        <span className="flex shrink-0 items-center gap-1">
+                          <Insignia tono="ok">{i.atendido}</Insignia>
+                          <ChevronRight className="size-4 text-humo" aria-hidden="true" />
+                        </span>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
 
             <details className="group rounded-2xl border border-arena p-3.5">
               <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between text-sm font-bold">

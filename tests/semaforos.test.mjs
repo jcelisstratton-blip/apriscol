@@ -261,15 +261,17 @@ test("semáforos: ceba — pesaje atrasado y ganancia baja, con rojo al doble de
   assert.deepEqual(ganancia.items.map((i) => [i.clave, i.nivel]), [["gdp-muyLento", "rojo"], ["gdp-lento", "ambar"]]);
 });
 
-test("semáforos: ganancia baja — si ya se pesó, el caso lo dice y no manda a pesar de nuevo", () => {
+test("semáforos: ganancia baja — el animal pesado hace poco pasa a «ya atendido» y no cuenta como pendiente", () => {
   const a = (animalId, ultima) => ({ animalId, ultimaFecha: dia(-ultima), gdpRecienteG: 100, limiteDias: 30 });
-  const [, ganancia] = senalesCeba([a("hoy", 0), a("viejo", 20)], 150, HOY, etiqueta);
-  const hoy = ganancia.items.find((i) => i.clave === "gdp-hoy");
-  const viejo = ganancia.items.find((i) => i.clave === "gdp-viejo");
-  assert.match(hoy.queHacer, /Ya lo pesaste hoy/);
-  assert.match(hoy.queHacer, /vuelve a pesarlo el/);
-  assert.doesNotMatch(viejo.queHacer, /Ya lo pesaste/);
-  assert.ok(ganancia.sigueAqui, "explica por qué sigue en la lista aunque ya se haya pesado");
+  const [, ganancia] = senalesCeba([a("hoy", 0), a("hace2", 2), a("viejo", 20)], 150, HOY, etiqueta);
+  assert.deepEqual(ganancia.items.map((i) => i.clave), ["gdp-viejo"]);
+  assert.equal(ganancia.resumen, "1 en ámbar");
+  assert.deepEqual(ganancia.atendidos.map((i) => [i.clave, i.atendido]), [["gdp-hoy", "Pesado hoy"], ["gdp-hace2", "Pesado hace 2 días"]]);
+  assert.match(ganancia.atendidos[0].queHacer, /Ya está pesado/);
+  // Sin nada pendiente la señal queda en orden, aunque haya atendidos.
+  const [, sola] = senalesCeba([a("hoy", 0)], 150, HOY, etiqueta);
+  assert.equal(sola.nivel, "verde");
+  assert.equal(sola.atendidos.length, 1);
 });
 
 test("semáforos: dinero — vencido en rojo, en los próximos 7 días en ámbar, lejos no cuenta", () => {
