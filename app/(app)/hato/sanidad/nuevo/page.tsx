@@ -145,6 +145,7 @@ export default async function PaginaEventoNuevo({ searchParams }: { searchParams
           lotes={lotes ?? []}
           puedeComprar={puedeEscribir(rol, "contabilidad", finca.plan)}
           inventariados={await cargarProductosInventariados(supabase, finca.id)}
+          aplicar={Boolean(programaId || (refuerzo && datos))}
         />
       </div>
     </>
