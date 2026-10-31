@@ -655,10 +655,10 @@ export function senalInventario(filas: FilaInventario[], hoy: string): Senal {
     const href = `/inventario/${f.producto_id}`;
     const estado = estadoStock(f);
     const venc = estadoVencimiento(f.vence_pronto, hoy);
-    if (venc === "vencido" && f.vence_pronto) items.push({ clave: `vencido-${f.producto_id}`, etiqueta: f.nombre, detalle: `Tiene un lote vencido el ${corta(f.vence_pronto)}`, nivel: "rojo", href, queHacer: "Sácalo de la bodega y dalo de baja en el inventario.", orden: 0 });
-    if (estado === "negativo") items.push({ clave: `negativo-${f.producto_id}`, etiqueta: f.nombre, detalle: "Se aplicó más de lo que había registrado", nivel: "rojo", href, queHacer: "Cuenta lo que hay y ajusta las existencias.", orden: 1 });
-    else if (estado === "agotado") items.push({ clave: `agotado-${f.producto_id}`, etiqueta: f.nombre, detalle: "Se agotó", nivel: "rojo", href, queHacer: "Avisa al administrador para que lo compre.", orden: 1 });
-    else if (estado === "bajo" && f.stock !== null) items.push({ clave: `bajo-${f.producto_id}`, etiqueta: f.nombre, detalle: `Quedan ${textoStock(f, f.stock)}, en el mínimo o por debajo`, nivel: "ambar", href, orden: 2 });
+    if (venc === "vencido" && f.vence_pronto) items.push({ clave: `vencido-${f.producto_id}`, etiqueta: f.nombre, detalle: `Tiene un lote vencido el ${corta(f.vence_pronto)}`, nivel: "rojo", href, queHacer: "Abre el producto: si el lote ya no se usa, dalo de baja con «Ajustar existencias» (motivo Vencido); si la fecha está mal escrita, corrígela.", orden: 0 });
+    if (estado === "negativo") items.push({ clave: `negativo-${f.producto_id}`, etiqueta: f.nombre, detalle: "Se aplicó más de lo que había registrado", nivel: "rojo", href, queHacer: "Cuenta lo que hay en la bodega y toca «Ajustar existencias» con motivo «Conteo físico».", orden: 1 });
+    else if (estado === "agotado") items.push({ clave: `agotado-${f.producto_id}`, etiqueta: f.nombre, detalle: "Se agotó", nivel: "rojo", href, queHacer: "Avisa al administrador para que lo compre y registra la compra cuando llegue.", orden: 1 });
+    else if (estado === "bajo" && f.stock !== null) items.push({ clave: `bajo-${f.producto_id}`, etiqueta: f.nombre, detalle: `Quedan ${textoStock(f, f.stock)}, en el mínimo o por debajo`, nivel: "ambar", href, queHacer: "Compra lo que falta y registra la compra en Hato → Compras.", orden: 2 });
     if (venc === "pronto" && f.vence_pronto) items.push({ clave: `vence-${f.producto_id}`, etiqueta: f.nombre, detalle: `Un lote vence el ${corta(f.vence_pronto)}`, nivel: "ambar", href, queHacer: "Úsalo primero.", orden: 3 });
   }
   return armarSenal(

@@ -557,3 +557,30 @@ test("repetir raciones: solo días anteriores, del más reciente al más antiguo
   assert.deepEqual(planearRepeticion(origen, new Set()), []);
   assert.equal(marcaRepeticion("2026-10-28"), "Repetido del 2026-10-28");
 });
+
+import { pasosInventario, plural as pluralInv } from "../lib/inventario.ts";
+test("inventario: «dosis» no cambia en plural y los pasos dicen qué hacer con cada problema", () => {
+  assert.equal(pluralInv("dosis", 2), "dosis");
+  assert.equal(pluralInv("dosis", 1), "dosis");
+  assert.equal(pluralInv("frasco", 2), "frascos");
+  assert.equal(pluralInv("tableta", 3), "tabletas");
+  assert.equal(pluralInv("mol", 2), "moles");
+  const f = { desde: "2026-08-01", stock: 40, stock_minimo: 10, presentacion: null, unidad: "dosis", contenido_presentacion: null };
+  const lotes = [
+    { lote: "A1", vencimiento: "2026-10-01", stock: 156 },
+    { lote: null, vencimiento: null, stock: -116 },
+    { lote: "B2", vencimiento: "2026-11-18", stock: 10 },
+  ];
+  const p = pasosInventario(f, lotes, "2026-10-31");
+  assert.deepEqual(p.map((x) => x.clave), ["vencido-A1", "pronto-B2"]);
+  assert.match(p[0].titulo, /venció el/);
+  assert.ok(p[0].pasos.some((t) => /Vencido/.test(t)), "dice el motivo del ajuste");
+  assert.ok(p[0].pasos.some((t) => /Hato → Compras/.test(t)), "dice dónde corregir una fecha mal escrita");
+  // Descuadrado, agotado y bajo.
+  assert.equal(pasosInventario({ ...f, stock: -5 }, [], "2026-10-31")[0].clave, "descuadrado");
+  assert.equal(pasosInventario({ ...f, stock: 0 }, [], "2026-10-31")[0].clave, "agotado");
+  assert.equal(pasosInventario({ ...f, stock: 8 }, [], "2026-10-31")[0].clave, "bajo");
+  // Sin contar o al día: nada que hacer.
+  assert.deepEqual(pasosInventario({ ...f, desde: null, stock: null }, [], "2026-10-31"), []);
+  assert.deepEqual(pasosInventario({ ...f, stock: 100 }, [{ lote: "Z", vencimiento: "2027-05-01", stock: 100 }], "2026-10-31"), []);
+});

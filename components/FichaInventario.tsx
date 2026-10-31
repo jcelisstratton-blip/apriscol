@@ -14,6 +14,7 @@ import {
   estadoStock,
   estadoVencimiento,
   faltaParaMinimo,
+  pasosInventario,
   textoStock,
   type EstadoStock,
   type FilaInventario,
@@ -32,8 +33,25 @@ export function FichaInventario({ f, lotes, conteos, puedeMover, hoy }: { f: Fil
   const filasLote = lotes.filter((l) => l.lote !== null || Math.abs(l.stock) > 0.004);
   const falta = faltaParaMinimo(f);
   const sinLote = filasLote.find((l) => l.lote === null);
+  const queHacer = pasosInventario(f, lotes, hoy);
   return (
       <div className="grid grid-cols-1 gap-4 lg:max-w-4xl">
+        {queHacer.length > 0 ? (
+          <Tarjeta titulo="Qué hacer">
+            <ol className="space-y-4">
+              {queHacer.map((p) => (
+                <li key={p.clave} className="space-y-1">
+                  <p className="font-semibold [overflow-wrap:anywhere]">{p.titulo}</p>
+                  <ul className="list-disc space-y-1 pl-5 text-[0.9375rem] [overflow-wrap:anywhere]">
+                    {p.pasos.map((t) => (
+                      <li key={t}>{t}</li>
+                    ))}
+                  </ul>
+                </li>
+              ))}
+            </ol>
+          </Tarjeta>
+        ) : null}
         <Tarjeta titulo="Existencias">
           {f.desde && f.stock !== null ? (
             <div className="space-y-3">
@@ -73,9 +91,11 @@ export function FichaInventario({ f, lotes, conteos, puedeMover, hoy }: { f: Fil
                   <Link href={`/inventario/${id}/ajustar`} className={clasesBoton("primario")}>
                     <SlidersHorizontal className="size-5" strokeWidth={2} aria-hidden="true" /> Ajustar existencias
                   </Link>
+                  <p className="px-1 text-sm text-humo">Cuando lo que contaste no coincide con la app, o para dar de baja lo vencido, perdido o dañado.</p>
                   <Link href={`/inventario/${id}/apertura`} className={clasesBoton("secundario")}>
                     <ClipboardList className="size-5" strokeWidth={2} aria-hidden="true" /> Corregir el conteo de apertura
                   </Link>
+                  <p className="px-1 text-sm text-humo">Solo si te equivocaste en el primer conteo (cantidad, lote o fecha de vencimiento).</p>
                 </>
               ) : (
                 <Link href={`/inventario/${id}/apertura`} className={clasesBoton("primario")}>
@@ -107,7 +127,7 @@ export function FichaInventario({ f, lotes, conteos, puedeMover, hoy }: { f: Fil
                 })}
               </ul>
             )}
-            {sinLote && sinLote.stock < 0 ? <p className="mt-2 text-sm text-humo">«Sin lote» en negativo son aplicaciones que no dijeron de qué lote salieron. El total del producto es el que cuenta.</p> : null}
+            {sinLote && sinLote.stock < 0 ? <p className="mt-2 text-sm text-humo">«Sin lote» en negativo son aplicaciones que no dijeron de qué lote salieron: no es un error por sí solo, el total del producto es el que cuenta. Para que no se repita, elige el lote al registrar cada aplicación.</p> : null}
           </Tarjeta>
         ) : null}
 
@@ -133,7 +153,7 @@ export function FichaInventario({ f, lotes, conteos, puedeMover, hoy }: { f: Fil
                       {m.tipo === "apertura" ? "Conteo de apertura" : (ETIQUETA_MOTIVO_AJUSTE[m.motivo ?? "otro"] ?? "Ajuste")}
                       {m.lote ? ` · Lote ${m.lote}` : ""}
                     </p>
-                    <p className={`shrink-0 font-semibold ${m.cantidad < 0 ? "text-rojo" : ""}`}>
+                    <p className="shrink-0 font-semibold">
                       {m.tipo === "ajuste" && m.cantidad > 0 ? "+" : ""}
                       {textoStock(f, m.cantidad)}
                     </p>

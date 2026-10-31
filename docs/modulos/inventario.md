@@ -32,6 +32,10 @@ La segunda entrega es el alimento (más abajo); la tercera será el consumo auto
 - **Un ajuste no se edita**, se elimina y se registra de nuevo (es un hecho con fecha y motivo; editarlo cambiaría la historia del stock). Las filas de la apertura sí se corrigen desde el conteo de apertura.
 - Semáforos (ver `semaforos.md`): rojo por lote vencido, agotado o descuadrado; ámbar por mínimo o por vencer.
 
+## «Qué hacer» en la ficha del producto
+
+La ficha abre con la tarjeta **Qué hacer** (`pasosInventario`, en `lib/inventario.ts`): por cada problema (lote vencido con existencias, descuadrado, agotado, en el mínimo, lote por vencer) dice el paso a paso con los nombres reales de las pantallas («Ajustar existencias», motivo «Vencido» o «Conteo físico») y dónde se corrige una fecha mal escrita (Hato → Compras o el conteo de apertura). Un producto sin problemas no la muestra. Los dos botones llevan una línea que dice cuándo usar cada uno (ajustar vs. corregir el conteo de apertura). Los conteos y ajustes nunca van en rojo: son hechos del historial, no alertas; solo el stock negativo de un lote lo está. «Sin lote» en negativo son aplicaciones sin lote: el total es el que cuenta. `plural` no cambia las unidades que terminan en «s» («dosis»).
+
 ## Auditoría de celular (29 oct 2026)
 
 Lista (300 productos, nombres largos sin espacios, vacía), ficha (con y sin conteo, con y sin permiso de mover, con el aviso de eliminar abierto), conteo de apertura (corrigiendo, nuevo y con un lote agregado) y ajuste: a 360, 320, 768, 1024 y 1440 px, `scrollWidth == clientWidth` en todos y ninguna caja desbordada salvo el margen negativo deliberado de la fila de tarjetas (`FilaTarjetas`, igual que en Novedades). Se recorrió con datos de ejemplo (`FichaInventario` solo dibuja, la página trae los datos) y se probó escribir una cantidad de corrido en el ajuste (el foco se mantiene y la vista previa cuadra). **Sin recorrer con una sesión real** (guardar necesita la base).
