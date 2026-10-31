@@ -1,4 +1,5 @@
 import { sugerirDestinos } from "../lib/sugerencias-corral.ts";
+import { hrefVenta } from "../lib/semaforos.ts";
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
@@ -347,4 +348,26 @@ test("semáforos: toda señal dice qué hacer (armarSenal lo exige) y nada queda
   assert.throws(() => armarSenal({ ...base, queHacer: "" }, []), /no dice qué hacer/);
   assert.throws(() => armarSenal({ ...base, queHacer: "   " }, []), /no dice qué hacer/);
   assert.equal(armarSenal({ ...base, queHacer: "Haz algo." }, []).queHacer, "Haz algo.");
+});
+
+test("semáforos: dinero — cada cobro y cada pago llevan a SU registro, no a la lista general", () => {
+  const ID = "5e1f0a11-0000-4000-8000-0000000000aa";
+  // Según de dónde viene la venta: una venta registrada, un despacho de leche o la baja de un animal.
+  assert.equal(hrefVenta("venta", ID), `/hato/ventas/${ID}/editar`);
+  assert.equal(hrefVenta("leche", ID), `/leche/despachos/${ID}`);
+  assert.equal(hrefVenta("animal", ID), `/hato/${ID}#salida`);
+  assert.equal(hrefVenta("otra-cosa", ID), "/hato?vista=ventas");
+
+  const compra = { id: ID, descripcion: "Concentrado", monto: 100000, vence: dia(-2) };
+  const ventaLeche = { clave: `leche-${ID}`, origen: "leche", origen_id: ID, producto: "Leche", tercero: "Lácteos del Norte", valor: 800000, cobro_vence: dia(-5) };
+  const ventaSinComprador = { clave: `venta-${ID}`, origen: "venta", origen_id: ID, producto: "Queso", tercero: null, valor: 50000, cobro_vence: dia(-1) };
+  const [pagar, cobrar] = senalesDinero([compra], [ventaLeche, ventaSinComprador], HOY);
+  assert.equal(pagar.items[0].href, `/hato/gastos/${ID}/editar`);
+  assert.equal(pagar.items[0].queHacer, "Paga y marca la compra como pagada.");
+  const leche = cobrar.items.find((i) => i.etiqueta.startsWith("Leche"));
+  assert.equal(leche.href, `/leche/despachos/${ID}`);
+  assert.equal(leche.queHacer, "Cobra a Lácteos del Norte y registra el cobro en la venta.");
+  const queso = cobrar.items.find((i) => i.etiqueta.startsWith("Queso"));
+  assert.equal(queso.href, `/hato/ventas/${ID}/editar`);
+  assert.equal(queso.queHacer, "Cobra y registra el cobro en la venta.");
 });

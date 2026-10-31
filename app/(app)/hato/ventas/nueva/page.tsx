@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ChevronLeft } from "lucide-react";
+import { Aviso } from "@/components/Aviso";
 import { Encabezado } from "@/components/Encabezado";
 import { FormVenta } from "@/components/FormVenta";
 import { obtenerContexto } from "@/lib/contexto";
@@ -26,6 +27,12 @@ export default async function PaginaVentaNueva() {
       </Link>
       <Encabezado titulo="Registrar una venta" subtitulo={finca.nombre} />
       <div className="lg:max-w-xl">
+        <div className="mb-5">
+          <Aviso tipo="info">
+            Aquí van los productos que no tienen otro módulo. La <strong>leche</strong> no se registra aquí: entra sola desde{" "}
+            <Link href="/leche?vista=despachos" className="font-semibold text-musgo underline underline-offset-4">Leche → Despachos</Link>, y los <strong>animales</strong> vendidos, desde su salida del hato.
+          </Aviso>
+        </div>
         <FormVenta hoy={hoyBogota()} productos={ventasManuales(productos).filter((p) => p.activo)} terceros={terceros} solicitud={randomUUID()} />
       </div>
     </>

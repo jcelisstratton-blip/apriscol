@@ -775,7 +775,7 @@ export function senalPezunas(podologia: FilaRevision[], pediluvio: FilaRevision[
       etiqueta: `${titulo}: ${atrasadas.length} ${atrasadas.length === 1 ? "animal atrasado" : "animales atrasados"}`,
       detalle: `${nunca > 0 ? `${nunca} sin registro; ` : ""}${peor > 0 ? `el más atrasado, ${dias(peor)}` : "toca según el plazo de Ajustes"} (cada ${dias(cadaDias)})`,
       nivel: rojo ? "rojo" : "ambar",
-      href: "/hato?vista=sanidad",
+      href: "/hato/sanidad/programar",
       orden: rojo ? 0 : 1,
     });
   };
@@ -789,7 +789,7 @@ export function senalPezunas(podologia: FilaRevision[], pediluvio: FilaRevision[
       queHacer: "Programa la revisión de pezuñas o el pediluvio para estos animales y registra cuándo se haga.",
       queSignifica: "Animales a los que ya les tocaba la revisión de pezuñas o el baño de patas según el plazo de la finca.",
       regla: `Ámbar: pasó el plazo de Ajustes. Rojo: más de ${DIAS_PEZUNAS_ROJO} días de atraso o sin registro.`,
-      accion: { texto: "Programar en Hato → Sanidad", href: "/hato?vista=sanidad" },
+      accion: { texto: "Programar en Sanidad", href: "/hato/sanidad/programar" },
     },
     items,
   );
@@ -813,13 +813,13 @@ export function senalVacunas(eventos: EventoVacuna[], rabiaDias: number | null, 
     if (r.cada == null) continue;
     const ultima = eventos.filter((e) => e.producto_nombre && r.patron.test(e.producto_nombre)).map((e) => e.fecha).sort().pop() ?? null;
     if (!ultima) {
-      items.push({ clave: `vacuna-${r.clave}`, etiqueta: `Vacuna de ${r.nombre.toLowerCase()}`, detalle: `No hay ninguna campaña registrada (debe ser cada ${dias(r.cada)})`, nivel: "rojo", href: "/hato?vista=sanidad", orden: 0 });
+      items.push({ clave: `vacuna-${r.clave}`, etiqueta: `Vacuna de ${r.nombre.toLowerCase()}`, detalle: `No hay ninguna campaña registrada (debe ser cada ${dias(r.cada)})`, nivel: "rojo", href: "/hato/sanidad/programar", orden: 0 });
       continue;
     }
     const vence = sumarDias(ultima, r.cada);
     const falta = diasHasta(vence, hoy);
-    if (falta < 0) items.push({ clave: `vacuna-${r.clave}`, etiqueta: `Vacuna de ${r.nombre.toLowerCase()}`, detalle: `Vencida hace ${dias(-falta)}: la última campaña fue el ${corta(ultima)}`, nivel: "rojo", href: "/hato?vista=sanidad", orden: falta });
-    else if (falta <= DIAS_AVISO_VACUNA) items.push({ clave: `vacuna-${r.clave}`, etiqueta: `Vacuna de ${r.nombre.toLowerCase()}`, detalle: `Toca ${falta === 0 ? "hoy" : `en ${dias(falta)}`} (${corta(vence)}): la última campaña fue el ${corta(ultima)}`, nivel: "ambar", href: "/hato?vista=sanidad", orden: falta });
+    if (falta < 0) items.push({ clave: `vacuna-${r.clave}`, etiqueta: `Vacuna de ${r.nombre.toLowerCase()}`, detalle: `Vencida hace ${dias(-falta)}: la última campaña fue el ${corta(ultima)}`, nivel: "rojo", href: "/hato/sanidad/programar", orden: falta });
+    else if (falta <= DIAS_AVISO_VACUNA) items.push({ clave: `vacuna-${r.clave}`, etiqueta: `Vacuna de ${r.nombre.toLowerCase()}`, detalle: `Toca ${falta === 0 ? "hoy" : `en ${dias(falta)}`} (${corta(vence)}): la última campaña fue el ${corta(ultima)}`, nivel: "ambar", href: "/hato/sanidad/programar", orden: falta });
   }
   const sinPlazo = reglas.filter((r) => r.cada == null).map((r) => r.nombre.toLowerCase());
   return armarSenal(
@@ -830,7 +830,7 @@ export function senalVacunas(eventos: EventoVacuna[], rabiaDias: number | null, 
       queHacer: "Programa con tu veterinario la campaña de rabia o de clostridiosis que toca y registra la aplicación.",
       queSignifica: "Si ya toca repetir la campaña de rabia y de clostridiosis, según cada cuánto la repites (se define en Ajustes).",
       regla: `Ámbar: faltan ${DIAS_AVISO_VACUNA} días o menos para repetirla. Rojo: ya venció o nunca se registró.`,
-      accion: { texto: "Programar en Hato → Sanidad", href: "/hato?vista=sanidad" },
+      accion: { texto: "Programar en Sanidad", href: "/hato/sanidad/programar" },
       nota: sinPlazo.length ? `No se evalúa la vacuna de ${sinPlazo.join(" ni la de ")}: define cada cuántos días se repite en Ajustes de la finca → Sanidad.` : "Se reconoce la vacuna por el nombre del producto (que diga «rabia» o «clostridios…»).",
     },
     items,
@@ -920,7 +920,15 @@ export function senalesCeba(animales: AnimalEnCeba[], gdpMinimaG: number, hoy: s
 
 // ───────────────────────── Dinero ─────────────────────────
 export type CompraPorPagar = { id: string; descripcion: string; monto: number; vence: string };
-export type VentaPorCobrar = { clave: string; producto: string; tercero: string | null; valor: number; cobro_vence: string };
+export type VentaPorCobrar = { clave: string; /** De dónde viene: una venta registrada («venta»), un despacho de leche («leche») o la baja de un animal («animal»). */ origen: string; origen_id: string; producto: string; tercero: string | null; valor: number; cobro_vence: string };
+
+/** A dónde se atiende una venta por cobrar: su propio registro, según de dónde viene (no la lista general). */
+export function hrefVenta(origen: string, id: string): string {
+  if (origen === "venta") return `/hato/ventas/${id}/editar`;
+  if (origen === "leche") return `/leche/despachos/${id}`;
+  if (origen === "animal") return `/hato/${id}#salida`;
+  return "/hato?vista=ventas";
+}
 /** Días antes del vencimiento desde los que un pago o un cobro pasa a ámbar. */
 const DIAS_AVISO_DINERO = 7;
 
@@ -936,12 +944,12 @@ export function senalesDinero(compras: CompraPorPagar[], ventas: VentaPorCobrar[
   const pagar: ItemSenal[] = [];
   for (const c of compras) {
     const nivel = nivelDe(c.vence);
-    if (nivel) pagar.push({ clave: `pagar-${c.id}`, etiqueta: c.descripcion, detalle: `${pesos(Number(c.monto))} · ${texto(c.vence, "vence")}`.replace("vence hace", "venció hace"), nivel, href: "/hato?vista=gastos", orden: diasHasta(c.vence, hoy) });
+    if (nivel) pagar.push({ clave: `pagar-${c.id}`, etiqueta: c.descripcion, detalle: `${pesos(Number(c.monto))} · ${texto(c.vence, "vence")}`.replace("vence hace", "venció hace"), nivel, href: `/hato/gastos/${c.id}/editar`, queHacer: "Paga y marca la compra como pagada.", orden: diasHasta(c.vence, hoy) });
   }
   const cobrar: ItemSenal[] = [];
   for (const v of ventas) {
     const nivel = nivelDe(v.cobro_vence);
-    if (nivel) cobrar.push({ clave: `cobrar-${v.clave}`, etiqueta: `${v.producto}${v.tercero ? ` · ${v.tercero}` : ""}`, detalle: `${pesos(Number(v.valor))} · ${texto(v.cobro_vence, "lo esperabas")}`.replace("lo esperabas en", "lo esperas en").replace("lo esperabas hoy", "lo esperas hoy"), nivel, href: "/hato?vista=ventas", orden: diasHasta(v.cobro_vence, hoy) });
+    if (nivel) cobrar.push({ clave: `cobrar-${v.clave}`, etiqueta: `${v.producto}${v.tercero ? ` · ${v.tercero}` : ""}`, detalle: `${pesos(Number(v.valor))} · ${texto(v.cobro_vence, "lo esperabas")}`.replace("lo esperabas en", "lo esperas en").replace("lo esperabas hoy", "lo esperas hoy"), nivel, href: hrefVenta(v.origen, v.origen_id), queHacer: v.tercero ? `Cobra a ${v.tercero} y registra el cobro en la venta.` : "Cobra y registra el cobro en la venta.", orden: diasHasta(v.cobro_vence, hoy) });
   }
   return [
     armarSenal(

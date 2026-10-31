@@ -12,6 +12,7 @@ import { ESCENA_COBRO, ESCENA_LINEA_VENTA } from "@/lib/escenas-costos";
 import { pesos } from "@/lib/ferias";
 import { leerNumero } from "@/lib/numeros";
 import { textoPrecio } from "@/lib/productos";
+import { precioDeCada, textoPorUnidad } from "@/lib/unidades";
 import type { Producto, Tercero, Venta } from "@/lib/tipos";
 
 const coma = (n: number | null | undefined) => (n == null ? "" : String(n).replace(".", ","));
@@ -69,7 +70,7 @@ export function FormVenta({ hoy, productos, terceros, venta, solicitud }: { hoy:
             valor={producto}
             onCambio={(v) => v && elegirProducto(String(v))}
             titulo="Producto vendido"
-            opciones={productos.map((p) => ({ valor: p.id, etiqueta: p.nombre, detalle: p.unidad ? `Por ${p.unidad.replace(/s$/, "")}` : undefined, escena: ESCENA_LINEA_VENTA[p.linea ?? "otros"] }))}
+            opciones={productos.map((p) => ({ valor: p.id, etiqueta: p.nombre, detalle: textoPorUnidad(p.unidad), escena: ESCENA_LINEA_VENTA[p.linea ?? "otros"] }))}
           />
         )}
       </Campo>
@@ -80,7 +81,7 @@ export function FormVenta({ hoy, productos, terceros, venta, solicitud }: { hoy:
             <Campo etiqueta={`Cuántos ${unidad || "unidades"}`}>
               {(id) => <input id={id} name="cantidad" value={cantidad} onChange={(e) => setCantidad(e.target.value)} required inputMode="decimal" autoComplete="off" enterKeyHint="next" placeholder="Ej. 10" className={CLASE_INPUT} />}
             </Campo>
-            <Campo etiqueta={`Precio de cada ${unidad ? unidad.replace(/s$/, "") : "unidad"}`} ayuda={elegido.precio_habitual != null ? "Es el último precio al que vendiste; cámbialo si subió o bajó." : "Solo la primera vez: queda guardado para la próxima."}>
+            <Campo etiqueta={precioDeCada(unidad)} ayuda={elegido.precio_habitual != null ? "Es el último precio al que vendiste; cámbialo si subió o bajó." : "Solo la primera vez: queda guardado para la próxima."}>
               {(id) => <input id={id} name="precio_unitario" value={precio} onChange={(e) => setPrecio(e.target.value)} required inputMode="decimal" autoComplete="off" enterKeyHint="next" placeholder="Ej. 30.000" className={CLASE_INPUT} />}
             </Campo>
           </div>
