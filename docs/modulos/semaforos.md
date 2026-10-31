@@ -84,3 +84,5 @@ Una señal que depende de una tendencia, de un resultado nuevo o del paso del ti
 **Reproducción (casos):** cada caso dice el botón exacto de la ficha (Servicio, Diagnóstico, Repetir diagnóstico, Secar) y lleva a su tarjeta (`#reproduccion`, `#lactancia`; `ScrollAncla` asegura el desplazamiento). La ficha tiene el botón **Secar (sacar del ordeño)** en «Lactancia» (`BotonSecar`, pide confirmar). El aviso de retiro de la ficha aclara que el retiro solo afecta la leche y la carne, no la reproducción.
 
 **Animales en retiro:** la lista de «En periodo de retiro» (Sanidad y Hoy) puede ser todo el hato, así que va por tramos de 20 con búsqueda (`ListaRetiro`, sobre `ListaPorTramos`), nunca completa de golpe. Probada a 360 y 320 px con 150 animales.
+
+**Sanidad → Resumen** abre con la tarjeta «Qué atender hoy · Sanidad» (`SenalesDeArea`): las mismas señales, números y «qué hacer» que el aviso de Telegram y la pantalla Semáforos, con los primeros casos; cada una abre su detalle (`/semaforos?area=sanidad&s=<señal>`). Así la pantalla de trabajo y el celular cuentan lo mismo. Pendiente de replicar en Reproducción, Leche e Inventario.
