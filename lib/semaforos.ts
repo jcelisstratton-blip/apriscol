@@ -65,16 +65,19 @@ export type Senal = {
   /** «2 en rojo · 5 en ámbar» o «En orden». */
   resumen: string;
   items: ItemSenal[];
+  /** Qué hacer con esta tarea, en una o dos frases claras (siempre se escribe: toda señal nueva lleva la suya). */
+  queHacer: string;
   queSignifica: string;
   regla: string;
   accion?: { texto: string; href: string };
   nota?: string;
 };
 
-type BaseSenal = Pick<Senal, "id" | "area" | "titulo" | "queSignifica" | "regla" | "accion" | "nota">;
+type BaseSenal = Pick<Senal, "id" | "area" | "titulo" | "queHacer" | "queSignifica" | "regla" | "accion" | "nota">;
 
 /** Arma la señal: ordena (rojo primero, luego lo más urgente), calcula su nivel y su resumen. */
 export function armarSenal(base: BaseSenal, items: ItemSenal[]): Senal {
+  if (!base.queHacer?.trim()) throw new Error(`La señal «${base.id}» no dice qué hacer.`);
   const ordenados = [...items].sort((a, b) => (a.nivel === b.nivel ? a.orden - b.orden : a.nivel === "rojo" ? -1 : 1));
   const rojos = ordenados.filter((i) => i.nivel === "rojo").length;
   const ambar = ordenados.length - rojos;
@@ -134,6 +137,7 @@ export function senalPartos(filas: ReproHembra[], hoy: string, plazos: PlazosPar
       id: "partos",
       area: "reproduccion",
       titulo: "Partos que se acercan",
+      queHacer: "Prepara el lugar de parto (maternidad) y vigila a diario a las que están cerca. Cuando paran, registra el parto; si ya pasó la fecha, revísala hoy.",
       queSignifica: `Hembras gestantes o servidas cuyo parto previsto llega en los próximos ${plazos.preparar} días, o que ya pasó su fecha.`,
       regla: `Ámbar: faltan ${plazos.preparar} días o menos (a ${plazos.vigilar} o menos, vigilarla a diario) o pasó hasta ${DIAS_PARTO_ATRASADO} días. Rojo: pasaron más de ${DIAS_PARTO_ATRASADO} días de su fecha sin parir.`,
       accion: { texto: "Ver Reproducción", href: "/reproduccion" },
@@ -174,6 +178,7 @@ export function senalesDiagnostico(filas: ReproHembra[], hoy: string, ventana: V
         id: "diagnostico",
         area: "reproduccion",
         titulo: "Servicios sin diagnóstico",
+        queHacer: "Confirma si quedó gestante (con tu veterinario o con tu método de diagnóstico) y registra el resultado.",
         queSignifica: "Hembras servidas a las que ya toca confirmar si quedaron gestantes.",
         regla: `Ámbar: está dentro de la ventana de diagnóstico (del día ${ventana.desde} al ${ventana.hasta} después del servicio). Rojo: ya la pasó.`,
         accion: { texto: "Ver Reproducción", href: "/reproduccion" },
@@ -185,6 +190,7 @@ export function senalesDiagnostico(filas: ReproHembra[], hoy: string, ventana: V
         id: "repetir",
         area: "reproduccion",
         titulo: "Diagnósticos por repetir",
+        queHacer: "Repite la prueba de diagnóstico a las que quedaron dudosas y registra el resultado.",
         queSignifica: "Hembras cuyo último diagnóstico fue dudoso y siguen en observación.",
         regla: "Ámbar: toca repetir la prueba entre 14 y 21 días después del dudoso. Rojo: pasaron más de 21 días.",
         accion: { texto: "Ver Reproducción", href: "/reproduccion" },
@@ -224,6 +230,7 @@ export function senalSecado(filas: ReproHembra[], hoy: string, secadoDiasAntes: 
       id: "secado",
       area: "reproduccion",
       titulo: "Secado y último tercio",
+      queHacer: "Seca a las que ya deben secarse (deja de ordeñarlas) y refuerza el alimento de las que entraron al último tercio de gestación.",
       queSignifica: "Gestantes en ordeño que ya deben secarse, y gestantes que entraron al último tercio y necesitan más alimento.",
       regla: `Ámbar: faltan ${secadoDiasAntes} días o menos para parir y sigue en ordeño (secarla), o lleva ${ultimoTercioDia} días de gestación o más (reforzar). Rojo: faltan 7 días o menos y sigue en ordeño.`,
       accion: { texto: "Ver Reproducción", href: "/reproduccion" },
@@ -256,6 +263,7 @@ export function senalVaciaSinServicio(filas: ReproHembra[], hoy: string, avisoDi
       id: "vacia",
       area: "reproduccion",
       titulo: "Vacías sin servicio",
+      queHacer: "Programa un servicio o una monta para cada una, empezando por las que llevan más días vacías.",
       queSignifica: "Hembras que ya parieron y siguen vacías, sin servicio y fuera de una temporada de monta. Cada día abierto cuesta leche y crías.",
       regla: `Ámbar: pasaron ${avisoDias} días desde el parto. Rojo: pasaron ${urgenteDias} días o más.`,
       accion: { texto: "Ver Reproducción", href: "/reproduccion" },
@@ -296,6 +304,7 @@ export function senalAbortos(abortos: AbortoReciente[], hoy: string, etiqueta: E
       id: "abortos",
       area: "reproduccion",
       titulo: "Abortos agrupados",
+      queHacer: "Llama a tu veterinario hoy: varios abortos juntos pueden ser un brote infeccioso. Registra cada aborto.",
       queSignifica: `Abortos de los últimos ${ABORTOS_VENTANA_DIAS} días. Varios juntos pueden ser un brote infeccioso y piden llamar al veterinario.`,
       regla: `Ámbar: ${ABORTOS_AMBAR} abortos en ${ABORTOS_VENTANA_DIAS} días (o uno de causa infecciosa). Rojo: ${ABORTOS_ROJO} o más.`,
       accion: { texto: "Ver Reproducción", href: "/reproduccion" },
@@ -332,6 +341,7 @@ export function senalMortalidadCrias(nacidas: number, muertes: MuerteCria[], hoy
       id: "mortalidad",
       area: "reproduccion",
       titulo: "Mortalidad de crías",
+      queHacer: "Revisa con tu veterinario qué pasó en los partos y en los primeros días de las crías, empezando por las muertes más recientes.",
       queSignifica: `De las crías que nacieron en los últimos ${MORTALIDAD_VENTANA_DIAS} días, las que nacieron muertas o murieron después, frente a todas las que nacieron.`,
       regla: `Ámbar: más de ${MORTALIDAD_AMBAR_PCT} %. Rojo: más de ${MORTALIDAD_ROJO_PCT} %. Con menos de ${MORTALIDAD_MIN_CRIAS} crías en el periodo no se evalúa.`,
       accion: { texto: "Ver Reproducción", href: "/reproduccion" },
@@ -363,6 +373,7 @@ export function senalFamacha(filas: FilaFamacha[], etiqueta: Etiqueta): Senal {
       id: "famacha",
       area: "sanidad",
       titulo: "Anemia por parásitos (FAMACHA)",
+      queHacer: "Desparasita a los de puntaje 4 o 5 y vigila a los de 3, con el producto y la dosis que indique tu veterinario. Registra cada aplicación.",
       queSignifica: "Animales cuya última evaluación del color de la mucosa muestra anemia y todavía no se desparasitaron desde entonces.",
       regla: "Rojo: puntaje 4 o 5 sin desparasitar. Ámbar: puntaje 3 sin desparasitar (vigilar).",
       accion: { texto: "Ver Sanidad", href: "/sanidad" },
@@ -394,6 +405,7 @@ export function senalCoprologico(filas: FilaCoprologico[], etiqueta: Etiqueta): 
       id: "coprologico",
       area: "sanidad",
       titulo: "Cargas de parásitos altas (coprológico)",
+      queHacer: "Consulta con tu veterinario si toca desparasitarlos y con qué producto; después registra la aplicación.",
       queSignifica: "Animales cuyo último examen coprológico mostró muchos huevos de parásitos y todavía no se desparasitaron desde entonces.",
       regla: `Ámbar: desde ${HPG_ALTO.toLocaleString("es-CO")} huevos por gramo (HPG) sin desparasitar. Rojo: desde ${HPG_MUY_ALTO.toLocaleString("es-CO")} HPG. Son cortes de referencia: tu veterinario manda.`,
       accion: { texto: "Ver Sanidad", href: "/sanidad" },
@@ -424,6 +436,7 @@ export function senalDosis(pendientes: DosisPendiente[], hoy: string): Senal {
       id: "dosis",
       area: "sanidad",
       titulo: "Dosis y programas por aplicar",
+      queHacer: "Aplica cada dosis pendiente con su producto a los animales que dice la lista, empezando por las vencidas, y registra la aplicación.",
       queSignifica: "Refuerzos de vacunas, desparasitaciones y jornadas sanitarias programadas que vencen pronto o ya vencieron.",
       regla: "Ámbar: vence hoy o en los próximos 7 días. Rojo: ya venció.",
       accion: { texto: "Ver Sanidad", href: "/sanidad" },
@@ -455,6 +468,7 @@ export function senalRetiro(filas: FilaRetiro[], hoy: string, etiqueta: Etiqueta
       id: "retiro",
       area: "sanidad",
       titulo: "Animales en periodo de retiro",
+      queHacer: "No mandes al tanque la leche de estos animales ni los vendas o sacrifiques hasta que termine su periodo de retiro.",
       queSignifica: "Animales tratados cuya leche no puede ir al tanque o cuya carne no puede salir a consumo hasta que pase el retiro del medicamento.",
       regla: "Ámbar mientras dure el retiro. La app ya descarta esa leche y avisa antes de vender o sacrificar; no hay rojo porque no es una falla, es una restricción.",
       nota: "Respeta la fecha: la leche o la carne con residuos de medicamento no se puede vender.",
@@ -486,6 +500,7 @@ export function senalFrio(lecturas: LecturaFrio[], hoy: string): Senal {
       id: "frio",
       area: "leche",
       titulo: "Cadena de frío",
+      queHacer: "Revisa que el tanque esté enfriando bien (termostato y equipo) y vuelve a medir la temperatura. Si sigue fuera de rango, la leche está en riesgo.",
       queSignifica: "Lecturas de temperatura del tanque de los últimos 7 días fuera del rango seguro (4 a 6 °C).",
       regla: "Ámbar: hasta 2 °C fuera del rango. Rojo: más de 2 °C fuera, la leche está en riesgo.",
       accion: { texto: "Ver Leche", href: "/leche" },
@@ -529,6 +544,7 @@ export function senalCalidad(a: AnalisisTanque | null, l: LimitesCalidad): Senal
       id: "calidad",
       area: "leche",
       titulo: "Calidad de la leche",
+      queHacer: "Abre el último análisis y mira qué valor falló. Si hay residuos de antibióticos, esa leche no debe ir al tanque.",
       queSignifica: "El último análisis del tanque (de los últimos 60 días): células somáticas, crioscopia, residuos de antibióticos, grasa y proteína.",
       regla: "Rojo: residuos positivos, células sobre el límite o crioscopia con posible agua. Ámbar: células cerca del límite (80 %), crioscopia más fría de lo habitual, o grasa o proteína fuera de rango.",
       accion: { texto: "Ver Leche", href: "/leche" },
@@ -556,6 +572,7 @@ export function senalProduccion(tendencias: Tendencia[], etiqueta: Etiqueta): Se
       id: "produccion",
       area: "leche",
       titulo: "Producción que baja",
+      queHacer: "Revisa a las que bajan, empezando por las de baja fuerte: mastitis, parásitos, alimentación, celo o estrés.",
       queSignifica: "Hembras en ordeño cuya producción de los últimos días bajó frente a su propio promedio.",
       regla: "Ámbar: baja notable frente a su promedio. Rojo: baja fuerte, hay que revisarla ya (mastitis, parásitos, alimentación, celo o estrés).",
       accion: { texto: "Ver Leche", href: "/leche" },
@@ -601,6 +618,7 @@ export function senalCorrales(ubicaciones: UbicacionVista[]): Senal {
       id: "corrales",
       area: "corrales",
       titulo: "Cupo y rotación",
+      queHacer: "Pasa animales a otra instalación si el corral pasó su cupo; rota el lote a otro potrero si el potrero ya cumplió sus días de ocupación.",
       queSignifica: "Corrales con más animales que su cupo y potreros que ya pasaron los días de ocupación y deben desocuparse.",
       regla: "Rojo: el corral pasó su cupo o el potrero pasó los días máximos de ocupación.",
       accion: { texto: "Ver Corrales", href: "/corrales" },
@@ -631,6 +649,7 @@ export function senalInventario(filas: FilaInventario[], hoy: string): Senal {
       id: "inventario",
       area: "inventario",
       titulo: "Medicamentos y vacunas",
+      queHacer: "Compra o repone lo que se agotó o está en el mínimo, y no uses los lotes vencidos. Registra la compra para que el inventario se actualice.",
       queSignifica: "Productos de la bodega que se agotaron, llegaron a su mínimo o tienen un lote vencido o por vencer.",
       regla: `Rojo: lote vencido, agotado o aplicado de más. Ámbar: en el mínimo o un lote que vence en ${DIAS_AVISO_VENCIMIENTO} días o menos.`,
       accion: { texto: "Ver Inventario", href: "/inventario" },
@@ -660,6 +679,7 @@ export function senalAlimento(filas: FilaAlimento[], plazoDias: number, hoy: str
       id: "alimento",
       area: "alimento",
       titulo: "Alimento",
+      queHacer: "Compra o repone el alimento que se acaba y registra la compra. Si dice que se dio de más, revisa que el inventario esté bien contado.",
       queSignifica: "Alimentos de la bodega que se agotaron o que alcanzan para pocos días, según lo que se les ha dado de comer en las últimas dos semanas.",
       regla: `Rojo: se agotó, se dio de más o alcanza para menos de ${diasTexto(plazoDias / 2)}. Ámbar: alcanza para menos de ${diasTexto(plazoDias)} (se cambia en Ajustes de la finca).`,
       accion: { texto: "Ver Inventario", href: "/inventario?vista=alimento" },
@@ -705,6 +725,7 @@ export function senalPruebas(filas: FilaPrueba[], hoy: string, etiqueta: Etiquet
       id: "pruebas",
       area: "sanidad",
       titulo: "Pruebas de laboratorio",
+      queHacer: "Con tu veterinario, define qué hacer con cada positivo o sospechoso (aislarlo, repetir la prueba) y registra el resultado.",
       queSignifica: "Animales cuya última prueba (CAE, brucelosis, paratuberculosis, CMT, cultivo) salió positiva, sospechosa o sin resultado.",
       regla: `Rojo: positivo de CAE, brucelosis o paratuberculosis, o un sospechoso que no se repitió en ${DIAS_REPETIR_SOSPECHOSO} días. Ámbar: sospechoso reciente, positivo de CMT o cultivo de los últimos ${DIAS_PRUEBA_TRANSITORIA} días, o sin resultado.`,
       accion: { texto: "Ver Sanidad", href: "/sanidad" },
@@ -728,6 +749,7 @@ export function senalCuarentena(filas: CuarentenaAlerta[], etiqueta: Etiqueta): 
       id: "cuarentena",
       area: "sanidad",
       titulo: "Cuarentena de animales nuevos",
+      queHacer: "Pasa a cuarentena a los que entraron sin pasar por ella, y mantén a los que están en cuarentena hasta que cumplan los 21 días.",
       queSignifica: "Animales que llegaron de afuera y no pasaron por cuarentena, o que siguen en ella sin cumplir el mínimo.",
       regla: "Rojo: el animal entró y no está en cuarentena. Ámbar: está en cuarentena y aún no cumple los 21 días mínimos.",
       accion: { texto: "Ver Corrales", href: "/corrales" },
@@ -764,6 +786,7 @@ export function senalPezunas(podologia: FilaRevision[], pediluvio: FilaRevision[
       id: "pezunas",
       area: "sanidad",
       titulo: "Pezuñas y pediluvio",
+      queHacer: "Programa la revisión de pezuñas o el pediluvio para estos animales y registra cuándo se haga.",
       queSignifica: "Animales a los que ya les tocaba la revisión de pezuñas o el baño de patas según el plazo de la finca.",
       regla: `Ámbar: pasó el plazo de Ajustes. Rojo: más de ${DIAS_PEZUNAS_ROJO} días de atraso o sin registro.`,
       accion: { texto: "Programar en Hato → Sanidad", href: "/hato?vista=sanidad" },
@@ -804,6 +827,7 @@ export function senalVacunas(eventos: EventoVacuna[], rabiaDias: number | null, 
       id: "vacunas",
       area: "sanidad",
       titulo: "Vacunas anuales",
+      queHacer: "Programa con tu veterinario la campaña de rabia o de clostridiosis que toca y registra la aplicación.",
       queSignifica: "Si ya toca repetir la campaña de rabia y de clostridiosis, según cada cuánto la repites (se define en Ajustes).",
       regla: `Ámbar: faltan ${DIAS_AVISO_VACUNA} días o menos para repetirla. Rojo: ya venció o nunca se registró.`,
       accion: { texto: "Programar en Hato → Sanidad", href: "/hato?vista=sanidad" },
@@ -828,6 +852,7 @@ export function senalMantenimiento(filas: MantenimientoOrdeno[], hoy: string): S
       id: "mantenimiento",
       area: "leche",
       titulo: "Mantenimiento de la sala de ordeño",
+      queHacer: "Haz el lavado o la revisión que toca y regístralo, para que la próxima fecha se calcule.",
       queSignifica: "Lavados, revisión de presión y de pulsadores del equipo de ordeño que ya tocan o están por tocar.",
       regla: "Ámbar: toca en los próximos 7 días. Rojo: ya está atrasada.",
       accion: { texto: "Ver Leche", href: "/leche" },
@@ -871,6 +896,7 @@ export function senalesCeba(animales: AnimalEnCeba[], gdpMinimaG: number, hoy: s
         id: "ceba-pesaje",
         area: "ceba",
         titulo: "Pesaje atrasado en ceba",
+        queHacer: "Pesa a los animales atrasados y registra el peso.",
         queSignifica: "Animales en engorde (en un lote abierto o machos de carne) que llevan más días sin pesarse de lo que la finca definió.",
         regla: "Ámbar: pasó el plazo de pesaje de Carne → Reglas de ceba. Rojo: pasó el doble del plazo o nunca se ha pesado.",
         accion: { texto: "Pesar en Hato → Ceba", href: "/hato?vista=ceba" },
@@ -882,6 +908,7 @@ export function senalesCeba(animales: AnimalEnCeba[], gdpMinimaG: number, hoy: s
         id: "ceba-gdp",
         area: "ceba",
         titulo: "Ganancia de peso baja",
+        queHacer: "Revisa la alimentación y la sanidad de los que ganan poco y vuelve a pesarlos pronto.",
         queSignifica: "Animales en engorde cuya ganancia diaria reciente está por debajo del mínimo de la finca.",
         regla: `Ámbar: gana menos de ${gdpMinimaG} g/día (Ajustes → Ceba). Rojo: menos de la mitad.`,
         accion: { texto: "Ver Carne", href: "/carne" },
@@ -922,6 +949,7 @@ export function senalesDinero(compras: CompraPorPagar[], ventas: VentaPorCobrar[
         id: "compras-pagar",
         area: "dinero",
         titulo: "Compras por pagar",
+        queHacer: "Paga lo que vence y marca la compra como pagada.",
         queSignifica: "Compras a crédito cuyo pago vence pronto o ya venció.",
         regla: `Ámbar: vence hoy o en los próximos ${DIAS_AVISO_DINERO} días. Rojo: ya venció.`,
         accion: { texto: "Ver Hato → Compras", href: "/hato?vista=gastos" },
@@ -933,6 +961,7 @@ export function senalesDinero(compras: CompraPorPagar[], ventas: VentaPorCobrar[
         id: "ventas-cobrar",
         area: "dinero",
         titulo: "Ventas por cobrar",
+        queHacer: "Cobra lo que vence y registra el cobro; si el cliente se atrasó, comunícate con él.",
         queSignifica: "Ventas (leche, animales, carne, derivados) cuyo cobro esperado vence pronto o ya venció.",
         regla: `Ámbar: se espera cobrar hoy o en los próximos ${DIAS_AVISO_DINERO} días. Rojo: el cobro esperado ya pasó.`,
         accion: { texto: "Ver Hato → Ventas", href: "/hato?vista=ventas" },

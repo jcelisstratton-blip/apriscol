@@ -43,7 +43,7 @@ test("semáforos: el inventario avisa lo agotado, descuadrado, bajo y por vencer
 });
 
 test("semáforos: armarSenal ordena (rojo primero, lo más urgente primero) y calcula nivel y resumen", () => {
-  const base = { id: "x", area: "sanidad", titulo: "T", queSignifica: "", regla: "" };
+  const base = { id: "x", area: "sanidad", titulo: "T", queHacer: "Haz algo.", queSignifica: "", regla: "" };
   const item = (clave, nivel, orden) => ({ clave, etiqueta: clave, detalle: "", nivel, href: "/", orden });
   const s = armarSenal(base, [item("a", "ambar", 1), item("b", "rojo", 5), item("c", "rojo", 2)]);
   assert.deepEqual(s.items.map((i) => i.clave), ["c", "b", "a"]);
@@ -340,4 +340,11 @@ test("semáforos: corrales — el qué hacer incluye una sugerencia de a dónde 
   assert.equal(con.queHacer, "Pasa 3 animales a otra instalación. Sugerencia: Corral a (caben 6 más (4 de 10)).");
   const sin = senalCorrales([lleno, ub("b", { ocupantes: 9 })]).items[0];
   assert.equal(sin.queHacer, "Pasa 3 animales a otra instalación.", "si ninguna tiene espacio no se inventa una sugerencia");
+});
+
+test("semáforos: toda señal dice qué hacer (armarSenal lo exige) y nada queda con textos vacíos o sin completar", () => {
+  const base = { id: "x", area: "sanidad", titulo: "T", queSignifica: "a", regla: "b" };
+  assert.throws(() => armarSenal({ ...base, queHacer: "" }, []), /no dice qué hacer/);
+  assert.throws(() => armarSenal({ ...base, queHacer: "   " }, []), /no dice qué hacer/);
+  assert.equal(armarSenal({ ...base, queHacer: "Haz algo." }, []).queHacer, "Haz algo.");
 });

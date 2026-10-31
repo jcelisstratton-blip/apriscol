@@ -55,7 +55,7 @@ export type EntradaResumen = {
   urlBase?: string;
 };
 
-type Tarea = { id: string; titulo: string; rojos: ItemSenal[]; ambar: ItemSenal[] };
+type Tarea = { id: string; titulo: string; queHacer: string; rojos: ItemSenal[]; ambar: ItemSenal[] };
 type Area = { area: AreaSemaforo; tareas: Tarea[]; rojos: number; ambar: number };
 
 const nombreCorto = (etiqueta: string) => etiqueta.split(" · ")[0];
@@ -79,7 +79,7 @@ function agrupar(senales: Senal[], nivelMinimo: NivelMinimo): Area[] {
     const rojos = s.items.filter((i) => i.nivel === "rojo");
     const ambar = nivelMinimo === "ambar" ? s.items.filter((i) => i.nivel === "ambar") : [];
     if (rojos.length + ambar.length === 0) continue;
-    porArea.set(s.area, [...(porArea.get(s.area) ?? []), { id: s.id, titulo: s.titulo, rojos, ambar }]);
+    porArea.set(s.area, [...(porArea.get(s.area) ?? []), { id: s.id, titulo: s.titulo, queHacer: s.queHacer, rojos, ambar }]);
   }
   return [...porArea.entries()]
     .map(([area, tareas]) => ({
@@ -180,6 +180,9 @@ export function armarDetalleArea(e: EntradaResumen & { area: AreaSemaforo }): Re
     const partes = [`<b>${escaparHtml(t.titulo)}</b>`];
     if (t.rojos.length > 0) partes.push(linea("🔴", t.rojos, conFecha ? " vencidas" : ""));
     if (t.ambar.length > 0) partes.push(linea("🟠", t.ambar, conFecha ? " pendientes" : ""));
+    // Qué hacer con la tarea. Si es un solo caso y ese caso ya trae su propia instrucción (más concreta), no se repite la general.
+    const casos = [...t.rojos, ...t.ambar];
+    if (!(casos.length === 1 && casos[0].queHacer)) partes.push(`➜ <b>Qué hacer:</b> ${escaparHtml(t.queHacer)}`);
     const bloque = partes.join("\n");
     if (usado + bloque.length + 2 > LIMITE_MENSAJE) break;
     bloques.push(bloque);
