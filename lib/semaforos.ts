@@ -659,7 +659,7 @@ export function senalInventario(filas: FilaInventario[], hoy: string): Senal {
     if (estado === "negativo") items.push({ clave: `negativo-${f.producto_id}`, etiqueta: f.nombre, detalle: "Se aplicó más de lo que había registrado", nivel: "rojo", href: rutaConteoTotal(f.producto_id), queHacer: "Abre el producto: ahí dice por qué se descuadró y cómo corregirlo. Si ya no queda nada en la bodega, cuenta 0 y se cuadra.", orden: 1 });
     else if (estado === "agotado") items.push({ clave: `agotado-${f.producto_id}`, etiqueta: f.nombre, detalle: "Se agotó", nivel: "rojo", href, queHacer: "Avisa al administrador para que lo compre y registra la compra cuando llegue.", orden: 1 });
     else if (estado === "bajo" && f.stock !== null) items.push({ clave: `bajo-${f.producto_id}`, etiqueta: f.nombre, detalle: `Quedan ${textoStock(f, f.stock)}, en el mínimo o por debajo`, nivel: "ambar", href, queHacer: "Compra lo que falta y registra la compra en Hato → Compras.", orden: 2 });
-    if (venc === "pronto" && f.vence_pronto) items.push({ clave: `vence-${f.producto_id}`, etiqueta: f.nombre, detalle: `Un lote vence el ${corta(f.vence_pronto)}`, nivel: "ambar", href, queHacer: "Úsalo primero.", orden: 3 });
+    if (venc === "pronto" && f.vence_pronto) items.push({ clave: `vence-${f.producto_id}`, etiqueta: f.nombre, detalle: `Un lote vence el ${corta(f.vence_pronto)} (en ${dias(diasHasta(f.vence_pronto, hoy))}); las existencias están bien`, nivel: "ambar", href, queHacer: "Úsalo primero: al aplicar, ese lote ya viene elegido. Si no alcanza a usarse, dalo de baja cuando venza.", orden: 3 });
   }
   return armarSenal(
     {

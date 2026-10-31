@@ -574,6 +574,8 @@ test("inventario: «dosis» no cambia en plural y los pasos dicen qué hacer con
   const p = pasosInventario(f, lotes, "2026-10-31");
   assert.deepEqual(p.map((x) => x.clave), ["vencido-A1", "pronto-B2"]);
   assert.match(p[0].titulo, /venció el/);
+  assert.match(p[1].titulo, /vence el .* \(en 18 días\) y quedan/, "el aviso de «vence pronto» dice cuántos días faltan y cuánto queda");
+  assert.ok(p[1].pasos[0].includes("existencias del producto están bien"), "aclara que no es un problema de existencias");
   assert.ok(p[0].pasos.some((t) => /Vencido/.test(t)), "dice el motivo del ajuste");
   assert.ok(p[0].pasos.some((t) => /Hato → Compras/.test(t)), "dice dónde corregir una fecha mal escrita");
   // Descuadrado, agotado y bajo.
