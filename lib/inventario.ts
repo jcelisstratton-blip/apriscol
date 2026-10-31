@@ -214,10 +214,15 @@ export function pasosInventario(f: Pick<FilaInventario, "producto_id" | "desde" 
   }
   const pronto = lotes.filter((l) => l.vencimiento && l.stock > 0.004 && estadoVencimiento(l.vencimiento, hoy) === "pronto");
   for (const l of pronto) {
+    const faltan = diasHasta(l.vencimiento!, hoy);
     pasos.push({
       clave: `pronto-${l.lote ?? "sin"}`,
-      titulo: `El lote ${l.lote ?? "sin nombre"} vence el ${fechaCorta(l.vencimiento!)}`,
-      pasos: ["Úsalo primero en las próximas aplicaciones (escribe este lote al registrarlas)."],
+      titulo: `El lote ${l.lote ?? "sin nombre"} vence el ${fechaCorta(l.vencimiento!)} (${faltan === 0 ? "hoy" : faltan === 1 ? "mañana" : `en ${faltan} días`}) y quedan ${textoStock(f, l.stock)}`,
+      pasos: [
+        "Las existencias del producto están bien: este aviso es solo porque ese lote se vence pronto.",
+        "Úsalo primero: al registrar una aplicación de este producto, ese lote ya viene elegido.",
+        "Si no alcanzas a usarlo antes de esa fecha, dalo de baja cuando venza (botón «Dar de baja este lote»).",
+      ],
     });
   }
   return pasos;
