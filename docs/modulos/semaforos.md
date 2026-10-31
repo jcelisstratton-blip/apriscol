@@ -64,3 +64,11 @@ Un caso de la lista puede traer `queHacer` (una frase con el paso siguiente) y s
 atrasados y los que ya pasaron su fecha. La ficha de la hembra muestra solo los botones que aplican a su estado: gestante → Parto
 («Registrar parto o aborto» si está atrasada; «Repetir diagnóstico» solo si está en observación); servida → Diagnóstico, Nuevo servicio, Parto;
 vacía o sin datos → Servicio.
+
+## Qué hacer en cada tarea
+
+**Toda señal dice qué hacer** (`queHacer` en `Senal`; `armarSenal` lanza un error si falta, y el tipo la exige: una señal nueva no compila sin ella). Es una o dos frases en lenguaje de finca, con el verbo primero («Aplica cada dosis pendiente…», «Pasa animales a otra instalación…», «Llama a tu veterinario hoy…»). Se ve en tres sitios: arriba de la hoja de cada tarea en Semáforos (en un recuadro, antes de los casos), en cada tarea del detalle de un área del bot de Telegram (`➜ Qué hacer: …`) y, cuando la tarea es de un solo caso con su propia instrucción más concreta, esa va en lugar de la general (el bot no repite las dos). Además, algunos casos traen la suya (`ItemSenal.queHacer`: partos, FAMACHA, corrales con su sugerencia de a dónde, inventario y alimento).
+
+**La explicación se pliega.** «Qué significa» y «Cuándo se pone en cada color» (con el enlace a Ajustes) van dentro de «¿Cómo funciona esta señal?», cerrado por defecto: lo primero que se ve es qué hacer y los casos concretos.
+
+**Criterio con lo clínico.** Las instrucciones solo dicen lo que ya dicen las reglas de la app (por ejemplo, desparasitar FAMACHA 4 o 5, los 21 días mínimos de cuarentena, no mandar al tanque la leche en retiro) y, donde hay decisión del veterinario, lo remiten a él. **Pendientes de revisión por el veterinario antes de darlas por definitivas:** abortos agrupados, mortalidad de crías, coprológico, pruebas de laboratorio, calidad de la leche, cadena de frío y ganancia de peso baja.

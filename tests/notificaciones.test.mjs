@@ -94,7 +94,7 @@ test("Telegram: editar un mensaje y responder a un botón", async () => {
 });
 
 const item = (clave, nivel, orden, extra = {}) => ({ clave, etiqueta: `Animal ${clave}`, detalle: `detalle ${clave}`, nivel, href: `/hato/${clave}`, orden, ...extra });
-const senal = (id, area, titulo, items) => ({ id, area, titulo, nivel: "rojo", resumen: "", items, queSignifica: "", regla: "" });
+const senal = (id, area, titulo, items) => ({ id, area, titulo, queHacer: `Qué hacer con ${titulo}.`, nivel: "rojo", resumen: "", items, queSignifica: "", regla: "" });
 
 const FINCA = "5e1f0a11-0000-4000-8000-000000000001";
 const dosisItem = (clave, nivel, atraso) => item(clave, nivel, nivel === "rojo" ? -atraso : 3, { etiqueta: `Producto ${clave}`, atrasoDias: atraso });
@@ -176,7 +176,10 @@ test("detalle de un área: tareas con sus vencidos y pendientes, nombres como te
   // Un solo caso: el mensaje dice por qué está ahí y qué hacer, sin abrir la app. Con varios casos no se repite en cada uno.
   const corral = armarDetalleArea({ ...BASE, area: "corrales", nivelMinimo: "ambar", senales: [senal("corrales", "corrales", "Cupo y rotación", [item("c1", "rojo", 0, { etiqueta: "Potrero Ovinos 1", detalle: "Pasó su cupo: tiene 13 animales y le caben 10", queHacer: "Pasa 3 animales a otra instalación." })])] });
   assert.match(corral.texto, /🔴 <b>1<\/b> · Potrero Ovinos 1\n   Pasó su cupo: tiene 13 animales y le caben 10\. <b>Qué hacer:<\/b> Pasa 3 animales a otra instalación\./);
-  assert.doesNotMatch(r.texto, /Qué hacer/);
+  assert.equal((corral.texto.match(/Qué hacer:/g) ?? []).length, 1, "un caso único con su propia instrucción no repite la general de la tarea");
+  // Cada tarea trae su «Qué hacer» (una sola vez), sea de uno o de varios casos.
+  assert.equal((r.texto.match(/Qué hacer:/g) ?? []).length, 3);
+  assert.match(r.texto, /<b>Dosis y programas por aplicar<\/b>[\s\S]*➜ <b>Qué hacer:<\/b> Qué hacer con Dosis y programas por aplicar\./);
   const rara = armarDetalleArea({ ...BASE, area: "leche", nivelMinimo: "ambar", senales: [senal("frio", "leche", "Cadena de frío", [item("t", "ambar", 1, { etiqueta: "Tanque", href: "https://malo.example/x" })])] });
   assert.deepEqual(rara.botones[0], [{ texto: "Cadena de frío (1)", miniApp: app("/semaforos?area=leche&s=frio") }]);
   // Un área sin nada: lo dice y deja volver; sin https solo queda «volver».

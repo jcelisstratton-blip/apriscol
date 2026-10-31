@@ -104,16 +104,9 @@ export function Semaforos({ senales, abiertaInicial = null }: { senales: Senal[]
               <span className="text-sm text-humo">{actual.resumen}</span>
             </div>
 
-            <div>
-              <h3 className="text-sm font-bold">Qué significa</h3>
-              <p className="mt-0.5 text-[0.9375rem] text-humo">{actual.queSignifica}</p>
-            </div>
-            <div>
-              <h3 className="text-sm font-bold">Cuándo se pone en cada color</h3>
-              <p className="mt-0.5 text-[0.9375rem] text-humo">{actual.regla}</p>
-              <Link href="/mas/ajustes" className="mt-1 inline-block text-sm font-semibold text-musgo underline-offset-4 hover:underline">
-                Cambiar los plazos en Ajustes de la finca
-              </Link>
+            <div className="rounded-2xl bg-lana p-3.5">
+              <h3 className="text-sm font-bold">Qué hacer</h3>
+              <p className="mt-0.5 text-[0.9375rem]">{actual.queHacer}</p>
             </div>
             {actual.nota ? <p className="rounded-2xl bg-arena/60 p-3 text-sm text-humo">{actual.nota}</p> : null}
 
@@ -153,6 +146,27 @@ export function Semaforos({ senales, abiertaInicial = null }: { senales: Senal[]
                 ) : null}
               </div>
             )}
+
+            <details className="group rounded-2xl border border-arena p-3.5">
+              <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between text-sm font-bold">
+                <span>¿Cómo funciona esta señal?</span>
+                <span className="shrink-0 pl-3 font-medium text-humo group-open:hidden">Ver</span>
+                <span className="hidden shrink-0 pl-3 font-medium text-humo group-open:inline">Ocultar</span>
+              </summary>
+              <div className="mt-2 space-y-3">
+                <div>
+                  <h3 className="text-sm font-bold">Qué significa</h3>
+                  <p className="mt-0.5 text-[0.9375rem] text-humo">{actual.queSignifica}</p>
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold">Cuándo se pone en cada color</h3>
+                  <p className="mt-0.5 text-[0.9375rem] text-humo">{actual.regla}</p>
+                  <Link href="/mas/ajustes" className="mt-1 inline-block text-sm font-semibold text-musgo underline-offset-4 hover:underline">
+                    Cambiar los plazos en Ajustes de la finca
+                  </Link>
+                </div>
+              </div>
+            </details>
 
             {actual.accion ? (
               <Link href={actual.accion.href} className="inline-flex min-h-11 items-center font-semibold text-musgo underline-offset-4 hover:underline">
