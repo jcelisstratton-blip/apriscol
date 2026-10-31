@@ -1,3 +1,4 @@
+import { QueAtender } from "@/components/QueAtender";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { Aviso } from "@/components/Aviso";
@@ -65,6 +66,7 @@ export default async function PaginaInventario({ searchParams }: { searchParams:
         }
       />
       {disponibles.length > 1 ? <PestanasTarjetas pestanas={armarPestanas("/inventario", disponibles[0].valor, disponibles)} actual={vista} /> : null}
+      <QueAtender area={vista === "medicamentos" ? "inventario" : "alimento"} />
       <div className="mb-2">
         <AyudaModulo ayuda={vista === "medicamentos" ? AYUDA_INVENTARIO : AYUDA_ALIMENTO} />
       </div>

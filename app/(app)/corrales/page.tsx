@@ -1,3 +1,4 @@
+import { QueAtender } from "@/components/QueAtender";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { EnlaceBoton } from "@/components/Boton";
@@ -62,6 +63,7 @@ export default async function PaginaCorrales({
         <FiltroPeriodo ruta="/corrales" fijos={{ ...(vista !== "resumen" ? { vista } : {}), ...(motivo !== "todos" ? { motivo } : {}) }} filtro={filtroFechas} />
       </div>
 
+      {vista === "resumen" ? <QueAtender area="corrales" /> : null}
       {vista === "resumen" ? <Resumen fincaId={finca.id} filtros={{ ...filtroFechas, motivo }} /> : null}
       {vista === "movimientos" ? <ListaMovimientos fincaId={finca.id} ubicaciones={nombres} rango={rango} puedeEditar={puedeEditar} /> : null}
     </>
