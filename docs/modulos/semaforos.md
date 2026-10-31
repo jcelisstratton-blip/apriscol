@@ -90,3 +90,5 @@ Una señal que depende de una tendencia, de un resultado nuevo o del paso del ti
 **Secar varias a la vez:** la señal «Secado y último tercio» ofrece «Secar varias a la vez» (`/leche/secar`, `FormSecarVarias`): lista las hembras que ya toca secar (marcadas por defecto), se quitan las que no, y `secarVarias` cierra la lactancia de todas hoy en una sola instrucción (todas o ninguna). Solo con permiso de Leche.
 
 **Casos que ahora llevan a donde se resuelven:** cuarentena (sin cuarentena → formulario de mover con el animal elegido; en cuarentena → «déjalo hasta los 21 días»), frío (→ lectura nueva), calidad de la leche (acción «Registrar un análisis nuevo»), mortalidad de crías (→ Reproducción → Partos) y producción que baja (→ tarjeta Lactancia de la ficha).
+
+**Sin textos repetidos:** si varios casos de una señal traen exactamente el mismo «qué hacer», la hoja lo dice **una sola vez** arriba («En cada caso» o «En N de los M casos») y no en cada fila; el caso que difiere conserva el suyo. En «último tercio» el caso dice su parto previsto y, si faltan 7 días o menos, manda a preparar la maternidad en vez de «refuerza su alimentación».
