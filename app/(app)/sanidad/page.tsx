@@ -16,12 +16,8 @@ import { esPeriodo, rangoPeriodo } from "@/lib/periodos";
 import { puedeEscribir, puedeVer } from "@/lib/permisos";
 import { TIPOS_EVENTO } from "@/lib/sanidad";
 import type { TipoEvento } from "@/lib/tipos";
+import { QueAtender } from "@/components/QueAtender";
 import { Resumen } from "./Resumen";
-import { SenalesDeArea } from "@/components/SenalesDeArea";
-import { obtenerAjustes } from "@/lib/ajustes-servidor";
-import { areasSemaforo } from "@/lib/semaforos";
-import { cargarSemaforos } from "@/lib/semaforos-servidor";
-import { crearClienteServidor } from "@/lib/supabase/server";
 
 export const metadata: Metadata = { title: "Sanidad" };
 
@@ -54,12 +50,6 @@ export default async function PaginaSanidad({
   const rango = rangoPeriodo(periodo, hoyBogota(), sp.desde, sp.hasta);
   const conFechas = vista === "resumen" || vista === "historial" || vista === "pruebas" || vista === "coprologicos";
 
-  // «Qué atender hoy»: las mismas señales que el aviso de Telegram y la pantalla Semáforos (si algo falla, la pantalla sigue sin esta tarjeta).
-  const senalesSanidad =
-    vista === "resumen" && areasSemaforo(rol, finca.plan).includes("sanidad")
-      ? await cargarSemaforos({ supabase: await crearClienteServidor(), fincaId: finca.id, rol, plan: finca.plan, hoy: hoyBogota(), ajustes: await obtenerAjustes() }).catch(() => null)
-      : null;
-
   const accion =
     vista === "productos" && puedeEditar ? (
       <EnlaceBoton href="/sanidad/productos/nuevo" ancho={false}>Nuevo producto</EnlaceBoton>
@@ -79,11 +69,7 @@ export default async function PaginaSanidad({
         </div>
       ) : null}
 
-      {vista === "resumen" && senalesSanidad ? (
-        <div className="mb-3">
-          <SenalesDeArea area="sanidad" senales={senalesSanidad} />
-        </div>
-      ) : null}
+      {vista === "resumen" ? <QueAtender area="sanidad" /> : null}
       {vista === "resumen" ? <Resumen fincaId={finca.id} filtros={{ ...filtroFechas, tipo }} puedeProgramar={puedeEditar} /> : null}
       {vista === "historial" ? <ListaEventos fincaId={finca.id} puedeRegistrar={puedeEditar} rango={rango} tipoInicial={tipo} /> : null}
       {vista === "productos" ? <ListaProductos fincaId={finca.id} puedeEditar={puedeEditar} /> : null}

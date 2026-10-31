@@ -1,3 +1,4 @@
+import { QueAtender } from "@/components/QueAtender";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { Download } from "lucide-react";
@@ -80,6 +81,7 @@ export default async function PaginaCostos({ searchParams }: { searchParams: Pro
         </div>
       ) : null}
 
+      {vista === "resumen" ? <QueAtender area="dinero" /> : null}
       {vista === "resumen" ? <Resumen fincaId={finca.id} filtros={filtro} /> : null}
       {vista === "compras" ? <ListaCostos fincaId={finca.id} hoy={hoy} puedeEditar={puedeEditar} rango={rango} /> : null}
       {vista === "ventas" ? <ListaVentas fincaId={finca.id} hoy={hoy} puedeEditar={puedeEditar} rango={rango} /> : null}

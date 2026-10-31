@@ -1,3 +1,4 @@
+import { QueAtender } from "@/components/QueAtender";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { AvisoGuardado } from "@/components/AvisoGuardado";
@@ -51,6 +52,7 @@ export default async function PaginaCarne({ searchParams }: { searchParams: Prom
       />
       <PestanasTarjetas pestanas={armarPestanas("/carne", "resumen", PESTANAS)} actual={vista} />
 
+      {vista === "resumen" ? <QueAtender area="ceba" /> : null}
       {vista === "resumen" ? <Resumen fincaId={finca.id} puedeEditar={puedeEditar} /> : null}
       {vista === "candidatos" ? <Candidatos fincaId={finca.id} /> : null}
       {vista === "lotes" ? <Lotes fincaId={finca.id} puedeEditar={puedeEditar} /> : null}

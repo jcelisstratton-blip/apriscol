@@ -1,3 +1,4 @@
+import { QueAtender } from "@/components/QueAtender";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { AvisoGuardado } from "@/components/AvisoGuardado";
@@ -39,6 +40,7 @@ export default async function PaginaReproduccion({ searchParams }: { searchParam
       <Encabezado titulo="Reproducción" subtitulo={finca.nombre} />
       <PestanasTarjetas pestanas={armarPestanas("/reproduccion", "resumen", PESTANAS)} actual={vista} />
 
+      {vista === "resumen" ? <QueAtender area="reproduccion" /> : null}
       {vista === "resumen" ? <Resumen fincaId={finca.id} /> : null}
       {vista === "empadronamiento" ? (
         <ResumenEmpadronamientos

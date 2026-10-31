@@ -1,3 +1,4 @@
+import { QueAtender } from "@/components/QueAtender";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { AvisoGuardado } from "@/components/AvisoGuardado";
@@ -54,6 +55,7 @@ export default async function PaginaLeche({
       <Encabezado titulo="Leche" subtitulo={finca.nombre} acciones={accion} />
       <PestanasTarjetas pestanas={armarPestanas("/leche", "produccion", PESTANAS)} actual={vista} />
 
+      {vista === "produccion" ? <QueAtender area="leche" /> : null}
       {vista === "produccion" ? (
         <Historial fincaId={finca.id} puedeEditar={puedeEditar} pedido={{ periodo: sp.periodo, desde: sp.desde, hasta: sp.hasta, animal: sp.animal }} />
       ) : null}
