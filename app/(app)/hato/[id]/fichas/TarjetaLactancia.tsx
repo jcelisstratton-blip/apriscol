@@ -1,3 +1,4 @@
+import { BotonSecar } from "@/components/BotonSecar";
 import Link from "next/link";
 import { Aviso } from "@/components/Aviso";
 import { Tarjeta } from "@/components/Tarjeta";
@@ -34,7 +35,7 @@ export async function TarjetaLactancia({ c, lac }: { c: CtxFicha; lac: Lactancia
   if (!(verLeche && (lac || animal.estado === "activo"))) return null;
 
   return (
-    <Tarjeta titulo="Lactancia">
+    <Tarjeta titulo="Lactancia" id="lactancia">
       {lac ? (
         <>
         <dl className="divide-y divide-arena">
@@ -49,6 +50,11 @@ export async function TarjetaLactancia({ c, lac }: { c: CtxFicha; lac: Lactancia
           <div className="mt-4 space-y-1.5">
             <p className="text-sm font-semibold">Turnos de ordeño</p>
             <TurnosAnimal animalId={id} programados={animal.turnos_ordeno} puedeEditar={puedeEscribir(rol, "hato", finca.plan)} />
+          </div>
+        ) : null}
+        {lacAbierta && animal.estado === "activo" && puedeEscribir(rol, "leche", finca.plan) ? (
+          <div className="mt-3">
+            <BotonSecar animalId={id} etiqueta={animal.nombre ?? animal.numero_arete} />
           </div>
         ) : null}
         <Link href={`/leche?animal=${id}`} className="mt-3 inline-flex min-h-11 items-center text-[0.9375rem] font-semibold text-musgo underline-offset-4 hover:underline">

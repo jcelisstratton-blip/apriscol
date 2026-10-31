@@ -386,3 +386,12 @@ test("semáforos: dinero — cada cobro y cada pago llevan a SU registro, no a l
   assert.equal(queso.href, `/hato/ventas/${ID}/editar`);
   assert.equal(queso.queHacer, "Cobra y registra el cobro en la venta.");
 });
+
+test("semáforos de reproducción: cada caso dice el botón exacto y la secada lleva a la lactancia", () => {
+  const [v] = senalVaciaSinServicio([hembra("v", { estado: "vacia", ultimo_parto: dia(-150), ultimo_servicio: null, fecha_prevista_parto: null, empadronamiento_id: null })], HOY, 60, 120, etiqueta).items;
+  assert.match(v.queHacer, /«Servicio»/);
+  assert.match(v.queHacer, /retiro/, "aclara que el retiro no impide servirla");
+  const s = senalSecado([hembra("b", { en_lactancia: true, ultimo_servicio: dia(-145), fecha_prevista_parto: dia(5) })], HOY, 60, 100, etiqueta);
+  assert.match(s.items[0].href, /#lactancia$/);
+  assert.match(s.items[0].queHacer, /Secar/);
+});
