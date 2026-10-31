@@ -615,3 +615,18 @@ test("inventario: descuadrado lleva a contar todo el producto sin elegir lote", 
   // Contar el total corrige la diferencia: la app decía -30 dosis (-150 ml) y hay 0 → +150 ml.
   assert.equal(cambioDeAjuste("conteo", 0, -150), 150);
 });
+
+import { loteSugerido, lotesVigentes } from "../lib/inventario.ts";
+test("inventario: al aplicar se propone el lote vigente que vence primero y nunca uno vencido", () => {
+  const lotes = [
+    { id: "vencido", vencimiento: "2026-10-01" },
+    { id: "tarde", vencimiento: "2028-05-01" },
+    { id: "pronto", vencimiento: "2026-12-01" },
+    { id: "sin", vencimiento: null },
+  ];
+  assert.equal(loteSugerido(lotes, "2026-10-31").id, "pronto");
+  assert.deepEqual(lotesVigentes(lotes, "2026-10-31").map((l) => l.id), ["tarde", "pronto", "sin"]);
+  assert.equal(loteSugerido([{ id: "sin", vencimiento: null }], "2026-10-31").id, "sin");
+  assert.equal(loteSugerido([{ id: "vencido", vencimiento: "2026-10-01" }], "2026-10-31"), null);
+  assert.equal(loteSugerido([], "2026-10-31"), null);
+});

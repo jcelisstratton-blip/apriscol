@@ -222,3 +222,16 @@ export function pasosInventario(f: Pick<FilaInventario, "producto_id" | "desde" 
   }
   return pasos;
 }
+
+/**
+ * El lote que se propone al registrar una aplicación: el que vence primero entre los que no han vencido (primero en vencer, primero en salir).
+ * Un lote vencido no se ofrece: «vencido es vencido». Sin lotes vigentes, vacío. Así la aplicación casi nunca queda «sin lote» y el inventario no se descuadra.
+ */
+export function loteSugerido<T extends { vencimiento: string | null }>(lotes: T[], dia: string): T | null {
+  const vigentes = lotes.filter((l) => !l.vencimiento || l.vencimiento >= dia);
+  const conFecha = vigentes.filter((l) => l.vencimiento).sort((a, b) => (a.vencimiento! < b.vencimiento! ? -1 : a.vencimiento! > b.vencimiento! ? 1 : 0));
+  return conFecha[0] ?? vigentes[0] ?? null;
+}
+
+/** Los lotes que se pueden elegir al aplicar: los vigentes al día de la aplicación. */
+export const lotesVigentes = <T extends { vencimiento: string | null }>(lotes: T[], dia: string): T[] => lotes.filter((l) => !l.vencimiento || l.vencimiento >= dia);

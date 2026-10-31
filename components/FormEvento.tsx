@@ -2,6 +2,7 @@
 
 import { useActionState, useState, useTransition } from "react";
 import Link from "next/link";
+import { loteSugerido, lotesVigentes } from "@/lib/inventario";
 import { Aviso } from "@/components/Aviso";
 import { AsistidoPor } from "@/components/AsistidoPor";
 import { Boton, clasesBoton } from "@/components/Boton";
@@ -133,7 +134,7 @@ export function FormEvento({
   const [unidad, setUnidad] = useState(datos?.unidad_dosis ?? "");
   const [via, setVia] = useState<ViaAplicacion | "">(datos?.via ?? "");
   const [proxima, setProxima] = useState(datos?.proxima_fecha ?? "");
-  const [loteGasto, setLoteGasto] = useState(datos?.id && datos.lote_producto ? "actual" : "");
+  const [loteGasto, setLoteGasto] = useState(datos?.id && datos.lote_producto ? "actual" : (loteSugerido(lotes.filter((l) => l.producto_id === productoId), fecha)?.gasto_id ?? ""));
   const [animales, setAnimales] = useState<AnimalElegido[]>(animalesIniciales);
   const [cambiando, setCambiando] = useState(false);
 
@@ -149,7 +150,8 @@ export function FormEvento({
   // Si el producto está en el inventario, la dosis no se esconde: sin ella la aplicación no descuenta.
   const seguido = productoId !== "" && inventariados.includes(productoId);
   const detallesAbiertos = Boolean(datos && (datos.costo || (detallesDeProducto && (datos.dosis || datos.via)))) || (seguido && detallesDeProducto);
-  const lotesDelProducto = lotes.filter((l) => l.producto_id === productoId);
+  // Un lote vencido no se ofrece (vencido es vencido): solo los vigentes el día de la aplicación; el que ya tenía el registro se conserva aparte.
+  const lotesDelProducto = lotesVigentes(lotes.filter((l) => l.producto_id === productoId), fecha);
   const retiroAbierto = Boolean(datos && (datos.retiro_leche_dias > 0 || datos.retiro_carne_dias > 0));
 
   // Un tratamiento de varios días: el retiro empieza después de la última dosis.
@@ -176,7 +178,7 @@ export function FormEvento({
     setProductoId(v);
     // El lote es de un producto: al cambiar de producto se elige de nuevo (con un solo lote disponible, ya queda elegido).
     const delProducto = lotes.filter((l) => l.producto_id === v);
-    setLoteGasto(delProducto.length === 1 ? delProducto[0].gasto_id : datos?.id && datos.lote_producto && v === datos.producto_id ? "actual" : "");
+    setLoteGasto(datos?.id && datos.lote_producto && v === datos.producto_id ? "actual" : (loteSugerido(delProducto, fecha)?.gasto_id ?? ""));
     const p = productos.find((x) => x.id === v);
     if (!p) return;
     // El catálogo propone lo habitual del producto (retiro y unidad); todo se puede cambiar en esta aplicación.
@@ -513,7 +515,7 @@ export function FormEvento({
                   valor={loteGasto}
                   onCambio={(v) => setLoteGasto(String(v))}
                   titulo="¿Qué lote usaste?"
-                  placeholder={lotesDelProducto.length === 0 && !(datos?.id && datos.lote_producto) ? "No hay lotes registrados" : "Elegir lote"}
+                  placeholder={lotesDelProducto.length === 0 && !(datos?.id && datos.lote_producto) ? "No hay lotes vigentes" : "Elegir lote"}
                   permitirVacio
                   opciones={[
                     ...(datos?.id && datos.lote_producto && (productoId === datos.producto_id || productoId === NUEVO_PRODUCTO || productoId === "")
