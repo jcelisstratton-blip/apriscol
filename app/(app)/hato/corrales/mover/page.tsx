@@ -18,9 +18,9 @@ const ID_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 
 /**
  * Mover animales a un corral o potrero. Con `?destino=` ya viene el destino; con `?de=` vienen todos los animales de esa instalación (para
- * mover o rotar el lote); con `?animal=` es un solo animal (desde su ficha); con `?grupo=sin_ubicacion` vienen los que aún no tienen ubicación.
+ * mover o rotar el lote; con `?solo=` únicamente los que se nombran); con `?animal=` es un solo animal (desde su ficha); con `?grupo=sin_ubicacion` vienen los que aún no tienen ubicación.
  */
-export default async function PaginaMover({ searchParams }: { searchParams: Promise<{ destino?: string; de?: string; animal?: string; grupo?: string }> }) {
+export default async function PaginaMover({ searchParams }: { searchParams: Promise<{ destino?: string; de?: string; animal?: string; grupo?: string; solo?: string }> }) {
   const { finca, rol } = await obtenerContexto();
   if (!puedeEscribir(rol, "corrales", finca.plan)) redirect("/hato?vista=corrales");
   const sp = await searchParams;
@@ -43,6 +43,9 @@ export default async function PaginaMover({ searchParams }: { searchParams: Prom
     motivo = origen.tipo === "potrero" ? "rotacion" : "traslado";
     const { data: movs } = await leerTodo((d, h) => supabase.from("movimientos_animales").select("animal_id").eq("ubicacion_id", origen.id).eq("finca_id", finca.id).is("hasta", null).order("animal_id").range(d, h));
     ids = (movs ?? []).map((m) => m.animal_id);
+    // `?solo=` (varios identificadores separados por coma): de ese lote se mueven solo estos, y únicamente los que de verdad están ahí.
+    const solo = new Set((sp.solo ?? "").split(",").filter((i) => ID_UUID.test(i)).slice(0, 300));
+    if (solo.size > 0) ids = ids.filter((i) => solo.has(i));
   } else if (sp.animal) {
     if (!ID_UUID.test(sp.animal)) notFound();
     ids = [sp.animal];

@@ -22,6 +22,7 @@ import { EtapasCorral } from "@/components/EtapasCorral";
 import { ETIQUETA_ETAPA, avisosMezcla, contarEtapas } from "@/lib/etapas";
 import { cargarEtapas } from "@/lib/etapas-servidor";
 import { diasHasta, hoyBogota } from "@/lib/fechas";
+import { sugerirDestinos } from "@/lib/sugerencias-corral";
 import { puedeEscribir, puedeVer } from "@/lib/permisos";
 import { crearClienteServidor } from "@/lib/supabase/server";
 import type { UbicacionVista } from "@/lib/tipos";
@@ -75,6 +76,14 @@ export default async function PaginaUbicacion({ params, searchParams }: { params
   const sobran = u.hacinada ? u.ocupantes - (u.capacidad ?? 0) : 0;
   // Un potrero con animales que ya pasó sus días de ocupación: lo primero que se le dice a la persona es qué hacer.
   const debeSalir = !corral && u.estado === "debe_salir" && u.ocupantes > 0;
+  // Sugerencias (solo a quien puede mover animales): a dónde pasarlos y, si el corral mezcla machos destetados con hembras, que empiece por ellos.
+  const sugiere = puedeEditar && u.activa && (u.hacinada || debeSalir);
+  const idsMachos = u.hacinada ? (mezcla.find((a) => a.clave === "machos_con_hembras")?.ver?.ids ?? []) : [];
+  const { data: vistas } = sugiere ? await supabase.from("v_ubicaciones").select("*").eq("finca_id", finca.id).eq("activa", true).limit(300) : { data: null };
+  const otras = (vistas ?? []) as UbicacionVista[];
+  // Para un corral lleno hacen falta lugares para los que sobran; para un potrero que debe salir, para todo el lote.
+  const destinos = sugiere ? sugerirDestinos(u, u.hacinada ? sobran : u.ocupantes, otras) : [];
+  const destinosMachos = sugiere && idsMachos.length > 0 ? sugerirDestinos(u, idsMachos.length, otras, 1) : [];
   const m2 = u.area_m2 && u.ocupantes > 0 ? u.area_m2 / u.ocupantes : null;
   const filas: { titulo: string; valor: React.ReactNode }[] = [
     { titulo: "Tipo", valor: `${ETIQUETA_TIPO_UBICACION[u.tipo]} · ${ETIQUETA_USO[u.uso]}` },
@@ -123,6 +132,56 @@ export default async function PaginaUbicacion({ params, searchParams }: { params
               <ArrowRightLeft className="size-5" strokeWidth={2} aria-hidden="true" /> {u.hacinada ? `Pasar ${sobran} a otra instalación` : "Rotar el lote"}
             </Link>
           ) : null}
+        </div>
+      ) : null}
+
+      {sugiere ? (
+        <div className="mb-4 lg:max-w-2xl">
+          <Tarjeta titulo="Sugerencias">
+            <div className="space-y-4">
+              {idsMachos.length > 0 ? (
+                <div className="space-y-2">
+                  <p className="text-[0.9375rem]">
+                    Empieza por los <strong>{idsMachos.length} {idsMachos.length === 1 ? "macho destetado" : "machos destetados"}</strong>: sacarlos de aquí además evita montas tempranas.
+                  </p>
+                  {destinosMachos[0] ? (
+                    <Link href={`/hato/corrales/mover?de=${u.id}&destino=${destinosMachos[0].id}&solo=${idsMachos.join(",")}`} className={clasesBoton("secundario")}>
+                      Pasar {idsMachos.length === 1 ? "el macho" : `los ${idsMachos.length} machos`} a {destinosMachos[0].nombre}
+                    </Link>
+                  ) : (
+                    <p className="text-sm text-humo">Ninguna otra instalación tiene espacio para {idsMachos.length === 1 ? "él" : "ellos"}.</p>
+                  )}
+                </div>
+              ) : null}
+              <div>
+                <p className="text-sm font-semibold">{u.hacinada ? `A dónde pasar ${sobran === 1 ? "el que sobra" : `los ${sobran} que sobran`}` : "A dónde pasar el lote"}</p>
+                {destinos.length > 0 ? (
+                  <ul className="mt-1 divide-y divide-arena">
+                    {destinos.map((d) => (
+                      <li key={d.id} className="flex min-h-14 items-center justify-between gap-3 py-2">
+                        <span className="min-w-0 [overflow-wrap:anywhere]">
+                          <span className="block font-semibold">{d.nombre}</span>
+                          <span className="block text-sm text-humo">{d.motivo}</span>
+                        </span>
+                        <Link href={u.hacinada ? `/hato/corrales/mover?destino=${d.id}` : `/hato/corrales/mover?de=${u.id}&destino=${d.id}`} className="inline-flex min-h-11 shrink-0 items-center rounded-full px-3 text-sm font-semibold text-musgo ring-1 ring-arena">
+                          Pasar allí
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="mt-1 text-[0.9375rem] text-humo">
+                    No encontré otra instalación con espacio libre que se pueda usar. Crea una nueva o revisa la capacidad de las que ya tienes.{" "}
+                    <Link href="/hato/corrales/nueva" className="font-semibold text-musgo underline-offset-4 hover:underline">
+                      Crear una instalación
+                    </Link>
+                  </p>
+                )}
+                {u.hacinada && destinos.length > 0 ? <p className="mt-1 text-sm text-humo">Al tocar «Pasar allí» eliges cuáles animales mover.</p> : null}
+              </div>
+              <p className="text-xs text-humo">Son sugerencias con lo que está registrado en la finca (capacidad, ocupantes y descanso). Nada se mueve hasta que lo confirmes.</p>
+            </div>
+          </Tarjeta>
         </div>
       ) : null}
 

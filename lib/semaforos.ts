@@ -7,6 +7,7 @@ import { ETIQUETA_MANTENIMIENTO, estadoCrioscopia, estadoRcs, estadoTemperatura,
 import { ETIQUETA_PRUEBA_CORTA, estadoDosis, estadoFechaPrograma, revisionAtrasada } from "@/lib/sanidad";
 import { esBaja, mensajeBaja, type Tendencia } from "@/lib/produccion";
 import { estadoCuarentena, textoRotacion } from "@/lib/corrales";
+import { sugerirDestinos } from "@/lib/sugerencias-corral";
 import { DIAS_AVISO_VENCIMIENTO, estadoStock, estadoVencimiento, textoStock, type FilaInventario } from "@/lib/inventario";
 import { autonomiaDias, diasTexto, estadoAlimento, textoKg, type FilaAlimento } from "@/lib/inventario-alimento";
 import type { CuarentenaAlerta, MantenimientoOrdeno, ModuloApp, PlanId, ReproHembra, RolFinca, TipoPrueba, UbicacionVista } from "@/lib/tipos";
@@ -567,6 +568,11 @@ export function senalProduccion(tendencias: Tendencia[], etiqueta: Etiqueta): Se
 export function senalCorrales(ubicaciones: UbicacionVista[]): Senal {
   const items: ItemSenal[] = [];
   for (const u of ubicaciones) {
+    // Sugerencia de a dónde: la mejor opción con espacio para `n` animales, si la hay (se explica mejor en la ficha, con todas las opciones).
+    const sugerencia = (n: number) => {
+      const d = sugerirDestinos(u, n, ubicaciones, 1)[0];
+      return d ? ` Sugerencia: ${d.nombre} (${d.motivo}).` : "";
+    };
     if (u.hacinada) {
       const sobran = u.capacidad ? u.ocupantes - u.capacidad : 0;
       items.push({
@@ -575,7 +581,7 @@ export function senalCorrales(ubicaciones: UbicacionVista[]): Senal {
         detalle: u.capacidad ? `Pasó su cupo: tiene ${u.ocupantes} animales y le caben ${u.capacidad}` : `Pasó su cupo: ${u.ocupantes} animales`,
         nivel: "rojo",
         href: `/hato/corrales/${u.id}`,
-        queHacer: sobran > 0 ? `Pasa ${sobran} ${sobran === 1 ? "animal" : "animales"} a otra instalación.` : "Pasa algunos animales a otra instalación.",
+        queHacer: (sobran > 0 ? `Pasa ${sobran} ${sobran === 1 ? "animal" : "animales"} a otra instalación.` : "Pasa algunos animales a otra instalación.") + sugerencia(sobran),
         orden: 0,
       });
     } else if (u.estado === "debe_salir") {
@@ -585,7 +591,7 @@ export function senalCorrales(ubicaciones: UbicacionVista[]): Senal {
         detalle: textoRotacion(u),
         nivel: "rojo",
         href: `/hato/corrales/${u.id}`,
-        queHacer: `Pasa el lote a otro potrero para que este descanse ${u.dias_descanso_min} días.`,
+        queHacer: `Pasa el lote a otro potrero para que este descanse ${u.dias_descanso_min} días.` + sugerencia(u.ocupantes),
         orden: 1,
       });
     }
