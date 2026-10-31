@@ -1,3 +1,4 @@
+import { sugerirDestinos } from "../lib/sugerencias-corral.ts";
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
@@ -300,4 +301,43 @@ test("semáforos: el alimento avisa lo agotado, descuadrado y lo que alcanza par
   assert.deepEqual(s.items.filter((i) => i.nivel === "rojo").map((i) => i.etiqueta), ["Agotado", "Descuadrado", "Crítico"]);
   assert.deepEqual(s.items.filter((i) => i.nivel === "ambar").map((i) => i.etiqueta), ["Bajo"]);
   assert.equal(senalAlimento([filas[4]], 7, HOY).nivel, "verde");
+});
+
+test("sugerencias de corral: solo destinos con cupo, del mismo tipo, sin fin especial y con capacidad definida", () => {
+  const ub = (id, extra = {}) => ({ id, nombre: `Corral ${id}`, tipo: "corral", uso: "general", activa: true, capacidad: 10, ocupantes: 4, hacinada: false, estado: "ocupado", dias_descanso: null, ...extra });
+  const origen = ub("o", { capacidad: 10, ocupantes: 13, hacinada: true });
+  const todas = [
+    origen,
+    ub("a", { ocupantes: 4 }), // caben 6
+    ub("b", { ocupantes: 9 }), // caben 1: no alcanza para 3
+    ub("c", { uso: "cuarentena", ocupantes: 0 }), // fin especial
+    ub("d", { capacidad: null }), // sin capacidad definida: no se sabe si cabe
+    ub("e", { activa: false, ocupantes: 0 }), // archivado
+    ub("f", { hacinada: true, ocupantes: 11 }), // ya pasó su cupo
+    ub("g", { tipo: "potrero", estado: "listo", dias_descanso: 40, ocupantes: 0 }), // otro tipo
+    ub("h", { ocupantes: 2, uso: "general" }), // caben 8: más espacio que «a»
+  ];
+  assert.deepEqual(sugerirDestinos(origen, 3, todas).map((d) => d.id), ["h", "a"]);
+  assert.equal(sugerirDestinos(origen, 3, todas)[0].motivo, "caben 8 más (2 de 10)");
+  assert.deepEqual(sugerirDestinos(origen, 7, todas).map((d) => d.id), ["h"], "para 7 solo cabe en la que tiene 8 libres");
+  assert.deepEqual(sugerirDestinos(origen, 20, todas), []);
+  assert.deepEqual(sugerirDestinos(origen, 0, todas), []);
+  assert.equal(sugerirDestinos(origen, 3, todas, 1).length, 1);
+  // Un potrero solo se sugiere si ya descansó (o nunca se usó); uno ocupado, en descanso o que debe salir no.
+  const pot = (id, extra) => ub(id, { tipo: "potrero", ocupantes: 0, ...extra });
+  const potreros = [pot("p1", { estado: "listo", dias_descanso: 45 }), pot("p2", { estado: "descanso", dias_descanso: 10 }), pot("p3", { estado: "debe_salir", ocupantes: 5 }), pot("p4", { estado: "vacio" }), pot("p5", { estado: "ocupado", ocupantes: 3 })];
+  const desde = pot("x", { estado: "debe_salir", ocupantes: 6 });
+  assert.deepEqual(sugerirDestinos(desde, 6, [desde, ...potreros]).map((d) => [d.id, d.motivo]), [["p1", "descansó 45 días, caben 10 más (0 de 10)"], ["p4", "sin uso todavía, caben 10 más (0 de 10)"]]);
+  // Las del mismo uso van primero.
+  const conUso = [ub("m1", { uso: "ceba", ocupantes: 0 }), ub("m2", { uso: "general", ocupantes: 5 })];
+  assert.deepEqual(sugerirDestinos(ub("z", { uso: "general", hacinada: true, ocupantes: 12 }), 2, conUso).map((d) => d.id), ["m2", "m1"]);
+});
+
+test("semáforos: corrales — el qué hacer incluye una sugerencia de a dónde cuando hay espacio", () => {
+  const ub = (id, extra = {}) => ({ id, nombre: `Corral ${id}`, tipo: "corral", uso: "general", activa: true, capacidad: 10, ocupantes: 4, hacinada: false, estado: "ocupado", dias_ocupacion: 8, dias_ocupacion_max: 5, dias_descanso: null, dias_descanso_min: 35, ...extra });
+  const lleno = ub("c", { hacinada: true, capacidad: 10, ocupantes: 13 });
+  const con = senalCorrales([lleno, ub("a", { ocupantes: 4 })]).items[0];
+  assert.equal(con.queHacer, "Pasa 3 animales a otra instalación. Sugerencia: Corral a (caben 6 más (4 de 10)).");
+  const sin = senalCorrales([lleno, ub("b", { ocupantes: 9 })]).items[0];
+  assert.equal(sin.queHacer, "Pasa 3 animales a otra instalación.", "si ninguna tiene espacio no se inventa una sugerencia");
 });
