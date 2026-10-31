@@ -600,3 +600,18 @@ test("inventario: dar de baja un lote vencido abre el formulario con motivo, lot
   assert.equal(ajusteInicial(f, lotes, "2026-10-31", undefined, undefined), null);
   assert.equal(ajusteInicial(f, [lotes[2]], "2026-10-31", "vencido", undefined), null, "sin lote vencido no se inventa uno");
 });
+
+import { LOTE_TOTAL, rutaConteoTotal } from "../lib/inventario.ts";
+test("inventario: descuadrado lleva a contar todo el producto sin elegir lote", () => {
+  const f = { producto_id: "p1", unidad: "ml", presentacion: "dosis", contenido_presentacion: 5, desde: "2026-08-01", stock: -150, stock_minimo: 50 };
+  const lotes = [{ lote: "A", vencimiento: "2028-01-01", stock: 430 }, { lote: null, vencimiento: null, stock: -580 }];
+  const p = pasosInventario(f, lotes, "2026-10-31").find((x) => x.clave === "descuadrado");
+  assert.equal(p.accion.href, "/inventario/p1/ajustar?motivo=conteo&lote=total");
+  assert.ok(p.pasos.some((t) => /Eliminar este ajuste/.test(t)), "dice cómo deshacer una baja que sí se usó");
+  assert.ok(p.pasos.some((t) => /Hato → Compras/.test(t)), "dice dónde registrar una compra olvidada");
+  assert.equal(rutaConteoTotal("p1"), p.accion.href);
+  assert.deepEqual(ajusteInicial(f, lotes, "2026-10-31", "conteo", "total"), { motivo: "conteo", lote: LOTE_TOTAL, cantidad: "" });
+  assert.equal(ajusteInicial(f, [lotes[0]], "2026-10-31", "conteo", "total"), null, "con un solo lote no hace falta contar el total");
+  // Contar el total corrige la diferencia: la app decía -30 dosis (-150 ml) y hay 0 → +150 ml.
+  assert.equal(cambioDeAjuste("conteo", 0, -150), 150);
+});

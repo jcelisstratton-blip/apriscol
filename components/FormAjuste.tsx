@@ -9,7 +9,7 @@ import { Selector } from "@/components/Selector";
 import { SelectorTarjetas } from "@/components/SelectorTarjetas";
 import { guardarAjuste } from "@/app/(app)/inventario/actions";
 import { ESCENA_MOTIVO_AJUSTE } from "@/lib/escenas-inventario";
-import { DETALLE_MOTIVO_AJUSTE, ETIQUETA_MOTIVO_AJUSTE, MOTIVOS_AJUSTE, aUnidades, cambioDeAjuste, plural, textoStock, unidadDeConteo, type FilaInventario, type FilaLote, type MotivoAjuste } from "@/lib/inventario";
+import { LOTE_TOTAL, DETALLE_MOTIVO_AJUSTE, ETIQUETA_MOTIVO_AJUSTE, MOTIVOS_AJUSTE, aUnidades, cambioDeAjuste, plural, textoStock, unidadDeConteo, type FilaInventario, type FilaLote, type MotivoAjuste } from "@/lib/inventario";
 import { leerNumero } from "@/lib/numeros";
 import { formatoFecha } from "@/lib/fechas";
 
@@ -26,7 +26,10 @@ export function FormAjuste({ producto, lotes, hoy, inicial }: { producto: Pick<F
   const [lote, setLote] = useState<string>(inicial ? (inicial.lote ?? SIN_LOTE) : lotes.length === 1 ? clave(lotes[0]) : "");
   const [cantidad, setCantidad] = useState(inicial?.cantidad ?? "");
 
-  const elegido = lotes.find((l) => clave(l) === lote);
+  // Con «conteo físico» y varios lotes también se puede contar todo el producto junto, sin separar por lote.
+  const ofreceTotal = motivo === "conteo" && lotes.length > 1;
+  const total: FilaLote | null = lote === LOTE_TOTAL && ofreceTotal ? { lote: null, vencimiento: null, stock: lotes.reduce((suma, l) => suma + l.stock, 0) } : null;
+  const elegido = total ?? lotes.find((l) => clave(l) === lote);
   const n = cantidad.trim() ? leerNumero(cantidad) : null;
   const cambio = n !== null && n >= 0 && elegido ? cambioDeAjuste(motivo, aUnidades(n, u.factor), elegido.stock) : null;
   const hayLoteElegible = lotes.length > 0;
@@ -43,7 +46,11 @@ export function FormAjuste({ producto, lotes, hoy, inicial }: { producto: Pick<F
       <input type="hidden" name="motivo" value={motivo} />
       <input type="hidden" name="lote" value={lote === SIN_LOTE ? "" : lote} />
 
-      {inicial && elegido ? (
+      {inicial?.lote === LOTE_TOTAL && total ? (
+        <Aviso tipo="atencion">
+          Cuenta cuántos {plural(u.nombre, 2)} hay hoy en la bodega de este producto, sumando todos los lotes. La app dice {textoStock(producto, total.stock)}; la diferencia se corrige sola. Si ya no queda nada, escribe 0.
+        </Aviso>
+      ) : inicial?.motivo === "vencido" && elegido ? (
         <Aviso tipo="atencion">
           Vas a dar de baja el lote {elegido.lote ?? "sin nombre"}
           {elegido.vencimiento ? `, vencido el ${formatoFecha(elegido.vencimiento, { day: "numeric", month: "short", year: "numeric" })}` : ""}: quedan {textoStock(producto, elegido.stock)}. Ya está todo elegido; revisa la cantidad y guarda.
@@ -69,18 +76,21 @@ export function FormAjuste({ producto, lotes, hoy, inicial }: { producto: Pick<F
               onCambio={(v) => setLote(String(v))}
               titulo="¿De qué lote?"
               placeholder="Elegir lote"
-              opciones={lotes.map((l) => ({
+              opciones={[
+                ...(ofreceTotal ? [{ valor: LOTE_TOTAL, etiqueta: "Todo el producto (total)", detalle: `La app dice ${textoStock(producto, lotes.reduce((suma, l) => suma + l.stock, 0))} en total` }] : []),
+                ...lotes.map((l) => ({
                 valor: clave(l),
                 etiqueta: l.lote ?? "Sin lote",
                 detalle: `Quedan ${textoStock(producto, l.stock)}${l.vencimiento ? ` · vence el ${formatoFecha(l.vencimiento, { day: "numeric", month: "short", year: "numeric" })}` : ""}`,
-              }))}
+              })),
+              ]}
             />
           )}
         </Campo>
       ) : null}
 
       <Campo
-        etiqueta={motivo === "conteo" ? `¿Cuántos ${plural(u.nombre, 2)} contaste?` : `¿Cuántos ${plural(u.nombre, 2)} se descartan?`}
+        etiqueta={motivo === "conteo" ? `¿Cuántos ${plural(u.nombre, 2)} contaste${total ? " en total" : ""}?` : `¿Cuántos ${plural(u.nombre, 2)} se descartan?`}
         ayuda={motivo === "conteo" ? "Lo que hay físicamente ahora en ese lote." : "Lo que sale del inventario."}
       >
         {(id) => <input id={id} name="cantidad" value={cantidad} onChange={(e) => setCantidad(e.target.value)} inputMode="decimal" autoComplete="off" required className={CLASE_INPUT} placeholder="Ej. 2" />}

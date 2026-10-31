@@ -8,7 +8,7 @@ import { obtenerContexto } from "@/lib/contexto";
 import { puedeEscribir } from "@/lib/permisos";
 import { mensajeAmigable } from "@/lib/mensaje-amigable";
 import { leerNumero } from "@/lib/numeros";
-import { MOTIVOS_AJUSTE, aUnidades, cambioDeAjuste, type MotivoAjuste } from "@/lib/inventario";
+import { LOTE_TOTAL, MOTIVOS_AJUSTE, aUnidades, cambioDeAjuste, type MotivoAjuste } from "@/lib/inventario";
 import { decimal, noFutura, opcional } from "@/lib/validacion";
 
 export type EstadoForm = { error?: string } | undefined;
@@ -162,10 +162,14 @@ export async function guardarAjuste(_: EstadoForm, form: FormData): Promise<Esta
   if (errLotes) return { error: mensajeAmigable(errLotes.message) };
   if (!lotes || lotes.length === 0) return { error: "Primero haz el conteo de apertura de este producto." };
 
-  const lote = d.lote ?? null;
-  const actual = lotes.find((l) => (l.lote ?? null) === lote);
+  // Contar todo el producto junto: la diferencia con el total que decía la app se anota en «Sin lote» (el total es el que cuenta).
+  const esTotal = d.lote === LOTE_TOTAL;
+  if (esTotal && d.motivo !== "conteo") return { error: "Elige el lote que se descarta." };
+  const lote = esTotal ? null : (d.lote ?? null);
+  const actual = esTotal ? undefined : lotes.find((l) => (l.lote ?? null) === lote);
   if (lote && !actual) return { error: "Ese lote no está en el inventario. Elígelo de la lista." };
-  const cambio = cambioDeAjuste(d.motivo as MotivoAjuste, aUnidades(d.cantidad, factorDe(producto)), actual?.stock ?? 0);
+  const stockActual = esTotal ? lotes.reduce((suma, l) => suma + Number(l.stock), 0) : (actual?.stock ?? 0);
+  const cambio = cambioDeAjuste(d.motivo as MotivoAjuste, aUnidades(d.cantidad, factorDe(producto)), stockActual);
   if (cambio === null) return { error: "Lo que contaste coincide con lo que dice la app: no hay nada que ajustar." };
 
   const { error } = await supabase.from("inventario_movimientos").insert({
@@ -177,7 +181,7 @@ export async function guardarAjuste(_: EstadoForm, form: FormData): Promise<Esta
     lote,
     vencimiento: actual?.vencimiento ?? null,
     motivo: d.motivo as MotivoAjuste,
-    observaciones: d.observaciones ?? null,
+    observaciones: d.observaciones ?? (esTotal ? "Conteo de todo el producto" : null),
   });
   if (error) return { error: mensajeAmigable(error.message) };
   refrescar(producto.id);

@@ -8,7 +8,7 @@ import { ETIQUETA_PRUEBA_CORTA, estadoDosis, estadoFechaPrograma, revisionAtrasa
 import { esBaja, mensajeBaja, type Tendencia } from "@/lib/produccion";
 import { estadoCuarentena, textoRotacion } from "@/lib/corrales";
 import { sugerirDestinos } from "@/lib/sugerencias-corral";
-import { DIAS_AVISO_VENCIMIENTO, estadoStock, estadoVencimiento, rutaBajaLote, textoStock, type FilaInventario } from "@/lib/inventario";
+import { DIAS_AVISO_VENCIMIENTO, estadoStock, estadoVencimiento, rutaBajaLote, rutaConteoTotal, textoStock, type FilaInventario } from "@/lib/inventario";
 import { autonomiaDias, diasTexto, estadoAlimento, textoKg, type FilaAlimento } from "@/lib/inventario-alimento";
 import type { CuarentenaAlerta, MantenimientoOrdeno, ModuloApp, PlanId, ReproHembra, RolFinca, TipoPrueba, UbicacionVista } from "@/lib/tipos";
 
@@ -656,7 +656,7 @@ export function senalInventario(filas: FilaInventario[], hoy: string): Senal {
     const estado = estadoStock(f);
     const venc = estadoVencimiento(f.vence_pronto, hoy);
     if (venc === "vencido" && f.vence_pronto) items.push({ clave: `vencido-${f.producto_id}`, etiqueta: f.nombre, detalle: `Tiene un lote vencido el ${corta(f.vence_pronto)}`, nivel: "rojo", href: rutaBajaLote(f.producto_id), queHacer: "Da de baja el lote vencido: el formulario ya viene con el lote y la cantidad; revisa y guarda. Si la fecha está mal escrita, corrígela en la compra.", orden: 0 });
-    if (estado === "negativo") items.push({ clave: `negativo-${f.producto_id}`, etiqueta: f.nombre, detalle: "Se aplicó más de lo que había registrado", nivel: "rojo", href, queHacer: "Cuenta lo que hay en la bodega y toca «Ajustar existencias» con motivo «Conteo físico».", orden: 1 });
+    if (estado === "negativo") items.push({ clave: `negativo-${f.producto_id}`, etiqueta: f.nombre, detalle: "Se aplicó más de lo que había registrado", nivel: "rojo", href: rutaConteoTotal(f.producto_id), queHacer: "Abre el producto: ahí dice por qué se descuadró y cómo corregirlo. Si ya no queda nada en la bodega, cuenta 0 y se cuadra.", orden: 1 });
     else if (estado === "agotado") items.push({ clave: `agotado-${f.producto_id}`, etiqueta: f.nombre, detalle: "Se agotó", nivel: "rojo", href, queHacer: "Avisa al administrador para que lo compre y registra la compra cuando llegue.", orden: 1 });
     else if (estado === "bajo" && f.stock !== null) items.push({ clave: `bajo-${f.producto_id}`, etiqueta: f.nombre, detalle: `Quedan ${textoStock(f, f.stock)}, en el mínimo o por debajo`, nivel: "ambar", href, queHacer: "Compra lo que falta y registra la compra en Hato → Compras.", orden: 2 });
     if (venc === "pronto" && f.vence_pronto) items.push({ clave: `vence-${f.producto_id}`, etiqueta: f.nombre, detalle: `Un lote vence el ${corta(f.vence_pronto)}`, nivel: "ambar", href, queHacer: "Úsalo primero.", orden: 3 });
