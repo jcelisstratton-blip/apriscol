@@ -1,0 +1,56 @@
+-- Índices para las llaves foráneas compuestas (x_id, finca_id) que no tenían uno que las cubriera (asesor de rendimiento de Supabase, `unindexed_foreign_keys`).
+-- Sin ellos, borrar o actualizar un animal, un parto o un evento obliga a recorrer enteras las tablas hijas (ordeños, pesajes, movimientos…), y los
+-- cruces por animal se vuelven lentos cuando la finca acumula años de datos. Solo se agregan índices (retrocompatible); se omiten las columnas
+-- `created_by`/`updated_by` y similares (auditoría que nunca se consulta por ahí).
+create index if not exists analisis_leche_animal_id_finca_id_fk_idx on public.analisis_leche (animal_id, finca_id);
+create index if not exists animales_lote_ceba_id_finca_id_fk_idx on public.animales (lote_ceba_id, finca_id);
+create index if not exists animales_lote_id_finca_id_fk_idx on public.animales (lote_id, finca_id);
+create index if not exists animales_madre_id_finca_id_fk_idx on public.animales (madre_id, finca_id);
+create index if not exists animales_padre_id_finca_id_fk_idx on public.animales (padre_id, finca_id);
+create index if not exists bajas_animal_id_finca_id_fk_idx on public.bajas (animal_id, finca_id);
+create index if not exists canales_animal_id_finca_id_fk_idx on public.canales (animal_id, finca_id);
+create index if not exists canales_animal_id_tipo_baja_fk_idx on public.canales (animal_id, tipo_baja);
+create index if not exists celos_hembra_id_finca_id_fk_idx on public.celos (hembra_id, finca_id);
+create index if not exists consumo_lote_lote_id_finca_id_fk_idx on public.consumo_lote (lote_id, finca_id);
+create index if not exists consumo_lote_producto_id_finca_id_fk_idx on public.consumo_lote (producto_id, finca_id);
+create index if not exists controles_calidad_animal_id_finca_id_fk_idx on public.controles_calidad (animal_id, finca_id);
+create index if not exists controles_calidad_despacho_id_finca_id_fk_idx on public.controles_calidad (despacho_id, finca_id);
+create index if not exists crias_animal_id_finca_id_fk_idx on public.crias (animal_id, finca_id);
+create index if not exists crias_parto_id_finca_id_fk_idx on public.crias (parto_id, finca_id);
+create index if not exists diagnosticos_gestacion_hembra_id_finca_id_fk_idx on public.diagnosticos_gestacion (hembra_id, finca_id);
+create index if not exists diagnosticos_gestacion_servicio_id_finca_id_fk_idx on public.diagnosticos_gestacion (servicio_id, finca_id);
+create index if not exists empadronamiento_hembras_empadronamiento_id_finca_id_fk_idx on public.empadronamiento_hembras (empadronamiento_id, finca_id);
+create index if not exists empadronamiento_hembras_hembra_id_finca_id_fk_idx on public.empadronamiento_hembras (hembra_id, finca_id);
+create index if not exists empadronamiento_machos_empadronamiento_id_finca_id_fk_idx on public.empadronamiento_machos (empadronamiento_id, finca_id);
+create index if not exists evaluaciones_famacha_animal_id_finca_id_fk_idx on public.evaluaciones_famacha (animal_id, finca_id);
+create index if not exists evento_sanitario_animales_animal_id_finca_id_fk_idx on public.evento_sanitario_animales (animal_id, finca_id);
+create index if not exists evento_sanitario_animales_evento_id_finca_id_fk_idx on public.evento_sanitario_animales (evento_id, finca_id);
+create index if not exists eventos_sanitarios_producto_id_finca_id_fk_idx on public.eventos_sanitarios (producto_id, finca_id);
+create index if not exists examenes_coprologicos_animal_id_finca_id_fk_idx on public.examenes_coprologicos (animal_id, finca_id);
+create index if not exists examenes_coprologicos_evento_id_finca_id_fk_idx on public.examenes_coprologicos (evento_id, finca_id);
+create index if not exists gastos_animal_id_finca_id_fk_idx on public.gastos (animal_id, finca_id);
+create index if not exists gastos_producto_vet_id_finca_id_fk_idx on public.gastos (producto_vet_id, finca_id);
+create index if not exists inventario_alimento_movimientos_lote_id_finca_id_fk_idx on public.inventario_alimento_movimientos (lote_id, finca_id);
+create index if not exists inventario_alimento_movimientos_producto_id_finca_id_fk_idx on public.inventario_alimento_movimientos (producto_id, finca_id);
+create index if not exists inventario_alimento_movimientos_ubicacion_id_finca_id_fk_idx on public.inventario_alimento_movimientos (ubicacion_id, finca_id);
+create index if not exists inventario_movimientos_producto_vet_id_finca_id_fk_idx on public.inventario_movimientos (producto_vet_id, finca_id);
+create index if not exists lactancias_animal_id_finca_id_fk_idx on public.lactancias (animal_id, finca_id);
+create index if not exists lactancias_parto_id_finca_id_fk_idx on public.lactancias (parto_id, finca_id);
+create index if not exists movimientos_animales_animal_id_finca_id_fk_idx on public.movimientos_animales (animal_id, finca_id);
+create index if not exists movimientos_animales_ubicacion_id_finca_id_fk_idx on public.movimientos_animales (ubicacion_id, finca_id);
+create index if not exists novedades_animal_id_finca_id_fk_idx on public.novedades (animal_id, finca_id);
+create index if not exists novedades_compra_producto_id_finca_id_fk_idx on public.novedades (compra_producto_id, finca_id);
+create index if not exists novedades_producto_id_finca_id_fk_idx on public.novedades (producto_id, finca_id);
+create index if not exists ordenos_animal_id_finca_id_fk_idx on public.ordenos (animal_id, finca_id);
+create index if not exists ordenos_lactancia_id_finca_id_fk_idx on public.ordenos (lactancia_id, finca_id);
+create index if not exists pagos_personal_personal_id_finca_id_fk_idx on public.pagos_personal (personal_id, finca_id);
+create index if not exists participaciones_feria_animal_id_finca_id_fk_idx on public.participaciones_feria (animal_id, finca_id);
+create index if not exists participaciones_feria_feria_id_finca_id_fk_idx on public.participaciones_feria (feria_id, finca_id);
+create index if not exists partos_madre_id_finca_id_fk_idx on public.partos (madre_id, finca_id);
+create index if not exists partos_servicio_id_finca_id_fk_idx on public.partos (servicio_id, finca_id);
+create index if not exists pesajes_animal_id_finca_id_fk_idx on public.pesajes (animal_id, finca_id);
+create index if not exists programa_sanitario_animales_animal_id_finca_id_fk_idx on public.programa_sanitario_animales (animal_id, finca_id);
+create index if not exists programa_sanitario_animales_programa_id_finca_id_fk_idx on public.programa_sanitario_animales (programa_id, finca_id);
+create index if not exists pruebas_sanitarias_animal_id_finca_id_fk_idx on public.pruebas_sanitarias (animal_id, finca_id);
+create index if not exists servicios_hembra_id_finca_id_fk_idx on public.servicios (hembra_id, finca_id);
+create index if not exists servicios_macho_id_finca_id_fk_idx on public.servicios (macho_id, finca_id);
