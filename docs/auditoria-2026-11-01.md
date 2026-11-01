@@ -7,8 +7,8 @@ Revisión de seguridad y rendimiento de la base y del despliegue, con lo que se 
 El asesor de Supabase las marca como aviso. Se revisó una por una (existencia de `search_path` fijo y de una validación de quién llama dentro del cuerpo):
 
 - **Todas fijan `search_path`.** Ninguna lo deja abierto.
-- **60 validan quién llama directamente** (`private.puede_*`, `private.es_miembro`, `es_admin_plataforma`, `auth.uid()`…).
-- **12 delegan en un validador propio**: `costos_*` y `ventas_*` llaman a `private.costos_permiso(p_finca)`; `equipo_notificaciones` a `private.gestiona_avisos(p_finca)`.
+- **59 validan quién llama directamente** (`private.puede_*`, `private.es_miembro`, `es_admin_plataforma`, `auth.uid()`…).
+- **12 delegan en un validador propio**: `costos_*` y `ventas_*` llaman a `private.costos_permiso(p_finca)` (exige ver Contabilidad); `equipo_notificaciones` a `private.gestiona_avisos(p_finca)` (propietario, administrador o superadmin).
 - **`admin_activar_plan_finca`** no valida por sí sola: entrega todo a `admin_confirmar_pago`, que sí valida que quien llama es administrador de la plataforma.
 - **`invitacion_publica(p_token)`** es la única ejecutable sin iniciar sesión, y es intencional: la página de invitación por enlace. La protege el token (uuid aleatorio), solo devuelve invitaciones no aceptadas y vigentes (correo, rol y nombre de la finca).
 
