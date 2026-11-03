@@ -1,6 +1,6 @@
 # Semáforos
 
-Pantalla `/semaforos` (entrada **Semáforos** al principio de «Producción y manejo»). Reúne en un solo lugar lo que la app ya sabe calcular y lo muestra en tres colores con el mismo significado en toda la app: **rojo = actúa hoy**, **ámbar = programa una acción**, **verde = en orden**. Al tocar una tarjeta se abre una hoja con qué significa, cuándo se pone en cada color (con enlace a Ajustes de la finca), los animales o elementos afectados (de 20 en 20, «Mostrando X de N») y la acción sugerida. El color nunca va solo: cada tarjeta y cada fila llevan su rótulo («Rojo · actúa hoy», «Ámbar · programa»).
+Pantalla `/semaforos` (entrada **Semáforos** en el primer bloque del menú, junto a **Hoy**: son lo mismo visto de dos maneras, qué atender). Reúne en un solo lugar lo que la app ya sabe calcular y lo muestra en tres colores con el mismo significado en toda la app: **rojo = actúa hoy**, **ámbar = programa una acción**, **verde = en orden**. Al tocar una tarjeta se abre una hoja con qué significa, cuándo se pone en cada color (con enlace a Ajustes de la finca), los animales o elementos afectados (de 20 en 20, «Mostrando X de N») y la acción sugerida. El color nunca va solo: cada tarjeta y cada fila llevan su rótulo («Rojo · actúa hoy», «Ámbar · programa»).
 
 ## Quién ve qué (`lib/semaforos.ts#areasSemaforo`)
 

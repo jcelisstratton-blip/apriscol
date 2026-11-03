@@ -49,7 +49,7 @@ export const CONTENIDO: Record<string, ContenidoOpcion> = {
   "/semaforos": {
     escena: escena(Activity, "musgo", CalendarCheck),
     lema: "Qué pide atención, por colores",
-    puntos: ["Rojo: actúa hoy; ámbar: programa una acción; verde: en orden", "Partos, diagnósticos, desparasitación, frío y calidad de la leche", "Cada persona ve solo lo de su rol; al tocar una tarjeta ves qué animales son"],
+    puntos: ["Rojo: actúa hoy; ámbar: programa una acción; verde: en orden", "Partos, sanidad, leche, ceba, corrales, bodega y cuentas, cada persona con lo de su rol", "Cada aviso dice qué hacer y te lleva al animal o al registro donde se resuelve"],
   },
   "/leche": {
     escena: ESCENA_HATO.ordeno,

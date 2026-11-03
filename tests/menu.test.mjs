@@ -9,8 +9,8 @@ const etiquetas = (grupos) => grupos.map((g) => [g.titulo ?? "(inicio)", g.entra
 test("menú: el propietario con plan Profesional ve todos los grupos, en este orden", () => {
   const v = visibilidadMenu("propietario", "profesional");
   assert.deepEqual(etiquetas(menuPrincipal(v)), [
-    ["(inicio)", ["Novedades", "Hoy", "Hato"]],
-    ["Producción y manejo", ["Semáforos", "Leche", "Reproducción", "Carne", "Sanidad", "Corrales", "Inventario"]],
+    ["(inicio)", ["Novedades", "Hoy", "Semáforos", "Hato"]],
+    ["Producción y manejo", ["Leche", "Reproducción", "Carne", "Sanidad", "Corrales", "Inventario"]],
     ["Dinero y análisis", ["Costos", "Reportes", "Proyecciones", "Productos y terceros"]],
     ["Genealogía", ["Endogamia", "Premios"]],
   ]);
@@ -30,8 +30,8 @@ test("menú: Leche y Productos y terceros están en el menú del que salen el co
 test("menú: un ordeñador no ve lo que no puede abrir y los grupos vacíos desaparecen", () => {
   const v = visibilidadMenu("ordenador", "profesional");
   assert.deepEqual(etiquetas(menuPrincipal(v)), [
-    ["(inicio)", ["Mis novedades", "Hoy", "Hato"]],
-    ["Producción y manejo", ["Semáforos", "Leche", "Inventario"]], // el ordeñador ve el inventario de alimento, no el de medicamentos
+    ["(inicio)", ["Mis novedades", "Hoy", "Semáforos", "Hato"]],
+    ["Producción y manejo", ["Leche", "Inventario"]], // el ordeñador ve el inventario de alimento, no el de medicamentos
     ["Dinero y análisis", ["Reportes"]], // el reporte de ordeño sí lo puede abrir
     ["Genealogía", ["Endogamia"]],
   ]);

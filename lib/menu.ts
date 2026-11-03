@@ -75,6 +75,8 @@ export function menuPrincipal(v: VisibilidadMenu): GrupoMenu[] {
         // Lo primero del menú: lo que el equipo cuenta de los animales (quien lo revisa, todo; el ordeñador, lo suyo).
         ...(v.novedades ? [{ href: "/novedades", etiqueta: v.revisaNovedades ? "Novedades" : "Mis novedades", Icono: Inbox }] : []),
         { href: "/", etiqueta: "Hoy", Icono: Home },
+        // Hoy y Semáforos son lo mismo visto de dos maneras (qué atender); Hato es donde vive cada animal.
+        ...(v.semaforos ? [{ href: "/semaforos", etiqueta: "Semáforos", Icono: Activity }] : []),
         { href: "/hato", etiqueta: "Hato", Icono: PawPrint },
       ],
     },
@@ -82,7 +84,6 @@ export function menuPrincipal(v: VisibilidadMenu): GrupoMenu[] {
       id: "produccion",
       titulo: "Producción y manejo",
       entradas: [
-        ...(v.semaforos ? [{ href: "/semaforos", etiqueta: "Semáforos", Icono: Activity }] : []),
         ...(v.leche ? [{ href: "/leche", etiqueta: "Leche", Icono: Droplets }] : []),
         ...(v.repro ? [{ href: "/reproduccion", etiqueta: "Reproducción", Icono: Baby }] : []),
         ...(v.carne ? [{ href: "/carne", etiqueta: "Carne", Icono: Beef }] : []),
