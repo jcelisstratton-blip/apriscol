@@ -59,8 +59,9 @@ const PREGUNTAS: { p: string; r: string }[] = [
   { p: "¿Se puede usar desde el celular?", r: "Está pensada primero para el celular, con botones grandes y teclado propio para los números. En el computador te da un menú lateral y más espacio." },
   { p: "¿Puedo traer mis animales de un libro genealógico?", r: "Sí. Si tus animales están en el libro genealógico, los traes una sola vez al crear tu cuenta, demostrando que son tuyos con el documento del titular y el microchip de uno de ellos." },
   { p: "¿Quién ve la información de mi finca?", r: "Solo quienes tú invites. Los datos están separados por finca, y cada persona ve únicamente lo que le toca según su rol." },
-  { p: "¿Puedo invitar al ordeñador, al veterinario y al contador?", r: "Sí. El ordeñador registra leche, el veterinario maneja sanidad, reproducción y corrales, y el contador ve y registra compras, ventas, personal y costos." },
+  { p: "¿Puedo invitar al ordeñador, al veterinario y al contador?", r: "Sí. El ordeñador registra la leche y lo que se da de comer, el veterinario maneja sanidad, reproducción, corrales y el inventario de medicamentos, y el contador ve y registra compras, ventas, personal y costos. Cada uno ve en Semáforos solo lo de su rol." },
   { p: "¿Cuánto cuesta?", r: `Hay cuatro planes, de ${usd(PLANES[0].mensual)} a ${usd(PLANES[PLANES.length - 1].mensual)} al mes, según los servicios que uses, sin importar cuántos animales tengas. Pagando por año tienes 20 % de descuento. Los ves completos en la sección Planes.` },
+  { p: "¿La app me dice qué hacer cada día?", r: "Sí. Hoy y Semáforos ponen en rojo lo que debes atender hoy, en ámbar lo que debes programar y en verde lo que está en orden. Cada aviso dice qué hacer y te lleva al animal o al registro donde se resuelve: partos, dosis por aplicar, retiros, corrales, lotes por vencer en la bodega, cobros y pagos." },
   { p: "¿Puedo sacar reportes?", r: `Sí. Hay ${REPORTES_HATO.length} listados del hato (quién está vacía, gestante o por parir, ordeño, peso, retiros, sanidad pendiente) y ${REPORTES.length} de costos y ventas. Los ves en pantalla y, en el plan Profesional, los descargas en Excel con el periodo que elijas; el archivo lleva el nombre de la finca, del reporte y las fechas.` },
 ];
 
@@ -73,7 +74,7 @@ export function Presentacion({ modo, formulario }: { modo: "login" | "registro";
   const hrefCrear = esRegistro ? "#acceso" : "/registro";
   const cifras: [string, string][] = [
     ["2", "especies: cabras y ovejas"],
-    ["9", "áreas del manejo en una sola app"],
+    [String(GRUPOS.filter((g) => g.id !== "finca").reduce((n, g) => n + g.tarjetas.length, 0)), "secciones en el menú, de la leche a las cuentas, en una sola app"],
     [String(RUBROS.length), "rubros de compra para saber cuánto cuesta cada litro"],
     [String(REPORTES.length + REPORTES_HATO.length), "reportes del hato y de las cuentas, listos para Excel"],
   ];
@@ -120,13 +121,15 @@ export function Presentacion({ modo, formulario }: { modo: "login" | "registro";
               Registra una vez. <span className="text-musgo">Tu aprisco, al día.</span>
             </h1>
             <p className="max-w-xl text-[1.0625rem] text-humo sm:text-lg">
-              Hato, genealogía, leche, sanidad, partos, corrales, carne y costos en un solo lugar. Hecho para usarlo en el corral, con una mano, desde el celular.
+              Hato, genealogía, leche, sanidad, partos, corrales, carne, inventario y costos en un solo lugar, con semáforos que te dicen qué atender hoy. Hecho para usarlo en el corral, con una mano, desde el celular.
             </p>
             <ul className="space-y-2.5 text-[0.9375rem] sm:text-base">
               {[
                 "Cada animal con su historia: genealogía, endogamia, leche y sanidad",
+                "Semáforos en rojo, ámbar y verde: qué pide atención hoy y qué hacer",
                 "Avisa los periodos de retiro: la leche tratada no llega al tanque",
                 "Corrales con cupo, rotación de potreros y cuarentena",
+                "Inventario de la bodega: medicamentos por lote y vencimiento, y el alimento en kg",
                 "Compras, ventas, personal y costos por litro y por animal, reportes en Excel y proyecciones a 3 años",
               ].map((t) => (
                 <li key={t} className="flex items-start gap-2.5">
@@ -225,8 +228,8 @@ export function Presentacion({ modo, formulario }: { modo: "login" | "registro";
                   [
                     ["propietario", "Todo, y decide quién entra"],
                     ["administrador", "Todo, igual que el propietario"],
-                    ["ordenador", "Registra y mira la leche"],
-                    ["veterinario", "Sanidad, reproducción y corrales"],
+                    ["ordenador", "La leche y lo que se da de comer"],
+                    ["veterinario", "Sanidad, reproducción, corrales y medicamentos"],
                     ["contador", "Compras, ventas y reportes"],
                   ] as const
                 ).map(([rol, ve]) => (

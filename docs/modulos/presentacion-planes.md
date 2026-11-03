@@ -22,3 +22,5 @@ sin su texto hace fallar `tests/presentacion.test.mjs`; las que no se describen 
 como tarjeta propia dentro de «Dinero y análisis». La etiqueta «Desde <plan>» sale de `lib/planes.ts`, y la cifra de reportes suma los listados
 del hato (`lib/reportes/catalogo.ts`) y los de costos (`lib/costos-reportes.ts`). Proyecciones se presenta siempre como un cálculo con
 supuestos ajustables, nunca como un resultado prometido.
+
+**Qué más de la entrada sigue al menú (revisado el 3 nov 2026):** la cifra de «secciones en el menú» se cuenta desde `gruposDeFunciones()` (no se escribe a mano); el carrusel «Cubre todo esto» incluye Semáforos e Inventario de bodega; los puntos de la portada, «Quién ve qué» y las preguntas frecuentes mencionan semáforos, medicamentos y alimento. Un módulo nuevo se agrega en esos cuatro sitios, no solo en `CONTENIDO`.

@@ -1,20 +1,23 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { ChevronLeft, ChevronRight, Crown, GitFork, Sprout, Trophy } from "lucide-react";
+import { Activity, CalendarCheck, ChevronLeft, ChevronRight, Crown, GitFork, Sprout, Trophy } from "lucide-react";
 import { Escena } from "@/components/TarjetaOpcion";
 import { useArrastrarParaDesplazar } from "@/lib/arrastrar-para-desplazar";
 import { escena, ESCENA_HATO, type EscenaDef } from "@/lib/escenas";
+import { ESCENA_TODOS_INVENTARIO } from "@/lib/escenas-inventario";
 
 const TARJETAS: { titulo: string; detalle: string; escena: EscenaDef }[] = [
   { titulo: "Cabras", detalle: "Lecheras, de carne o de doble propósito.", escena: ESCENA_HATO.caprino },
   { titulo: "Ovejas", detalle: "Con sus propios parámetros de ceba y monta.", escena: ESCENA_HATO.ovino },
+  { titulo: "Semáforos", detalle: "Qué pide atención hoy, en rojo, ámbar o verde, y qué hacer.", escena: escena(Activity, "musgo", CalendarCheck) },
   { titulo: "Genealogía y endogamia", detalle: "El parentesco, antes de cruzar.", escena: escena(GitFork, "musgo", Sprout) },
   { titulo: "Leche", detalle: "Del ordeño al tanque, con su calidad.", escena: ESCENA_HATO.ordeno },
   { titulo: "Reproducción y partos", detalle: "Monta, gestación, partos y crías.", escena: ESCENA_HATO.empadronamiento },
   { titulo: "Carne y ceba", detalle: "Pesos, lotes y rendimiento al sacrificio.", escena: ESCENA_HATO.ceba },
   { titulo: "Sanidad", detalle: "Vacunas, tratamientos y periodos de retiro.", escena: ESCENA_HATO.sanidad },
   { titulo: "Corrales y potreros", detalle: "Cupo, rotación y cuarentena.", escena: ESCENA_HATO.corrales },
+  { titulo: "Inventario de bodega", detalle: "Medicamentos y vacunas por lote, y el alimento en kg.", escena: ESCENA_TODOS_INVENTARIO },
   { titulo: "Compras, ventas y costos", detalle: "Lo que compras, lo que vendes y cuánto cuesta cada litro y cada animal.", escena: ESCENA_HATO.gastos },
   { titulo: "Premios y ferias", detalle: "El palmarés de cada animal.", escena: escena(Trophy, "ambar", Crown) },
 ];
