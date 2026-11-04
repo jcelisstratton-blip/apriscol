@@ -8,26 +8,19 @@ import { Boton } from "@/components/Boton";
 import { ListaEscalable } from "@/components/ListaEscalable";
 import { Sheet } from "@/components/Sheet";
 import { useToast } from "@/components/Toast";
-import { deshacerImportacion } from "@/app/(app)/hato/importar/actions";
+import { deshacerGrupoImportacion, deshacerImportacion } from "@/app/(app)/hato/importar/actions";
+import { agruparTramos, type CargueVista } from "@/lib/cargues";
 
-export type CargueVista = {
-  id: string;
-  tipo: "animales" | "pesajes" | "ordenos";
-  archivo: string | null;
-  modo: "nuevos" | "completar" | "corregir";
-  creados: number;
-  actualizados: number;
-  estado: "aplicada" | "deshecha";
-  created_at: string;
-};
+export type { CargueVista } from "@/lib/cargues";
 
 const MODO: Record<CargueVista["modo"], string> = { nuevos: "Solo los nuevos", completar: "Nuevos y completar", corregir: "Nuevos y corregir" };
-const REGISTRO = { animales: ["animal nuevo", "animales nuevos"], pesajes: ["peso cargado", "pesos cargados"], ordenos: ["ordeño cargado", "ordeños cargados"] } as const;
+const REGISTRO = { animales: ["animal nuevo", "animales nuevos"], pesajes: ["peso cargado", "pesos cargados"], ordenos: ["ordeño cargado", "ordeños cargados"], sanidad: ["registro de sanidad", "registros de sanidad"] } as const;
 const fecha = (iso: string) => new Date(iso).toLocaleDateString("es-CO", { timeZone: "America/Bogota", day: "numeric", month: "short", year: "numeric" });
 const plural = (n: number, uno: string, varios: string) => `${n} ${n === 1 ? uno : varios}`;
 
 /** Los últimos cargues de Excel de la finca; el propietario y los administradores pueden deshacer los que aún se pueden. */
-export function HistorialImportaciones({ cargues, puedeDeshacer }: { cargues: CargueVista[]; puedeDeshacer: boolean }) {
+export function HistorialImportaciones({ cargues: tramos, puedeDeshacer }: { cargues: CargueVista[]; puedeDeshacer: boolean }) {
+  const cargues = agruparTramos(tramos);
   const router = useRouter();
   const toast = useToast();
   const [elegido, setElegido] = useState<CargueVista | null>(null);
@@ -39,7 +32,7 @@ export function HistorialImportaciones({ cargues, puedeDeshacer }: { cargues: Ca
     setError(null);
     iniciar(async () => {
       try {
-        const r = await deshacerImportacion(elegido.id);
+        const r = elegido.grupo ? await deshacerGrupoImportacion(elegido.grupo) : await deshacerImportacion(elegido.id);
         if ("error" in r) {
           setError(r.error);
           return;

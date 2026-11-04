@@ -128,14 +128,14 @@ export function pasosMigracion(c: ConteosMigracion, p: PermisosMigracion): PasoM
   if (p.sanidad) {
     pasos.push({
       id: "sanidad",
-      titulo: "Sanidad",
-      detalle: "Vacunas, desparasitaciones y tratamientos anteriores se registran desde Sanidad, a varios animales a la vez. Todavía no hay cargue por Excel para esto.",
+      titulo: "Historia de sanidad",
+      detalle: "Vacunas, desparasitaciones y tratamientos que ya tengas anotados: arete, fecha y tipo (y producto, dosis, próxima fecha si los tienes). Las próximas vacunas y los retiros salen de aquí. Lo de cada día se registra desde Sanidad.",
       estado: sinAnimales ? "bloqueado" : c.eventosSanitarios > 0 ? "hecho" : "pendiente",
       dato: c.eventosSanitarios > 0 ? n(c.eventosSanitarios, "evento registrado", "eventos registrados") : null,
-      href: "/sanidad",
-      accion: "Ir a Sanidad",
+      href: "/hato/importar/historia/sanidad",
+      accion: c.eventosSanitarios > 0 ? "Cargar más sanidad" : "Cargar sanidad",
       opcional: true,
-      porExcel: false,
+      porExcel: true,
       motivo: sinAnimales ? primero : undefined,
     });
   }

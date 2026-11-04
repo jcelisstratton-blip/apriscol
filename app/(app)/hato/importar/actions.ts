@@ -10,6 +10,7 @@ import { analizarArchivo, leerArchivoAnimales, type HojaInfo, type MapeoColumnas
 import { opcionesImportar } from "@/lib/importar-animales-servidor";
 import { CAMPOS_MAPEO, campoRepetido, faltantesDelMapeo } from "@/lib/importar-mapeo";
 import {
+  FILAS_POR_TRAMO,
   MAX_BYTES_IMPORTAR,
   MODOS_IMPORTAR,
   validarFilas,
@@ -32,9 +33,15 @@ export type AnalisisImportacion =
 
 export type RevisionImportacion =
   | { error: string }
-  | { errores: ErrorFila[]; resumen: ResultadoValidacion["resumen"]; vista: FilaVista[] };
+  | {
+      errores: ErrorFila[];
+      resumen: ResultadoValidacion["resumen"];
+      vista: FilaVista[];
+      /** Lo que se va a guardar, ya validado y en orden (padres antes que crías): el navegador lo manda por tramos de `FILAS_POR_TRAMO`. */
+      filas: FilaParaGuardar[];
+    };
 
-export type ResultadoGuardado =
+export type ResultadoTramo =
   | { error: string }
   | { importacion: string; animales: number; actualizados: number; sin_cambios: number; con_padres: number; con_parto: number; con_servicio: number; con_ubicacion: number };
 
@@ -90,10 +97,24 @@ const leerModo = (crudo: string): ModoImportar => ((MODOS_IMPORTAR as readonly s
 async function traerHato(finca: { id: string }): Promise<{ error: string } | { existentes: AnimalExistente[] }> {
   const supabase = await crearClienteServidor();
   try {
-    const { filas } = await traerTodo<AnimalExistente>((d, h) =>
-      supabase.from("animales").select("numero_arete, sexo, especie, fecha_nacimiento").eq("finca_id", finca.id).is("deleted_at", null).order("id").range(d, h),
+    const { filas } = await traerTodo<AnimalExistente & { padre_id: string | null; madre_id: string | null; padre_externo: string | null; madre_externa: string | null }>((d, h) =>
+      supabase
+        .from("animales")
+        .select("numero_arete, sexo, especie, fecha_nacimiento, nombre, raza_id, chip, color, marcas, notas, peso_nacer_kg, valor_compra, fecha_compra, partos_previos, uso_macho, vocacion, padre_id, madre_id, padre_externo, madre_externa")
+        .eq("finca_id", finca.id)
+        .is("deleted_at", null)
+        .order("id")
+        .range(d, h),
     );
-    return { existentes: filas };
+    return {
+      existentes: filas.map(({ padre_id, madre_id, padre_externo, madre_externa, ...a }) => ({
+        ...a,
+        peso_nacer_kg: a.peso_nacer_kg == null ? null : Number(a.peso_nacer_kg),
+        valor_compra: a.valor_compra == null ? null : Number(a.valor_compra),
+        tiene_padre: !!(padre_id || padre_externo),
+        tiene_madre: !!(madre_id || madre_externa),
+      })),
+    };
   } catch (e) {
     return { error: mensajeAmigable(e instanceof Error ? e.message : "No se pudo leer el hato.") };
   }
@@ -158,8 +179,11 @@ async function procesar(form: FormData): Promise<{ error: string } | { resultado
     modo,
   });
   if (resultado.errores.length === 0 && resultado.filas.length === 0) {
+    if (resultado.resumen.sin_cambios > 0) {
+      return { error: "Todos los animales del archivo ya están en tu hato con esos datos: no hay nada que cambiar." };
+    }
     if (resultado.resumen.ya_existen > 0) {
-      return { error: "Todos los animales del archivo ya están en tu hato. Si quieres llenarles datos que les faltan, elige «Completar los que ya existen»." };
+      return { error: "Todos los animales del archivo ya están en tu hato. Si quieres llenarles datos que les faltan, elige «Nuevos y completar»." };
     }
     return { error: resultado.resumen.omitidos > 0 ? "Todas las filas son de animales dados de baja (vendidos, muertos…): el cargue solo trae animales activos." : "No encontré animales para cargar en el archivo." };
   }
@@ -169,23 +193,45 @@ async function procesar(form: FormData): Promise<{ error: string } | { resultado
 export async function revisarImportacion(form: FormData): Promise<RevisionImportacion> {
   const r = await procesar(form);
   if ("error" in r) return r;
-  return { errores: r.resultado.errores, resumen: r.resultado.resumen, vista: r.resultado.vista };
+  return { errores: r.resultado.errores, resumen: r.resultado.resumen, vista: r.resultado.vista, filas: r.filas };
 }
 
-/** Vuelve a leer y validar el archivo (no se confía en lo que el navegador ya revisó) y lo guarda todo en una sola transacción. */
-export async function guardarImportacion(form: FormData): Promise<ResultadoGuardado> {
-  const r = await procesar(form);
-  if ("error" in r) return r;
-  if (r.resultado.errores.length > 0) return { error: "El archivo tiene filas con problemas. Corrígelas y súbelo de nuevo." };
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * Guarda un tramo (hasta `FILAS_POR_TRAMO` animales) de lo que el servidor ya revisó. El navegador manda los tramos uno tras otro y todos con el mismo `grupo`, para poder
+ * deshacer el archivo completo. No se confía en lo que manda el navegador: cada tramo lo vuelve a exigir la base (permisos, reglas del animal, genealogía y cupos).
+ */
+export async function guardarTramoImportacion(entrada: { filas: FilaParaGuardar[]; modo: ModoImportar; archivo: string; grupo: string }): Promise<ResultadoTramo> {
+  const { finca, rol } = await obtenerContexto();
+  if (!puedeEscribir(rol, "hato", finca.plan)) return { error: "No tienes permiso para registrar animales en esta finca." };
+  if (!Array.isArray(entrada.filas) || entrada.filas.length === 0 || entrada.filas.length > FILAS_POR_TRAMO) return { error: "No se entendió qué animales guardar. Vuelve a revisar el archivo." };
+  if (!(MODOS_IMPORTAR as readonly string[]).includes(entrada.modo) || typeof entrada.grupo !== "string" || !UUID.test(entrada.grupo)) return { error: "No se entendió el cargue. Vuelve a revisar el archivo." };
 
   const supabase = await crearClienteServidor();
-  const { data, error } = await supabase.rpc("importar_animales", { p_finca: r.fincaId, p_filas: r.filas, p_modo: r.modo, p_archivo: r.nombre });
+  const { data, error } = await supabase.rpc("importar_animales", { p_finca: finca.id, p_filas: entrada.filas, p_modo: entrada.modo, p_archivo: String(entrada.archivo ?? "").slice(0, 200), p_grupo: entrada.grupo });
   if (error) return { error: mensajeAmigable(error.message) };
 
   revalidatePath("/hato");
+  revalidatePath("/hato/migrar");
   revalidatePath("/hato/importar");
   revalidatePath("/");
-  return data as Extract<ResultadoGuardado, { importacion: string }>;
+  return data as Extract<ResultadoTramo, { importacion: string }>;
+}
+
+/** Deshace todos los tramos de un archivo grande, del último al primero, en una sola transacción (propietario o administrador). */
+export async function deshacerGrupoImportacion(grupo: string): Promise<ResultadoDeshacer> {
+  const { rol } = await obtenerContexto();
+  if (!puedeGestionar(rol)) return { error: "Solo el propietario o un administrador puede deshacer un cargue." };
+  if (!UUID.test(grupo)) return { error: "Ese cargue no existe." };
+  const supabase = await crearClienteServidor();
+  const { data, error } = await supabase.rpc("deshacer_grupo", { p_grupo: grupo });
+  if (error) return { error: mensajeAmigable(error.message) };
+  revalidatePath("/hato");
+  revalidatePath("/hato/migrar");
+  revalidatePath("/hato/importar");
+  revalidatePath("/");
+  return data as Extract<ResultadoDeshacer, { eliminados: number }>;
 }
 
 /** Deshace un cargue completo (solo propietario o administrador): quita los animales que creó y devuelve lo que cambió en los que ya existían. */

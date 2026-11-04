@@ -17,6 +17,9 @@ import { crearClienteServidor } from "@/lib/supabase/server";
 
 export const metadata: Metadata = { title: "Cargar animales desde Excel" };
 
+// Las acciones de esta pantalla leen el Excel y validan hasta 2.000 animales: más tiempo que el predeterminado.
+export const maxDuration = 60;
+
 /** Cuántos cargues recientes se listan (el historial es para deshacer un error reciente, no un archivo). */
 const CARGUES_RECIENTES = 50;
 
@@ -31,7 +34,7 @@ export default async function PaginaImportarAnimales() {
 
   const { data } = await supabase
     .from("importaciones")
-    .select("id, tipo, archivo, modo, creados, actualizados, estado, created_at")
+    .select("id, tipo, archivo, modo, creados, actualizados, estado, created_at, grupo")
     .eq("finca_id", finca.id)
     .order("created_at", { ascending: false })
     .limit(CARGUES_RECIENTES);

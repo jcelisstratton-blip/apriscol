@@ -96,7 +96,7 @@ correspondiente en `node_modules/next/dist/docs/` (esta versión cambia APIs: `m
 El detalle de cada módulo vive en `docs/modulos/`. Léelo antes de cambiar su comportamiento y actualízalo en el mismo commit.
 
 - [`docs/modulos/ajustes-finca.md`](docs/modulos/ajustes-finca.md) — Ajustes de la finca: Ajustes de la finca
-- [`docs/modulos/importar-exportar.md`](docs/modulos/importar-exportar.md) — Cargue y exportación de datos: Cargue masivo de animales (el Excel de la persona, con asistente de columnas, modos para los que ya existen y «Deshacer»); Cargue de historia (pesajes y ordeños); Migrar mi finca (la guía del proceso completo); Exportar los datos de la finca
+- [`docs/modulos/importar-exportar.md`](docs/modulos/importar-exportar.md) — Cargue y exportación de datos: Cargue masivo de animales (el Excel de la persona, con asistente de columnas, modos para los que ya existen y «Deshacer»); Cargue de historia (pesajes, ordeños y sanidad); Migrar mi finca (la guía del proceso completo); Exportar los datos de la finca
 - [`docs/modulos/vigencia-plan.md`](docs/modulos/vigencia-plan.md) — Vigencia del plan: Vigencia del plan
 - [`docs/modulos/reproduccion.md`](docs/modulos/reproduccion.md) — Reproducción: Empadronamiento
 - [`docs/modulos/sanidad-corrales.md`](docs/modulos/sanidad-corrales.md) — Sanidad y corrales: Sanidad; Corrales, instalaciones y rotación

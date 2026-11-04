@@ -331,3 +331,96 @@ test("historia: de un Excel con título arriba a registros validados, de punta a
   const sinArete = await leerFilasMapeadas(buffer, { filaEncabezado: 3, mapeo: [{ indice: 1, campo: "fecha" }], requerido: { id: "numero_arete", titulo: "Número de arete" }, maxFilas: 100 });
   assert.equal(sinArete.ok, false);
 });
+
+test("sanidad: reconoce los títulos, entiende los tipos y vías escritos a mano y arma el resumen por eventos", () => {
+  const p = proponerMapeoHistoria("sanidad", [col("Chapeta", ["H-1"]), col("Fecha", ["2026-06-01"]), col("Actividad", ["Vacuna"]), col("Vacuna", ["Clostridial"]), col("Dosis", ["2"]), col("Vía", ["SC"]), col("Refuerzo", ["01/12/2026"])]);
+  assert.deepEqual(p, ["numero_arete", "fecha", "tipo", "producto_nombre", "dosis", "via", "proxima_fecha"]);
+  const r = validarHistoria("sanidad", [
+    fh(2, { numero_arete: "H-1", fecha: "2026-06-01", tipo: "Vacuna", producto_nombre: "Clostridial", dosis: "2", unidad_dosis: "ml", via: "SC", proxima_fecha: "01/12/2026" }),
+    fh(3, { numero_arete: "H-2", fecha: "2026-06-01", tipo: "Vacunación", producto_nombre: "Clostridial", dosis: 2, unidad_dosis: "ml", via: "subcutánea", proxima_fecha: "2026-12-01" }),
+    fh(4, { numero_arete: "M-1", fecha: "2026-06-01", tipo: "Desparasitación", producto_nombre: "Ivermectina", retiro_leche_dias: "4", retiro_carne_dias: 28 }),
+  ], { animales: hato, hoy: hoyH });
+  assert.deepEqual(r.errores, []);
+  assert.deepEqual(r.filas.map((f) => [f.tipo, f.via ?? null]), [["vacunacion", "subcutanea"], ["vacunacion", "subcutanea"], ["desparasitacion", null]]);
+  assert.equal(r.resumen.animales, 3);
+  assert.equal(r.resumen.suma, 2, "las dos vacunas iguales son un solo evento");
+  assert.match(r.muestra[0].detalle, /Vacunación · Clostridial · 2 ml · Próxima 01\/12\/2026/);
+  assert.equal(r.filas[2].retiro_leche_dias, 4);
+});
+
+test("sanidad: el tipo es obligatorio y se rechazan vías, dosis, próxima fecha y retiros imposibles", () => {
+  const r = validarHistoria("sanidad", [
+    fh(2, { numero_arete: "H-1", fecha: "2026-06-01" }),
+    fh(3, { numero_arete: "H-1", fecha: "2026-06-02", tipo: "baile" }),
+    fh(4, { numero_arete: "H-1", fecha: "2026-06-03", tipo: "vacuna", via: "por la nariz" }),
+    fh(5, { numero_arete: "H-1", fecha: "2026-06-04", tipo: "vacuna", dosis: "0" }),
+    fh(6, { numero_arete: "H-1", fecha: "2026-06-05", tipo: "vacuna", proxima_fecha: "2026-06-01" }),
+    fh(7, { numero_arete: "H-1", fecha: "2026-06-06", tipo: "tratamiento", retiro_leche_dias: "400" }),
+  ], { animales: hato, hoy: hoyH });
+  const msgs = r.errores.map((e) => e.mensajes.join(" ")).join("\n");
+  assert.match(msgs, /Falta el tipo de evento/);
+  assert.match(msgs, /«baile» no es válido/);
+  assert.match(msgs, /vía «por la nariz»/);
+  assert.match(msgs, /dosis debe ser un número mayor que cero/);
+  assert.match(msgs, /próxima fecha debe ser posterior/);
+  assert.match(msgs, /retiro de leche deben ser/);
+  assert.equal(r.resumen.total_errores, 6);
+});
+
+test("sanidad: dos veces lo mismo al mismo animal el mismo día es un repetido", () => {
+  const r = validarHistoria("sanidad", [fh(2, { numero_arete: "H-1", fecha: "2026-06-01", tipo: "vacuna", producto_nombre: "A" }), fh(3, { numero_arete: "H-1", fecha: "2026-06-01", tipo: "vacuna", producto_nombre: "a" })], { animales: hato, hoy: hoyH });
+  assert.match(r.errores[0].mensajes[0], /se repite/);
+  const distinto = validarHistoria("sanidad", [fh(2, { numero_arete: "H-1", fecha: "2026-06-01", tipo: "vacuna", producto_nombre: "A" }), fh(3, { numero_arete: "H-1", fecha: "2026-06-01", tipo: "vacuna", producto_nombre: "B" })], { animales: hato, hoy: hoyH });
+  assert.deepEqual(distinto.errores, []);
+});
+
+test("migrar: sanidad ahora se carga por Excel", () => {
+  const pasos = pasosMigracion({ ...vacio, animales: 10, eventosSanitarios: 3 }, permisosTodos);
+  const s = pasos.find((p) => p.id === "sanidad");
+  assert.equal(s.href, "/hato/importar/historia/sanidad");
+  assert.equal(s.porExcel, true);
+  assert.equal(s.estado, "hecho");
+});
+
+// ───────────────────────── Qué cambia, tramos y grupos ─────────────────────────
+import { FILAS_POR_TRAMO, MAX_FILAS_IMPORTAR } from "../lib/importar-animales.ts";
+import { agruparTramos } from "../lib/cargues.ts";
+
+const existenteCompleto = (extra = {}) => ({ numero_arete: "A-3", sexo: "hembra", especie: "caprino", fecha_nacimiento: "2022-03-01", nombre: "Nube", raza_id: 1, chip: null, tiene_padre: false, tiene_madre: true, ...extra });
+
+test("qué cambia: al completar solo entra lo que el animal tiene vacío; al corregir, lo que el archivo trae distinto", () => {
+  const filas = [fila(2, { numero_arete: "A-3", nombre: "Otra", chip: "999", color: "Blanca", fecha_nacimiento: "2022-03-01" })];
+  const completar = validarFilas(filas, ctx({ modo: "completar", existentes: [existenteCompleto()] }));
+  assert.deepEqual(completar.vista[0].cambios.sort(), ["Color: — → Blanca", "Microchip: — → 999"]);
+  const corregir = validarFilas(filas, ctx({ modo: "corregir", existentes: [existenteCompleto()] }));
+  assert.deepEqual(corregir.vista[0].cambios.sort(), ["Color: — → Blanca", "Microchip: — → 999", "Nombre: Nube → Otra"]);
+});
+
+test("qué cambia: la genealogía solo se completa; sin nada que cambiar no se manda a guardar", () => {
+  const ya = validarFilas([fila(2, { numero_arete: "A-3", nombre: "Nube", madre_arete: "A-2" })], ctx({ modo: "corregir", existentes: [existenteCompleto(), { numero_arete: "A-2", sexo: "hembra", especie: "caprino", fecha_nacimiento: "2020-01-01" }] }));
+  assert.deepEqual(ya.errores, []);
+  assert.equal(ya.resumen.sin_cambios, 1);
+  assert.equal(ya.filas.length, 0, "el animal ya tiene madre y nombre: no hay nada que hacer");
+  assert.deepEqual(ya.vista[0].cambios, []);
+  const padre = validarFilas([fila(2, { numero_arete: "A-3", padre_arete: "A-1" })], ctx({ modo: "completar", existentes: [existenteCompleto(), { numero_arete: "A-1", sexo: "macho", especie: "caprino", fecha_nacimiento: "2020-01-01" }] }));
+  assert.deepEqual(padre.vista.find((v) => v.numero_arete === "A-3").cambios, ["Padre: — → A-1"]);
+  assert.equal(padre.resumen.actualizar, 1);
+});
+
+test("tramos: el tope por archivo es de 2.000 y cada tramo guarda 500", () => {
+  assert.equal(MAX_FILAS_IMPORTAR, 2000);
+  assert.equal(FILAS_POR_TRAMO, 500);
+});
+
+test("historial: los tramos de un mismo archivo se ven como uno solo y se deshacen juntos", () => {
+  const c = (id, grupo, creados, estado = "aplicada") => ({ id, tipo: "animales", archivo: "hato.xlsx", modo: "nuevos", creados, actualizados: 0, estado, created_at: "2026-11-04T16:00:00Z", grupo });
+  const lista = agruparTramos([c("4", "g1", 100), c("3", "g1", 500), c("2", "g1", 500), c("1", null, 7)]);
+  assert.equal(lista.length, 2);
+  assert.equal(lista[0].creados, 1100);
+  assert.equal(lista[0].grupo, "g1");
+  assert.equal(lista[1].creados, 7);
+  const deshechos = agruparTramos([c("2", "g2", 5, "deshecha"), c("1", "g2", 5, "deshecha")]);
+  assert.equal(deshechos[0].estado, "deshecha");
+  const mixto = agruparTramos([c("2", "g3", 5, "deshecha"), c("1", "g3", 5, "aplicada")]);
+  assert.equal(mixto[0].estado, "aplicada");
+});

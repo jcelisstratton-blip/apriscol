@@ -25,6 +25,7 @@ const numero = (n: number) => n.toLocaleString("es-CO", { maximumFractionDigits:
 const TEXTOS: Record<TipoHistoria, { titulo: string; ejemplo: string; unidad: string; registros: string; promedio: string }> = {
   pesajes: { titulo: "pesajes", ejemplo: "Una fila por pesaje, con el arete, la fecha y el peso en kilos.", unidad: "kg", registros: "pesos", promedio: "Peso promedio" },
   ordenos: { titulo: "ordeños", ejemplo: "Una fila por ordeño, con el arete, la fecha y los litros. Si ordeñas dos veces al día, pon la jornada (Mañana/Tarde).", unidad: "L", registros: "ordeños", promedio: "Litros en total" },
+  sanidad: { titulo: "eventos de sanidad", ejemplo: "Una fila por animal y evento, con el arete, la fecha y el tipo (Vacunación, Desparasitación, Tratamiento…). Si das lo mismo a varios animales el mismo día, quedan juntos en un solo evento. El producto va como nombre: no toca el inventario.", unidad: "", registros: "registros de sanidad", promedio: "Eventos" },
 };
 
 type Acciones = {
@@ -327,9 +328,9 @@ export function ImportarHistoria({
           <div className="space-y-3">
             <div className="grid grid-cols-3 gap-2">
               {[
-                { v: revision.resumen.total.toLocaleString("es-CO"), e: t.registros === "pesos" ? "Pesajes" : "Ordeños" },
+                { v: revision.resumen.total.toLocaleString("es-CO"), e: tipo === "pesajes" ? "Pesajes" : tipo === "ordenos" ? "Ordeños" : "Registros" },
                 { v: String(revision.resumen.animales), e: "Animales" },
-                { v: numero(revision.resumen.suma), e: tipo === "pesajes" ? `${t.promedio} (kg)` : "Litros" },
+                { v: numero(revision.resumen.suma), e: tipo === "pesajes" ? `${t.promedio} (kg)` : tipo === "sanidad" ? "Eventos" : "Litros" },
               ].map((d) => (
                 <div key={d.e} className="min-w-0 rounded-2xl bg-lana px-3 py-2.5">
                   <p className="font-display text-xl font-semibold [overflow-wrap:anywhere] sm:text-2xl">{d.v}</p>

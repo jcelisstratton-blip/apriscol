@@ -10,6 +10,9 @@ import { puedeEscribir, puedeGestionar } from "@/lib/permisos";
 
 export const metadata: Metadata = { title: "Cargar historia desde Excel" };
 
+// Las acciones de esta pantalla leen el Excel y validan hasta 5.000 registros: más tiempo que el predeterminado.
+export const maxDuration = 60;
+
 export default async function PaginaImportarHistoria({ params }: { params: Promise<{ tipo: string }> }) {
   const { tipo } = await params;
   if (!TIPOS_HISTORIA.includes(tipo as TipoHistoria)) notFound();

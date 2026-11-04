@@ -1743,6 +1743,7 @@ export type Database = {
       }
       eventos_sanitarios: {
         Row: {
+          importacion_id: string | null
           anestesia: string | null
           categoria: string | null
           cojera: number | null
@@ -1777,6 +1778,7 @@ export type Database = {
           via: string | null
         }
         Insert: {
+          importacion_id?: string | null
           anestesia?: string | null
           categoria?: string | null
           cojera?: number | null
@@ -1811,6 +1813,7 @@ export type Database = {
           via?: string | null
         }
         Update: {
+          importacion_id?: string | null
           anestesia?: string | null
           categoria?: string | null
           cojera?: number | null
@@ -2499,6 +2502,8 @@ export type Database = {
       }
       importaciones: {
         Row: {
+          grupo: string | null
+          orden: number
           archivo: string | null
           cambios: Json
           created_at: string
@@ -2515,6 +2520,8 @@ export type Database = {
           tipo: string
         }
         Insert: {
+          grupo?: string | null
+          orden?: never
           archivo?: string | null
           cambios?: Json
           created_at?: string
@@ -2531,6 +2538,8 @@ export type Database = {
           tipo?: string
         }
         Update: {
+          grupo?: string | null
+          orden?: never
           archivo?: string | null
           cambios?: Json
           created_at?: string
@@ -6679,8 +6688,12 @@ export type Database = {
         }
         Returns: string
       }
+      deshacer_grupo: {
+        Args: { p_grupo: string }
+        Returns: Json
+      }
       importar_animales: {
-        Args: { p_archivo?: string; p_filas: Json; p_finca: string; p_modo?: string }
+        Args: { p_archivo?: string; p_filas: Json; p_finca: string; p_grupo?: string; p_modo?: string }
         Returns: Json
       }
       importar_historial: {
