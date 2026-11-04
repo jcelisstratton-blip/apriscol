@@ -41,8 +41,11 @@ export type PasoMigracion = {
   dato: string | null;
   href: string;
   accion: string;
-  /** Otra forma de hacer lo mismo (por ejemplo, crear uno a mano), si la hay. */
-  alternativa?: { href: string; texto: string };
+  /**
+   * «Ver lo que ya hay»: lleva a la pantalla donde se ve y se trabaja lo cargado en este paso. **Todos los pasos la llevan**, con o sin datos todavía (la
+   * pantalla de destino tiene su estado vacío y desde ella también se registra a mano). Es el único enlace secundario de la tarjeta: ningún paso ofrece otro.
+   */
+  alternativa: { href: string; texto: string };
   /** Un paso opcional no impide dar la migración por terminada. */
   opcional: boolean;
   /** Si es true, el cargue de este paso es por Excel (y se puede deshacer). */
@@ -80,8 +83,8 @@ export function pasosMigracion(c: ConteosMigracion, p: PermisosMigracion): PasoM
       dato: c.ubicaciones > 0 ? n(c.ubicaciones, "corral o potrero", "corrales y potreros") : null,
       href: "/hato/importar/historia/corrales",
       accion: c.ubicaciones > 0 ? "Cargar más corrales" : "Cargar corrales",
-      // «Ver mis corrales» abre la vista Corrales del Hato (los que ya existen, con su cupo); no hay una página /hato/corrales.
-      alternativa: { href: c.ubicaciones > 0 ? "/hato?vista=corrales" : "/hato/corrales/nueva", texto: c.ubicaciones > 0 ? "Ver mis corrales" : "Crear uno a mano" },
+      // «Ver mis corrales» abre la vista Corrales del Hato (no hay una página /hato/corrales).
+      alternativa: { href: "/hato?vista=corrales", texto: "Ver mis corrales" },
       opcional: true,
       porExcel: true,
     });
@@ -102,6 +105,7 @@ export function pasosMigracion(c: ConteosMigracion, p: PermisosMigracion): PasoM
       dato: null,
       href: "/hato/importar",
       accion: c.animales > 0 ? "Cargar más animales" : "Cargar animales",
+      alternativa: { href: "/hato", texto: "Ver mi hato" },
       opcional: false,
       porExcel: true,
       subpasos: sub,
@@ -112,11 +116,12 @@ export function pasosMigracion(c: ConteosMigracion, p: PermisosMigracion): PasoM
       id: "pesajes",
       etapa: "historia",
       titulo: "Historia de pesos",
-      detalle: "Los pesajes que ya tienes anotados: arete, fecha y peso. Alimentan la ganancia diaria y la ceba. Tienes una plantilla para descargar, o sirve tu propio Excel.",
+      detalle: "Los pesajes que ya tienes anotados: arete, fecha y peso. Alimentan la ganancia diaria y la ceba.",
       estado: sinAnimales ? "bloqueado" : c.pesajes > 0 ? "hecho" : "pendiente",
       dato: c.pesajes > 0 ? n(c.pesajes, "pesaje", "pesajes") : null,
       href: "/hato/importar/historia/pesajes",
       accion: c.pesajes > 0 ? "Cargar más pesajes" : "Cargar pesajes",
+      alternativa: { href: "/hato?vista=ceba", texto: "Ver los pesos" },
       opcional: true,
       porExcel: true,
       motivo: sinAnimales ? primero : undefined,
@@ -127,11 +132,12 @@ export function pasosMigracion(c: ConteosMigracion, p: PermisosMigracion): PasoM
       id: "ordenos",
       etapa: "historia",
       titulo: "Historia de ordeños",
-      detalle: "Los litros de cada hembra por día (y jornada, si ordeñas dos veces). Alimentan la curva de lactancia y los reportes de leche. Tienes una plantilla para descargar, o sirve tu propio Excel.",
+      detalle: "Los litros de cada hembra por día (y jornada, si ordeñas dos veces). Alimentan la curva de lactancia y los reportes de leche.",
       estado: sinAnimales ? "bloqueado" : c.ordenos > 0 ? "hecho" : "pendiente",
       dato: c.ordenos > 0 ? n(c.ordenos, "ordeño", "ordeños") : null,
       href: "/hato/importar/historia/ordenos",
       accion: c.ordenos > 0 ? "Cargar más ordeños" : "Cargar ordeños",
+      alternativa: { href: "/leche", texto: "Ver la leche" },
       opcional: true,
       porExcel: true,
       motivo: sinAnimales ? primero : undefined,
@@ -147,6 +153,7 @@ export function pasosMigracion(c: ConteosMigracion, p: PermisosMigracion): PasoM
       dato: c.eventosSanitarios > 0 ? n(c.eventosSanitarios, "evento registrado", "eventos registrados") : null,
       href: "/hato/importar/historia/sanidad",
       accion: c.eventosSanitarios > 0 ? "Cargar más sanidad" : "Cargar sanidad",
+      alternativa: { href: "/sanidad", texto: "Ver sanidad" },
       opcional: true,
       porExcel: true,
       motivo: sinAnimales ? primero : undefined,
