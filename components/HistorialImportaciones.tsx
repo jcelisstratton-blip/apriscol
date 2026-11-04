@@ -14,7 +14,7 @@ import { agruparTramos, type CargueVista } from "@/lib/cargues";
 export type { CargueVista } from "@/lib/cargues";
 
 const MODO: Record<CargueVista["modo"], string> = { nuevos: "Solo los nuevos", completar: "Nuevos y completar", corregir: "Nuevos y corregir" };
-const REGISTRO = { animales: ["animal nuevo", "animales nuevos"], pesajes: ["peso cargado", "pesos cargados"], ordenos: ["ordeño cargado", "ordeños cargados"], sanidad: ["registro de sanidad", "registros de sanidad"] } as const;
+const REGISTRO = { animales: ["animal nuevo", "animales nuevos"], pesajes: ["peso cargado", "pesos cargados"], ordenos: ["ordeño cargado", "ordeños cargados"], sanidad: ["registro de sanidad", "registros de sanidad"], corrales: ["corral o potrero", "corrales y potreros"], medicamentos: ["lote contado", "lotes contados"], alimento: ["alimento contado", "alimentos contados"] } as const;
 const fecha = (iso: string) => new Date(iso).toLocaleDateString("es-CO", { timeZone: "America/Bogota", day: "numeric", month: "short", year: "numeric" });
 const plural = (n: number, uno: string, varios: string) => `${n} ${n === 1 ? uno : varios}`;
 

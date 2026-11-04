@@ -3,13 +3,16 @@
 import { revalidatePath } from "next/cache";
 import { crearClienteServidor } from "@/lib/supabase/server";
 import { obtenerContexto } from "@/lib/contexto";
-import { puedeEscribir } from "@/lib/permisos";
 import { mensajeAmigable } from "@/lib/mensaje-amigable";
 import { hoyBogota } from "@/lib/fechas";
 import { analizarArchivo, leerFilasMapeadas } from "@/lib/importar-animales-excel";
 import { MAX_BYTES_IMPORTAR, type ErrorFila } from "@/lib/importar-animales";
+import { paraGuardarCatalogo, validarCatalogo, type ContextoCatalogo, type ResultadoCatalogo } from "@/lib/importar-catalogo";
 import {
   CAMPOS_HISTORIA,
+  CLAVE_HISTORIA,
+  esCatalogo,
+  puedeCargar,
   MAX_FILAS_HISTORIA,
   TIPOS_HISTORIA,
   TITULO_HISTORIA,
@@ -30,7 +33,7 @@ import type { HojaInfo } from "@/lib/importar-animales-excel";
 export type ColumnaHistoria = { indice: number; encabezado: string; muestras: string[]; campo: string };
 export type AnalisisHistoria = { error: string } | { hojas: HojaInfo[]; hoja: string; filaEncabezado: number; totalFilas: number; columnas: ColumnaHistoria[] };
 export type RevisionHistoria = { error: string } | { errores: ErrorFila[]; resumen: ResumenHistoria; muestra: MuestraHistoria[] };
-export type ResultadoHistoria = { error: string } | { importacion: string; creados: number; omitidos: number };
+export type ResultadoHistoria = { error: string } | { importacion: string; creados: number; omitidos: number; /** Solo en medicamentos y alimento: cuántos productos nuevos se crearon. */ productos?: number };
 
 const MUESTRAS_POR_COLUMNA = 3;
 const textoForm = (form: FormData, clave: string) => {
@@ -45,7 +48,9 @@ async function recibir(form: FormData): Promise<Recibido> {
   if (!TIPOS_HISTORIA.includes(tipo)) return { error: "Ese tipo de cargue no existe." };
   const { finca, rol } = await obtenerContexto();
   const t = TITULO_HISTORIA[tipo];
-  if (!puedeEscribir(rol, t.modulo, finca.plan)) return { error: `No tienes permiso para registrar ${t.registro} en esta finca.` };
+  if (!puedeCargar(tipo, rol, finca.plan)) {
+    return { error: tipo === "alimento" ? "Solo el propietario o un administrador puede cargar el inventario de alimento." : `No tienes permiso para registrar ${t.registro} en esta finca.` };
+  }
   const archivo = form.get("archivo");
   if (!(archivo instanceof File) || archivo.size === 0) return { error: "Elige el archivo de Excel." };
   if (archivo.size > MAX_BYTES_IMPORTAR) return { error: "El archivo es muy pesado (máximo 4 MB). Guarda solo la hoja con los datos, sin imágenes." };
@@ -106,7 +111,29 @@ export async function analizarHistoria(form: FormData): Promise<AnalisisHistoria
   };
 }
 
-async function procesar(form: FormData) {
+/** Lo que ya existe en la finca (corrales, productos y alimentos), para reutilizarlo y saber en qué se cuenta cada producto. */
+async function traerCatalogo(fincaId: string): Promise<{ error: string } | { ctx: ContextoCatalogo }> {
+  const supabase = await crearClienteServidor();
+  const [corrales, productos, alimentos] = await Promise.all([
+    supabase.from("ubicaciones").select("nombre").eq("finca_id", fincaId).limit(2000),
+    supabase.from("productos_veterinarios").select("nombre, presentacion, contenido_presentacion").eq("finca_id", fincaId).limit(2000),
+    supabase.from("finca_productos").select("nombre, rubro").eq("finca_id", fincaId).eq("tipo", "compra").limit(2000),
+  ]);
+  const fallo = corrales.error ?? productos.error ?? alimentos.error;
+  if (fallo) return { error: mensajeAmigable(fallo.message) };
+  return {
+    ctx: {
+      hoy: hoyBogota(),
+      corrales: (corrales.data ?? []).map((c) => c.nombre),
+      productosVet: (productos.data ?? []).map((p) => ({ nombre: p.nombre, presentacion: p.presentacion, contenido_presentacion: p.contenido_presentacion == null ? null : Number(p.contenido_presentacion) })),
+      alimentos: (alimentos.data ?? []).map((a) => ({ nombre: a.nombre, rubro: a.rubro ?? "" })),
+    },
+  };
+}
+
+type Procesado = { error: string } | { resultado: ResultadoCatalogo | ReturnType<typeof validarHistoria>; tipo: TipoHistoria; fincaId: string; nombre: string };
+
+async function procesar(form: FormData): Promise<Procesado> {
   const r = await recibir(form);
   if ("error" in r) return r;
   const mapeo = leerMapeo(r.tipo, textoForm(form, "mapeo"));
@@ -116,11 +143,20 @@ async function procesar(form: FormData) {
     hoja: textoForm(form, "hoja") || undefined,
     filaEncabezado: Number.isInteger(filaEncabezado) && filaEncabezado >= 1 ? filaEncabezado : undefined,
     mapeo: mapeo.mapeo,
-    requerido: { id: "numero_arete", titulo: "Número de arete" },
+    requerido: CLAVE_HISTORIA[r.tipo],
     maxFilas: MAX_FILAS_HISTORIA,
     reconocer: (t) => puntajeTituloHistoria(r.tipo, t),
   });
   if (!lectura.ok) return { error: lectura.error };
+  if (esCatalogo(r.tipo)) {
+    const cat = await traerCatalogo(r.finca.id);
+    if ("error" in cat) return cat;
+    const resultado = validarCatalogo(r.tipo, lectura.filas, cat.ctx);
+    if (resultado.errores.length === 0 && resultado.filas.length === 0) {
+      return { error: r.tipo === "corrales" ? "Todos los corrales del archivo ya están en tu finca: no hay nada que crear." : "No encontré registros para cargar en el archivo." };
+    }
+    return { resultado, tipo: r.tipo, fincaId: r.finca.id, nombre: r.nombre };
+  }
   const hato = await traerAnimales(r.finca.id);
   if ("error" in hato) return hato;
   const resultado = validarHistoria(r.tipo, lectura.filas, { animales: hato.animales, hoy: hoyBogota() });
@@ -139,15 +175,26 @@ export async function guardarHistoria(form: FormData): Promise<ResultadoHistoria
   const r = await procesar(form);
   if ("error" in r) return r;
   if (r.resultado.resumen.total_errores > 0) return { error: "El archivo tiene filas con problemas. Corrígelas y súbelo de nuevo." };
-  const filas: FilaHistoria[] = r.resultado.filas;
   const supabase = await crearClienteServidor();
-  const { data, error } = await supabase.rpc("importar_historial", { p_finca: r.fincaId, p_tipo: r.tipo, p_filas: filas, p_archivo: r.nombre });
-  if (error) return { error: mensajeAmigable(error.message) };
+  let data: unknown;
+  if (esCatalogo(r.tipo)) {
+    const filas = paraGuardarCatalogo(r.resultado.filas as ResultadoCatalogo["filas"]);
+    const res = await supabase.rpc("importar_catalogo", { p_finca: r.fincaId, p_tipo: r.tipo, p_filas: filas, p_archivo: r.nombre });
+    if (res.error) return { error: mensajeAmigable(res.error.message) };
+    data = res.data;
+  } else {
+    const filas: FilaHistoria[] = r.resultado.filas as FilaHistoria[];
+    const res = await supabase.rpc("importar_historial", { p_finca: r.fincaId, p_tipo: r.tipo, p_filas: filas, p_archivo: r.nombre });
+    if (res.error) return { error: mensajeAmigable(res.error.message) };
+    data = res.data;
+  }
   revalidatePath("/hato");
   revalidatePath("/hato/migrar");
   revalidatePath("/hato/importar");
   revalidatePath("/leche");
   revalidatePath("/carne");
+  revalidatePath("/inventario");
+  revalidatePath("/hato/corrales");
   revalidatePath("/");
   return data as Extract<ResultadoHistoria, { importacion: string }>;
 }

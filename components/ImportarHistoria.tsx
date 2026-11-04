@@ -22,10 +22,25 @@ type Guardado = Exclude<ResultadoHistoria, { error: string }>;
 const fechaCorta = (iso: string | null) => (iso ? iso.split("-").reverse().join("/") : "");
 const numero = (n: number) => n.toLocaleString("es-CO", { maximumFractionDigits: 1 });
 
-const TEXTOS: Record<TipoHistoria, { titulo: string; ejemplo: string; unidad: string; registros: string; promedio: string }> = {
-  pesajes: { titulo: "pesajes", ejemplo: "Una fila por pesaje, con el arete, la fecha y el peso en kilos.", unidad: "kg", registros: "pesos", promedio: "Peso promedio" },
-  ordenos: { titulo: "ordeños", ejemplo: "Una fila por ordeño, con el arete, la fecha y los litros. Si ordeñas dos veces al día, pon la jornada (Mañana/Tarde).", unidad: "L", registros: "ordeños", promedio: "Litros en total" },
-  sanidad: { titulo: "eventos de sanidad", ejemplo: "Una fila por animal y evento, con el arete, la fecha y el tipo (Vacunación, Desparasitación, Tratamiento…). Si das lo mismo a varios animales el mismo día, quedan juntos en un solo evento. El producto va como nombre: no toca el inventario.", unidad: "", registros: "registros de sanidad", promedio: "Eventos" },
+type TextosCargue = {
+  titulo: string;
+  /** Qué trae cada fila y cómo se amarra (al animal por su arete, o por nombre). */
+  ejemplo: string;
+  registros: string;
+  /** Las tres cifras de la revisión: cuántos registros, cuántos animales/productos y el dato principal. */
+  tarjetas: [string, string, string];
+  suma: (n: number) => string;
+  /** Si es true, el cargue necesita que los animales ya estén en el hato. */
+  porAnimal: boolean;
+};
+
+const TEXTOS: Record<TipoHistoria, TextosCargue> = {
+  pesajes: { titulo: "pesajes", ejemplo: "Una fila por pesaje, con el arete, la fecha y el peso en kilos.", registros: "pesos", tarjetas: ["Pesajes", "Animales", "Peso promedio (kg)"], suma: numero, porAnimal: true },
+  ordenos: { titulo: "ordeños", ejemplo: "Una fila por ordeño, con el arete, la fecha y los litros. Si ordeñas dos veces al día, pon la jornada (Mañana/Tarde).", registros: "ordeños", tarjetas: ["Ordeños", "Animales", "Litros"], suma: numero, porAnimal: true },
+  sanidad: { titulo: "eventos de sanidad", ejemplo: "Una fila por animal y evento, con el arete, la fecha y el tipo (Vacunación, Desparasitación, Tratamiento…). Si das lo mismo a varios animales el mismo día, quedan juntos en un solo evento. El producto va como nombre: no toca el inventario.", registros: "registros de sanidad", tarjetas: ["Registros", "Animales", "Eventos"], suma: numero, porAnimal: true },
+  corrales: { titulo: "corrales y potreros", ejemplo: "Una fila por corral o potrero, con su nombre y, en los corrales, cuántos animales caben. Si ya tienes uno con ese nombre, se deja como está.", registros: "corrales y potreros", tarjetas: ["Por crear", "Corrales y potreros", "Capacidad (animales)"], suma: numero, porAnimal: false },
+  medicamentos: { titulo: "medicamentos y vacunas", ejemplo: "Una fila por lote de cada producto, con su nombre, el lote, el vencimiento y cuánto hay hoy. Es el conteo de apertura: desde ese día, las compras y las aplicaciones mantienen el stock solas.", registros: "lotes contados", tarjetas: ["Lotes", "Productos", "Lotes vencidos"], suma: numero, porAnimal: false },
+  alimento: { titulo: "alimento", ejemplo: "Una fila por alimento, con su nombre, el rubro y cuántos kg hay hoy. Es el conteo de apertura: desde ese día, las compras y lo que se da de comer mantienen el stock solo.", registros: "alimentos contados", tarjetas: ["Alimentos", "Productos", "Kg en total"], suma: numero, porAnimal: false },
 };
 
 type Acciones = {
@@ -209,7 +224,8 @@ export function ImportarHistoria({
             <Aviso tipo="info">Cargue deshecho: se quitaron {guardado.creados} {t.registros}.</Aviso>
           ) : (
             <Aviso tipo="exito">
-              Listo: {guardado.creados} {t.registros} cargados.
+              Listo: {guardado.creados} {t.registros} {guardado.creados === 1 ? "cargado" : "cargados"}
+              {guardado.productos ? `, con ${guardado.productos} ${guardado.productos === 1 ? "producto nuevo" : "productos nuevos"} en tu catálogo` : ""}.
               {guardado.omitidos > 0 ? ` ${guardado.omitidos} ya estaban registrados y se dejaron como estaban.` : ""}
             </Aviso>
           )}
@@ -255,7 +271,7 @@ export function ImportarHistoria({
       <Tarjeta titulo="1. Sube tu Excel">
         <div className="space-y-3">
           <p className="text-[0.9375rem] text-humo">
-            {t.ejemplo} Cada fila se amarra al animal por su número de arete, que ya debe estar en tu hato. Hasta {MAX_FILAS_HISTORIA.toLocaleString("es-CO")} registros por archivo.
+            {t.ejemplo} {t.porAnimal ? "Cada fila se amarra al animal por su número de arete, que ya debe estar en tu hato." : "No necesitas tener animales cargados."} Hasta {MAX_FILAS_HISTORIA.toLocaleString("es-CO")} filas por archivo.
           </p>
           <input ref={entrada} type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" className="sr-only" aria-label={`Archivo de Excel con los ${t.titulo}`} onChange={(e) => elegir(e.target.files?.[0])} />
           {archivo ? (
@@ -334,9 +350,9 @@ export function ImportarHistoria({
           <div className="space-y-3">
             <div className="grid grid-cols-3 gap-2">
               {[
-                { v: revision.resumen.total.toLocaleString("es-CO"), e: tipo === "pesajes" ? "Pesajes" : tipo === "ordenos" ? "Ordeños" : "Registros" },
-                { v: String(revision.resumen.animales), e: "Animales" },
-                { v: numero(revision.resumen.suma), e: tipo === "pesajes" ? `${t.promedio} (kg)` : tipo === "sanidad" ? "Eventos" : "Litros" },
+                { v: revision.resumen.total.toLocaleString("es-CO"), e: t.tarjetas[0] },
+                { v: String(revision.resumen.animales), e: t.tarjetas[1] },
+                { v: t.suma(revision.resumen.suma), e: t.tarjetas[2] },
               ].map((d) => (
                 <div key={d.e} className="min-w-0 rounded-2xl bg-lana px-3 py-2.5">
                   <p className="font-display text-xl font-semibold [overflow-wrap:anywhere] sm:text-2xl">{d.v}</p>
@@ -345,13 +361,17 @@ export function ImportarHistoria({
               ))}
             </div>
             <Aviso tipo="info">
-              Todo está correcto: de {fechaCorta(revision.resumen.desde)} a {fechaCorta(revision.resumen.hasta)}. Se guarda todo junto al confirmar, y después podrás deshacerlo si hace falta. Lo que ya esté registrado ese día se deja como está.
+              Todo está correcto{revision.resumen.desde ? `: de ${fechaCorta(revision.resumen.desde)} a ${fechaCorta(revision.resumen.hasta)}` : ""}. Se guarda todo junto al confirmar, y después podrás deshacerlo si hace falta.
+              {t.porAnimal ? " Lo que ya esté registrado ese día se deja como está." : " Lo que ya exista con ese nombre se deja como está."}
+              {revision.resumen.nuevos !== undefined && revision.resumen.ya_existen ? ` ${revision.resumen.ya_existen} ya ${revision.resumen.ya_existen === 1 ? "existía" : "existían"} en tu finca y no se ${revision.resumen.ya_existen === 1 ? "toca" : "tocan"}.` : ""}
+              {tipo === "medicamentos" && revision.resumen.suma > 0 ? ` ${revision.resumen.suma} ${revision.resumen.suma === 1 ? "lote ya está vencido" : "lotes ya están vencidos"}: quedan contados y el semáforo los marcará para dar de baja.` : ""}
             </Aviso>
             <p className="text-sm font-semibold">Así se ven los primeros {revision.muestra.length}</p>
             <ul className="grid grid-cols-1 gap-1.5">
               {revision.muestra.map((m) => (
                 <li key={`${m.fila}`} className="min-w-0 rounded-xl bg-papel px-3 py-2 text-sm ring-1 ring-arena [overflow-wrap:anywhere]">
-                  <span className="font-semibold">{m.numero_arete}</span> · {fechaCorta(m.fecha)} · {m.detalle}
+                  <span className="font-semibold">{m.numero_arete}</span>
+                  {[m.fecha ? fechaCorta(m.fecha) : "", m.detalle].filter(Boolean).map((x) => ` · ${x}`).join("")}
                 </li>
               ))}
             </ul>

@@ -2146,6 +2146,7 @@ export type Database = {
       }
       finca_productos: {
         Row: {
+          importacion_id: string | null
           activo: boolean
           automatico: boolean
           clave: string | null
@@ -2163,6 +2164,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          importacion_id?: string | null
           activo?: boolean
           automatico?: boolean
           clave?: string | null
@@ -2180,6 +2182,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          importacion_id?: string | null
           activo?: boolean
           automatico?: boolean
           clave?: string | null
@@ -2567,6 +2570,7 @@ export type Database = {
       }
       inventario_alimento_movimientos: {
         Row: {
+          importacion_id: string | null
           cantidad: number
           client_request_id: string | null
           created_at: string
@@ -2583,6 +2587,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          importacion_id?: string | null
           cantidad: number
           client_request_id?: string | null
           created_at?: string
@@ -2599,6 +2604,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          importacion_id?: string | null
           cantidad?: number
           client_request_id?: string | null
           created_at?: string
@@ -2806,6 +2812,7 @@ export type Database = {
       }
       inventario_movimientos: {
         Row: {
+          importacion_id: string | null
           cantidad: number
           client_request_id: string | null
           created_at: string
@@ -2822,6 +2829,7 @@ export type Database = {
           vencimiento: string | null
         }
         Insert: {
+          importacion_id?: string | null
           cantidad: number
           client_request_id?: string | null
           created_at?: string
@@ -2838,6 +2846,7 @@ export type Database = {
           vencimiento?: string | null
         }
         Update: {
+          importacion_id?: string | null
           cantidad?: number
           client_request_id?: string | null
           created_at?: string
@@ -4178,6 +4187,7 @@ export type Database = {
       }
       productos_veterinarios: {
         Row: {
+          importacion_id: string | null
           activo: boolean
           contenido_presentacion: number | null
           created_at: string
@@ -4194,6 +4204,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          importacion_id?: string | null
           activo?: boolean
           contenido_presentacion?: number | null
           created_at?: string
@@ -4210,6 +4221,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          importacion_id?: string | null
           activo?: boolean
           contenido_presentacion?: number | null
           created_at?: string
@@ -4950,6 +4962,7 @@ export type Database = {
       }
       ubicaciones: {
         Row: {
+          importacion_id: string | null
           activa: boolean
           agua: boolean
           area_m2: number | null
@@ -4968,6 +4981,7 @@ export type Database = {
           uso: string
         }
         Insert: {
+          importacion_id?: string | null
           activa?: boolean
           agua?: boolean
           area_m2?: number | null
@@ -4986,6 +5000,7 @@ export type Database = {
           uso?: string
         }
         Update: {
+          importacion_id?: string | null
           activa?: boolean
           agua?: boolean
           area_m2?: number | null
@@ -6694,6 +6709,10 @@ export type Database = {
       }
       importar_animales: {
         Args: { p_archivo?: string; p_filas: Json; p_finca: string; p_grupo?: string; p_modo?: string }
+        Returns: Json
+      }
+      importar_catalogo: {
+        Args: { p_archivo?: string; p_filas: Json; p_finca: string; p_tipo: string }
         Returns: Json
       }
       importar_historial: {

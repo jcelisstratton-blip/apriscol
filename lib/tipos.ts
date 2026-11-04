@@ -355,6 +355,8 @@ export type ResultadoPrueba = "negativo" | "positivo" | "sospechoso" | "pendient
 export type ProductoVeterinario = {
   id: string;
   finca_id: string;
+  /** El cargue de Excel que trajo este registro (null si se creó a mano). */
+  importacion_id: string | null;
   nombre: string;
   tipo: TipoProducto;
   registro_ica: string | null;
@@ -374,6 +376,8 @@ export type ProductoVeterinario = {
 export type InventarioMovimiento = {
   id: string;
   finca_id: string;
+  /** El cargue de Excel que trajo este registro (null si se creó a mano). */
+  importacion_id: string | null;
   producto_vet_id: string;
   tipo: "apertura" | "ajuste";
   fecha: string;
@@ -392,6 +396,8 @@ export type InventarioMovimiento = {
 export type InventarioAlimentoMovimiento = {
   id: string;
   finca_id: string;
+  /** El cargue de Excel que trajo este registro (null si se creó a mano). */
+  importacion_id: string | null;
   producto_id: string;
   tipo: "apertura" | "ajuste" | "salida";
   fecha: string;
@@ -536,6 +542,8 @@ export type TipoCatalogo = "compra" | "venta";
 export type Producto = {
   id: string;
   finca_id: string;
+  /** El cargue de Excel que trajo este registro (null si se creó a mano). */
+  importacion_id: string | null;
   clave: string | null;
   tipo: TipoCatalogo;
   nombre: string;
@@ -786,6 +794,8 @@ export type EstadoUbicacion = "ocupado" | "vacio" | "debe_salir" | "descanso" | 
 export type Ubicacion = {
   id: string;
   finca_id: string;
+  /** El cargue de Excel que trajo este registro (null si se creó a mano). */
+  importacion_id: string | null;
   tipo: TipoUbicacion;
   nombre: string;
   uso: UsoUbicacion;
@@ -802,7 +812,7 @@ export type Ubicacion = {
   updated_at: string;
 };
 /** Una ubicación con sus ocupantes y su estado de ocupación o de rotación (vista `v_ubicaciones`). */
-export type UbicacionVista = Ubicacion & {
+export type UbicacionVista = Omit<Ubicacion, "importacion_id"> & {
   ocupantes: number;
   ocupado_desde: string | null;
   ultimo_retiro: string | null;
@@ -922,7 +932,7 @@ export type SolicitudReclamo = {
 export type Importacion = {
   id: string;
   finca_id: string;
-  tipo: "animales" | "pesajes" | "ordenos" | "sanidad";
+  tipo: "animales" | "pesajes" | "ordenos" | "sanidad" | "corrales" | "medicamentos" | "alimento";
   archivo: string | null;
   modo: "nuevos" | "completar" | "corregir";
   creados: number;
@@ -1658,6 +1668,10 @@ export type Database = {
       importar_animales: {
         Args: { p_finca: string; p_filas: unknown; p_modo?: string; p_archivo?: string | null; p_grupo?: string | null };
         Returns: { importacion: string; animales: number; actualizados: number; sin_cambios: number; omitidos: number; con_padres: number; con_parto: number; con_servicio: number; con_ubicacion: number };
+      };
+      importar_catalogo: {
+        Args: { p_finca: string; p_tipo: string; p_filas: unknown; p_archivo?: string | null };
+        Returns: { importacion: string; productos: number; creados: number; omitidos: number };
       };
       importar_historial: {
         Args: { p_finca: string; p_tipo: string; p_filas: unknown; p_archivo?: string | null };

@@ -1,7 +1,7 @@
 /** Los cargues de Excel de una finca, como los muestra «Cargues anteriores». */
 export type CargueVista = {
   id: string;
-  tipo: "animales" | "pesajes" | "ordenos" | "sanidad";
+  tipo: "animales" | "pesajes" | "ordenos" | "sanidad" | "corrales" | "medicamentos" | "alimento";
   archivo: string | null;
   modo: "nuevos" | "completar" | "corregir";
   creados: number;

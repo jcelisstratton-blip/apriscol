@@ -5,6 +5,8 @@ La segunda entrega es el alimento (más abajo); la tercera será el consumo auto
 
 `/inventario` tiene dos pestañas, **Medicamentos** (módulo `inventario`: propietario, administrador y veterinario) y **Alimento** (módulo `nutricion`: propietario, administrador y ordeñador); cada perfil ve solo las que le tocan y el menú dice «Inventario» para los dos.
 
+**Cargar el inventario por Excel** (migración de una finca): medicamentos y vacunas con su conteo de apertura por lote, y alimento con su conteo en kg, desde **Hato → Cargar desde Excel → Migrar mi finca → Tu bodega**. Reglas en `importar-exportar.md` («Corrales, medicamentos y alimento»); es el mismo conteo de apertura de abajo, hecho en bloque y reversible.
+
 ## Decisiones (del dueño del producto)
 
 - **Se cuenta en la unidad de la dosis** del producto (ml, dosis, tableta…). La **presentación** (`presentacion`, `contenido_presentacion`: «frasco» = 100 ml) solo traduce: la persona cuenta y escribe en frascos si el producto tiene una; el servidor lo pasa a ml con el factor del producto (`unidadDeConteo`, `aUnidades`). El factor nunca viene del navegador.
