@@ -22,6 +22,8 @@ type Tabla<R, Req extends keyof R = never> = {
 export type Animal = {
   id: string;
   finca_id: string;
+  /** El cargue de Excel que creó este animal (null si se registró a mano). */
+  importacion_id: string | null;
   especie: Especie;
   numero_arete: string;
   nombre: string | null;
@@ -181,6 +183,8 @@ export type Raza = { id: number; especie: Especie; nombre: string; aptitud: Voca
 export type Ordeno = {
   id: string;
   finca_id: string;
+  /** El cargue de Excel que trajo este ordeño (null si se registró a mano). */
+  importacion_id: string | null;
   animal_id: string;
   lactancia_id: string | null;
   fecha: string;
@@ -912,6 +916,24 @@ export type SolicitudReclamo = {
   updated_at: string;
 };
 
+/** Un cargue de animales desde Excel (`importar_animales`): qué creó y qué cambió, para poder deshacerlo. */
+export type Importacion = {
+  id: string;
+  finca_id: string;
+  tipo: "animales" | "pesajes" | "ordenos";
+  archivo: string | null;
+  modo: "nuevos" | "completar" | "corregir";
+  creados: number;
+  actualizados: number;
+  omitidos: number;
+  cambios: import("@/lib/database.types").Json;
+  estado: "aplicada" | "deshecha";
+  created_by: string | null;
+  created_at: string;
+  deshecha_en: string | null;
+  deshecha_por: string | null;
+};
+
 export type ReclamoAdmin = {
   id: string;
   estado: EstadoReclamo;
@@ -1044,6 +1066,8 @@ export type LoteCeba = {
 export type Pesaje = {
   id: string;
   finca_id: string;
+  /** El cargue de Excel que trajo este peso (null si se registró a mano). */
+  importacion_id: string | null;
   animal_id: string;
   fecha: string;
   peso_kg: number;
@@ -1452,6 +1476,7 @@ export type Database = {
   public: {
     Tables: {
       animales: Tabla<Animal, "finca_id" | "especie" | "numero_arete" | "sexo">;
+      importaciones: Tabla<Importacion, "finca_id" | "modo">;
       bajas: Tabla<Baja, "finca_id" | "animal_id" | "tipo">;
       fincas: Tabla<Finca, "nombre">;
       solicitudes_plan: Tabla<FilaSolicitudPlan>;
@@ -1621,6 +1646,18 @@ export type Database = {
       lotes_sanidad: { Args: { p_finca: string }; Returns: { gasto_id: string; producto_id: string; lote: string; vencimiento: string | null; comprado: string }[] };
       veterinarios_finca: { Args: { p_finca: string }; Returns: { id: string; nombre: string; tarjeta_profesional: string | null }[] };
       registrar_persona: { Args: { p_finca: string; p_persona: unknown; p_email?: string | null; p_rol?: string | null }; Returns: unknown };
+      importar_animales: {
+        Args: { p_finca: string; p_filas: unknown; p_modo?: string; p_archivo?: string | null };
+        Returns: { importacion: string; animales: number; actualizados: number; sin_cambios: number; omitidos: number; con_padres: number; con_parto: number; con_servicio: number; con_ubicacion: number };
+      };
+      importar_historial: {
+        Args: { p_finca: string; p_tipo: string; p_filas: unknown; p_archivo?: string | null };
+        Returns: { importacion: string; creados: number; omitidos: number };
+      };
+      deshacer_importacion: {
+        Args: { p_importacion: string };
+        Returns: { eliminados: number; revertidos: number; conservados: number };
+      };
       importar_animales_lote: {
         Args: { p_finca: string; p_filas: unknown };
         Returns: { animales: number; con_padres: number; con_parto: number; con_servicio: number; con_ubicacion: number };

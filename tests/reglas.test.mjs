@@ -23,7 +23,7 @@ const ctx = {
 };
 const fila = (n, valores) => ({ fila: n, valores });
 
-test("cargue: rechaza arete repetido en el archivo y arete que ya existe en el hato", () => {
+test("cargue: rechaza arete repetido en el archivo; uno que ya existe en el hato se deja como está", () => {
   const r = validarFilas([
     fila(2, { numero_arete: "B-1", sexo: "Hembra" }),
     fila(3, { numero_arete: "b-1", sexo: "Hembra" }),
@@ -31,7 +31,7 @@ test("cargue: rechaza arete repetido en el archivo y arete que ya existe en el h
   ], ctx);
   const msgs = r.errores.map((e) => `${e.fila}: ${e.mensajes.join(" ")}`).join("\n");
   assert.match(msgs, /se repite/, msgs);
-  assert.match(msgs, /A-1/, msgs);
+  assert.doesNotMatch(msgs, /A-1/, "un arete que ya existe no es un error en el modo «solo nuevos»");
   assert.equal(r.filas.length, 0, "con errores no se guarda nada");
 });
 

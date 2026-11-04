@@ -14,6 +14,7 @@ import {
   type RazaRef,
   type UbicacionRef,
 } from "@/lib/importar-animales";
+import { MAX_VALORES_MAPEO, proponerMapeo, puntajeDeTitulo, type ColumnaArchivo } from "@/lib/importar-mapeo";
 
 
 /** El valor útil de una celda de ExcelJS (fórmulas, texto con formato y enlaces incluidos). */
@@ -32,45 +33,201 @@ export type LecturaArchivo =
   | { ok: true; filas: FilaCruda[] }
   | { ok: false; error: string };
 
-/** Lee la hoja de animales del archivo subido. No valida las reglas del animal: eso lo hace `validarFilas`. */
-export async function leerArchivoAnimales(buffer: ArrayBuffer): Promise<LecturaArchivo> {
+const HOJAS_DE_AYUDA = ["instrucciones", "listas"];
+const MAX_COLUMNAS_LEIDAS = 80;
+const FILAS_PARA_ENCABEZADO = 15;
+
+export type HojaInfo = { nombre: string; filas: number };
+
+/** El valor de una celda como texto, para mostrarlo y para reconocer su contenido (las fechas de Excel salen como AAAA-MM-DD). */
+function textoDeCelda(v: CeldaCruda): string {
+  if (v === null || v === undefined) return "";
+  if (v instanceof Date) return Number.isNaN(v.getTime()) ? "" : v.toISOString().slice(0, 10);
+  if (typeof v === "boolean") return v ? "Sí" : "No";
+  if (typeof v === "number") return Number.isInteger(v) ? String(v) : String(v).replace(".", ",");
+  return String(v).trim();
+}
+
+async function abrirLibro(buffer: ArrayBuffer): Promise<ExcelJS.Workbook | null> {
   const libro = new ExcelJS.Workbook();
   try {
     await libro.xlsx.load(buffer);
+    return libro;
   } catch {
-    return { ok: false, error: "No se pudo abrir el archivo. Usa la plantilla de Excel (.xlsx) que descargaste aquí." };
+    return null;
   }
-  const hoja = libro.getWorksheet("Animales") ?? libro.worksheets[0];
+}
+
+/** Las hojas con datos (sin las de ayuda de nuestra plantilla) y cuál usar: la pedida, «Animales» o la que más filas tenga. */
+function elegirHoja(libro: ExcelJS.Workbook, pedida?: string): { hojas: HojaInfo[]; hoja: ExcelJS.Worksheet | null } {
+  const candidatas = libro.worksheets.filter((h) => h.state !== "hidden" && h.state !== "veryHidden" && !HOJAS_DE_AYUDA.includes(h.name.trim().toLowerCase()));
+  const hojas = candidatas.map((h) => ({ nombre: h.name, filas: h.actualRowCount }));
+  const elegida =
+    candidatas.find((h) => h.name === pedida) ??
+    candidatas.find((h) => h.name.trim().toLowerCase() === "animales") ??
+    [...candidatas].sort((a, b) => b.actualRowCount - a.actualRowCount)[0] ??
+    null;
+  return { hojas, hoja: elegida };
+}
+
+/** La fila de títulos: entre las primeras filas, la que más celdas tiene con nombre de campo reconocible (los cuadernos suelen traer un título arriba). */
+function encontrarFilaDeEncabezados(hoja: ExcelJS.Worksheet, puntajeTitulo: (t: string) => number = puntajeDeTitulo): number {
+  let mejor = { fila: 0, puntaje: -1 };
+  const tope = Math.min(hoja.rowCount, FILAS_PARA_ENCABEZADO);
+  for (let r = 1; r <= tope; r++) {
+    const textos: string[] = [];
+    hoja.getRow(r).eachCell({ includeEmpty: false }, (celda) => textos.push(textoDeCelda(valorCelda(celda.value))));
+    const llenas = textos.filter((t) => t !== "");
+    if (llenas.length < 2) continue;
+    const puntaje = llenas.filter((t) => puntajeTitulo(t) > 0).length;
+    if (puntaje > mejor.puntaje) mejor = { fila: r, puntaje };
+  }
+  return mejor.fila || 1;
+}
+
+export type AnalisisArchivo =
+  | {
+      ok: true;
+      hojas: HojaInfo[];
+      hoja: string;
+      /** Fila (de Excel, desde 1) donde están los títulos. */
+      filaEncabezado: number;
+      columnas: ColumnaArchivo[];
+      /** Filas con datos debajo de los títulos. */
+      totalFilas: number;
+      /** A qué campo corresponde cada columna, según la propuesta del asistente (en el orden de `columnas`). */
+      propuesta: (string | null)[];
+    }
+  | { ok: false; error: string };
+
+/**
+ * Abre el Excel de la persona (el que sea, no solo nuestra plantilla): elige la hoja, encuentra la fila de títulos, junta los valores de cada
+ * columna y propone a qué campo corresponde cada una. No valida animales: eso lo hace `validarFilas` después de que la persona confirme las columnas.
+ */
+export async function analizarArchivo(
+  buffer: ArrayBuffer,
+  opciones: {
+    hoja?: string;
+    aretesDelHato?: string[];
+    /** Para otros cargues (pesajes, ordeños): cómo reconocer un título y cómo proponer los campos. Por defecto, los de animales. */
+    reconocer?: (titulo: string) => number;
+    proponer?: (columnas: ColumnaArchivo[]) => (string | null)[];
+  } = {},
+): Promise<AnalisisArchivo> {
+  const libro = await abrirLibro(buffer);
+  if (!libro) return { ok: false, error: "No se pudo abrir el archivo. Guárdalo como libro de Excel (.xlsx) y vuelve a subirlo." };
+  const { hojas, hoja } = elegirHoja(libro, opciones.hoja);
+  if (!hoja) return { ok: false, error: "El archivo no tiene hojas con datos." };
+
+  const filaEncabezado = encontrarFilaDeEncabezados(hoja, opciones.reconocer);
+  const ultima = hoja.rowCount;
+  const columnas: ColumnaArchivo[] = [];
+  const totalColumnas = Math.min(hoja.columnCount, MAX_COLUMNAS_LEIDAS);
+  let totalFilas = 0;
+  for (let r = filaEncabezado + 1; r <= ultima; r++) {
+    let hayDatos = false;
+    hoja.getRow(r).eachCell({ includeEmpty: false }, (celda, col) => {
+      if (col <= totalColumnas && textoDeCelda(valorCelda(celda.value)) !== "") hayDatos = true;
+    });
+    if (hayDatos) totalFilas++;
+  }
+  if (totalFilas === 0) return { ok: false, error: "No encontré animales debajo de los títulos. Escribe cada animal en una fila." };
+
+  for (let c = 1; c <= totalColumnas; c++) {
+    const titulo = textoDeCelda(valorCelda(hoja.getCell(filaEncabezado, c).value));
+    const valores: string[] = [];
+    for (let r = filaEncabezado + 1; r <= ultima && valores.length < MAX_VALORES_MAPEO; r++) {
+      valores.push(textoDeCelda(valorCelda(hoja.getCell(r, c).value)));
+    }
+    if (titulo === "" && valores.every((v) => v === "")) continue;
+    columnas.push({ indice: c - 1, encabezado: titulo || `Columna ${letra(c)}`, valores });
+  }
+  if (columnas.length === 0) return { ok: false, error: "No encontré columnas con datos en el archivo." };
+  return { ok: true, hojas, hoja: hoja.name, filaEncabezado, columnas, totalFilas, propuesta: opciones.proponer ? opciones.proponer(columnas) : proponerMapeo(columnas, opciones.aretesDelHato ?? []) };
+}
+
+/** Qué campo recibe cada columna del archivo, por su posición en la hoja (0 = A). */
+export type MapeoColumnas = { indice: number; campo: ColumnaId }[];
+
+/** Lee las filas de animales de la hoja con las columnas que la persona confirmó. No valida las reglas del animal: eso lo hace `validarFilas`. */
+export async function leerArchivoAnimales(buffer: ArrayBuffer, opciones: { hoja?: string; filaEncabezado?: number; mapeo?: MapeoColumnas } = {}): Promise<LecturaArchivo> {
+  const libro = await abrirLibro(buffer);
+  if (!libro) return { ok: false, error: "No se pudo abrir el archivo. Guárdalo como libro de Excel (.xlsx) y vuelve a subirlo." };
+  const { hoja } = elegirHoja(libro, opciones.hoja);
   if (!hoja) return { ok: false, error: "El archivo no tiene hojas." };
 
-  const encabezados: string[] = [];
-  hoja.getRow(1).eachCell({ includeEmpty: true }, (celda, col) => {
-    encabezados[col - 1] = String(valorCelda(celda.value) ?? "");
-  });
-  const { columnas, faltan } = mapearEncabezados(encabezados);
-  if (faltan.length > 0) {
-    return { ok: false, error: `No encontré ${faltan.length === 1 ? "la columna" : "las columnas"} ${faltan.map((f) => `«${f}»`).join(" y ")} en la primera fila. Usa la plantilla sin cambiar los títulos de las columnas.` };
+  const filaEncabezado = opciones.filaEncabezado ?? encontrarFilaDeEncabezados(hoja);
+  let mapeo = opciones.mapeo;
+  if (!mapeo) {
+    // Sin columnas confirmadas (archivo de nuestra plantilla): se reconocen por sus títulos.
+    const encabezados: string[] = [];
+    hoja.getRow(filaEncabezado).eachCell({ includeEmpty: true }, (celda, col) => {
+      encabezados[col - 1] = textoDeCelda(valorCelda(celda.value));
+    });
+    const { columnas } = mapearEncabezados(encabezados);
+    mapeo = columnas.flatMap((campo, indice) => (campo ? [{ indice, campo }] : []));
+  }
+  if (!mapeo.some((m) => m.campo === "numero_arete")) {
+    return { ok: false, error: "Falta indicar cuál columna es el «Número de arete»: es lo que identifica a cada animal." };
   }
 
   const filas: FilaCruda[] = [];
-  for (let r = 2; r <= hoja.rowCount; r++) {
+  for (let r = filaEncabezado + 1; r <= hoja.rowCount; r++) {
     const fila = hoja.getRow(r);
     const valores: Partial<Record<ColumnaId, CeldaCruda>> = {};
     let tieneDatos = false;
-    columnas.forEach((id, i) => {
-      if (!id) return;
-      const v = valorCelda(fila.getCell(i + 1).value);
-      if (v === null || (typeof v === "string" && v.trim() === "")) return;
-      valores[id] = v;
+    for (const { indice, campo } of mapeo) {
+      const v = valorCelda(fila.getCell(indice + 1).value);
+      if (v === null || (typeof v === "string" && v.trim() === "")) continue;
+      valores[campo] = v;
       tieneDatos = true;
-    });
+    }
     if (!tieneDatos) continue;
     filas.push({ fila: r, valores });
     if (filas.length > MAX_FILAS_IMPORTAR) {
-      return { ok: false, error: `El archivo tiene más de ${MAX_FILAS_IMPORTAR} animales. Divídelo en varios archivos de hasta ${MAX_FILAS_IMPORTAR}.` };
+      return { ok: false, error: `El archivo tiene más de ${MAX_FILAS_IMPORTAR} animales. Divídelo en varios archivos de hasta ${MAX_FILAS_IMPORTAR}: puedes cargarlos uno tras otro.` };
     }
   }
   if (filas.length === 0) return { ok: false, error: "No encontré animales en el archivo. Escribe cada animal en una fila, debajo de los títulos." };
+  return { ok: true, filas };
+}
+
+export type FilaGenerica = { fila: number; valores: Record<string, CeldaCruda> };
+
+/**
+ * Lee las filas de datos de la hoja con las columnas que la persona confirmó, para cualquier cargue (pesajes, ordeños…). `requerido` es el
+ * campo sin el cual no hay nada que leer (el arete); `maxFilas` evita leer un archivo enorme.
+ */
+export async function leerFilasMapeadas(
+  buffer: ArrayBuffer,
+  opciones: { hoja?: string; filaEncabezado?: number; mapeo: { indice: number; campo: string }[]; requerido: { id: string; titulo: string }; maxFilas: number; reconocer?: (titulo: string) => number },
+): Promise<{ ok: true; filas: FilaGenerica[] } | { ok: false; error: string }> {
+  const libro = await abrirLibro(buffer);
+  if (!libro) return { ok: false, error: "No se pudo abrir el archivo. Guárdalo como libro de Excel (.xlsx) y vuelve a subirlo." };
+  const { hoja } = elegirHoja(libro, opciones.hoja);
+  if (!hoja) return { ok: false, error: "El archivo no tiene hojas." };
+  if (!opciones.mapeo.some((m) => m.campo === opciones.requerido.id)) {
+    return { ok: false, error: `Falta indicar cuál columna es «${opciones.requerido.titulo}».` };
+  }
+  const filaEncabezado = opciones.filaEncabezado ?? encontrarFilaDeEncabezados(hoja, opciones.reconocer);
+  const filas: FilaGenerica[] = [];
+  for (let r = filaEncabezado + 1; r <= hoja.rowCount; r++) {
+    const fila = hoja.getRow(r);
+    const valores: Record<string, CeldaCruda> = {};
+    let tieneDatos = false;
+    for (const { indice, campo } of opciones.mapeo) {
+      const v = valorCelda(fila.getCell(indice + 1).value);
+      if (v === null || (typeof v === "string" && v.trim() === "")) continue;
+      valores[campo] = v;
+      tieneDatos = true;
+    }
+    if (!tieneDatos) continue;
+    filas.push({ fila: r, valores });
+    if (filas.length > opciones.maxFilas) {
+      return { ok: false, error: `El archivo tiene más de ${opciones.maxFilas} registros. Divídelo en varios archivos de hasta ${opciones.maxFilas}: puedes cargarlos uno tras otro.` };
+    }
+  }
+  if (filas.length === 0) return { ok: false, error: "No encontré registros en el archivo. Escribe cada uno en una fila, debajo de los títulos." };
   return { ok: true, filas };
 }
 
@@ -210,7 +367,7 @@ export async function construirPlantillaAnimales({
     "1. Escribe un animal por fila en la hoja «Animales», debajo de los títulos. Las columnas con * son obligatorias.",
     "2. Para armar la genealogía, escribe el arete del padre y de la madre. Pueden ser animales de este mismo archivo o animales que ya están en tu hato.",
     "3. Si el padre o la madre no son animales tuyos, escribe su nombre en «Padre (si no está en tu hato)» o «Madre (si no está en tu hato)».",
-    `4. Hasta ${MAX_FILAS_IMPORTAR} animales por archivo. Solo se crean animales nuevos: uno con un arete que ya existe en tu finca se rechaza.`,
+    `4. Hasta ${MAX_FILAS_IMPORTAR} animales por archivo. Un arete que ya existe en tu finca se deja como está, o se completa o corrige: tú eliges al subir el archivo.`,
     "5. Guarda el archivo como .xlsx, súbelo en Apriscol y revisa la vista previa. Si hay errores te dice la fila y qué corregir; nada se guarda hasta que confirmes.",
     ...(reproduccion ? ["6. Hembras ya paridas: pon cuántos partos llevan y la fecha del último. Hembras servidas: la fecha del servicio (y Sí en «Preñez confirmada» si ya está confirmada); de ahí salen la fecha prevista de parto y el estado reproductivo. El servicio debe ser posterior al último parto."] : []),
     ...(ubicaciones && ubicaciones.length > 0 ? ["7. «Corral o potrero»: elige de la lista los que ya creaste en Hato → Corrales. Cada uno tiene su cupo: el archivo no puede pasarse."] : []),

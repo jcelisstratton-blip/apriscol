@@ -100,6 +100,9 @@ export function ListaHato({
                   <Link href="/hato/importar" className={clasesBoton("secundario")}>
                     Cargarlos desde Excel
                   </Link>
+                  <Link href="/hato/migrar" className={clasesBoton("fantasma")}>
+                    Ver todos los pasos para migrar mi finca
+                  </Link>
                 </div>
               ) : null}
             </EstadoVacio>

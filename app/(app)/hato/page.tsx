@@ -71,8 +71,8 @@ export default async function PaginaHato({ searchParams }: { searchParams: Promi
             {puedeCrear ? (
               <>
                 <Link
-                  href="/hato/importar"
-                  aria-label="Cargar animales desde Excel"
+                  href="/hato/migrar"
+                  aria-label="Migrar mi finca desde Excel"
                   className="grid size-11 shrink-0 place-items-center rounded-full bg-arena text-musgo transition active:scale-95"
                 >
                   <FileSpreadsheet className="size-5" strokeWidth={1.75} aria-hidden="true" />

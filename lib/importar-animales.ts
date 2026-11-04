@@ -7,9 +7,16 @@ import { leerNumero } from "@/lib/numeros";
  */
 
 export const MAX_FILAS_IMPORTAR = 500;
-export const MAX_BYTES_IMPORTAR = 2 * 1024 * 1024;
+export const MAX_BYTES_IMPORTAR = 4 * 1024 * 1024;
 
 export type Especie = "caprino" | "ovino";
+
+/**
+ * Qué hacer con un arete que ya existe en el hato: `nuevos` lo deja como está (se omite); `completar` le llena solo lo que tenga vacío;
+ * `corregir` hace que el archivo mande en los campos que trae. En los tres, los animales nuevos se crean igual.
+ */
+export type ModoImportar = "nuevos" | "completar" | "corregir";
+export const MODOS_IMPORTAR: readonly ModoImportar[] = ["nuevos", "completar", "corregir"];
 
 export const COLUMNAS = [
   { id: "especie", titulo: "Especie", requerida: false, ancho: 12, ayuda: "Caprino (cabras) u Ovino (ovejas). Si tu finca solo tiene una especie, puedes dejarla vacía." },
@@ -63,6 +70,8 @@ export type ContextoImportar = {
   existentes: AnimalExistente[];
   /** Hoy en Colombia (AAAA-MM-DD). */
   hoy: string;
+  /** Qué hacer con los aretes que ya existen (por defecto, `nuevos`: se omiten). */
+  modo?: ModoImportar;
   /** Aptitud de las hembras cuando la plantilla no la trae. */
   aptitudDefecto?: "leche" | "carne" | "doble";
   /** Puede registrar servicios y preñez (módulo de reproducción en su plan y rol). */
@@ -86,7 +95,8 @@ export type FilaParaGuardar = {
   padre_externo?: string;
   madre_externa?: string;
   origen: "nacido_en_finca" | "comprado";
-  vocacion: "leche" | "carne" | "doble";
+  /** Falta cuando el animal ya existe y el archivo no trae aptitud: así no se le cambia a «leche» por defecto. */
+  vocacion?: "leche" | "carne" | "doble";
   uso_macho?: "reproductor" | "carne";
   fecha_ultimo_parto?: string;
   partos_total?: number;
@@ -119,6 +129,8 @@ export type FilaVista = {
   /** Partos, servicio y preñez en una línea; null si no trae nada de eso. */
   repro: string | null;
   ubicacion: string | null;
+  /** Qué se hará con esta fila: crear el animal, completar o corregir el que ya existe, o dejarlo como está. */
+  accion: "crear" | "completar" | "corregir" | "omitir";
 };
 
 export type ErrorFila = { fila: number; arete: string; mensajes: string[] };
@@ -127,7 +139,26 @@ export type ResultadoValidacion = {
   filas: FilaParaGuardar[];
   vista: FilaVista[];
   errores: ErrorFila[];
-  resumen: { total: number; hembras: number; machos: number; con_padres_en_archivo: number; con_padres_en_hato: number; con_padres_externos: number; con_servicio: number; con_ubicacion: number; omitidos: number };
+  resumen: {
+    /** Filas que se guardan: las de animales nuevos más las de animales que ya existen y se completan o corrigen. */
+    total: number;
+    nuevos: number;
+    /** Animales que ya existen y se completan o corrigen. */
+    actualizar: number;
+    /** Arete que ya existe en el hato con el modo «solo nuevos»: se deja como está. */
+    ya_existen: number;
+    /** De los que ya existen, cuántos traen servicio, parto o corral en el archivo (no se registran: solo se actualizan sus datos). */
+    historia_ignorada: number;
+    hembras: number;
+    machos: number;
+    con_padres_en_archivo: number;
+    con_padres_en_hato: number;
+    con_padres_externos: number;
+    con_servicio: number;
+    con_ubicacion: number;
+    /** Filas de animales dados de baja (vendidos, muertos…) que no se cargan. */
+    omitidos: number;
+  };
 };
 
 // ───────────────────────── Lectura de celdas ─────────────────────────
@@ -140,25 +171,43 @@ export const normalizar = (s: string) =>
     .replace(/\s+/g, " ")
     .trim();
 
-const claveEncabezado = (s: string) => normalizar(s).replace(/[^a-z0-9 ]/g, "").replace(/\s+/g, " ").trim();
+export const claveEncabezado = (s: string) => normalizar(s).replace(/[^a-z0-9 ]/g, "").replace(/\s+/g, " ").trim();
 
-const ALIAS_ENCABEZADO: Partial<Record<ColumnaId, string[]>> = {
-  numero_arete: ["arete", "numero de arete", "n de arete", "no de arete", "numero arete"],
-  nacimiento_aprox: ["nacimiento aprox", "fecha aproximada", "nacimiento aproximado"],
-  padre_arete: ["arete padre", "arete del padre", "padre arete"],
-  madre_arete: ["arete madre", "arete de la madre", "madre arete"],
-  padre_externo: ["padre", "padre si no esta en tu hato", "padre externo"],
-  semental_externo: ["semental", "semental si no esta en tu hato", "semental externo"],
-  semental_arete: ["arete semental", "arete del semental"],
-  fecha_servicio: ["ultimo servicio", "fecha del ultimo servicio", "fecha servicio"],
-  prenez_confirmada: ["prenez", "prenez confirmada", "gestante"],
-  partos_total: ["partos", "numero de partos", "n de partos"],
-  ubicacion: ["corral", "potrero", "corral o potrero", "ubicacion"],
-  madre_externa: ["madre", "madre si no esta en tu hato", "madre externa"],
-  aptitud: ["aptitud", "aptitud hembras", "vocacion"],
-  fecha_ultimo_parto: ["ultimo parto", "fecha del ultimo parto", "fecha ultimo parto"],
-  peso_nacer_kg: ["peso al nacer", "peso al nacer kg", "peso nacer kg"],
-  valor_compra: ["valor de compra", "valor compra"],
+/**
+ * Otros nombres con que la gente titula cada columna en sus propios archivos (cuadernos pasados a Excel, hojas de otros programas). El asistente de
+ * columnas los usa para proponer a qué campo corresponde cada columna; se comparan sin tildes ni signos. «padre», «madre» y «semental» solos se
+ * proponen como el nombre de un animal de fuera; si sus valores son aretes que ya existen, el asistente los cambia a «arete del…».
+ */
+export const ALIAS_ENCABEZADO: Partial<Record<ColumnaId, string[]>> = {
+  especie: ["especie", "tipo de animal", "tipo animal", "species"],
+  numero_arete: ["arete", "numero de arete", "n de arete", "no de arete", "numero arete", "nro arete", "nro de arete", "n arete", "no arete", "id", "id animal", "identificacion", "codigo", "codigo animal", "chapeta", "caravana", "crotal", "numero", "numero animal", "tag"],
+  nombre: ["nombre", "nombre animal", "nombre del animal", "apodo", "name"],
+  sexo: ["sexo", "genero", "sex", "macho hembra", "h m"],
+  raza: ["raza", "breed", "grupo racial", "genetica"],
+  fecha_nacimiento: ["fecha de nacimiento", "fecha nacimiento", "nacimiento", "fecha nac", "f nac", "fnac", "fec nac", "f nacimiento", "nac", "fecha de nac", "birth", "birthday"],
+  nacimiento_aprox: ["nacimiento aprox", "fecha aproximada", "nacimiento aproximado", "fecha aprox", "aproximada"],
+  padre_arete: ["arete padre", "arete del padre", "padre arete", "id padre", "codigo padre", "arete macho padre"],
+  madre_arete: ["arete madre", "arete de la madre", "madre arete", "id madre", "codigo madre"],
+  padre_externo: ["padre", "padre si no esta en tu hato", "padre externo", "nombre padre", "nombre del padre"],
+  madre_externa: ["madre", "madre si no esta en tu hato", "madre externa", "nombre madre", "nombre de la madre"],
+  origen: ["origen", "procedencia"],
+  aptitud: ["aptitud", "aptitud hembras", "vocacion", "proposito", "aptitud productiva"],
+  uso_macho: ["uso del macho", "uso macho", "destino macho", "uso de macho"],
+  fecha_ultimo_parto: ["ultimo parto", "fecha del ultimo parto", "fecha ultimo parto", "fecha parto", "f parto", "fecha de parto", "parto"],
+  partos_total: ["partos", "numero de partos", "n de partos", "no de partos", "n partos", "nro partos", "nro de partos", "paridad", "# partos", "numero partos"],
+  fecha_servicio: ["ultimo servicio", "fecha del ultimo servicio", "fecha servicio", "fecha de servicio", "fecha monta", "fecha de monta", "monta", "servicio", "fecha inseminacion", "fecha cubricion", "cubricion", "inseminacion"],
+  tipo_servicio: ["tipo de servicio", "tipo servicio", "tipo de monta", "tipo monta"],
+  semental_arete: ["arete semental", "arete del semental", "semental arete", "id semental"],
+  semental_externo: ["semental", "semental si no esta en tu hato", "semental externo", "reproductor", "macho de servicio", "nombre semental"],
+  prenez_confirmada: ["prenez", "prenez confirmada", "gestante", "prenada", "gestacion", "confirmada", "prenez confirmada si no"],
+  peso_nacer_kg: ["peso al nacer", "peso al nacer kg", "peso nacer kg", "peso nacimiento", "peso nac", "peso nacer"],
+  chip: ["chip", "microchip", "rfid", "transponder", "numero de chip"],
+  color: ["color", "capa", "pelaje"],
+  marcas: ["marcas", "senales", "senas", "marcas particulares"],
+  valor_compra: ["valor de compra", "valor compra", "precio de compra", "precio compra", "costo de compra", "costo compra", "valor", "precio", "costo"],
+  fecha_compra: ["fecha de compra", "fecha compra", "f compra", "fecha adquisicion"],
+  ubicacion: ["corral", "potrero", "corral o potrero", "ubicacion", "lote", "galpon", "establo", "instalacion", "encierro", "localizacion"],
+  notas: ["notas", "nota", "observaciones", "observacion", "comentarios", "comentario", "obs", "detalle"],
 };
 
 /** Asocia cada encabezado del archivo con su columna (sin importar el orden, las tildes ni los asteriscos). */
@@ -174,7 +223,7 @@ export function mapearEncabezados(textos: string[]): { columnas: (ColumnaId | nu
   return { columnas, faltan };
 }
 
-function texto(v: CeldaCruda): string {
+export function texto(v: CeldaCruda): string {
   if (v === null || v === undefined) return "";
   if (v instanceof Date) return v.toISOString().slice(0, 10);
   if (typeof v === "number") return Number.isInteger(v) ? String(v) : String(v).replace(".", ",");
@@ -188,7 +237,7 @@ const fechaValida = (a: number, m: number, d: number) => {
 const aIso = (a: number, m: number, d: number) => `${String(a).padStart(4, "0")}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
 
 /** Fecha de una celda: de Excel (Date o número de serie) o escrita como 15/03/2023 o 2023-03-15. */
-function leerFecha(v: CeldaCruda): { valor?: string; error?: true } {
+export function leerFecha(v: CeldaCruda): { valor?: string; error?: true } {
   if (v === null || v === undefined || (typeof v === "string" && v.trim() === "")) return {};
   if (v instanceof Date) return Number.isNaN(v.getTime()) ? { error: true } : { valor: v.toISOString().slice(0, 10) };
   if (typeof v === "number") {
@@ -200,10 +249,28 @@ function leerFecha(v: CeldaCruda): { valor?: string; error?: true } {
   if (m) return fechaValida(+m[1], +m[2], +m[3]) ? { valor: aIso(+m[1], +m[2], +m[3]) } : { error: true };
   m = /^(\d{1,2})[/\-.](\d{1,2})[/\-.](\d{4})$/.exec(t);
   if (m) return fechaValida(+m[3], +m[2], +m[1]) ? { valor: aIso(+m[3], +m[2], +m[1]) } : { error: true };
+  // Año de dos cifras (15/03/23): hasta el año actual es 20xx; después, 19xx.
+  m = /^(\d{1,2})[/\-.](\d{1,2})[/\-.](\d{2})$/.exec(t);
+  if (m) {
+    const yy = +m[3];
+    const anio = yy <= new Date().getUTCFullYear() % 100 ? 2000 + yy : 1900 + yy;
+    return fechaValida(anio, +m[2], +m[1]) ? { valor: aIso(anio, +m[2], +m[1]) } : { error: true };
+  }
+  // Con el mes en letras: «15 de marzo de 2023», «15-mar-2023», «15 mar 23».
+  const n = normalizar(t).replace(/\bde\b/g, " ").replace(/[-/.,]/g, " ").replace(/\s+/g, " ").trim();
+  m = /^(\d{1,2}) ([a-z]{3,10}) (\d{2}|\d{4})$/.exec(n);
+  const mes = m ? MESES.findIndex((x) => x.startsWith(m![2].slice(0, 3)) && (m![2].length <= 3 || x.startsWith(m![2]) || m![2].startsWith(x))) : -1;
+  if (m && mes >= 0) {
+    const yy = +m[3];
+    const anio = m[3].length === 4 ? yy : yy <= new Date().getUTCFullYear() % 100 ? 2000 + yy : 1900 + yy;
+    return fechaValida(anio, mes + 1, +m[1]) ? { valor: aIso(anio, mes + 1, +m[1]) } : { error: true };
+  }
   return { error: true };
 }
 
-function leerSiNo(v: CeldaCruda): boolean | null {
+const MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
+
+export function leerSiNo(v: CeldaCruda): boolean | null {
   if (typeof v === "boolean") return v;
   const t = normalizar(texto(v));
   if (t === "") return false;
@@ -212,12 +279,26 @@ function leerSiNo(v: CeldaCruda): boolean | null {
   return null;
 }
 
-function leerEspecie(t: string): Especie | null {
+/** La especie que se deduce de una fila sin columna de especie: por el nombre del animal en «Sexo» (cabra, carnero…) o por una raza que solo es de una especie. */
+function deducirEspecie(v: FilaCruda["valores"], ctx: ContextoImportar): Especie | undefined {
+  const porSexo = leerEspecie(texto(v.sexo));
+  if (porSexo && ctx.especies.includes(porSexo)) return porSexo;
+  const raza = normalizar(texto(v.raza)).replace(/^raza /, "");
+  if (!raza) return undefined;
+  const especies = new Set(ctx.razas.filter((r) => normalizar(r.nombre) === raza).map((r) => r.especie));
+  return especies.size === 1 ? [...especies][0] : undefined;
+}
+
+export function leerEspecie(t: string): Especie | null {
   const n = normalizar(t);
   if (["caprino", "caprinos", "cabra", "cabras", "cabro", "cabros", "chivo", "chivos", "cabrito", "cabrita"].includes(n)) return "caprino";
   if (["ovino", "ovinos", "oveja", "ovejas", "carnero", "carneros", "borrego", "borregos", "cordero", "cordera"].includes(n)) return "ovino";
   return null;
 }
+
+/** Cómo escribe la gente el sexo: la palabra, la inicial o el nombre del animal adulto. */
+export const SEXO_HEMBRA = ["hembra", "hembras", "h", "f", "femenino", "female", "cabra", "oveja", "chiva", "cabrilla", "cordera", "borrega"];
+export const SEXO_MACHO = ["macho", "machos", "m", "masculino", "male", "cabro", "chivo", "carnero", "cordero", "borrego", "semental", "capon", "castrado"];
 
 const largo = (valor: string, max: number, nombre: string, errores: string[]) => {
   if (valor.length > max) errores.push(`${nombre} es muy largo (máximo ${max} caracteres).`);
@@ -238,29 +319,56 @@ type Parcial = {
   errores: string[];
   fila?: FilaParaGuardar;
   razaNombre?: string;
+  /** El animal del hato con este arete, si ya existe. */
+  existente?: AnimalExistente;
+  accion: FilaVista["accion"];
 };
 
 /** Un animal que ya no está en el hato (vendido, muerto, perdido…) no se carga: el cargue solo crea animales activos. */
-const estaDeBaja = (f: FilaCruda) => {
-  const e = normalizar(texto(f.valores.estado));
-  return e !== "" && e !== "activo" && e !== "activa";
-};
+const ESTADOS_DE_BAJA = ["vendido", "vendida", "sacrificado", "sacrificada", "muerto", "muerta", "perdido", "perdida", "fallecido", "fallecida", "descartado", "descartada", "dado de baja", "baja"];
+const estaDeBaja = (f: FilaCruda) => ESTADOS_DE_BAJA.includes(normalizar(texto(f.valores.estado)));
 
 export function validarFilas(todasLasFilas: FilaCruda[], ctx: ContextoImportar): ResultadoValidacion {
-  const crudas = todasLasFilas.filter((f) => !estaDeBaja(f));
+  const modo = ctx.modo ?? "nuevos";
+  const sinBaja = todasLasFilas.filter((f) => !estaDeBaja(f));
   const dadosDeBaja = new Set(todasLasFilas.filter(estaDeBaja).map((f) => normalizar(texto(f.valores.numero_arete))));
-  const omitidos = todasLasFilas.length - crudas.length;
-  const vacio = { total: 0, hembras: 0, machos: 0, con_padres_en_archivo: 0, con_padres_en_hato: 0, con_padres_externos: 0, con_servicio: 0, con_ubicacion: 0, omitidos: 0 };
-  const parciales: Parcial[] = crudas.map((cruda) => interpretarFila(cruda, ctx));
-
+  const omitidos = todasLasFilas.length - sinBaja.length;
   const existentes = new Map(ctx.existentes.map((a) => [normalizar(a.numero_arete), a]));
+  const vacio = { total: 0, nuevos: 0, actualizar: 0, ya_existen: 0, historia_ignorada: 0, hembras: 0, machos: 0, con_padres_en_archivo: 0, con_padres_en_hato: 0, con_padres_externos: 0, con_servicio: 0, con_ubicacion: 0, omitidos: 0 };
+
+  // Un animal que ya existe no necesita que el archivo repita su sexo ni su especie: salen del hato.
+  const crudas = sinBaja.map((c) => {
+    const e = existentes.get(normalizar(texto(c.valores.numero_arete)));
+    if (!e) return c;
+    const valores = { ...c.valores };
+    if (texto(valores.sexo) === "") valores.sexo = e.sexo;
+    if (texto(valores.especie) === "") valores.especie = e.especie;
+    return { ...c, valores };
+  });
+  const todos: Parcial[] = crudas.map((cruda) => interpretarFila(cruda, ctx));
+
+  // Qué se hace con cada fila: crear el animal, completar o corregir el que ya existe, o dejarlo como está.
+  for (const p of todos) {
+    p.existente = existentes.get(p.clave);
+    if (!p.existente) p.accion = "crear";
+    else if (modo === "nuevos") {
+      p.accion = "omitir";
+      p.errores.length = 0; // una fila que se deja como está no puede bloquear el cargue
+    } else {
+      p.accion = modo;
+      if (p.sexo && p.sexo !== p.existente.sexo) p.errores.push(`El arete «${p.arete}» ya existe en tu hato como ${p.existente.sexo === "macho" ? "macho" : "hembra"}, y el archivo dice ${p.sexo}.`);
+      if (p.especie && p.especie !== p.existente.especie) p.errores.push(`El arete «${p.arete}» ya existe en tu hato como ${p.existente.especie === "caprino" ? "cabra" : "oveja"}, y el archivo dice otra especie.`);
+    }
+  }
+  const aOmitir = todos.filter((p) => p.accion === "omitir");
+  const parciales = todos.filter((p) => p.accion !== "omitir");
+
   const enArchivo = new Map<string, Parcial>();
   for (const p of parciales) {
     if (!p.clave) continue;
     const previo = enArchivo.get(p.clave);
     if (previo) p.errores.push(`El arete «${p.arete}» se repite (ya está en la fila ${previo.cruda.fila}).`);
     else enArchivo.set(p.clave, p);
-    if (existentes.has(p.clave)) p.errores.push(`Ya existe un animal con el arete «${p.arete}» en tu hato.`);
   }
 
   // Genealogía: cada padre/madre se busca primero en el archivo y luego en el hato.
@@ -319,7 +427,7 @@ export function validarFilas(todasLasFilas: FilaCruda[], ctx: ContextoImportar):
   const puestos = new Map<string, number>();
   for (const p of parciales) {
     const u = p.ubicacion;
-    if (!u) continue;
+    if (!u || p.accion !== "crear") continue;
     const n = (puestos.get(u.id) ?? 0) + 1;
     puestos.set(u.id, n);
     if (u.capacidad !== null && u.ocupantes + n > u.capacidad) {
@@ -348,8 +456,14 @@ export function validarFilas(todasLasFilas: FilaCruda[], ctx: ContextoImportar):
   const errores: ErrorFila[] = parciales
     .filter((p) => p.errores.length > 0)
     .map((p) => ({ fila: p.cruda.fila, arete: p.arete, mensajes: p.errores }));
-  if (errores.length > 0) return { filas: [], vista: [], errores, resumen: { ...vacio, total: parciales.length, omitidos } };
+  if (errores.length > 0) return { filas: [], vista: [], errores, resumen: { ...vacio, total: parciales.length, ya_existen: aOmitir.length, omitidos } };
 
+  // A los que ya existen solo se les actualizan los datos del animal: nunca servicios, partos ni corral, ni una aptitud que el archivo no trae.
+  const historiaIgnorada = (p: Parcial) => !!(p.fila && (p.fila.fecha_ultimo_parto || p.fila.fecha_servicio || p.fila.ubicacion_id));
+  for (const p of orden) {
+    if (p.accion === "crear" || !p.fila) continue;
+    if (texto(p.cruda.valores.aptitud) === "") delete p.fila.vocacion;
+  }
   const filas = orden.map((p) => p.fila!);
   const nombreDe = (clave: string | undefined, externo: string | undefined, visto: string | undefined) => {
     if (clave) return `${visto} · ${enArchivo.has(clave) ? "en este archivo" : "en tu hato"}`;
@@ -366,18 +480,41 @@ export function validarFilas(todasLasFilas: FilaCruda[], ctx: ContextoImportar):
     padre: nombreDe(p.padreClave, p.fila!.padre_externo, p.fila!.padre_arete),
     madre: nombreDe(p.madreClave, p.fila!.madre_externa, p.fila!.madre_arete),
     origen: p.fila!.origen,
-    repro: resumenRepro(p.fila!, p.sementalClave ? `${p.fila!.semental_arete} · ${enArchivo.has(p.sementalClave) ? "en este archivo" : "en tu hato"}` : p.fila!.semental_externo ? `${p.fila!.semental_externo} · de fuera` : null),
-    ubicacion: p.ubicacion?.nombre ?? null,
+    repro: p.accion === "crear" ? resumenRepro(p.fila!, p.sementalClave ? `${p.fila!.semental_arete} · ${enArchivo.has(p.sementalClave) ? "en este archivo" : "en tu hato"}` : p.fila!.semental_externo ? `${p.fila!.semental_externo} · de fuera` : null) : null,
+    ubicacion: p.accion === "crear" ? (p.ubicacion?.nombre ?? null) : null,
+    accion: p.accion,
   }));
+  for (const p of aOmitir) {
+    const e = p.existente!;
+    vista.push({
+      fila: p.cruda.fila,
+      numero_arete: e.numero_arete,
+      nombre: texto(p.cruda.valores.nombre) || null,
+      especie: e.especie,
+      sexo: e.sexo,
+      raza: null,
+      fecha_nacimiento: e.fecha_nacimiento,
+      padre: null,
+      madre: null,
+      origen: "nacido_en_finca",
+      repro: null,
+      ubicacion: null,
+      accion: "omitir",
+    });
+  }
   const resumen = {
     total: filas.length,
+    nuevos: orden.filter((p) => p.accion === "crear").length,
+    actualizar: orden.filter((p) => p.accion !== "crear").length,
+    ya_existen: aOmitir.length,
+    historia_ignorada: orden.filter((p) => p.accion !== "crear" && historiaIgnorada(p)).length,
     hembras: filas.filter((f) => f.sexo === "hembra").length,
     machos: filas.filter((f) => f.sexo === "macho").length,
     con_padres_en_archivo: orden.filter((p) => [p.padreClave, p.madreClave].some((c) => c && enArchivo.has(c))).length,
     con_padres_en_hato: orden.filter((p) => [p.padreClave, p.madreClave].some((c) => c && !enArchivo.has(c) && existentes.has(c))).length,
     con_padres_externos: filas.filter((f) => f.padre_externo || f.madre_externa).length,
-    con_servicio: filas.filter((f) => f.fecha_servicio).length,
-    con_ubicacion: filas.filter((f) => f.ubicacion_id).length,
+    con_servicio: orden.filter((p) => p.accion === "crear" && p.fila!.fecha_servicio).length,
+    con_ubicacion: orden.filter((p) => p.accion === "crear" && p.fila!.ubicacion_id).length,
     omitidos,
   };
   return { filas, vista, errores: [], resumen };
@@ -400,7 +537,7 @@ function interpretarFila(cruda: FilaCruda, ctx: ContextoImportar): Parcial {
   const v = cruda.valores;
   const errores: string[] = [];
   const arete = texto(v.numero_arete);
-  const p: Parcial = { cruda, arete, clave: normalizar(arete), errores };
+  const p: Parcial = { cruda, arete, clave: normalizar(arete), errores, accion: "crear" };
 
   if (!arete) errores.push("Falta el número de arete.");
   largo(arete, 40, "El número de arete", errores);
@@ -415,7 +552,9 @@ function interpretarFila(cruda: FilaCruda, ctx: ContextoImportar): Parcial {
   } else if (ctx.especies.length === 1) {
     especie = ctx.especies[0];
   } else {
-    errores.push("Falta la especie (Caprino u Ovino).");
+    // Con las dos especies activas y sin columna de especie, se deduce de lo que la fila ya dice: «Cabra», «Oveja», «Carnero»… o una raza que solo es de una especie.
+    especie = deducirEspecie(v, ctx);
+    if (!especie) errores.push("Falta la especie (Caprino u Ovino).");
   }
   p.especie = especie;
 
@@ -423,8 +562,8 @@ function interpretarFila(cruda: FilaCruda, ctx: ContextoImportar): Parcial {
   const crudoSexo = normalizar(texto(v.sexo));
   let sexo: "hembra" | "macho" | undefined;
   if (!crudoSexo) errores.push("Falta el sexo (Hembra o Macho).");
-  else if (["hembra", "h", "f", "femenino", "female"].includes(crudoSexo)) sexo = "hembra";
-  else if (["macho", "m", "masculino", "male"].includes(crudoSexo)) sexo = "macho";
+  else if (SEXO_HEMBRA.includes(crudoSexo)) sexo = "hembra";
+  else if (SEXO_MACHO.includes(crudoSexo)) sexo = "macho";
   else errores.push(`El sexo «${texto(v.sexo)}» no es válido (usa Hembra o Macho).`);
   p.sexo = sexo;
 
