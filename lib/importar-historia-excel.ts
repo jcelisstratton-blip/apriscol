@@ -3,7 +3,7 @@ import { COLOR, FMT, estiloEncabezado, relleno } from "@/lib/excel-estilo";
 import { CAMPOS_HISTORIA, MAX_FILAS_HISTORIA, TITULO_HISTORIA, type TipoHistoria } from "@/lib/importar-historia";
 
 /**
- * La plantilla de Excel de cada cargue de historia (pesos, ordeños, sanidad). Es opcional —el cargue acepta cualquier Excel y propone las columnas—, pero a quien
+ * La plantilla de Excel de cada cargue que acompaña al de animales (pesos, ordeños, sanidad, corrales, medicamentos y alimento). Es opcional —el cargue acepta cualquier Excel y propone las columnas—, pero a quien
  * empieza de cero le dice exactamente qué poner y le da las listas desplegables. Los títulos son los de `CAMPOS_HISTORIA`, así que se reconocen solos.
  */
 
@@ -16,6 +16,11 @@ const LISTAS: Record<string, string[]> = {
   jornada: ["Mañana", "Tarde", "Noche", "Único"],
   si_no: ["No", "Sí"],
   via: ["Oral", "Subcutánea", "Intramuscular", "Intravenosa", "Tópica", "Intramamaria", "Otra"],
+  tipo_corral: ["Corral", "Potrero"],
+  uso: ["General", "Ordeño", "Maternidad", "Crías", "Cuarentena", "Alta producción", "Secas", "Reproductoras", "Ceba", "Reemplazos"],
+  piso: ["Elevado", "Emparrillado", "Tierra", "Cemento", "Pasto", "Otro"],
+  tipo_vet: ["Vacuna", "Desparasitante", "Antibiótico", "Antiinflamatorio", "Vitamina", "Otro"],
+  rubro: ["Concentrado", "Forraje", "Sales y suplementos", "Leche maternizada"],
 };
 
 /** Qué lista lleva cada columna de cada cargue. */
@@ -23,9 +28,49 @@ const LISTA_DE: Record<TipoHistoria, Record<string, keyof typeof LISTAS>> = {
   pesajes: { tipo: "tipo_pesaje" },
   ordenos: { jornada: "jornada", descartada: "si_no" },
   sanidad: { tipo: "tipo_sanidad", via: "via" },
+  corrales: { tipo: "tipo_corral", uso: "uso", piso: "piso", agua: "si_no" },
+  medicamentos: { tipo: "tipo_vet" },
+  alimento: { rubro: "rubro" },
+};
+
+/** Lo que cambia de significado según el cargue (el «nombre» es el del corral, el del producto o el del alimento…). */
+const AYUDA_DE: Partial<Record<TipoHistoria, Record<string, string>>> = {
+  corrales: {
+    nombre: "Cómo le dices al corral o potrero. Si ya existe uno con ese nombre, se deja como está.",
+    tipo: "Corral o Potrero. Si lo dejas vacío: con capacidad es un corral; sin capacidad, un potrero.",
+    capacidad: "Cuántos animales caben. Los corrales la necesitan; en un potrero es opcional.",
+    observaciones: "Opcional.",
+  },
+  medicamentos: {
+    nombre: "El nombre del producto (vacuna, desparasitante…). Si ya existe en tu catálogo, se reutiliza tal como está.",
+    tipo: "Elige de la lista. Vacío es Otro.",
+    unidad_dosis: "En qué se mide la dosis: ml, dosis, tableta…",
+    presentacion: "Cómo viene: frasco, caja, sobre… Va junto con el contenido.",
+    contenido_presentacion: "Cuánto trae cada presentación, en la unidad de la dosis (un frasco de 100 ml: 100).",
+    stock_minimo: "Cuándo avisar que se acaba. Se escribe en la misma unidad que la cantidad.",
+    lote: "El número del lote. Un producto con varios lotes lleva una fila por lote.",
+    vencimiento: "Día/mes/año. Un lote ya vencido con existencias queda contado y el semáforo lo marca.",
+    cantidad: "Lo que hay HOY de ese lote, puede ser 0. Se cuenta en la presentación (frascos) si el producto tiene una; si no, en la unidad de la dosis.",
+    fecha: "Opcional: el día del conteo. Vacío es hoy.",
+  },
+  alimento: {
+    nombre: "El nombre del alimento. Si ya existe en tus productos, se reutiliza tal como está.",
+    rubro: "Elige de la lista. Es obligatorio si el alimento no existe todavía.",
+    unidad: "Cómo lo compras: bulto, paca, kg…",
+    kg_por_unidad: "Cuántos kg trae cada unidad (un bulto de 40 kg: 40). Sirve para pasar las compras a kg.",
+    cantidad: "Lo que hay HOY, en kg (puede ser 0).",
+    fecha: "Opcional: el día del conteo. Vacío es hoy.",
+  },
 };
 
 const AYUDA: Record<string, string> = {
+  uso: "Elige de la lista. Vacío es General.",
+  area_m2: "Los metros cuadrados. Opcional.",
+  piso: "Elige de la lista. Opcional.",
+  agua: "Sí o No. Vacío es Sí.",
+  dias_ocupacion_max: "Cuántos días seguidos puede estar un lote de animales (1 a 60). Vacío es 5.",
+  dias_descanso_min: "Cuántos días descansa después de usarlo (1 a 180). Vacío es 35.",
+  registro_ica: "Opcional.",
   numero_arete: "El arete del animal. Ya debe estar en tu hato.",
   fecha: "Día/mes/año, por ejemplo 15/03/2025. No puede ser futura.",
   peso_kg: "En kilos, hasta 250. Puedes usar coma: 32,5.",
@@ -57,6 +102,22 @@ const EXPLICACION: Record<TipoHistoria, string[]> = {
     "1. Una fila por ordeño: el arete de la hembra, la fecha y los litros. Son hembras: un macho se rechaza.",
     "2. Si ordeñas dos veces al día, pon la jornada (Mañana/Tarde); si es una sola vez, déjala vacía.",
     "3. Si ese animal ya tiene un ordeño ese día y jornada, ese ordeño se deja como está.",
+  ],
+  corrales: [
+    "1. Una fila por corral o potrero. Créalos antes de cargar los animales para que cada uno llegue ya a su corral: la plantilla de animales los reconoce por su nombre.",
+    "2. Los corrales necesitan su capacidad (cuántos animales caben); en un potrero es opcional.",
+    "3. Si ya tienes uno con ese nombre, se deja como está.",
+  ],
+  medicamentos: [
+    "1. Una fila por lote de cada producto: el nombre, el lote, su vencimiento y cuánto hay hoy. Un producto con tres lotes ocupa tres filas (repite el nombre).",
+    "2. Los datos del producto (tipo, unidad, presentación…) se toman de su primera fila; si el producto ya existe en tu catálogo, se usa tal como está.",
+    "3. La cantidad se cuenta en la presentación (frascos) si el producto tiene una; si no, en la unidad de la dosis. La revisión te muestra la equivalencia antes de guardar.",
+    "4. Es el conteo de apertura: desde esa fecha, las compras y las aplicaciones mantienen el stock solas. Si un lote ya tiene su apertura, se deja como está.",
+  ],
+  alimento: [
+    "1. Una fila por alimento: el nombre, el rubro y cuántos kg hay hoy. Todo se cuenta en kg.",
+    "2. Si lo compras en bultos o pacas, pon la unidad y los kg de cada una: sirve para pasar tus compras a kg.",
+    "3. Es el conteo de apertura: desde esa fecha, las compras y lo que se da de comer mantienen el stock solo. Si un alimento ya tiene su apertura, se deja como está.",
   ],
   sanidad: [
     "1. Una fila por animal y evento: el arete, la fecha y el tipo (Vacunación, Desparasitación, Tratamiento, Cirugía, Podología, Pediluvio u Otro).",
@@ -93,12 +154,12 @@ export async function construirPlantillaHistoria(tipo: TipoHistoria, finca: stri
     celda.value = c.requerido ? `${c.titulo} *` : c.titulo;
     estiloEncabezado(celda, c.requerido ? COLOR.ocre : COLOR.musgo);
     celda.alignment = { vertical: "middle", wrapText: true };
-    celda.note = AYUDA[c.id] ?? "";
-    hoja.getColumn(i + 1).width = c.id === "numero_arete" ? 16 : c.id === "observaciones" || c.id === "producto_nombre" || c.id === "diagnostico" ? 26 : 16;
+    celda.note = AYUDA_DE[tipo]?.[c.id] ?? AYUDA[c.id] ?? "";
+    hoja.getColumn(i + 1).width = c.id === "numero_arete" ? 16 : c.id === "observaciones" || c.id === "producto_nombre" || c.id === "diagnostico" || c.id === "nombre" ? 28 : 16;
     const lista = LISTA_DE[tipo][c.id];
     for (let r = 2; r <= FILAS_CON_LISTA + 1; r++) {
       const cel = hoja.getCell(r, i + 1);
-      if (c.id === "fecha" || c.id === "proxima_fecha") cel.numFmt = FMT.fecha;
+      if (c.id === "fecha" || c.id === "proxima_fecha" || c.id === "vencimiento") cel.numFmt = FMT.fecha;
       if (c.id === "numero_arete" || c.id === "lote_producto") cel.numFmt = "@";
       if (lista) {
         cel.dataValidation = { type: "list", allowBlank: true, formulae: [rangos.get(lista)!], showErrorMessage: true, errorStyle: "warning", errorTitle: "Valor de la lista", error: "Elige un valor de la lista." };
@@ -114,7 +175,7 @@ export async function construirPlantillaHistoria(tipo: TipoHistoria, finca: stri
   titulo.font = { bold: true, size: 15, color: { argb: COLOR.musgo } };
   const pasos = [
     ...EXPLICACION[tipo],
-    `Hasta ${MAX_FILAS_HISTORIA.toLocaleString("es-CO")} registros por archivo. Las columnas con * son obligatorias. Guarda como .xlsx y súbelo en «Migrar mi finca»: la app revisa todo y te dice qué corregir antes de guardar.`,
+    `Hasta ${MAX_FILAS_HISTORIA.toLocaleString("es-CO")} filas por archivo. Las columnas con * son obligatorias. Guarda como .xlsx y súbelo en «Migrar mi finca»: la app revisa todo y te dice qué corregir antes de guardar.`,
     "Esta plantilla es opcional: también sirve tu propio Excel, con las columnas que tenga; la app te ayuda a emparejarlas.",
   ];
   pasos.forEach((p, i) => {
@@ -134,7 +195,7 @@ export async function construirPlantillaHistoria(tipo: TipoHistoria, finca: stri
     const b = ayuda.getCell(desde + 1 + i, 2);
     a.value = c.requerido ? `${c.titulo} *` : c.titulo;
     a.font = { bold: c.requerido };
-    b.value = AYUDA[c.id] ?? "";
+    b.value = AYUDA_DE[tipo]?.[c.id] ?? AYUDA[c.id] ?? "";
     b.alignment = { wrapText: true, vertical: "top" };
     if (i % 2 === 0) for (const x of [a, b]) x.fill = relleno(COLOR.lana);
   });

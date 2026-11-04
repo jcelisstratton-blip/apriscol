@@ -5,8 +5,8 @@ import { ChevronLeft } from "lucide-react";
 import { Encabezado } from "@/components/Encabezado";
 import { ImportarHistoria } from "@/components/ImportarHistoria";
 import { obtenerContexto } from "@/lib/contexto";
-import { TIPOS_HISTORIA, TITULO_HISTORIA, type TipoHistoria } from "@/lib/importar-historia";
-import { puedeEscribir, puedeGestionar } from "@/lib/permisos";
+import { TIPOS_HISTORIA, TITULO_HISTORIA, puedeCargar, type TipoHistoria } from "@/lib/importar-historia";
+import { puedeGestionar } from "@/lib/permisos";
 
 export const metadata: Metadata = { title: "Cargar historia desde Excel" };
 
@@ -18,7 +18,7 @@ export default async function PaginaImportarHistoria({ params }: { params: Promi
   if (!TIPOS_HISTORIA.includes(tipo as TipoHistoria)) notFound();
   const t = tipo as TipoHistoria;
   const { finca, rol } = await obtenerContexto();
-  if (!puedeEscribir(rol, TITULO_HISTORIA[t].modulo, finca.plan)) redirect("/hato/migrar");
+  if (!puedeCargar(t, rol, finca.plan)) redirect("/hato/migrar");
 
   return (
     <>

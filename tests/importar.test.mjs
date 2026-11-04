@@ -198,7 +198,7 @@ test("archivo: un archivo que no es Excel da un mensaje claro", async () => {
 
 // ───────────────────────── Historia (pesajes y ordeños) y «Migrar mi finca» ─────────────────────────
 import { validarHistoria, proponerMapeoHistoria, faltantesHistoria, puntajeTituloHistoria } from "../lib/importar-historia.ts";
-import { pasosMigracion, avanceMigracion } from "../lib/migracion.ts";
+import { pasosMigracion, avanceMigracion, etapasMigracion, siguientePaso } from "../lib/migracion.ts";
 
 const hato = [
   { numero_arete: "H-1", sexo: "hembra" },
@@ -275,61 +275,78 @@ test("historia: dos ordeños del mismo día solo chocan si son de la misma jorna
   assert.match(dos.errores[0].mensajes[0], /se repite/);
 });
 
-const permisosTodos = { hato: true, corrales: true, reproduccion: true, carne: true, leche: true, sanidad: true, inventario: true };
-const vacio = { ubicaciones: 0, animales: 0, desdeExcel: 0, conPadres: 0, servicios: 0, lactancias: 0, pesajes: 0, ordenos: 0, eventosSanitarios: 0, aperturas: 0 };
+const permisosTodos = { hato: true, corrales: true, reproduccion: true, carne: true, leche: true, sanidad: true, medicamentos: true, alimento: true };
+const vacio = { ubicaciones: 0, animales: 0, desdeExcel: 0, conPadres: 0, servicios: 0, lactancias: 0, pesajes: 0, ordenos: 0, eventosSanitarios: 0, productosVet: 0, aperturasVet: 0, alimentos: 0, aperturasAlimento: 0 };
 
-test("migrar: sin animales, todo lo que depende de ellos está bloqueado y dice por qué", () => {
+test("migrar: sin animales, la historia y la revisión están bloqueadas y dicen por qué; la bodega y los corrales no dependen de ellos", () => {
   const pasos = pasosMigracion(vacio, permisosTodos);
   const por = Object.fromEntries(pasos.map((p) => [p.id, p]));
-  assert.equal(por.animales.estado, "pendiente");
-  for (const id of ["genealogia", "reproduccion", "pesajes", "ordenos", "sanidad", "revision"]) {
+  assert.deepEqual(pasos.map((p) => p.id), ["corrales", "animales", "pesajes", "ordenos", "sanidad", "medicamentos", "alimento", "revision"]);
+  for (const id of ["pesajes", "ordenos", "sanidad", "revision"]) {
     assert.equal(por[id].estado, "bloqueado", id);
     assert.match(por[id].motivo, /Primero carga tus animales/);
   }
-  assert.equal(por.corrales.estado, "pendiente");
-  assert.equal(por.corrales.href, "/hato/corrales/nueva");
-  assert.deepEqual(avanceMigracion(pasos), { hechos: 0, total: 8 });
+  for (const id of ["corrales", "animales", "medicamentos", "alimento"]) assert.equal(por[id].estado, "pendiente", id);
+  assert.equal(por.corrales.href, "/hato/importar/historia/corrales");
+  assert.equal(por.corrales.alternativa.href, "/hato/corrales/nueva");
+  assert.deepEqual(avanceMigracion(pasos), { hechos: 0, total: 7 });
 });
 
-test("migrar: con datos cargados, cada paso refleja lo que hay y el avance cuenta los hechos", () => {
-  const pasos = pasosMigracion({ ...vacio, animales: 120, desdeExcel: 120, conPadres: 80, pesajes: 300, ubicaciones: 3 }, permisosTodos);
+test("migrar: el orden es por etapas y cada paso de cada cargue lleva a su pantalla", () => {
+  const etapas = etapasMigracion(pasosMigracion(vacio, permisosTodos));
+  assert.deepEqual(etapas.map((e) => [e.id, e.pasos.map((p) => p.id)]), [
+    ["preparar", ["corrales"]],
+    ["hato", ["animales"]],
+    ["historia", ["pesajes", "ordenos", "sanidad"]],
+    ["bodega", ["medicamentos", "alimento"]],
+    ["cierre", ["revision"]],
+  ]);
+  const por = Object.fromEntries(pasosMigracion(vacio, permisosTodos).map((p) => [p.id, p]));
+  assert.equal(por.medicamentos.href, "/hato/importar/historia/medicamentos");
+  assert.equal(por.alimento.href, "/hato/importar/historia/alimento");
+  for (const id of ["corrales", "animales", "pesajes", "ordenos", "sanidad", "medicamentos", "alimento"]) assert.equal(por[id].porExcel, true, id);
+});
+
+test("migrar: los animales llevan su genealogía y sus partos como partes del mismo paso", () => {
+  const pasos = pasosMigracion({ ...vacio, animales: 120, desdeExcel: 120, conPadres: 80, servicios: 10, lactancias: 20 }, permisosTodos);
+  const a = pasos.find((p) => p.id === "animales");
+  assert.equal(a.estado, "hecho");
+  assert.deepEqual(a.subpasos.map((s) => [s.titulo, s.hecho]), [["Animales", true], ["Genealogía (padre y madre)", true], ["Partos y servicios", true]]);
+  assert.match(a.subpasos[0].dato, /120 animales · 120 desde Excel/);
+  assert.equal(a.subpasos[1].dato, "80 de 120 con padre o madre");
+  const sinGenealogia = pasosMigracion({ ...vacio, animales: 5 }, permisosTodos).find((p) => p.id === "animales");
+  assert.deepEqual(sinGenealogia.subpasos.map((s) => s.hecho), [true, false, false]);
+  const sinRepro = pasosMigracion({ ...vacio, animales: 5 }, { ...permisosTodos, reproduccion: false }).find((p) => p.id === "animales");
+  assert.equal(sinRepro.subpasos.length, 2, "sin permiso de reproducción no se ofrece lo de partos");
+});
+
+test("migrar: con datos cargados cada paso refleja lo que hay, y el siguiente es el primero que falta", () => {
+  const c = { ...vacio, ubicaciones: 3, animales: 120, conPadres: 80, pesajes: 300, productosVet: 12, aperturasVet: 20, alimentos: 4, aperturasAlimento: 4 };
+  const pasos = pasosMigracion(c, permisosTodos);
   const por = Object.fromEntries(pasos.map((p) => [p.id, p]));
-  assert.equal(por.animales.estado, "hecho");
-  assert.match(por.animales.dato, /120 animales · 120 desde Excel/);
-  assert.equal(por.genealogia.dato, "80 de 120 con padre o madre");
+  assert.equal(por.corrales.accion, "Cargar más corrales");
   assert.equal(por.pesajes.estado, "hecho");
-  assert.equal(por.pesajes.href, "/hato/importar/historia/pesajes");
   assert.equal(por.ordenos.estado, "pendiente");
-  assert.equal(por.corrales.accion, "Ver corrales");
-  assert.deepEqual(avanceMigracion(pasos), { hechos: 4, total: 8 });
+  assert.equal(por.medicamentos.dato, "12 productos · 20 lotes contados");
+  assert.equal(por.alimento.dato, "4 alimentos · 4 contados");
+  assert.deepEqual(avanceMigracion(pasos), { hechos: 5, total: 7 });
+  assert.equal(siguientePaso(pasos).id, "ordenos");
+  const todos = pasosMigracion({ ...c, ordenos: 10, eventosSanitarios: 5 }, permisosTodos);
+  assert.equal(siguientePaso(todos), null, "solo queda la revisión, que no cuenta como trabajo");
+  assert.deepEqual(avanceMigracion(todos), { hechos: 7, total: 7 });
 });
 
-test("migrar: los pasos de un módulo que el rol o el plan no permite no aparecen", () => {
-  const pasos = pasosMigracion({ ...vacio, animales: 5 }, { ...permisosTodos, leche: false, carne: false, inventario: false, corrales: false });
-  assert.deepEqual(pasos.map((p) => p.id), ["animales", "genealogia", "reproduccion", "sanidad", "revision"]);
+test("migrar: productos cargados sin contar se avisan, y el siguiente paso con animales vacíos es el de los animales", () => {
+  const p = pasosMigracion({ ...vacio, productosVet: 6, alimentos: 2 }, permisosTodos);
+  assert.equal(p.find((x) => x.id === "medicamentos").dato, "6 productos sin contar");
+  assert.equal(p.find((x) => x.id === "alimento").dato, "2 alimentos sin contar");
+  assert.equal(siguientePaso(p).id, "corrales");
 });
 
-import { leerFilasMapeadas } from "../lib/importar-animales-excel.ts";
-
-test("historia: de un Excel con título arriba a registros validados, de punta a punta", async () => {
-  const libro = new ExcelJS.Workbook();
-  const h = libro.addWorksheet("Pesos 2026");
-  h.getCell("A1").value = "REGISTRO DE PESOS — FINCA LA ESPERANZA";
-  ["Chapeta", "Fecha pesaje", "Kg", "Notas"].forEach((t, i) => (h.getCell(3, i + 1).value = t));
-  [["H-1", new Date(Date.UTC(2026, 2, 15)), 31.4, "ok"], ["H-2", "16/03/2026", "40,2", null], [null, null, null, null]].forEach((f, r) => f.forEach((v, c) => (h.getCell(4 + r, c + 1).value = v)));
-  const buffer = await libro.xlsx.writeBuffer();
-  const a = await analizarArchivo(buffer, { reconocer: (t) => puntajeTituloHistoria("pesajes", t), proponer: (c) => proponerMapeoHistoria("pesajes", c) });
-  assert.equal(a.ok, true);
-  assert.equal(a.filaEncabezado, 3);
-  assert.deepEqual(a.propuesta, ["numero_arete", "fecha", "peso_kg", "observaciones"]);
-  const mapeo = a.columnas.map((c, i) => ({ indice: c.indice, campo: a.propuesta[i] }));
-  const l = await leerFilasMapeadas(buffer, { filaEncabezado: 3, mapeo, requerido: { id: "numero_arete", titulo: "Número de arete" }, maxFilas: 100 });
-  assert.equal(l.ok, true);
-  const r = validarHistoria("pesajes", l.filas, { animales: hato, hoy: hoyH });
-  assert.deepEqual(r.errores, []);
-  assert.deepEqual(r.filas.map((f) => [f.numero_arete, f.fecha, f.peso_kg]), [["H-1", "2026-03-15", 31.4], ["H-2", "2026-03-16", 40.2]]);
-  const sinArete = await leerFilasMapeadas(buffer, { filaEncabezado: 3, mapeo: [{ indice: 1, campo: "fecha" }], requerido: { id: "numero_arete", titulo: "Número de arete" }, maxFilas: 100 });
-  assert.equal(sinArete.ok, false);
+test("migrar: los pasos de un módulo que el rol o el plan no permite no aparecen, ni la etapa que se queda sin pasos", () => {
+  const pasos = pasosMigracion({ ...vacio, animales: 5 }, { ...permisosTodos, leche: false, carne: false, medicamentos: false, alimento: false, corrales: false });
+  assert.deepEqual(pasos.map((p) => p.id), ["animales", "sanidad", "revision"]);
+  assert.deepEqual(etapasMigracion(pasos).map((e) => e.id), ["hato", "historia", "cierre"]);
 });
 
 test("sanidad: reconoce los títulos, entiende los tipos y vías escritos a mano y arma el resumen por eventos", () => {
@@ -464,6 +481,159 @@ for (const tipo of ["pesajes", "ordenos", "sanidad"]) {
     for (const campo of ["tipo", "jornada", "descartada", "via"]) {
       for (const v of valoresDe(campo)) {
         const r = validarHistoria(tipo, [fh(2, { ...base, ...(tipo === "sanidad" && campo !== "tipo" ? {} : {}), [campo]: v })], { animales: hato, hoy: hoyH });
+        assert.deepEqual(r.errores, [], `${tipo}: «${v}» en ${campo}`);
+      }
+    }
+  });
+}
+
+// ───────────────────────── Corrales, medicamentos y alimento ─────────────────────────
+import { validarCatalogo, paraGuardarCatalogo } from "../lib/importar-catalogo.ts";
+import { esCatalogo, puedeCargar, CLAVE_HISTORIA } from "../lib/importar-historia.ts";
+
+const cat = (extra = {}) => ({ hoy: "2026-11-04", corrales: [], productosVet: [], alimentos: [], ...extra });
+
+test("corrales: reconoce los títulos, deduce corral o potrero y exige la capacidad de un corral", () => {
+  const p = proponerMapeoHistoria("corrales", [col("Corral", ["A", "B"]), col("Cupo", ["20", "30"]), col("Metros", ["50", "60"]), col("Observaciones", ["x", "y"])]);
+  assert.deepEqual(p, ["nombre", "capacidad", "area_m2", "observaciones"]);
+  const r = validarCatalogo("corrales", [
+    fh(2, { nombre: "Corral 1", capacidad: "25", uso: "Ordeño", piso: "Cemento", agua: "Sí" }),
+    fh(3, { nombre: "Potrero Norte", area_m2: "5.000", dias_ocupacion_max: "4", dias_descanso_min: 40 }),
+    fh(4, { nombre: "Corral sin cupo", tipo: "Corral" }),
+  ], cat());
+  assert.match(r.errores[0].mensajes[0], /necesita su capacidad/);
+  assert.equal(r.resumen.total_errores, 1);
+  const bien = validarCatalogo("corrales", [fh(2, { nombre: "Corral 1", capacidad: "25", uso: "Ordeño", piso: "Cemento", agua: "Sí" }), fh(3, { nombre: "Potrero Norte", area_m2: "5.000" })], cat());
+  assert.deepEqual(bien.errores, []);
+  assert.deepEqual(bien.filas.map((f) => [f.tipo, f.capacidad ?? null, f.uso ?? null]), [["corral", 25, "ordeno"], ["potrero", null, null]]);
+  assert.equal(bien.filas[1].area_m2, 5000, "5.000 son cinco mil metros");
+  assert.equal(bien.resumen.suma, 25);
+});
+
+test("corrales: uno que ya existe se deja como está y uno repetido en el archivo es un error", () => {
+  const r = validarCatalogo("corrales", [fh(2, { nombre: "corral 1", capacidad: 10 }), fh(3, { nombre: "Corral 2", capacidad: 10 })], cat({ corrales: ["Corral 1"] }));
+  assert.deepEqual(r.errores, []);
+  assert.equal(r.filas.length, 1);
+  assert.equal(r.resumen.ya_existen, 1);
+  const dup = validarCatalogo("corrales", [fh(2, { nombre: "A", capacidad: 10 }), fh(3, { nombre: "a", capacidad: 10 })], cat());
+  assert.match(dup.errores[0].mensajes[0], /se repite/);
+});
+
+test("medicamentos: un producto con presentación se cuenta en frascos y la base recibe la unidad de la dosis", () => {
+  const r = validarCatalogo("medicamentos", [
+    fh(2, { nombre: "Ivermectina", tipo: "Desparasitante", unidad_dosis: "ml", presentacion: "frasco", contenido_presentacion: "100", stock_minimo: 2, retiro_leche_dias: 28, lote: "L1", vencimiento: "01/05/2027", cantidad: "3" }),
+    fh(3, { nombre: "ivermectina", lote: "L2", vencimiento: "2027-08-01", cantidad: "1,5" }),
+    fh(4, { nombre: "Vacuna Clostridial", tipo: "Vacuna", unidad_dosis: "dosis", cantidad: 40 }),
+  ], cat());
+  assert.deepEqual(r.errores, []);
+  const [a, b, c] = r.filas;
+  assert.equal(a.cantidad, 300);
+  assert.equal(a.stock_minimo, 200);
+  assert.equal(a.contenido_presentacion, 100);
+  assert.equal(b.cantidad, 150, "las otras filas del producto se cuentan igual (en frascos)");
+  assert.equal(c.cantidad, 40);
+  assert.equal(c.tipo, "vacuna");
+  assert.equal(r.resumen.animales, 2, "dos productos");
+  assert.match(r.muestra[0].detalle, /3 frasco = 300/);
+  const base = paraGuardarCatalogo(r.filas)[0];
+  assert.equal("factor" in base, false, "los datos de apoyo no van a la base");
+});
+
+test("medicamentos: un producto que ya existe usa su presentación; el archivo no la cambia", () => {
+  const r = validarCatalogo("medicamentos", [fh(2, { nombre: "Ivermectina", lote: "L9", cantidad: 2 })], cat({ productosVet: [{ nombre: "ivermectina", presentacion: "frasco", contenido_presentacion: 50 }] }));
+  assert.deepEqual(r.errores, []);
+  assert.equal(r.filas[0].cantidad, 100);
+  assert.equal(r.filas[0].tipo, undefined, "no se vuelve a mandar el catálogo de un producto que ya existe");
+  assert.equal(r.resumen.ya_existen, 1);
+});
+
+test("medicamentos: rechaza lotes repetidos, presentación sin contenido, vencimientos y cantidades imposibles; cuenta los vencidos", () => {
+  const r = validarCatalogo("medicamentos", [
+    fh(2, { nombre: "A", lote: "L1", cantidad: 1 }),
+    fh(3, { nombre: "a", lote: "l1", cantidad: 2 }),
+    fh(4, { nombre: "B", presentacion: "frasco", cantidad: 1 }),
+    fh(5, { nombre: "C", cantidad: -3 }),
+    fh(6, { nombre: "D", vencimiento: "31/02/2027", cantidad: 1 }),
+    fh(7, { nombre: "E" }),
+  ], cat());
+  const msgs = r.errores.map((e) => e.mensajes.join(" ")).join("\n");
+  assert.match(msgs, /Este lote ya está en la fila 2/);
+  assert.match(msgs, /van juntos/);
+  assert.match(msgs, /cantidad debe ser/);
+  assert.match(msgs, /vencimiento no es válido/);
+  assert.match(msgs, /Falta la cantidad/);
+  assert.equal(r.resumen.total_errores, 5);
+  const venc = validarCatalogo("medicamentos", [fh(2, { nombre: "F", lote: "L", vencimiento: "2025-01-01", cantidad: 5 }), fh(3, { nombre: "G", lote: "M", vencimiento: "2025-01-01", cantidad: 0 })], cat());
+  assert.equal(venc.resumen.suma, 1, "solo cuenta el vencido con existencias");
+});
+
+test("alimento: un alimento nuevo pide su rubro; uno que ya existe no; y todo se cuenta en kg", () => {
+  const r = validarCatalogo("alimento", [
+    fh(2, { nombre: "Concentrado lecheras", rubro: "Concentrado", unidad: "bulto", kg_por_unidad: 40, cantidad: "800" }),
+    fh(3, { nombre: "Heno", rubro: "forraje", cantidad: "1.200" }),
+    fh(4, { nombre: "Sal mineralizada", rubro: "Sales", cantidad: 50 }),
+    fh(5, { nombre: "Maíz", cantidad: 10 }),
+    fh(6, { nombre: "Sustituto", rubro: "Leche maternizada", cantidad: 25 }),
+  ], cat());
+  assert.match(r.errores[0].mensajes[0], /Falta el rubro/);
+  assert.equal(r.resumen.total_errores, 1);
+  const bien = validarCatalogo("alimento", [fh(2, { nombre: "Concentrado lecheras", rubro: "Concentrado", unidad: "bulto", kg_por_unidad: 40, cantidad: "800" }), fh(3, { nombre: "Heno", rubro: "forraje", cantidad: "1.200" }), fh(4, { nombre: "Sal", cantidad: 50 })], cat({ alimentos: [{ nombre: "sal", rubro: "sales_suplementos" }] }));
+  assert.deepEqual(bien.errores, []);
+  assert.deepEqual(bien.filas.map((f) => [f.nombre, f.rubro ?? null, f.cantidad]), [["Concentrado lecheras", "concentrado", 800], ["Heno", "forraje", 1200], ["Sal", null, 50]]);
+  assert.equal(bien.resumen.suma, 2050);
+  assert.equal(bien.resumen.nuevos, 2);
+  assert.equal(bien.resumen.ya_existen, 1);
+});
+
+test("alimento: un nombre que ya es otro producto no se pisa y un alimento repetido es un error", () => {
+  const r = validarCatalogo("alimento", [fh(2, { nombre: "Fletes", cantidad: 5 }), fh(3, { nombre: "Heno", rubro: "forraje", cantidad: 5 }), fh(4, { nombre: "HENO", rubro: "forraje", cantidad: 5 })], cat({ alimentos: [{ nombre: "Fletes", rubro: "fletes" }] }));
+  const msgs = r.errores.map((e) => e.mensajes.join(" ")).join("\n");
+  assert.match(msgs, /que no es un alimento/);
+  assert.match(msgs, /se repite/);
+});
+
+test("catálogos: quién puede cargar cada uno y cuál es su columna clave", () => {
+  assert.equal(esCatalogo("corrales") && esCatalogo("medicamentos") && esCatalogo("alimento"), true);
+  assert.equal(esCatalogo("pesajes"), false);
+  assert.equal(puedeCargar("alimento", "propietario", "hacienda"), true);
+  assert.equal(puedeCargar("alimento", "ordenador", "hacienda"), false, "el ordeñador anota salidas, no cuenta el inventario");
+  assert.equal(puedeCargar("medicamentos", "veterinario", "hacienda"), false, "el veterinario ve el inventario, no lo mueve");
+  assert.equal(puedeCargar("sanidad", "veterinario", "hacienda"), true);
+  assert.equal(CLAVE_HISTORIA.corrales.id, "nombre");
+  assert.equal(CLAVE_HISTORIA.pesajes.id, "numero_arete");
+});
+
+for (const tipo of ["corrales", "medicamentos", "alimento"]) {
+  test(`plantilla de ${tipo}: sus títulos se reconocen solos y cada valor de sus listas lo acepta la validación`, async () => {
+    const buffer = await construirPlantillaHistoria(tipo, "Finca de prueba");
+    const libro = new ExcelJS.Workbook();
+    await libro.xlsx.load(buffer);
+    assert.deepEqual(libro.worksheets.map((h) => h.name), ["Registros", "Instrucciones", "Listas"]);
+    const hoja = libro.getWorksheet("Registros");
+    const campos = CAMPOS_HISTORIA[tipo];
+    campos.forEach((c, i) => (hoja.getCell(2, i + 1).value = c.id === "fecha" || c.id === "vencimiento" ? "01/06/2026" : "x"));
+    const lleno = await libro.xlsx.writeBuffer();
+    const b = await analizarArchivo(lleno, { reconocer: (t) => puntajeTituloHistoria(tipo, t), proponer: (c) => proponerMapeoHistoria(tipo, c) });
+    assert.equal(b.ok, true);
+    assert.deepEqual(b.propuesta, campos.map((c) => c.id));
+    assert.equal(b.filaEncabezado, 1);
+
+    // Cada valor que ofrece una lista desplegable lo entiende la validación del cargue.
+    const listas = libro.getWorksheet("Listas");
+    const valoresDe = (campo) => {
+      const col = campos.findIndex((c) => c.id === campo) + 1;
+      if (col === 0) return [];
+      const f = hoja.getCell(2, col).dataValidation?.formulae?.[0];
+      if (!f) return [];
+      const [, letra, desde, hasta] = /\$([A-Z])\$(\d+):\$[A-Z]\$(\d+)/.exec(f.split("!")[1]);
+      const out = [];
+      for (let r = +desde; r <= +hasta; r++) out.push(String(listas.getCell(`${letra}${r}`).value));
+      return out;
+    };
+    const base = { corrales: { nombre: "X", capacidad: 5 }, medicamentos: { nombre: "X", cantidad: 1 }, alimento: { nombre: "X", rubro: "concentrado", cantidad: 1 } }[tipo];
+    for (const campo of ["tipo", "uso", "piso", "agua", "rubro"]) {
+      for (const v of valoresDe(campo)) {
+        const r = validarCatalogo(tipo, [fh(2, { ...base, [campo]: v })], cat());
         assert.deepEqual(r.errores, [], `${tipo}: «${v}» en ${campo}`);
       }
     }

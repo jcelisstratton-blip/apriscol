@@ -1,15 +1,38 @@
 import { leerNumero } from "@/lib/numeros";
+import { puedeEscribir, puedeGestionar } from "@/lib/permisos";
+import type { PlanId, RolFinca } from "@/lib/tipos";
 import { claveEncabezado, leerFecha, leerSiNo, normalizar, texto, type CeldaCruda, type ErrorFila } from "@/lib/importar-animales";
 import type { ColumnaArchivo } from "@/lib/importar-mapeo";
 
 /**
- * Cargue de historia desde Excel: pesajes, ordeños y sanidad (vacunas, desparasitaciones, tratamientos…) pasados de animales que ya están en el hato. Aquí vive todo lo que NO depende de Excel ni de la
+ * Cargues desde Excel que acompañan al de animales: historia (pesajes, ordeños y sanidad pasados, de animales que ya están en el hato) y catálogos y bodega (corrales y potreros, medicamentos y vacunas con su conteo de apertura, alimento con su conteo en kg; sus reglas están en `lib/importar-catalogo.ts`) de animales que ya están en el hato. Aquí vive todo lo que NO depende de Excel ni de la
  * base: qué columnas tiene cada cargue, cómo se reconocen y las reglas de cada fila (espejo de `guardarPeso`/`crearPesaje` y `guardarOrdeno`; la base
  * vuelve a exigirlas). Cada registro se amarra al animal por su número de arete.
  */
 
-export type TipoHistoria = "pesajes" | "ordenos" | "sanidad";
-export const TIPOS_HISTORIA: readonly TipoHistoria[] = ["pesajes", "ordenos", "sanidad"];
+export type TipoHistoria = "pesajes" | "ordenos" | "sanidad" | "corrales" | "medicamentos" | "alimento";
+export const TIPOS_HISTORIA: readonly TipoHistoria[] = ["pesajes", "ordenos", "sanidad", "corrales", "medicamentos", "alimento"];
+/** Los cargues que no son de animales: crean corrales, productos y conteos de bodega, y no necesitan que el animal exista. */
+export type TipoCatalogo = "corrales" | "medicamentos" | "alimento";
+export const TIPOS_CATALOGO: readonly TipoCatalogo[] = ["corrales", "medicamentos", "alimento"];
+export const esCatalogo = (tipo: TipoHistoria): tipo is TipoCatalogo => (TIPOS_CATALOGO as readonly string[]).includes(tipo);
+
+/** Quién puede hacer cada cargue: los mismos permisos que el módulo donde se registra a mano (el alimento, además, solo propietario y administrador). */
+export function puedeCargar(tipo: TipoHistoria, rol: RolFinca, plan: PlanId): boolean {
+  if (tipo === "alimento") return puedeGestionar(rol) && puedeEscribir(rol, "nutricion", plan) && puedeEscribir(rol, "contabilidad", plan);
+  if (tipo === "medicamentos") return puedeEscribir(rol, "sanidad", plan) && puedeEscribir(rol, "inventario", plan);
+  return puedeEscribir(rol, TITULO_HISTORIA[tipo].modulo, plan);
+}
+
+/** La columna sin la cual no hay nada que leer en cada cargue: el arete del animal, o el nombre del corral o del producto. */
+export const CLAVE_HISTORIA: Record<TipoHistoria, { id: string; titulo: string }> = {
+  pesajes: { id: "numero_arete", titulo: "Número de arete" },
+  ordenos: { id: "numero_arete", titulo: "Número de arete" },
+  sanidad: { id: "numero_arete", titulo: "Número de arete" },
+  corrales: { id: "nombre", titulo: "Nombre del corral o potrero" },
+  medicamentos: { id: "nombre", titulo: "Producto" },
+  alimento: { id: "nombre", titulo: "Alimento" },
+};
 export const MAX_FILAS_HISTORIA = 5000;
 /** La historia puede venir de años atrás (a diferencia del registro del día a día, que llega hasta un año): desde esta fecha. */
 export const FECHA_MINIMA_HISTORIA = "2000-01-01";
@@ -28,7 +51,45 @@ const ARETE: CampoHistoria = {
 const FECHA: CampoHistoria = { id: "fecha", titulo: "Fecha", requerido: true, alias: ["fecha", "dia", "fecha de pesaje", "fecha pesaje", "fecha de ordeno", "fecha ordeno", "f pesaje", "fecha peso", "fecha del dia"] };
 const OBS: CampoHistoria = { id: "observaciones", titulo: "Observaciones", requerido: false, alias: ["observaciones", "observacion", "notas", "nota", "obs", "comentarios", "comentario"] };
 
+const NOMBRE_CORRAL: CampoHistoria = { id: "nombre", titulo: "Nombre del corral o potrero", requerido: true, alias: ["nombre", "corral", "potrero", "nombre del corral", "nombre corral", "nombre potrero", "instalacion", "encierro", "ubicacion", "lote"] };
+const FECHA_CONTEO: CampoHistoria = { id: "fecha", titulo: "Fecha del conteo", requerido: false, alias: ["fecha del conteo", "fecha conteo", "fecha de apertura", "fecha inventario", "fecha"] };
+
 export const CAMPOS_HISTORIA: Record<TipoHistoria, CampoHistoria[]> = {
+  corrales: [
+    NOMBRE_CORRAL,
+    { id: "tipo", titulo: "Tipo", requerido: false, alias: ["tipo", "tipo de instalacion", "clase"] },
+    { id: "uso", titulo: "Uso", requerido: false, alias: ["uso", "destino", "para que sirve", "funcion"] },
+    { id: "capacidad", titulo: "Capacidad (animales)", requerido: false, alias: ["capacidad", "cupo", "cabida", "cuantos caben", "animales maximo", "capacidad animales"] },
+    { id: "area_m2", titulo: "Área (m²)", requerido: false, alias: ["area", "area m2", "metros", "m2", "superficie", "metros cuadrados", "area en m2"] },
+    { id: "piso", titulo: "Piso", requerido: false, alias: ["piso", "suelo", "tipo de piso"] },
+    { id: "agua", titulo: "Tiene agua", requerido: false, alias: ["agua", "tiene agua", "bebedero"] },
+    { id: "dias_ocupacion_max", titulo: "Días máximos de ocupación", requerido: false, alias: ["dias de ocupacion", "dias ocupacion", "ocupacion maxima", "dias maximos de ocupacion", "maximo de dias"] },
+    { id: "dias_descanso_min", titulo: "Días de descanso", requerido: false, alias: ["dias de descanso", "descanso", "descanso minimo", "dias descanso", "dias minimos de descanso"] },
+    { id: "observaciones", titulo: "Observaciones", requerido: false, alias: ["observaciones", "notas", "nota", "comentarios", "obs"] },
+  ],
+  medicamentos: [
+    { id: "nombre", titulo: "Producto", requerido: true, alias: ["producto", "nombre", "medicamento", "nombre del producto", "vacuna", "droga", "farmaco", "nombre comercial", "descripcion"] },
+    { id: "tipo", titulo: "Tipo de producto", requerido: false, alias: ["tipo", "categoria", "clase", "tipo de producto"] },
+    { id: "unidad_dosis", titulo: "Unidad de la dosis", requerido: false, alias: ["unidad", "unidad de la dosis", "unidad dosis", "unidad de medida", "u medida"] },
+    { id: "presentacion", titulo: "Presentación", requerido: false, alias: ["presentacion", "envase", "empaque"] },
+    { id: "contenido_presentacion", titulo: "Contenido de la presentación", requerido: false, alias: ["contenido", "contenido de la presentacion", "contenido presentacion", "ml por frasco", "contenido por envase", "volumen del envase"] },
+    { id: "stock_minimo", titulo: "Existencia mínima", requerido: false, alias: ["stock minimo", "minimo", "existencia minima", "punto de pedido", "existencias minimas"] },
+    { id: "retiro_leche_dias", titulo: "Días de retiro de leche", requerido: false, alias: ["retiro leche", "dias retiro leche", "retiro de leche", "dias de retiro de leche", "retiro leche dias"] },
+    { id: "retiro_carne_dias", titulo: "Días de retiro de carne", requerido: false, alias: ["retiro carne", "dias retiro carne", "retiro de carne", "dias de retiro de carne", "retiro carne dias"] },
+    { id: "registro_ica", titulo: "Registro ICA", requerido: false, alias: ["registro ica", "ica", "registro"] },
+    { id: "lote", titulo: "Lote", requerido: false, alias: ["lote", "n lote", "numero de lote", "no de lote"] },
+    { id: "vencimiento", titulo: "Vencimiento", requerido: false, alias: ["vencimiento", "fecha de vencimiento", "vence", "fecha vencimiento", "caducidad", "expira", "fecha de caducidad"] },
+    { id: "cantidad", titulo: "Cantidad", requerido: true, alias: ["cantidad", "existencias", "existencia", "stock", "hay", "unidades", "cantidad actual", "inventario", "cuantos hay"] },
+    FECHA_CONTEO,
+  ],
+  alimento: [
+    { id: "nombre", titulo: "Alimento", requerido: true, alias: ["alimento", "nombre", "producto", "nombre del alimento", "concentrado", "descripcion"] },
+    { id: "rubro", titulo: "Rubro", requerido: false, alias: ["rubro", "tipo", "categoria", "clase", "grupo", "tipo de alimento"] },
+    { id: "unidad", titulo: "Unidad de compra", requerido: false, alias: ["unidad", "unidad de compra", "presentacion", "empaque"] },
+    { id: "kg_por_unidad", titulo: "Kg por unidad", requerido: false, alias: ["kg por unidad", "kg por bulto", "peso del bulto", "peso por unidad", "kilos por bulto", "kg bulto", "peso bulto", "peso unidad"] },
+    { id: "cantidad", titulo: "Existencias (kg)", requerido: true, alias: ["existencias", "existencias kg", "kg", "cantidad kg", "stock", "kilos", "cantidad", "cuanto hay", "inventario kg", "existencia"] },
+    FECHA_CONTEO,
+  ],
   pesajes: [
     ARETE,
     FECHA,
@@ -63,7 +124,10 @@ export const CAMPOS_HISTORIA: Record<TipoHistoria, CampoHistoria[]> = {
   ],
 };
 
-export const TITULO_HISTORIA: Record<TipoHistoria, { corto: string; registro: string; modulo: "carne" | "leche" | "sanidad" }> = {
+export const TITULO_HISTORIA: Record<TipoHistoria, { corto: string; registro: string; modulo: "carne" | "leche" | "sanidad" | "corrales" | "inventario" | "nutricion" }> = {
+  corrales: { corto: "corrales y potreros", registro: "corrales y potreros", modulo: "corrales" },
+  medicamentos: { corto: "inventario de medicamentos", registro: "conteos de medicamentos", modulo: "inventario" },
+  alimento: { corto: "inventario de alimento", registro: "conteos de alimento", modulo: "nutricion" },
   pesajes: { corto: "pesajes", registro: "pesos", modulo: "carne" },
   ordenos: { corto: "ordeños", registro: "ordeños", modulo: "leche" },
   sanidad: { corto: "sanidad", registro: "eventos de sanidad", modulo: "sanidad" },
@@ -116,9 +180,11 @@ export function proponerMapeoHistoria(tipo: TipoHistoria, columnas: ColumnaArchi
     usados.add(c.id);
     resultado[i] = c.id;
   }
-  if (!usados.has("fecha")) {
+  // Una columna de fechas sin título conocido: la fecha del registro (y, en medicamentos, el vencimiento del lote).
+  const campoFecha = tipo === "medicamentos" ? "vencimiento" : tipo === "corrales" || tipo === "alimento" ? null : "fecha";
+  if (campoFecha && !usados.has(campoFecha)) {
     const i = columnas.findIndex((c, j) => resultado[j] === null && proporcionFechas(c.valores) >= 0.8);
-    if (i >= 0) resultado[i] = "fecha";
+    if (i >= 0) resultado[i] = campoFecha;
   }
   return resultado;
 }
@@ -165,6 +231,9 @@ export type ResumenHistoria = {
   suma: number;
   /** Cuántos errores hay en total (se muestran hasta `MAX_ERRORES_HISTORIA`). */
   total_errores: number;
+  /** Solo en los cargues de catálogos y bodega: cuántos corrales o productos son nuevos y cuántos ya estaban (y se dejan como están). */
+  nuevos?: number;
+  ya_existen?: number;
 };
 export type MuestraHistoria = { fila: number; numero_arete: string; fecha: string; detalle: string };
 export type ResultadoHistoria = { filas: FilaHistoria[]; errores: ErrorFila[]; resumen: ResumenHistoria; muestra: MuestraHistoria[] };
