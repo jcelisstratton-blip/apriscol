@@ -33,12 +33,13 @@ export const AYUDA_CORRALES: Ayuda = {
 export const AYUDA_IMPORTAR: Ayuda = {
   titulo: "Cargar animales desde Excel",
   puntos: [
-    { titulo: "La plantilla", texto: `Descárgala, escribe un animal por fila (hasta ${MAX_FILAS_IMPORTAR} por archivo) y súbela. Los desplegables te ayudan con la especie, el sexo y la raza.` },
-    { titulo: "Genealogía", texto: "Escribe el arete del padre y de la madre. Pueden ser animales del mismo archivo (el orden de las filas no importa) o animales que ya están en tu hato." },
-    { titulo: "Padres de fuera", texto: "Si el padre o la madre no son tuyos, escribe su nombre o registro en las columnas «si no está en tu hato»." },
-    { titulo: "Partos, servicio y corral", texto: "Si tu plan lo permite, la plantilla trae columnas para los partos de cada hembra, su último servicio y preñez, y el corral o potrero donde está hoy. Así la finca arranca con su estado reproductivo y sus corrales ya armados." },
-    { titulo: "Revisión", texto: "Antes de guardar ves cada fila. Si algo está mal, la app dice la fila y qué corregir; mientras haya errores no se guarda nada." },
-    { titulo: "Solo animales nuevos", texto: "Un arete que ya existe en tu finca se rechaza: este cargue crea animales, no cambia los que ya tienes." },
+    { titulo: "Tu propio archivo", texto: `Sube el Excel que ya tienes, con las columnas que tenga (hasta ${MAX_FILAS_IMPORTAR} animales por archivo). La app propone a qué dato corresponde cada columna y tú lo confirmas o lo cambias. Si prefieres empezar de cero, descarga la plantilla.` },
+    { titulo: "Lo único indispensable", texto: "El número de arete: es lo que identifica a cada animal. El sexo, la especie y lo demás se revisan fila por fila y la app te dice qué corregir." },
+    { titulo: "Genealogía", texto: "Escribe el arete del padre y de la madre. Pueden ser animales del mismo archivo (el orden de las filas no importa) o animales que ya están en tu hato. Si el padre o la madre no son tuyos, escribe su nombre." },
+    { titulo: "Partos, servicio y corral", texto: "Si tu plan lo permite, puedes traer los partos de cada hembra, su último servicio y preñez, y el corral o potrero donde está hoy. Así la finca arranca con su estado reproductivo y sus corrales ya armados." },
+    { titulo: "Los que ya existen", texto: "Eliges qué hacer con un arete que ya está en tu hato: dejarlo como está, completarle solo lo que le falta, o corregirlo con lo que trae el archivo. Sirve para cargar por tandas o arreglar datos sin borrar nada. A esos animales solo se les actualizan sus datos: sus servicios, partos y corral no se tocan." },
+    { titulo: "Revisión", texto: "Antes de guardar ves cada fila y qué se hará con ella. Mientras haya errores no se guarda nada, y todo se guarda junto o no se guarda." },
+    { titulo: "Deshacer", texto: "Cada cargue queda en «Cargues anteriores». El propietario o un administrador puede deshacerlo: se quitan los animales que creó y se devuelven los datos que cambió. Solo es posible mientras nadie haya usado esos animales (ordeños, pesajes, sanidad…) ni los haya editado." },
   ],
   enlace: { href: "/hato", texto: "Volver al hato" },
 };

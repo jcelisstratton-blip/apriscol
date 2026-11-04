@@ -118,6 +118,7 @@ export type Database = {
       }
       animales: {
         Row: {
+          importacion_id: string | null
           ceba_pospuesto_hasta: string | null
           chip: string | null
           client_request_id: string | null
@@ -159,6 +160,7 @@ export type Database = {
           vocacion: Database["public"]["Enums"]["vocacion_animal"]
         }
         Insert: {
+          importacion_id?: string | null
           ceba_pospuesto_hasta?: string | null
           chip?: string | null
           client_request_id?: string | null
@@ -200,6 +202,7 @@ export type Database = {
           vocacion?: Database["public"]["Enums"]["vocacion_animal"]
         }
         Update: {
+          importacion_id?: string | null
           ceba_pospuesto_hasta?: string | null
           chip?: string | null
           client_request_id?: string | null
@@ -241,6 +244,13 @@ export type Database = {
           vocacion?: Database["public"]["Enums"]["vocacion_animal"]
         }
         Relationships: [
+          {
+            foreignKeyName: "animales_importacion_fk"
+            columns: ["importacion_id", "finca_id"]
+            isOneToOne: false
+            referencedRelation: "importaciones"
+            referencedColumns: ["id", "finca_id"]
+          },
           {
             foreignKeyName: "animales_finca_id_fkey"
             columns: ["finca_id"]
@@ -2483,6 +2493,65 @@ export type Database = {
             columns: ["titular_id"]
             isOneToOne: false
             referencedRelation: "libro_titulares"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      importaciones: {
+        Row: {
+          archivo: string | null
+          cambios: Json
+          created_at: string
+          created_by: string | null
+          creados: number
+          deshecha_en: string | null
+          deshecha_por: string | null
+          estado: string
+          actualizados: number
+          finca_id: string
+          id: string
+          modo: string
+          omitidos: number
+          tipo: string
+        }
+        Insert: {
+          archivo?: string | null
+          cambios?: Json
+          created_at?: string
+          created_by?: string | null
+          creados?: number
+          deshecha_en?: string | null
+          deshecha_por?: string | null
+          estado?: string
+          actualizados?: number
+          finca_id: string
+          id?: string
+          modo: string
+          omitidos?: number
+          tipo?: string
+        }
+        Update: {
+          archivo?: string | null
+          cambios?: Json
+          created_at?: string
+          created_by?: string | null
+          creados?: number
+          deshecha_en?: string | null
+          deshecha_por?: string | null
+          estado?: string
+          actualizados?: number
+          finca_id?: string
+          id?: string
+          modo?: string
+          omitidos?: number
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "importaciones_finca_id_fkey"
+            columns: ["finca_id"]
+            isOneToOne: false
+            referencedRelation: "fincas"
             referencedColumns: ["id"]
           },
         ]
@@ -6603,6 +6672,14 @@ export type Database = {
           p_programa: string
         }
         Returns: string
+      }
+      importar_animales: {
+        Args: { p_archivo?: string; p_filas: Json; p_finca: string; p_modo?: string }
+        Returns: Json
+      }
+      deshacer_importacion: {
+        Args: { p_importacion: string }
+        Returns: Json
       }
       importar_animales_lote: {
         Args: { p_filas: Json; p_finca: string }
