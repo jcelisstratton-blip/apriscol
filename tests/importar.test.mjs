@@ -288,7 +288,7 @@ test("migrar: sin animales, la historia y la revisión están bloqueadas y dicen
   }
   for (const id of ["corrales", "animales", "medicamentos", "alimento"]) assert.equal(por[id].estado, "pendiente", id);
   assert.equal(por.corrales.href, "/hato/importar/historia/corrales");
-  assert.equal(por.corrales.alternativa.href, "/hato/corrales/nueva");
+  assert.equal(por.corrales.alternativa.href, "/hato?vista=corrales");
   assert.deepEqual(avanceMigracion(pasos), { hechos: 0, total: 7 });
 });
 
@@ -671,10 +671,22 @@ test("guía de migración: todos los enlaces (botones y alternativas) llevan a u
   for (const c of [vacio, { ...vacio, ubicaciones: 5, animales: 10, productosVet: 2, aperturasVet: 2, alimentos: 1, aperturasAlimento: 1 }]) {
     for (const p of pasosMigracion(c, permisosTodos)) {
       assert.ok(existe(p.href, rutas), `${p.id}: ${p.href} no existe`);
-      if (p.alternativa) assert.ok(existe(p.alternativa.href, rutas), `${p.id}: ${p.alternativa.href} no existe`);
+      assert.ok(p.alternativa, `${p.id}: toda tarjeta lleva su «Ver…»`);
+      assert.match(p.alternativa.texto, /^Ver /, `${p.id}: el enlace secundario siempre empieza por «Ver»`);
+      assert.ok(existe(p.alternativa.href, rutas), `${p.id}: ${p.alternativa.href} no existe`);
     }
   }
-  for (const h of ["/hato?vista=corrales", "/hato/migrar", "/hato/importar", "/hato/importar/plantilla", "/mas/miembros", "/inventario", "/semaforos", "/hato/corrales/nueva"]) assert.ok(existe(h, rutas), `${h} no existe`);
+  for (const h of ["/hato?vista=corrales", "/hato?vista=ceba", "/leche", "/sanidad", "/hato/migrar", "/hato/importar", "/hato/importar/plantilla", "/mas/miembros", "/inventario", "/semaforos", "/hato/corrales/nueva"]) assert.ok(existe(h, rutas), `${h} no existe`);
   assert.equal(existe("/hato/corrales", rutas), false, "esa ruta no existe: era el error");
   assert.equal(existe("/hato/importar/historia/inventado", rutas), false);
+});
+
+test("guía de migración: todas las tarjetas se escriben igual (acción «Cargar…», enlace «Ver…», sin repetir lo que dice cada pantalla)", () => {
+  for (const c of [vacio, { ...vacio, ubicaciones: 5, animales: 10, pesajes: 3, ordenos: 3, eventosSanitarios: 3, productosVet: 2, aperturasVet: 2, alimentos: 1, aperturasAlimento: 1 }]) {
+    for (const p of pasosMigracion(c, permisosTodos)) {
+      if (p.porExcel) assert.match(p.accion, /^Cargar /, `${p.id}: ${p.accion}`);
+      assert.match(p.alternativa.texto, /^Ver /, p.id);
+      assert.doesNotMatch(p.detalle, /plantilla/i, `${p.id}: la plantilla se ofrece dentro de cada pantalla de carga, no en la tarjeta`);
+    }
+  }
 });

@@ -77,11 +77,9 @@ export function PasoMigrar({ p, siguiente = false, principal = siguiente }: { p:
             <Link href={p.href} className={clasesBoton(principal && !hecho ? "primario" : "secundario", false)}>
               {p.accion} <ArrowRight className="size-4" strokeWidth={2.2} aria-hidden="true" />
             </Link>
-            {p.alternativa ? (
-              <Link href={p.alternativa.href} className="inline-flex min-h-11 items-center text-sm font-semibold text-musgo underline-offset-4 hover:underline">
-                {p.alternativa.texto}
-              </Link>
-            ) : null}
+            <Link href={p.alternativa.href} className="inline-flex min-h-11 items-center text-sm font-semibold text-musgo underline-offset-4 hover:underline">
+              {p.alternativa.texto}
+            </Link>
           </div>
         )}
       </div>
