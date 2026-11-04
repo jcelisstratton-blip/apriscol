@@ -3,13 +3,13 @@ import { claveEncabezado, leerFecha, leerSiNo, normalizar, texto, type CeldaCrud
 import type { ColumnaArchivo } from "@/lib/importar-mapeo";
 
 /**
- * Cargue de historia desde Excel: pesajes y ordeños pasados de animales que ya están en el hato. Aquí vive todo lo que NO depende de Excel ni de la
+ * Cargue de historia desde Excel: pesajes, ordeños y sanidad (vacunas, desparasitaciones, tratamientos…) pasados de animales que ya están en el hato. Aquí vive todo lo que NO depende de Excel ni de la
  * base: qué columnas tiene cada cargue, cómo se reconocen y las reglas de cada fila (espejo de `guardarPeso`/`crearPesaje` y `guardarOrdeno`; la base
  * vuelve a exigirlas). Cada registro se amarra al animal por su número de arete.
  */
 
-export type TipoHistoria = "pesajes" | "ordenos";
-export const TIPOS_HISTORIA: readonly TipoHistoria[] = ["pesajes", "ordenos"];
+export type TipoHistoria = "pesajes" | "ordenos" | "sanidad";
+export const TIPOS_HISTORIA: readonly TipoHistoria[] = ["pesajes", "ordenos", "sanidad"];
 export const MAX_FILAS_HISTORIA = 5000;
 /** La historia puede venir de años atrás (a diferencia del registro del día a día, que llega hasta un año): desde esta fecha. */
 export const FECHA_MINIMA_HISTORIA = "2000-01-01";
@@ -37,6 +37,22 @@ export const CAMPOS_HISTORIA: Record<TipoHistoria, CampoHistoria[]> = {
     { id: "condicion_corporal", titulo: "Condición corporal", requerido: false, alias: ["condicion corporal", "cc", "bcs", "condicion"] },
     OBS,
   ],
+  sanidad: [
+    ARETE,
+    FECHA,
+    { id: "tipo", titulo: "Tipo de evento", requerido: true, alias: ["tipo", "tipo de evento", "evento", "actividad", "labor", "tipo de sanidad", "tipo sanidad"] },
+    { id: "producto_nombre", titulo: "Producto", requerido: false, alias: ["producto", "medicamento", "vacuna", "desparasitante", "biologico", "nombre del producto", "droga", "farmaco"] },
+    { id: "dosis", titulo: "Dosis", requerido: false, alias: ["dosis", "cantidad aplicada", "dosis aplicada"] },
+    { id: "unidad_dosis", titulo: "Unidad de la dosis", requerido: false, alias: ["unidad", "unidad dosis", "unidad de la dosis", "unidad de medida"] },
+    { id: "via", titulo: "Vía de aplicación", requerido: false, alias: ["via", "via de aplicacion", "via de administracion", "aplicacion"] },
+    { id: "lote_producto", titulo: "Lote del producto", requerido: false, alias: ["lote", "lote del producto", "n lote", "numero de lote"] },
+    { id: "responsable", titulo: "Responsable", requerido: false, alias: ["responsable", "aplicado por", "quien aplico", "aplico", "veterinario", "operario"] },
+    { id: "diagnostico", titulo: "Diagnóstico", requerido: false, alias: ["diagnostico", "enfermedad", "motivo del tratamiento", "dx"] },
+    { id: "proxima_fecha", titulo: "Próxima fecha", requerido: false, alias: ["proxima fecha", "proxima", "proxima dosis", "refuerzo", "fecha refuerzo", "proxima aplicacion", "proximo refuerzo", "repetir"] },
+    { id: "retiro_leche_dias", titulo: "Días de retiro de leche", requerido: false, alias: ["retiro leche", "dias retiro leche", "retiro de leche", "dias de retiro de leche", "retiro leche dias"] },
+    { id: "retiro_carne_dias", titulo: "Días de retiro de carne", requerido: false, alias: ["retiro carne", "dias retiro carne", "retiro de carne", "dias de retiro de carne", "retiro carne dias"] },
+    OBS,
+  ],
   ordenos: [
     ARETE,
     FECHA,
@@ -47,9 +63,10 @@ export const CAMPOS_HISTORIA: Record<TipoHistoria, CampoHistoria[]> = {
   ],
 };
 
-export const TITULO_HISTORIA: Record<TipoHistoria, { corto: string; registro: string; modulo: "carne" | "leche" }> = {
+export const TITULO_HISTORIA: Record<TipoHistoria, { corto: string; registro: string; modulo: "carne" | "leche" | "sanidad" }> = {
   pesajes: { corto: "pesajes", registro: "pesos", modulo: "carne" },
   ordenos: { corto: "ordeños", registro: "ordeños", modulo: "leche" },
+  sanidad: { corto: "sanidad", registro: "eventos de sanidad", modulo: "sanidad" },
 };
 
 const indiceAlias = (tipo: TipoHistoria) => {
@@ -119,7 +136,18 @@ export type FilaHistoria = {
   numero_arete: string;
   fecha: string;
   peso_kg?: number;
-  tipo?: "control" | "destete" | "pre_beneficio";
+  /** Pesajes: control, destete o pre-beneficio. Sanidad: vacunación, desparasitación, tratamiento… */
+  tipo?: string;
+  producto_nombre?: string;
+  dosis?: number;
+  unidad_dosis?: string;
+  via?: string;
+  lote_producto?: string;
+  responsable?: string;
+  diagnostico?: string;
+  proxima_fecha?: string;
+  retiro_leche_dias?: number;
+  retiro_carne_dias?: number;
   condicion_corporal?: number;
   litros?: number;
   jornada?: "manana" | "tarde" | "noche" | "unico";
@@ -146,6 +174,23 @@ const JORNADAS: Record<string, FilaHistoria["jornada"]> = {
   tarde: "tarde", pm: "tarde", t: "tarde", "2": "tarde",
   noche: "noche", n: "noche", "3": "noche",
   unico: "unico", unica: "unico", dia: "unico", total: "unico", diario: "unico", "un solo ordeno": "unico",
+};
+const TIPOS_SANIDAD: Record<string, string> = {
+  vacunacion: "vacunacion", vacuna: "vacunacion", vacunas: "vacunacion", vacunado: "vacunacion", vacunada: "vacunacion",
+  desparasitacion: "desparasitacion", desparasitada: "desparasitacion", desparasitado: "desparasitacion", desparasitante: "desparasitacion", antiparasitario: "desparasitacion", purga: "desparasitacion", purgado: "desparasitacion", vermifugo: "desparasitacion",
+  tratamiento: "tratamiento", tratamientos: "tratamiento", medicamento: "tratamiento", antibiotico: "tratamiento", curacion: "tratamiento", tto: "tratamiento", enfermedad: "tratamiento",
+  cirugia: "cirugia", operacion: "cirugia",
+  podologia: "podologia", pezunas: "podologia", "recorte de pezunas": "podologia", recorte: "podologia",
+  pediluvio: "pediluvio", otro: "otro", otros: "otro", otra: "otro",
+};
+const ETIQUETA_SANIDAD: Record<string, string> = { vacunacion: "Vacunación", desparasitacion: "Desparasitación", tratamiento: "Tratamiento", cirugia: "Cirugía", podologia: "Podología", pediluvio: "Pediluvio", otro: "Otro" };
+const VIAS: Record<string, string> = {
+  oral: "oral", vo: "oral", "via oral": "oral",
+  subcutanea: "subcutanea", subcutaneo: "subcutanea", sc: "subcutanea", "sub cutanea": "subcutanea", sq: "subcutanea",
+  intramuscular: "intramuscular", im: "intramuscular",
+  intravenosa: "intravenosa", iv: "intravenosa", intravenoso: "intravenosa",
+  topica: "topica", topico: "topica",
+  intramamaria: "intramamaria", otra: "otra", otro: "otra",
 };
 const TIPOS_PESAJE: Record<string, FilaHistoria["tipo"]> = {
   control: "control", seguimiento: "control", rutina: "control",
@@ -215,6 +260,45 @@ export function validarHistoria(tipo: TipoHistoria, filasCrudas: FilaHistoriaCru
         if (c === null || !CONDICIONES.includes(c)) m.push("La condición corporal va de 1 a 5, de medio en medio.");
         else f.condicion_corporal = c;
       }
+    } else if (tipo === "sanidad") {
+      const t = normalizar(texto(v.tipo)).replace(/[-_]/g, " ");
+      if (!t) m.push("Falta el tipo de evento (Vacunación, Desparasitación, Tratamiento…).");
+      else if (!TIPOS_SANIDAD[t]) m.push(`El tipo de evento «${texto(v.tipo)}» no es válido (usa Vacunación, Desparasitación, Tratamiento, Cirugía, Podología, Pediluvio u Otro).`);
+      else f.tipo = TIPOS_SANIDAD[t];
+      const largoMax = (campo: string, max: number, nombre: string, destino: "producto_nombre" | "lote_producto" | "responsable" | "diagnostico" | "unidad_dosis") => {
+        const x = texto(v[campo]);
+        if (x.length > max) m.push(`${nombre} es muy largo (máximo ${max} caracteres).`);
+        else if (x) f[destino] = x;
+      };
+      largoMax("producto_nombre", 120, "El producto", "producto_nombre");
+      largoMax("lote_producto", 60, "El lote", "lote_producto");
+      largoMax("responsable", 80, "El responsable", "responsable");
+      largoMax("diagnostico", 200, "El diagnóstico", "diagnostico");
+      largoMax("unidad_dosis", 20, "La unidad de la dosis", "unidad_dosis");
+      const d = texto(v.dosis);
+      if (d) {
+        const n = leerNumero(d);
+        if (n === null || n <= 0) m.push("La dosis debe ser un número mayor que cero.");
+        else f.dosis = n;
+      }
+      const vi = normalizar(texto(v.via)).replace(/[-_]/g, " ");
+      if (vi) {
+        if (VIAS[vi]) f.via = VIAS[vi];
+        else m.push(`La vía «${texto(v.via)}» no es válida (usa Oral, Subcutánea, Intramuscular, Intravenosa, Tópica, Intramamaria u Otra).`);
+      }
+      const pf = leerFecha(v.proxima_fecha);
+      if (texto(v.proxima_fecha)) {
+        if (pf.error || !pf.valor) m.push("La próxima fecha no es válida (usa día/mes/año).");
+        else if (fecha.valor && pf.valor <= fecha.valor) m.push("La próxima fecha debe ser posterior a la fecha del evento.");
+        else f.proxima_fecha = pf.valor;
+      }
+      for (const [campo, nombre] of [["retiro_leche_dias", "Los días de retiro de leche"], ["retiro_carne_dias", "Los días de retiro de carne"]] as const) {
+        const x = texto(v[campo]);
+        if (!x) continue;
+        const n = leerNumero(x);
+        if (n === null || !Number.isInteger(n) || n < 0 || n > 365) m.push(`${nombre} deben ser un número entero de 0 a 365.`);
+        else if (n > 0) f[campo] = n;
+      }
     } else {
       const crudo = texto(v.litros);
       const n = crudo ? leerNumero(crudo) : null;
@@ -235,9 +319,9 @@ export function validarHistoria(tipo: TipoHistoria, filasCrudas: FilaHistoriaCru
     }
 
     if (m.length === 0 && f.fecha) {
-      const llave = `${clave}|${f.fecha}${tipo === "ordenos" ? `|${f.jornada ?? "unico"}` : ""}`;
+      const llave = `${clave}|${f.fecha}${tipo === "ordenos" ? `|${f.jornada ?? "unico"}` : ""}${tipo === "sanidad" ? `|${f.tipo}|${normalizar(f.producto_nombre ?? "")}` : ""}`;
       const previa = vistos.get(llave);
-      if (previa !== undefined) m.push(`Este ${tipo === "pesajes" ? "peso" : "ordeño"} se repite (ya está en la fila ${previa}).`);
+      if (previa !== undefined) m.push(`Este ${tipo === "pesajes" ? "peso" : tipo === "ordenos" ? "ordeño" : "evento"} se repite (ya está en la fila ${previa}).`);
       else vistos.set(llave, cruda.fila);
     }
     if (m.length > 0) agregar({ fila: cruda.fila, arete: textoArete, mensajes: m });
@@ -250,7 +334,15 @@ export function validarHistoria(tipo: TipoHistoria, filasCrudas: FilaHistoriaCru
   errores.sort((a, b) => a.fila - b.fila);
 
   const fechas = filas.map((f) => f.fecha).sort();
-  const suma = tipo === "ordenos" ? filas.reduce((s, f) => s + (f.litros ?? 0), 0) : filas.length ? filas.reduce((s, f) => s + (f.peso_kg ?? 0), 0) / filas.length : 0;
+  // Lo que se resume junto a los animales: litros (ordeños), peso promedio (pesajes) o cuántos eventos distintos salen (sanidad: las filas iguales son uno solo).
+  const suma =
+    tipo === "ordenos"
+      ? filas.reduce((s, f) => s + (f.litros ?? 0), 0)
+      : tipo === "sanidad"
+        ? new Set(filas.map((f) => [f.fecha, f.tipo, f.producto_nombre, f.dosis, f.unidad_dosis, f.via, f.lote_producto, f.responsable, f.diagnostico, f.observaciones, f.proxima_fecha, f.retiro_leche_dias, f.retiro_carne_dias].join("|"))).size
+        : filas.length
+          ? filas.reduce((s, f) => s + (f.peso_kg ?? 0), 0) / filas.length
+          : 0;
   const resumen: ResumenHistoria = {
     total: filas.length,
     animales: new Set(filas.map((f) => normalizar(f.numero_arete))).size,
@@ -264,8 +356,10 @@ export function validarHistoria(tipo: TipoHistoria, filasCrudas: FilaHistoriaCru
     numero_arete: f.numero_arete,
     fecha: f.fecha,
     detalle:
-      tipo === "pesajes"
-        ? [`${String(f.peso_kg).replace(".", ",")} kg`, f.tipo === "destete" ? "Destete" : f.tipo === "pre_beneficio" ? "Pre-beneficio" : null, f.condicion_corporal ? `CC ${String(f.condicion_corporal).replace(".", ",")}` : null].filter(Boolean).join(" · ")
+      tipo === "sanidad"
+        ? [ETIQUETA_SANIDAD[f.tipo ?? "otro"], f.producto_nombre ?? null, f.dosis ? `${String(f.dosis).replace(".", ",")}${f.unidad_dosis ? ` ${f.unidad_dosis}` : ""}` : null, f.proxima_fecha ? `Próxima ${f.proxima_fecha.split("-").reverse().join("/")}` : null].filter(Boolean).join(" · ")
+        : tipo === "pesajes"
+          ? [`${String(f.peso_kg).replace(".", ",")} kg`, f.tipo === "destete" ? "Destete" : f.tipo === "pre_beneficio" ? "Pre-beneficio" : null, f.condicion_corporal ? `CC ${String(f.condicion_corporal).replace(".", ",")}` : null].filter(Boolean).join(" · ")
         : [`${String(f.litros).replace(".", ",")} L`, f.jornada && f.jornada !== "unico" ? f.jornada.charAt(0).toUpperCase() + f.jornada.slice(1).replace("manana", "mañana") : null, f.descartada ? "Descartada" : null].filter(Boolean).join(" · "),
   }));
   return { filas: totalErrores > 0 ? [] : filas, errores, resumen, muestra: totalErrores > 0 ? [] : muestra };

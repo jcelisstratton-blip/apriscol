@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ChevronLeft } from "lucide-react";
+import { ArrowRight, ChevronLeft } from "lucide-react";
 import { Encabezado } from "@/components/Encabezado";
 import { HistorialImportaciones, type CargueVista } from "@/components/HistorialImportaciones";
 import { PasoMigrar } from "@/components/PasoMigrar";
+import { clasesBoton } from "@/components/Boton";
 import { Tarjeta } from "@/components/Tarjeta";
 import { obtenerContexto } from "@/lib/contexto";
 import { avanceMigracion, pasosMigracion, type ConteosMigracion } from "@/lib/migracion";
@@ -44,7 +45,7 @@ export default async function PaginaMigrar() {
     contar(supabase.from("ordenos").select("id", head).eq("finca_id", f)),
     contar(supabase.from("eventos_sanitarios").select("id", head).eq("finca_id", f)),
     contar(supabase.from("inventario_movimientos").select("id", head).eq("finca_id", f).eq("tipo", "apertura")),
-    supabase.from("importaciones").select("id, tipo, archivo, modo, creados, actualizados, estado, created_at").eq("finca_id", f).order("created_at", { ascending: false }).limit(CARGUES_RECIENTES),
+    supabase.from("importaciones").select("id, tipo, archivo, modo, creados, actualizados, estado, created_at, grupo").eq("finca_id", f).order("created_at", { ascending: false }).limit(CARGUES_RECIENTES),
   ]);
   const conteos: ConteosMigracion = { ubicaciones, animales, desdeExcel, conPadres, servicios, lactancias, pesajes, ordenos, eventosSanitarios, aperturas };
   const pasos = pasosMigracion(conteos, permisos);
@@ -78,6 +79,18 @@ export default async function PaginaMigrar() {
             <PasoMigrar key={p.id} p={p} numero={i + 1} />
           ))}
         </ol>
+        <Tarjeta titulo="¿Prefieres que lo cargue otra persona?">
+          <div className="space-y-2.5">
+            <p className="text-[0.9375rem] text-humo">
+              Puedes invitar a alguien de confianza (tu asesor o nuestro equipo) como <span className="font-semibold text-tinta">administrador</span> y él hace estos mismos pasos con tus archivos. Todo queda en «Cargues anteriores» y se puede deshacer. Cuando termine, quítale el acceso desde Equipo.
+            </p>
+            {puedeGestionar(rol) ? (
+              <Link href="/mas/miembros" className={`${clasesBoton("secundario", false)}`}>
+                Invitar a alguien al equipo <ArrowRight className="size-4" strokeWidth={2.2} aria-hidden="true" />
+              </Link>
+            ) : null}
+          </div>
+        </Tarjeta>
         {historial.length > 0 ? (
           <Tarjeta titulo="Cargues anteriores">
             <HistorialImportaciones cargues={historial} puedeDeshacer={puedeGestionar(rol)} />

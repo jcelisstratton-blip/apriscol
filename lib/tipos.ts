@@ -409,6 +409,8 @@ export type InventarioAlimentoMovimiento = {
 export type EventoSanitario = {
   id: string;
   finca_id: string;
+  /** El cargue de Excel que trajo este evento (null si se registró a mano). */
+  importacion_id: string | null;
   fecha: string;
   tipo: TipoEvento;
   producto_id: string | null;
@@ -920,7 +922,7 @@ export type SolicitudReclamo = {
 export type Importacion = {
   id: string;
   finca_id: string;
-  tipo: "animales" | "pesajes" | "ordenos";
+  tipo: "animales" | "pesajes" | "ordenos" | "sanidad";
   archivo: string | null;
   modo: "nuevos" | "completar" | "corregir";
   creados: number;
@@ -932,6 +934,9 @@ export type Importacion = {
   created_at: string;
   deshecha_en: string | null;
   deshecha_por: string | null;
+  /** Une los tramos de un mismo archivo grande (se carga de 500 en 500). */
+  grupo: string | null;
+  orden: number;
 };
 
 export type ReclamoAdmin = {
@@ -1646,8 +1651,12 @@ export type Database = {
       lotes_sanidad: { Args: { p_finca: string }; Returns: { gasto_id: string; producto_id: string; lote: string; vencimiento: string | null; comprado: string }[] };
       veterinarios_finca: { Args: { p_finca: string }; Returns: { id: string; nombre: string; tarjeta_profesional: string | null }[] };
       registrar_persona: { Args: { p_finca: string; p_persona: unknown; p_email?: string | null; p_rol?: string | null }; Returns: unknown };
+      deshacer_grupo: {
+        Args: { p_grupo: string };
+        Returns: { eliminados: number; revertidos: number; conservados: number };
+      };
       importar_animales: {
-        Args: { p_finca: string; p_filas: unknown; p_modo?: string; p_archivo?: string | null };
+        Args: { p_finca: string; p_filas: unknown; p_modo?: string; p_archivo?: string | null; p_grupo?: string | null };
         Returns: { importacion: string; animales: number; actualizados: number; sin_cambios: number; omitidos: number; con_padres: number; con_parto: number; con_servicio: number; con_ubicacion: number };
       };
       importar_historial: {

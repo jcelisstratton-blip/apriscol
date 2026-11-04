@@ -13,21 +13,22 @@ import { Tarjeta } from "@/components/Tarjeta";
 import { useToast } from "@/components/Toast";
 import {
   analizarImportacion,
-  deshacerImportacion,
-  guardarImportacion,
+  deshacerGrupoImportacion,
+  guardarTramoImportacion,
   revisarImportacion,
   type AnalisisImportacion,
   type ResultadoDeshacer,
-  type ResultadoGuardado,
+  type ResultadoTramo,
   type RevisionImportacion,
 } from "@/app/(app)/hato/importar/actions";
-import { MAX_FILAS_IMPORTAR, type ColumnaId, type ErrorFila, type FilaVista, type ModoImportar } from "@/lib/importar-animales";
+import { FILAS_POR_TRAMO, MAX_FILAS_IMPORTAR, type ColumnaId, type ErrorFila, type FilaParaGuardar, type FilaVista, type ModoImportar } from "@/lib/importar-animales";
 import { CAMPOS_MAPEO } from "@/lib/importar-mapeo";
 import { escena } from "@/lib/escenas";
 
 type Revision = Exclude<RevisionImportacion, { error: string }>;
 type Analisis = Exclude<AnalisisImportacion, { error: string }>;
-type Guardado = Exclude<ResultadoGuardado, { error: string }>;
+/** Lo guardado de todo el archivo: la suma de sus tramos y el grupo que los une (para deshacerlos juntos). */
+type Guardado = { grupo: string; tramos: number; animales: number; actualizados: number; sin_cambios: number; con_padres: number; con_servicio: number; con_ubicacion: number };
 
 const fechaCorta = (iso: string | null) => (iso ? iso.split("-").reverse().join("/") : null);
 
@@ -76,6 +77,17 @@ function FilaAnimalVista({ f }: { f: FilaVista }) {
       </p>
       <p className={`text-xs font-semibold ${f.accion === "crear" ? "text-musgo" : f.accion === "omitir" ? "text-humo" : "text-ocre"}`}>{ETIQUETA_ACCION[f.accion]}</p>
       <p className="text-sm text-humo [overflow-wrap:anywhere]">{detalle}</p>
+      {f.accion === "completar" || f.accion === "corregir" ? (
+        f.cambios.length > 0 ? (
+          <ul className="mt-1 space-y-0.5 text-sm [overflow-wrap:anywhere]">
+            {f.cambios.map((c) => (
+              <li key={c}>{c}</li>
+            ))}
+          </ul>
+        ) : (
+          <p className="mt-1 text-sm text-humo">Ya tiene estos datos: no se toca.</p>
+        )
+      ) : null}
       {f.repro ? (
         <p className="mt-1 flex items-start gap-1.5 text-sm [overflow-wrap:anywhere]">
           <Stethoscope className="mt-0.5 size-4 shrink-0 text-musgo" strokeWidth={1.75} aria-hidden="true" />
@@ -104,9 +116,11 @@ function FilaAnimalVista({ f }: { f: FilaVista }) {
 type Acciones = {
   analizar: (f: FormData) => Promise<AnalisisImportacion>;
   revisar: (f: FormData) => Promise<RevisionImportacion>;
-  guardar: (f: FormData) => Promise<ResultadoGuardado>;
-  deshacer: (id: string) => Promise<ResultadoDeshacer>;
+  guardarTramo: (e: { filas: FilaParaGuardar[]; modo: ModoImportar; archivo: string; grupo: string }) => Promise<ResultadoTramo>;
+  deshacerGrupo: (grupo: string) => Promise<ResultadoDeshacer>;
 };
+
+const enTramos = <T,>(lista: T[], tamano: number) => Array.from({ length: Math.ceil(lista.length / tamano) }, (_, i) => lista.slice(i * tamano, (i + 1) * tamano));
 
 /** `acciones` solo se cambia en pruebas de pantalla (sin sesión); en la app siempre son las acciones del servidor. */
 export function ImportarAnimales({
@@ -114,7 +128,7 @@ export function ImportarAnimales({
   rutaHato,
   camposDisponibles,
   puedeDeshacer,
-  acciones = { analizar: analizarImportacion, revisar: revisarImportacion, guardar: guardarImportacion, deshacer: deshacerImportacion },
+  acciones = { analizar: analizarImportacion, revisar: revisarImportacion, guardarTramo: guardarTramoImportacion, deshacerGrupo: deshacerGrupoImportacion },
 }: {
   rutaPlantilla: string;
   rutaHato: string;
@@ -136,7 +150,8 @@ export function ImportarAnimales({
   const [deshecho, setDeshecho] = useState<{ eliminados: number; revertidos: number } | null>(null);
   const [analizando, iniciarAnalisis] = useTransition();
   const [revisando, iniciarRevision] = useTransition();
-  const [guardando, iniciarGuardado] = useTransition();
+  const [progreso, setProgreso] = useState<{ hechos: number; total: number } | null>(null);
+  const guardando = progreso !== null;
   const [deshaciendo, iniciarDeshacer] = useTransition();
   const toast = useToast();
 
@@ -222,29 +237,46 @@ export function ImportarAnimales({
     });
   };
 
-  const guardar = () => {
-    if (!archivo || !analisis) return;
+  const guardar = async () => {
+    if (!archivo || !revision || guardando) return;
     setError(null);
-    iniciarGuardado(async () => {
-      try {
-        const r = await acciones.guardar(formularioDe());
+    const tramos = enTramos(revision.filas, FILAS_POR_TRAMO);
+    const grupo = crypto.randomUUID();
+    const total: Guardado = { grupo, tramos: tramos.length, animales: 0, actualizados: 0, sin_cambios: 0, con_padres: 0, con_servicio: 0, con_ubicacion: 0 };
+    setProgreso({ hechos: 0, total: tramos.length });
+    try {
+      for (let i = 0; i < tramos.length; i++) {
+        const r = await acciones.guardarTramo({ filas: tramos[i], modo, archivo: archivo.name, grupo });
         if ("error" in r) {
-          setError(r.error);
+          setError(
+            i === 0
+              ? r.error
+              : `${r.error} Ya se guardaron ${(total.animales + total.actualizados).toLocaleString("es-CO")} de ${revision.filas.length.toLocaleString("es-CO")} animales (${i} de ${tramos.length} tramos). Puedes deshacerlos desde «Cargues anteriores», o corregir el archivo y subirlo de nuevo: con «Solo los nuevos», los que ya se guardaron se omiten.`,
+          );
           return;
         }
-        setGuardado(r);
-        toast.exito(r.animales > 0 ? `${r.animales} animales cargados` : "Cargue aplicado");
-      } catch (e) {
-        setError(e instanceof Error ? e.message : "No se pudieron guardar los animales.");
+        total.animales += r.animales;
+        total.actualizados += r.actualizados;
+        total.sin_cambios += r.sin_cambios;
+        total.con_padres += r.con_padres;
+        total.con_servicio += r.con_servicio;
+        total.con_ubicacion += r.con_ubicacion;
+        setProgreso({ hechos: i + 1, total: tramos.length });
       }
-    });
+      setGuardado(total);
+      toast.exito(total.animales > 0 ? `${total.animales.toLocaleString("es-CO")} animales cargados` : "Cargue aplicado");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "No se pudieron guardar los animales.");
+    } finally {
+      setProgreso(null);
+    }
   };
 
   const deshacer = () => {
     if (!guardado) return;
     iniciarDeshacer(async () => {
       try {
-        const r = await acciones.deshacer(guardado.importacion);
+        const r = await acciones.deshacerGrupo(guardado.grupo);
         setConfirmandoDeshacer(false);
         if ("error" in r) {
           setError(r.error);
@@ -278,7 +310,7 @@ export function ImportarAnimales({
           ) : (
             <Aviso tipo="exito">
               Listo: {partes.length > 0 ? partes.join(", ") : "no hubo cambios"}.
-              {guardado.sin_cambios > 0 ? ` ${guardado.sin_cambios} ya tenían esos datos.` : ""}
+              {guardado.tramos > 1 ? ` Se guardó en ${guardado.tramos} tramos.` : ""}
             </Aviso>
           )}
           {error ? <Aviso tipo="error">{error}</Aviso> : null}
@@ -325,7 +357,7 @@ export function ImportarAnimales({
       <Tarjeta titulo="1. Sube tu Excel">
         <div className="space-y-3">
           <p className="text-[0.9375rem] text-humo">
-            Sirve el archivo que ya tienes, con las columnas que tenga: en el siguiente paso te ayudamos a emparejarlas. Hasta {MAX_FILAS_IMPORTAR} animales por archivo; si tienes más, súbelos en varios.
+            Sirve el archivo que ya tienes, con las columnas que tenga: en el siguiente paso te ayudamos a emparejarlas. Hasta {MAX_FILAS_IMPORTAR.toLocaleString("es-CO")} animales por archivo; si tienes más, súbelos en varios.
           </p>
           <input ref={entrada} type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" className="sr-only" aria-label="Archivo de Excel con los animales" onChange={(e) => elegir(e.target.files?.[0])} />
           {archivo ? (
@@ -409,7 +441,7 @@ export function ImportarAnimales({
             <div className="grid grid-cols-3 gap-2">
               <Dato valor={revision.resumen.nuevos} etiqueta="Nuevos" />
               <Dato valor={revision.resumen.actualizar} etiqueta={modo === "corregir" ? "Se corrigen" : "Se completan"} />
-              <Dato valor={revision.resumen.ya_existen} etiqueta="Ya estaban" />
+              <Dato valor={revision.resumen.ya_existen + revision.resumen.sin_cambios} etiqueta="Ya estaban" />
             </div>
             <Aviso tipo="info">
               {revision.resumen.con_padres_en_archivo + revision.resumen.con_padres_en_hato > 0
@@ -417,6 +449,8 @@ export function ImportarAnimales({
                 : ""}
               Todo está correcto. Se guarda todo junto al confirmar, y después podrás deshacerlo si hace falta.
               {revision.resumen.ya_existen > 0 ? ` ${revision.resumen.ya_existen} ${revision.resumen.ya_existen === 1 ? "animal ya está" : "animales ya están"} en tu hato y se dejan como están.` : ""}
+              {revision.resumen.sin_cambios > 0 ? ` ${revision.resumen.sin_cambios} ya ${revision.resumen.sin_cambios === 1 ? "tiene" : "tienen"} todos los datos del archivo y no se tocan.` : ""}
+              {revision.filas.length > FILAS_POR_TRAMO ? ` Son ${revision.filas.length.toLocaleString("es-CO")} animales: se guardan de ${FILAS_POR_TRAMO} en ${FILAS_POR_TRAMO}, con una barra de avance.` : ""}
               {revision.resumen.omitidos > 0 ? ` Se omitieron ${revision.resumen.omitidos} ${revision.resumen.omitidos === 1 ? "fila" : "filas"} de animales dados de baja (vendidos, muertos…): solo se cargan los activos.` : ""}
               {revision.resumen.con_servicio > 0 ? ` ${revision.resumen.con_servicio} hembras con servicio.` : ""}
               {revision.resumen.con_ubicacion > 0 ? ` ${revision.resumen.con_ubicacion} con corral o potrero.` : ""}
@@ -429,7 +463,7 @@ export function ImportarAnimales({
               clave={(f) => `${f.fila}`}
               vacio={null}
             />
-            <Boton pendiente={guardando} cargando="Cargando animales…" onClick={guardar}>
+            <Boton pendiente={guardando} cargando={progreso && progreso.total > 1 ? `Guardando ${Math.min(progreso.hechos + 1, progreso.total)} de ${progreso.total}…` : "Guardando…"} onClick={guardar}>
               {revision.resumen.nuevos > 0 && revision.resumen.actualizar > 0
                 ? `Cargar ${revision.resumen.nuevos} nuevos y actualizar ${revision.resumen.actualizar}`
                 : revision.resumen.actualizar > 0
