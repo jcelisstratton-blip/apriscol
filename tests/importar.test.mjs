@@ -489,7 +489,7 @@ for (const tipo of ["pesajes", "ordenos", "sanidad"]) {
 
 // ───────────────────────── Corrales, medicamentos y alimento ─────────────────────────
 import { validarCatalogo, paraGuardarCatalogo } from "../lib/importar-catalogo.ts";
-import { esCatalogo, puedeCargar, CLAVE_HISTORIA } from "../lib/importar-historia.ts";
+import { esCatalogo, puedeCargar, CLAVE_HISTORIA, TIPOS_HISTORIA } from "../lib/importar-historia.ts";
 
 const cat = (extra = {}) => ({ hoy: "2026-11-04", corrales: [], productosVet: [], alimentos: [], ...extra });
 
@@ -639,3 +639,42 @@ for (const tipo of ["corrales", "medicamentos", "alimento"]) {
     }
   });
 }
+
+
+// ───────────────────────── Los enlaces de la guía existen ─────────────────────────
+import { readdirSync, statSync } from "node:fs";
+import { join } from "node:path";
+
+/** Las rutas que existen en la app: cada carpeta con `page.tsx` o `route.ts` (los grupos «(app)» no cuentan y «[x]» es cualquier valor). */
+function rutasDeLaApp(dir = "app", prefijo = "") {
+  const rutas = [];
+  for (const nombre of readdirSync(dir)) {
+    const ruta = join(dir, nombre);
+    if (statSync(ruta).isDirectory()) {
+      const segmento = /^\(.*\)$/.test(nombre) ? "" : `/${nombre}`;
+      rutas.push(...rutasDeLaApp(ruta, prefijo + segmento));
+    } else if (nombre === "page.tsx" || nombre === "route.ts") rutas.push(prefijo || "/");
+  }
+  return rutas;
+}
+// Solo cuentan las rutas fijas: una ruta con «[id]» recibiría cualquier palabra (así «/hato/corrales» caía en la ficha de un animal y decía «no existe»).
+// Excepción: los cargues viven en una sola ruta con el tipo en la dirección, y solo valen los tipos que existen.
+const existe = (href, rutas) => {
+  const camino = href.split("?")[0];
+  if (rutas.some((r) => !r.includes("[") && r === camino)) return true;
+  const m = /^\/hato\/importar\/historia\/([^/]+)$/.exec(camino);
+  return !!m && rutas.includes("/hato/importar/historia/[tipo]") && TIPOS_HISTORIA.includes(m[1]);
+};
+
+test("guía de migración: todos los enlaces (botones y alternativas) llevan a una pantalla que existe, con datos y sin ellos", () => {
+  const rutas = rutasDeLaApp();
+  for (const c of [vacio, { ...vacio, ubicaciones: 5, animales: 10, productosVet: 2, aperturasVet: 2, alimentos: 1, aperturasAlimento: 1 }]) {
+    for (const p of pasosMigracion(c, permisosTodos)) {
+      assert.ok(existe(p.href, rutas), `${p.id}: ${p.href} no existe`);
+      if (p.alternativa) assert.ok(existe(p.alternativa.href, rutas), `${p.id}: ${p.alternativa.href} no existe`);
+    }
+  }
+  for (const h of ["/hato?vista=corrales", "/hato/migrar", "/hato/importar", "/hato/importar/plantilla", "/mas/miembros", "/inventario", "/semaforos", "/hato/corrales/nueva"]) assert.ok(existe(h, rutas), `${h} no existe`);
+  assert.equal(existe("/hato/corrales", rutas), false, "esa ruta no existe: era el error");
+  assert.equal(existe("/hato/importar/historia/inventado", rutas), false);
+});
