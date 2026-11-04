@@ -12,6 +12,7 @@ import { deshacerImportacion } from "@/app/(app)/hato/importar/actions";
 
 export type CargueVista = {
   id: string;
+  tipo: "animales" | "pesajes" | "ordenos";
   archivo: string | null;
   modo: "nuevos" | "completar" | "corregir";
   creados: number;
@@ -21,6 +22,7 @@ export type CargueVista = {
 };
 
 const MODO: Record<CargueVista["modo"], string> = { nuevos: "Solo los nuevos", completar: "Nuevos y completar", corregir: "Nuevos y corregir" };
+const REGISTRO = { animales: ["animal nuevo", "animales nuevos"], pesajes: ["peso cargado", "pesos cargados"], ordenos: ["ordeño cargado", "ordeños cargados"] } as const;
 const fecha = (iso: string) => new Date(iso).toLocaleDateString("es-CO", { timeZone: "America/Bogota", day: "numeric", month: "short", year: "numeric" });
 const plural = (n: number, uno: string, varios: string) => `${n} ${n === 1 ? uno : varios}`;
 
@@ -63,10 +65,11 @@ export function HistorialImportaciones({ cargues, puedeDeshacer }: { cargues: Ca
             <div className="min-w-0 flex-1">
               <p className="text-sm font-bold [overflow-wrap:anywhere]">{c.archivo ?? "Archivo de Excel"}</p>
               <p className="text-xs text-humo">
-                {fecha(c.created_at)} · {MODO[c.modo]}
+                {fecha(c.created_at)}
+                {c.tipo === "animales" ? ` · ${MODO[c.modo]}` : ""}
               </p>
               <p className="mt-0.5 text-sm [overflow-wrap:anywhere]">
-                {[c.creados > 0 ? plural(c.creados, "animal nuevo", "animales nuevos") : null, c.actualizados > 0 ? plural(c.actualizados, "actualizado", "actualizados") : null].filter(Boolean).join(" · ") || "Sin cambios"}
+                {[c.creados > 0 ? plural(c.creados, REGISTRO[c.tipo][0], REGISTRO[c.tipo][1]) : null, c.actualizados > 0 ? plural(c.actualizados, "actualizado", "actualizados") : null].filter(Boolean).join(" · ") || "Sin cambios"}
               </p>
               {c.estado === "deshecha" ? <p className="mt-0.5 text-xs font-semibold text-humo">Deshecho</p> : null}
             </div>

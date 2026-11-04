@@ -183,6 +183,8 @@ export type Raza = { id: number; especie: Especie; nombre: string; aptitud: Voca
 export type Ordeno = {
   id: string;
   finca_id: string;
+  /** El cargue de Excel que trajo este ordeño (null si se registró a mano). */
+  importacion_id: string | null;
   animal_id: string;
   lactancia_id: string | null;
   fecha: string;
@@ -918,7 +920,7 @@ export type SolicitudReclamo = {
 export type Importacion = {
   id: string;
   finca_id: string;
-  tipo: string;
+  tipo: "animales" | "pesajes" | "ordenos";
   archivo: string | null;
   modo: "nuevos" | "completar" | "corregir";
   creados: number;
@@ -1064,6 +1066,8 @@ export type LoteCeba = {
 export type Pesaje = {
   id: string;
   finca_id: string;
+  /** El cargue de Excel que trajo este peso (null si se registró a mano). */
+  importacion_id: string | null;
   animal_id: string;
   fecha: string;
   peso_kg: number;
@@ -1645,6 +1649,10 @@ export type Database = {
       importar_animales: {
         Args: { p_finca: string; p_filas: unknown; p_modo?: string; p_archivo?: string | null };
         Returns: { importacion: string; animales: number; actualizados: number; sin_cambios: number; omitidos: number; con_padres: number; con_parto: number; con_servicio: number; con_ubicacion: number };
+      };
+      importar_historial: {
+        Args: { p_finca: string; p_tipo: string; p_filas: unknown; p_archivo?: string | null };
+        Returns: { importacion: string; creados: number; omitidos: number };
       };
       deshacer_importacion: {
         Args: { p_importacion: string };

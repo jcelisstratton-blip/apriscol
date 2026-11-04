@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ChevronLeft } from "lucide-react";
+import { ArrowRight, ChevronLeft } from "lucide-react";
 import { AyudaModulo } from "@/components/AyudaModulo";
 import { Encabezado } from "@/components/Encabezado";
 import { HistorialImportaciones, type CargueVista } from "@/components/HistorialImportaciones";
@@ -31,7 +31,7 @@ export default async function PaginaImportarAnimales() {
 
   const { data } = await supabase
     .from("importaciones")
-    .select("id, archivo, modo, creados, actualizados, estado, created_at")
+    .select("id, tipo, archivo, modo, creados, actualizados, estado, created_at")
     .eq("finca_id", finca.id)
     .order("created_at", { ascending: false })
     .limit(CARGUES_RECIENTES);
@@ -46,6 +46,9 @@ export default async function PaginaImportarAnimales() {
       <Encabezado titulo="Cargar desde Excel" subtitulo={finca.nombre} />
       <div className="space-y-3.5 lg:max-w-3xl">
         <AyudaModulo ayuda={AYUDA_IMPORTAR} />
+        <Link href="/hato/migrar" className="inline-flex min-h-11 items-center gap-1.5 text-[0.9375rem] font-semibold text-musgo">
+          Ver todos los pasos para migrar mi finca <ArrowRight className="size-4" strokeWidth={2.2} aria-hidden="true" />
+        </Link>
         <ImportarAnimales rutaPlantilla="/hato/importar/plantilla" rutaHato="/hato" camposDisponibles={campos} puedeDeshacer={puedeDeshacer} />
         {cargues.length > 0 ? (
           <Tarjeta titulo="Cargues anteriores">

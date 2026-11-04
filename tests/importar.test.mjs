@@ -195,3 +195,139 @@ test("archivo: un archivo que no es Excel da un mensaje claro", async () => {
   assert.equal(a.ok, false);
   assert.match(a.error, /No se pudo abrir/);
 });
+
+// ───────────────────────── Historia (pesajes y ordeños) y «Migrar mi finca» ─────────────────────────
+import { validarHistoria, proponerMapeoHistoria, faltantesHistoria, puntajeTituloHistoria } from "../lib/importar-historia.ts";
+import { pasosMigracion, avanceMigracion } from "../lib/migracion.ts";
+
+const hato = [
+  { numero_arete: "H-1", sexo: "hembra" },
+  { numero_arete: "H-2", sexo: "hembra" },
+  { numero_arete: "M-1", sexo: "macho" },
+];
+const hoyH = "2026-11-04";
+const fh = (n, valores) => ({ fila: n, valores });
+
+test("historia: reconoce los títulos de un cuaderno de pesos y de leche", () => {
+  const p = proponerMapeoHistoria("pesajes", [col("Chapeta", ["H-1"]), col("Fecha de pesaje", ["2026-01-01"]), col("Peso kg", ["30"]), col("Observaciones", ["bien"])]);
+  assert.deepEqual(p, ["numero_arete", "fecha", "peso_kg", "observaciones"]);
+  const o = proponerMapeoHistoria("ordenos", [col("Animal", ["H-1"]), col("Día", ["01/09/2026", "02/09/2026"]), col("Turno", ["AM", "PM"]), col("Leche", ["1,2", "0,9"])]);
+  assert.deepEqual(o, ["numero_arete", "fecha", "jornada", "litros"]);
+  assert.deepEqual(faltantesHistoria("ordenos", ["numero_arete", "fecha"]), ["Litros"]);
+  assert.ok(puntajeTituloHistoria("pesajes", "Peso kg") > 0);
+  assert.equal(puntajeTituloHistoria("pesajes", "FINCA LA ESPERANZA"), 0);
+});
+
+test("historia: sin título de fecha, la columna de fechas se reconoce por su contenido", () => {
+  const p = proponerMapeoHistoria("pesajes", [col("Arete", ["H-1", "H-2"]), col("Col B", ["15/03/2026", "16/03/2026"]), col("Peso", ["30", "31"])]);
+  assert.deepEqual(p, ["numero_arete", "fecha", "peso_kg"]);
+});
+
+test("historia: pesajes correctos se redondean, entienden coma decimal y tipos escritos a mano", () => {
+  const r = validarHistoria("pesajes", [
+    fh(2, { numero_arete: "h-1", fecha: "15/03/2026", peso_kg: "32,46", tipo: "Destete" }),
+    fh(3, { numero_arete: "H-2", fecha: "2026-03-16", peso_kg: 40, tipo: "pre-beneficio", condicion_corporal: "3,5" }),
+  ], { animales: hato, hoy: hoyH });
+  assert.deepEqual(r.errores, []);
+  assert.deepEqual(r.filas.map((f) => [f.peso_kg, f.tipo, f.condicion_corporal ?? null]), [[32.5, "destete", null], [40, "pre_beneficio", 3.5]]);
+  assert.equal(r.resumen.animales, 2);
+  assert.equal(r.resumen.desde, "2026-03-15");
+  assert.equal(r.muestra.length, 2);
+});
+
+test("historia: rechaza peso imposible, fecha futura, repetidos y animales que no son del hato (una sola vez por arete)", () => {
+  const r = validarHistoria("pesajes", [
+    fh(2, { numero_arete: "H-1", fecha: "2026-03-15", peso_kg: 300 }),
+    fh(3, { numero_arete: "H-1", fecha: "2027-01-01", peso_kg: 30 }),
+    fh(4, { numero_arete: "H-2", fecha: "2026-03-15", peso_kg: 30 }),
+    fh(5, { numero_arete: "H-2", fecha: "2026-03-15", peso_kg: 31 }),
+    fh(6, { numero_arete: "X-9", fecha: "2026-03-15", peso_kg: 30 }),
+    fh(7, { numero_arete: "X-9", fecha: "2026-03-16", peso_kg: 30 }),
+  ], { animales: hato, hoy: hoyH });
+  const msgs = r.errores.map((e) => `${e.fila}: ${e.mensajes.join(" ")}`).join("\n");
+  assert.match(msgs, /250 kg/);
+  assert.match(msgs, /futura/);
+  assert.match(msgs, /se repite/);
+  assert.equal(r.errores.filter((e) => /X-9/.test(e.mensajes.join(" "))).length, 1, "un arete desconocido se reporta una vez");
+  assert.match(msgs, /Aparece en 2 filas/);
+  assert.equal(r.filas.length, 0, "con errores no se manda nada");
+  assert.equal(r.resumen.total_errores, 4);
+});
+
+test("historia: los ordeños son de hembras, aceptan jornada escrita de varias formas y suman litros", () => {
+  const r = validarHistoria("ordenos", [
+    fh(2, { numero_arete: "H-1", fecha: "2026-09-01", jornada: "AM", litros: "1,2" }),
+    fh(3, { numero_arete: "H-1", fecha: "2026-09-01", jornada: "Tarde", litros: 0.9 }),
+    fh(4, { numero_arete: "H-2", fecha: "2026-09-01", litros: 2, descartada: "Sí" }),
+  ], { animales: hato, hoy: hoyH });
+  assert.deepEqual(r.errores, []);
+  assert.deepEqual(r.filas.map((f) => f.jornada ?? "unico"), ["manana", "tarde", "unico"]);
+  assert.equal(r.filas[2].descartada, true);
+  assert.equal(r.resumen.suma, 4.1);
+  const macho = validarHistoria("ordenos", [fh(2, { numero_arete: "M-1", fecha: "2026-09-01", litros: 1 })], { animales: hato, hoy: hoyH });
+  assert.match(macho.errores[0].mensajes[0], /macho/);
+  const mucho = validarHistoria("ordenos", [fh(2, { numero_arete: "H-1", fecha: "2026-09-01", litros: 40 })], { animales: hato, hoy: hoyH });
+  assert.match(mucho.errores[0].mensajes[0], /15 litros/);
+});
+
+test("historia: dos ordeños del mismo día solo chocan si son de la misma jornada", () => {
+  const dos = validarHistoria("ordenos", [fh(2, { numero_arete: "H-1", fecha: "2026-09-01", litros: 1 }), fh(3, { numero_arete: "H-1", fecha: "2026-09-01", litros: 2 })], { animales: hato, hoy: hoyH });
+  assert.match(dos.errores[0].mensajes[0], /se repite/);
+});
+
+const permisosTodos = { hato: true, corrales: true, reproduccion: true, carne: true, leche: true, sanidad: true, inventario: true };
+const vacio = { ubicaciones: 0, animales: 0, desdeExcel: 0, conPadres: 0, servicios: 0, lactancias: 0, pesajes: 0, ordenos: 0, eventosSanitarios: 0, aperturas: 0 };
+
+test("migrar: sin animales, todo lo que depende de ellos está bloqueado y dice por qué", () => {
+  const pasos = pasosMigracion(vacio, permisosTodos);
+  const por = Object.fromEntries(pasos.map((p) => [p.id, p]));
+  assert.equal(por.animales.estado, "pendiente");
+  for (const id of ["genealogia", "reproduccion", "pesajes", "ordenos", "sanidad", "revision"]) {
+    assert.equal(por[id].estado, "bloqueado", id);
+    assert.match(por[id].motivo, /Primero carga tus animales/);
+  }
+  assert.equal(por.corrales.estado, "pendiente");
+  assert.equal(por.corrales.href, "/hato/corrales/nueva");
+  assert.deepEqual(avanceMigracion(pasos), { hechos: 0, total: 8 });
+});
+
+test("migrar: con datos cargados, cada paso refleja lo que hay y el avance cuenta los hechos", () => {
+  const pasos = pasosMigracion({ ...vacio, animales: 120, desdeExcel: 120, conPadres: 80, pesajes: 300, ubicaciones: 3 }, permisosTodos);
+  const por = Object.fromEntries(pasos.map((p) => [p.id, p]));
+  assert.equal(por.animales.estado, "hecho");
+  assert.match(por.animales.dato, /120 animales · 120 desde Excel/);
+  assert.equal(por.genealogia.dato, "80 de 120 con padre o madre");
+  assert.equal(por.pesajes.estado, "hecho");
+  assert.equal(por.pesajes.href, "/hato/importar/historia/pesajes");
+  assert.equal(por.ordenos.estado, "pendiente");
+  assert.equal(por.corrales.accion, "Ver corrales");
+  assert.deepEqual(avanceMigracion(pasos), { hechos: 4, total: 8 });
+});
+
+test("migrar: los pasos de un módulo que el rol o el plan no permite no aparecen", () => {
+  const pasos = pasosMigracion({ ...vacio, animales: 5 }, { ...permisosTodos, leche: false, carne: false, inventario: false, corrales: false });
+  assert.deepEqual(pasos.map((p) => p.id), ["animales", "genealogia", "reproduccion", "sanidad", "revision"]);
+});
+
+import { leerFilasMapeadas } from "../lib/importar-animales-excel.ts";
+
+test("historia: de un Excel con título arriba a registros validados, de punta a punta", async () => {
+  const libro = new ExcelJS.Workbook();
+  const h = libro.addWorksheet("Pesos 2026");
+  h.getCell("A1").value = "REGISTRO DE PESOS — FINCA LA ESPERANZA";
+  ["Chapeta", "Fecha pesaje", "Kg", "Notas"].forEach((t, i) => (h.getCell(3, i + 1).value = t));
+  [["H-1", new Date(Date.UTC(2026, 2, 15)), 31.4, "ok"], ["H-2", "16/03/2026", "40,2", null], [null, null, null, null]].forEach((f, r) => f.forEach((v, c) => (h.getCell(4 + r, c + 1).value = v)));
+  const buffer = await libro.xlsx.writeBuffer();
+  const a = await analizarArchivo(buffer, { reconocer: (t) => puntajeTituloHistoria("pesajes", t), proponer: (c) => proponerMapeoHistoria("pesajes", c) });
+  assert.equal(a.ok, true);
+  assert.equal(a.filaEncabezado, 3);
+  assert.deepEqual(a.propuesta, ["numero_arete", "fecha", "peso_kg", "observaciones"]);
+  const mapeo = a.columnas.map((c, i) => ({ indice: c.indice, campo: a.propuesta[i] }));
+  const l = await leerFilasMapeadas(buffer, { filaEncabezado: 3, mapeo, requerido: { id: "numero_arete", titulo: "Número de arete" }, maxFilas: 100 });
+  assert.equal(l.ok, true);
+  const r = validarHistoria("pesajes", l.filas, { animales: hato, hoy: hoyH });
+  assert.deepEqual(r.errores, []);
+  assert.deepEqual(r.filas.map((f) => [f.numero_arete, f.fecha, f.peso_kg]), [["H-1", "2026-03-15", 31.4], ["H-2", "2026-03-16", 40.2]]);
+  const sinArete = await leerFilasMapeadas(buffer, { filaEncabezado: 3, mapeo: [{ indice: 1, campo: "fecha" }], requerido: { id: "numero_arete", titulo: "Número de arete" }, maxFilas: 100 });
+  assert.equal(sinArete.ok, false);
+});

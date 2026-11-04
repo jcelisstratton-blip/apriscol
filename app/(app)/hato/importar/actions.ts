@@ -117,7 +117,7 @@ export async function analizarImportacion(form: FormData): Promise<AnalisisImpor
       indice: c.indice,
       encabezado: c.encabezado,
       muestras: [...new Set(c.valores.filter((v) => v !== ""))].slice(0, MUESTRAS_POR_COLUMNA),
-      campo: a.propuesta[i] ?? "",
+      campo: (a.propuesta[i] as ColumnaId | null) ?? "",
     })),
   };
 }

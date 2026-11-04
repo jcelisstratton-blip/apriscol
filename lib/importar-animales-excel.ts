@@ -71,7 +71,7 @@ function elegirHoja(libro: ExcelJS.Workbook, pedida?: string): { hojas: HojaInfo
 }
 
 /** La fila de títulos: entre las primeras filas, la que más celdas tiene con nombre de campo reconocible (los cuadernos suelen traer un título arriba). */
-function encontrarFilaDeEncabezados(hoja: ExcelJS.Worksheet): number {
+function encontrarFilaDeEncabezados(hoja: ExcelJS.Worksheet, puntajeTitulo: (t: string) => number = puntajeDeTitulo): number {
   let mejor = { fila: 0, puntaje: -1 };
   const tope = Math.min(hoja.rowCount, FILAS_PARA_ENCABEZADO);
   for (let r = 1; r <= tope; r++) {
@@ -79,7 +79,7 @@ function encontrarFilaDeEncabezados(hoja: ExcelJS.Worksheet): number {
     hoja.getRow(r).eachCell({ includeEmpty: false }, (celda) => textos.push(textoDeCelda(valorCelda(celda.value))));
     const llenas = textos.filter((t) => t !== "");
     if (llenas.length < 2) continue;
-    const puntaje = llenas.filter((t) => puntajeDeTitulo(t) > 0).length;
+    const puntaje = llenas.filter((t) => puntajeTitulo(t) > 0).length;
     if (puntaje > mejor.puntaje) mejor = { fila: r, puntaje };
   }
   return mejor.fila || 1;
@@ -96,7 +96,7 @@ export type AnalisisArchivo =
       /** Filas con datos debajo de los títulos. */
       totalFilas: number;
       /** A qué campo corresponde cada columna, según la propuesta del asistente (en el orden de `columnas`). */
-      propuesta: (ColumnaId | null)[];
+      propuesta: (string | null)[];
     }
   | { ok: false; error: string };
 
@@ -104,13 +104,22 @@ export type AnalisisArchivo =
  * Abre el Excel de la persona (el que sea, no solo nuestra plantilla): elige la hoja, encuentra la fila de títulos, junta los valores de cada
  * columna y propone a qué campo corresponde cada una. No valida animales: eso lo hace `validarFilas` después de que la persona confirme las columnas.
  */
-export async function analizarArchivo(buffer: ArrayBuffer, opciones: { hoja?: string; aretesDelHato?: string[] } = {}): Promise<AnalisisArchivo> {
+export async function analizarArchivo(
+  buffer: ArrayBuffer,
+  opciones: {
+    hoja?: string;
+    aretesDelHato?: string[];
+    /** Para otros cargues (pesajes, ordeños): cómo reconocer un título y cómo proponer los campos. Por defecto, los de animales. */
+    reconocer?: (titulo: string) => number;
+    proponer?: (columnas: ColumnaArchivo[]) => (string | null)[];
+  } = {},
+): Promise<AnalisisArchivo> {
   const libro = await abrirLibro(buffer);
   if (!libro) return { ok: false, error: "No se pudo abrir el archivo. Guárdalo como libro de Excel (.xlsx) y vuelve a subirlo." };
   const { hojas, hoja } = elegirHoja(libro, opciones.hoja);
   if (!hoja) return { ok: false, error: "El archivo no tiene hojas con datos." };
 
-  const filaEncabezado = encontrarFilaDeEncabezados(hoja);
+  const filaEncabezado = encontrarFilaDeEncabezados(hoja, opciones.reconocer);
   const ultima = hoja.rowCount;
   const columnas: ColumnaArchivo[] = [];
   const totalColumnas = Math.min(hoja.columnCount, MAX_COLUMNAS_LEIDAS);
@@ -134,7 +143,7 @@ export async function analizarArchivo(buffer: ArrayBuffer, opciones: { hoja?: st
     columnas.push({ indice: c - 1, encabezado: titulo || `Columna ${letra(c)}`, valores });
   }
   if (columnas.length === 0) return { ok: false, error: "No encontré columnas con datos en el archivo." };
-  return { ok: true, hojas, hoja: hoja.name, filaEncabezado, columnas, totalFilas, propuesta: proponerMapeo(columnas, opciones.aretesDelHato ?? []) };
+  return { ok: true, hojas, hoja: hoja.name, filaEncabezado, columnas, totalFilas, propuesta: opciones.proponer ? opciones.proponer(columnas) : proponerMapeo(columnas, opciones.aretesDelHato ?? []) };
 }
 
 /** Qué campo recibe cada columna del archivo, por su posición en la hoja (0 = A). */
@@ -180,6 +189,45 @@ export async function leerArchivoAnimales(buffer: ArrayBuffer, opciones: { hoja?
     }
   }
   if (filas.length === 0) return { ok: false, error: "No encontré animales en el archivo. Escribe cada animal en una fila, debajo de los títulos." };
+  return { ok: true, filas };
+}
+
+export type FilaGenerica = { fila: number; valores: Record<string, CeldaCruda> };
+
+/**
+ * Lee las filas de datos de la hoja con las columnas que la persona confirmó, para cualquier cargue (pesajes, ordeños…). `requerido` es el
+ * campo sin el cual no hay nada que leer (el arete); `maxFilas` evita leer un archivo enorme.
+ */
+export async function leerFilasMapeadas(
+  buffer: ArrayBuffer,
+  opciones: { hoja?: string; filaEncabezado?: number; mapeo: { indice: number; campo: string }[]; requerido: { id: string; titulo: string }; maxFilas: number; reconocer?: (titulo: string) => number },
+): Promise<{ ok: true; filas: FilaGenerica[] } | { ok: false; error: string }> {
+  const libro = await abrirLibro(buffer);
+  if (!libro) return { ok: false, error: "No se pudo abrir el archivo. Guárdalo como libro de Excel (.xlsx) y vuelve a subirlo." };
+  const { hoja } = elegirHoja(libro, opciones.hoja);
+  if (!hoja) return { ok: false, error: "El archivo no tiene hojas." };
+  if (!opciones.mapeo.some((m) => m.campo === opciones.requerido.id)) {
+    return { ok: false, error: `Falta indicar cuál columna es «${opciones.requerido.titulo}».` };
+  }
+  const filaEncabezado = opciones.filaEncabezado ?? encontrarFilaDeEncabezados(hoja, opciones.reconocer);
+  const filas: FilaGenerica[] = [];
+  for (let r = filaEncabezado + 1; r <= hoja.rowCount; r++) {
+    const fila = hoja.getRow(r);
+    const valores: Record<string, CeldaCruda> = {};
+    let tieneDatos = false;
+    for (const { indice, campo } of opciones.mapeo) {
+      const v = valorCelda(fila.getCell(indice + 1).value);
+      if (v === null || (typeof v === "string" && v.trim() === "")) continue;
+      valores[campo] = v;
+      tieneDatos = true;
+    }
+    if (!tieneDatos) continue;
+    filas.push({ fila: r, valores });
+    if (filas.length > opciones.maxFilas) {
+      return { ok: false, error: `El archivo tiene más de ${opciones.maxFilas} registros. Divídelo en varios archivos de hasta ${opciones.maxFilas}: puedes cargarlos uno tras otro.` };
+    }
+  }
+  if (filas.length === 0) return { ok: false, error: "No encontré registros en el archivo. Escribe cada uno en una fila, debajo de los títulos." };
   return { ok: true, filas };
 }
 

@@ -3405,6 +3405,7 @@ export type Database = {
       }
       ordenos: {
         Row: {
+          importacion_id: string | null
           animal_id: string
           client_request_id: string | null
           cmt: string | null
@@ -3425,6 +3426,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          importacion_id?: string | null
           animal_id: string
           client_request_id?: string | null
           cmt?: string | null
@@ -3445,6 +3447,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          importacion_id?: string | null
           animal_id?: string
           client_request_id?: string | null
           cmt?: string | null
@@ -4067,6 +4070,7 @@ export type Database = {
       }
       pesajes: {
         Row: {
+          importacion_id: string | null
           animal_id: string
           client_request_id: string | null
           condicion_corporal: number | null
@@ -4081,6 +4085,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          importacion_id?: string | null
           animal_id: string
           client_request_id?: string | null
           condicion_corporal?: number | null
@@ -4095,6 +4100,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          importacion_id?: string | null
           animal_id?: string
           client_request_id?: string | null
           condicion_corporal?: number | null
@@ -6675,6 +6681,10 @@ export type Database = {
       }
       importar_animales: {
         Args: { p_archivo?: string; p_filas: Json; p_finca: string; p_modo?: string }
+        Returns: Json
+      }
+      importar_historial: {
+        Args: { p_archivo?: string; p_filas: Json; p_finca: string; p_tipo: string }
         Returns: Json
       }
       deshacer_importacion: {

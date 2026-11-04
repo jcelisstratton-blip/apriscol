@@ -39,6 +39,7 @@ export const AYUDA_IMPORTAR: Ayuda = {
     { titulo: "Partos, servicio y corral", texto: "Si tu plan lo permite, puedes traer los partos de cada hembra, su último servicio y preñez, y el corral o potrero donde está hoy. Así la finca arranca con su estado reproductivo y sus corrales ya armados." },
     { titulo: "Los que ya existen", texto: "Eliges qué hacer con un arete que ya está en tu hato: dejarlo como está, completarle solo lo que le falta, o corregirlo con lo que trae el archivo. Sirve para cargar por tandas o arreglar datos sin borrar nada. A esos animales solo se les actualizan sus datos: sus servicios, partos y corral no se tocan." },
     { titulo: "Revisión", texto: "Antes de guardar ves cada fila y qué se hará con ella. Mientras haya errores no se guarda nada, y todo se guarda junto o no se guarda." },
+    { titulo: "Historia de pesos y ordeños", texto: "Después de cargar los animales puedes traer los pesos y los ordeños que ya tengas anotados: arete, fecha y peso o litros. Lo que ya estaba registrado ese día se deja como está. Todo el recorrido está en «Migrar mi finca», con lo que ya hiciste y lo que falta." },
     { titulo: "Deshacer", texto: "Cada cargue queda en «Cargues anteriores». El propietario o un administrador puede deshacerlo: se quitan los animales que creó y se devuelven los datos que cambió. Solo es posible mientras nadie haya usado esos animales (ordeños, pesajes, sanidad…) ni los haya editado." },
   ],
   enlace: { href: "/hato", texto: "Volver al hato" },

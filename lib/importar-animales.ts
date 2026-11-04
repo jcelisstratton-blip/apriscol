@@ -270,7 +270,7 @@ export function leerFecha(v: CeldaCruda): { valor?: string; error?: true } {
 
 const MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
 
-function leerSiNo(v: CeldaCruda): boolean | null {
+export function leerSiNo(v: CeldaCruda): boolean | null {
   if (typeof v === "boolean") return v;
   const t = normalizar(texto(v));
   if (t === "") return false;
