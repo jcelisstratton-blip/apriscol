@@ -80,7 +80,8 @@ export function pasosMigracion(c: ConteosMigracion, p: PermisosMigracion): PasoM
       dato: c.ubicaciones > 0 ? n(c.ubicaciones, "corral o potrero", "corrales y potreros") : null,
       href: "/hato/importar/historia/corrales",
       accion: c.ubicaciones > 0 ? "Cargar más corrales" : "Cargar corrales",
-      alternativa: { href: c.ubicaciones > 0 ? "/hato/corrales" : "/hato/corrales/nueva", texto: c.ubicaciones > 0 ? "Ver mis corrales" : "Crear uno a mano" },
+      // «Ver mis corrales» abre la vista Corrales del Hato (los que ya existen, con su cupo); no hay una página /hato/corrales.
+      alternativa: { href: c.ubicaciones > 0 ? "/hato?vista=corrales" : "/hato/corrales/nueva", texto: c.ubicaciones > 0 ? "Ver mis corrales" : "Crear uno a mano" },
       opcional: true,
       porExcel: true,
     });

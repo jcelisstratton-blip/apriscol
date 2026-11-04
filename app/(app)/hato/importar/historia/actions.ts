@@ -194,7 +194,7 @@ export async function guardarHistoria(form: FormData): Promise<ResultadoHistoria
   revalidatePath("/leche");
   revalidatePath("/carne");
   revalidatePath("/inventario");
-  revalidatePath("/hato/corrales");
+  revalidatePath("/hato");
   revalidatePath("/");
   return data as Extract<ResultadoHistoria, { importacion: string }>;
 }
