@@ -27,7 +27,7 @@ export default async function PaginaImportarHistoria({ params }: { params: Promi
       </Link>
       <Encabezado titulo={`Cargar ${TITULO_HISTORIA[t].corto} desde Excel`} subtitulo={finca.nombre} />
       <div className="space-y-3.5 lg:max-w-3xl">
-        <ImportarHistoria tipo={t} rutaVolver="/hato/migrar" puedeDeshacer={puedeGestionar(rol)} />
+        <ImportarHistoria tipo={t} rutaVolver="/hato/migrar" rutaPlantilla={`/hato/importar/historia/${t}/plantilla`} puedeDeshacer={puedeGestionar(rol)} />
       </div>
     </>
   );

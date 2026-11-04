@@ -1,9 +1,8 @@
 import type { Metadata } from "next";
-import Link from "next/link";
-import { FileSpreadsheet, Inbox, Plus } from "lucide-react";
 import { AyudaModulo } from "@/components/AyudaModulo";
 import { TarjetasHato } from "@/components/TarjetasHato";
 import { AYUDA_ORDENO } from "@/lib/ayuda";
+import { AccionesHato } from "@/components/AccionesHato";
 import { Encabezado } from "@/components/Encabezado";
 import { FilaTarjetas, TarjetaOpcion } from "@/components/TarjetaOpcion";
 import { ESCENA_ORDENO } from "@/lib/escenas";
@@ -54,39 +53,7 @@ export default async function PaginaHato({ searchParams }: { searchParams: Promi
       <Encabezado
         titulo="Hato"
         subtitulo={finca.nombre}
-        acciones={
-          <>
-            {/* «Crear una novedad»: con texto para quien no crea animales (ordeñador, veterinario); como icono junto a los demás botones para quien sí. */}
-            {puedeEscribir(rol, "novedades", finca.plan) ? (
-              puedeCrear ? (
-                <Link href="/novedades/nueva" aria-label="Crear una novedad" className="grid size-11 shrink-0 place-items-center rounded-full bg-arena text-musgo transition active:scale-95">
-                  <Inbox className="size-5" strokeWidth={1.75} aria-hidden="true" />
-                </Link>
-              ) : (
-                <Link href="/novedades/nueva" className="inline-flex min-h-11 items-center gap-1.5 rounded-full bg-musgo px-4 text-sm font-semibold text-sobre-musgo">
-                  <Inbox className="size-4" strokeWidth={2.2} aria-hidden="true" /> Crear una novedad
-                </Link>
-              )
-            ) : null}
-            {puedeCrear ? (
-              <>
-                <Link
-                  href="/hato/migrar"
-                  aria-label="Migrar mi finca desde Excel"
-                  className="grid size-11 shrink-0 place-items-center rounded-full bg-arena text-musgo transition active:scale-95"
-                >
-                  <FileSpreadsheet className="size-5" strokeWidth={1.75} aria-hidden="true" />
-                </Link>
-                <Link
-                  href="/hato/nuevo"
-                  className="inline-flex min-h-11 items-center gap-1.5 rounded-full bg-musgo px-4 text-sm font-semibold text-sobre-musgo"
-                >
-                  <Plus className="size-4" strokeWidth={2.4} /> Nuevo
-                </Link>
-              </>
-            ) : null}
-          </>
-        }
+        acciones={<AccionesHato puedeNovedad={puedeEscribir(rol, "novedades", finca.plan)} puedeCrear={puedeCrear} />}
       />
 
       {enCeba ? (

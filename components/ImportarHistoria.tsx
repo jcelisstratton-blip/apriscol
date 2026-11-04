@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState, useTransition } from "react";
-import { ArrowRight, FileSpreadsheet, RefreshCw, Undo2 } from "lucide-react";
+import { ArrowRight, Download, FileSpreadsheet, RefreshCw, Undo2 } from "lucide-react";
 import { Aviso } from "@/components/Aviso";
 import { Boton, EnlaceBoton } from "@/components/Boton";
 import { Cargando } from "@/components/Cargando";
@@ -57,11 +57,14 @@ function FilaError({ e }: { e: ErrorFila }) {
 export function ImportarHistoria({
   tipo,
   rutaVolver,
+  rutaPlantilla,
   puedeDeshacer,
   acciones = { analizar: analizarHistoria, revisar: revisarHistoria, guardar: guardarHistoria, deshacer: deshacerImportacion },
 }: {
   tipo: TipoHistoria;
   rutaVolver: string;
+  /** Plantilla opcional de este cargue (con listas y explicaciones). */
+  rutaPlantilla: string;
   puedeDeshacer: boolean;
   acciones?: Acciones;
 }) {
@@ -273,6 +276,9 @@ export function ImportarHistoria({
           )}
           {analizando ? <Cargando texto="Leyendo tu archivo…" /> : null}
           {error ? <Aviso tipo="error">{error}</Aviso> : null}
+          <a href={rutaPlantilla} download title="Un Excel con las columnas, listas desplegables y explicaciones. Es opcional: también sirve tu propio archivo." className="inline-flex min-h-11 items-center gap-2 rounded-full px-1 text-[0.9375rem] font-semibold text-musgo">
+            <Download className="size-5" strokeWidth={1.75} aria-hidden="true" /> ¿Prefieres empezar de cero? Descarga la plantilla
+          </a>
         </div>
       </Tarjeta>
 

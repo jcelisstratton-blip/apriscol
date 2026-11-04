@@ -424,3 +424,48 @@ test("historial: los tramos de un mismo archivo se ven como uno solo y se deshac
   const mixto = agruparTramos([c("2", "g3", 5, "deshecha"), c("1", "g3", 5, "aplicada")]);
   assert.equal(mixto[0].estado, "aplicada");
 });
+
+// ───────────────────────── Plantillas de historia ─────────────────────────
+import { construirPlantillaHistoria } from "../lib/importar-historia-excel.ts";
+import { CAMPOS_HISTORIA } from "../lib/importar-historia.ts";
+
+for (const tipo of ["pesajes", "ordenos", "sanidad"]) {
+  test(`plantilla de ${tipo}: sus títulos se reconocen solos y cada valor de sus listas lo acepta la validación`, async () => {
+    const buffer = await construirPlantillaHistoria(tipo, "Finca de prueba");
+    const libro = new ExcelJS.Workbook();
+    await libro.xlsx.load(buffer);
+    assert.deepEqual(libro.worksheets.map((h) => h.name), ["Registros", "Instrucciones", "Listas"]);
+    const a = await analizarArchivo(buffer, { reconocer: (t) => puntajeTituloHistoria(tipo, t), proponer: (c) => proponerMapeoHistoria(tipo, c) });
+    assert.equal(a.ok, false, "la plantilla está vacía: no hay registros todavía");
+    // Con una fila de ejemplo sí se reconoce cada columna
+    const hoja = libro.getWorksheet("Registros");
+    const campos = CAMPOS_HISTORIA[tipo];
+    campos.forEach((c, i) => (hoja.getCell(2, i + 1).value = c.id === "fecha" || c.id === "proxima_fecha" ? "01/06/2026" : "x"));
+    const lleno = await libro.xlsx.writeBuffer();
+    const b = await analizarArchivo(lleno, { reconocer: (t) => puntajeTituloHistoria(tipo, t), proponer: (c) => proponerMapeoHistoria(tipo, c) });
+    assert.equal(b.ok, true);
+    assert.deepEqual(b.propuesta, campos.map((c) => c.id));
+    assert.equal(b.filaEncabezado, 1);
+
+    // Las listas desplegables: lo que ofrecen es lo que la validación entiende.
+    const listas = libro.getWorksheet("Listas");
+    const valoresDe = (campo) => {
+      const col = campos.findIndex((c) => c.id === campo) + 1;
+      if (col === 0) return [];
+      const f = hoja.getCell(2, col).dataValidation?.formulae?.[0];
+      if (!f) return [];
+      const [, rango] = f.split("!");
+      const [, letra, desde, hasta] = /\$([A-Z])\$(\d+):\$[A-Z]\$(\d+)/.exec(rango);
+      const out = [];
+      for (let r = +desde; r <= +hasta; r++) out.push(String(listas.getCell(`${letra}${r}`).value));
+      return out;
+    };
+    const base = { numero_arete: "H-1", fecha: "2026-06-01", peso_kg: 30, litros: 1, tipo: "vacuna" };
+    for (const campo of ["tipo", "jornada", "descartada", "via"]) {
+      for (const v of valoresDe(campo)) {
+        const r = validarHistoria(tipo, [fh(2, { ...base, ...(tipo === "sanidad" && campo !== "tipo" ? {} : {}), [campo]: v })], { animales: hato, hoy: hoyH });
+        assert.deepEqual(r.errores, [], `${tipo}: «${v}» en ${campo}`);
+      }
+    }
+  });
+}

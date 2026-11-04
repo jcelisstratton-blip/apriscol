@@ -101,7 +101,7 @@ export function pasosMigracion(c: ConteosMigracion, p: PermisosMigracion): PasoM
     pasos.push({
       id: "pesajes",
       titulo: "Historia de pesos",
-      detalle: "Los pesajes que ya tengas anotados: arete, fecha y peso. Alimentan la ganancia diaria y la ceba.",
+      detalle: "Los pesajes que ya tengas anotados: arete, fecha y peso. Alimentan la ganancia diaria y la ceba. Tienes una plantilla para descargar, o sirve tu propio Excel.",
       estado: sinAnimales ? "bloqueado" : c.pesajes > 0 ? "hecho" : "pendiente",
       dato: c.pesajes > 0 ? n(c.pesajes, "pesaje", "pesajes") : null,
       href: "/hato/importar/historia/pesajes",
@@ -115,7 +115,7 @@ export function pasosMigracion(c: ConteosMigracion, p: PermisosMigracion): PasoM
     pasos.push({
       id: "ordenos",
       titulo: "Historia de ordeños",
-      detalle: "Los litros de cada hembra por día (y jornada, si ordeñas dos veces). Alimentan la curva de lactancia y los reportes de leche.",
+      detalle: "Los litros de cada hembra por día (y jornada, si ordeñas dos veces). Alimentan la curva de lactancia y los reportes de leche. Tienes una plantilla para descargar, o sirve tu propio Excel.",
       estado: sinAnimales ? "bloqueado" : c.ordenos > 0 ? "hecho" : "pendiente",
       dato: c.ordenos > 0 ? n(c.ordenos, "ordeño", "ordeños") : null,
       href: "/hato/importar/historia/ordenos",
@@ -129,7 +129,7 @@ export function pasosMigracion(c: ConteosMigracion, p: PermisosMigracion): PasoM
     pasos.push({
       id: "sanidad",
       titulo: "Historia de sanidad",
-      detalle: "Vacunas, desparasitaciones y tratamientos que ya tengas anotados: arete, fecha y tipo (y producto, dosis, próxima fecha si los tienes). Las próximas vacunas y los retiros salen de aquí. Lo de cada día se registra desde Sanidad.",
+      detalle: "Vacunas, desparasitaciones y tratamientos que ya tengas anotados: arete, fecha y tipo (y producto, dosis, próxima fecha si los tienes). Las próximas vacunas y los retiros salen de aquí. Lo de cada día se registra desde Sanidad. Tienes una plantilla para descargar, o sirve tu propio Excel.",
       estado: sinAnimales ? "bloqueado" : c.eventosSanitarios > 0 ? "hecho" : "pendiente",
       dato: c.eventosSanitarios > 0 ? n(c.eventosSanitarios, "evento registrado", "eventos registrados") : null,
       href: "/hato/importar/historia/sanidad",
