@@ -42,7 +42,7 @@ function direccion(f: FiltrosEmp, cambios: Partial<FiltrosEmp>): string {
 
 /**
  * Reproducción → Empadronamiento: el resumen de todas las temporadas de monta de la finca, con filtros por estado y por fechas, y con
- * qué hembras (y con qué semental) se hizo cada una. Armar o cerrar una temporada se hace en Hato → Empadronamiento.
+ * qué hembras (y con qué semental) se hizo cada una. Armar o cerrar una temporada se hace en Hato → Empadre.
  */
 export async function ResumenEmpadronamientos({
   fincaId,
@@ -159,10 +159,10 @@ export async function ResumenEmpadronamientos({
           <EstadoVacio
             icono={<CalendarRange strokeWidth={1.5} />}
             titulo="Todavía no hay temporadas de monta"
-            descripcion="El empadronamiento agrupa a los sementales con las hembras por un tiempo definido, para que los partos caigan juntos. Se arma en Hato → Empadronamiento."
+            descripcion="El empadre agrupa a los sementales con las hembras por un tiempo definido, para que los partos caigan juntos. Se arma en Hato → Empadre."
           >
             <Link href="/hato?vista=empadronamiento" className="inline-flex min-h-11 items-center font-semibold text-musgo underline-offset-4 hover:underline">
-              Ir a Hato → Empadronamiento
+              Ir a Hato → Empadre
             </Link>
           </EstadoVacio>
         )

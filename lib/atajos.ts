@@ -61,9 +61,9 @@ export const ATAJOS: Atajo[] = [
   { grupo: "Leche", tipo: "ir", titulo: "Frío y equipo", detalle: "Tanque y equipos de ordeño", href: "/leche?vista=frio", Icono: Snowflake, modulo: "leche" },
 
   // Reproducción
-  { grupo: "Reproducción", tipo: "registrar", titulo: "Temporada de monta", detalle: "Crear un empadronamiento", href: "/reproduccion/empadronamiento/nuevo", Icono: CalendarClock, modulo: "reproduccion", clave: "empadronamiento semental hembras" },
+  { grupo: "Reproducción", tipo: "registrar", titulo: "Temporada de monta", detalle: "Crear un empadre", href: "/reproduccion/empadronamiento/nuevo", Icono: CalendarClock, modulo: "reproduccion", clave: "empadre empadronamiento monta controlada servicio semental hembras" },
   { grupo: "Reproducción", tipo: "ir", titulo: "Reproducción", detalle: "Gestaciones y partos", href: "/reproduccion", Icono: Baby, modulo: "reproduccion" },
-  { grupo: "Reproducción", tipo: "ir", titulo: "Empadronamientos", detalle: "Temporadas de monta", href: "/reproduccion?vista=empadronamiento", Icono: CalendarClock, modulo: "reproduccion" },
+  { grupo: "Reproducción", tipo: "ir", titulo: "Empadres", detalle: "Temporadas de monta", href: "/reproduccion?vista=empadronamiento", Icono: CalendarClock, modulo: "reproduccion", clave: "empadronamiento monta controlada temporada servicio" },
   { grupo: "Reproducción", tipo: "ir", titulo: "Servicios", detalle: "Montas e inseminaciones", href: "/reproduccion?vista=servicios", Icono: Layers, modulo: "reproduccion", clave: "monta inseminacion" },
   { grupo: "Reproducción", tipo: "ir", titulo: "Partos", detalle: "Crías y lactancias", href: "/reproduccion?vista=partos", Icono: Baby, modulo: "reproduccion", clave: "crias lactancia" },
 

@@ -1348,13 +1348,13 @@ export type ReproHembra = {
   fecha_diagnostico: string | null;
   estado: EstadoRepro;
   en_lactancia: boolean;
-  /** Empadronamiento abierto en el que está la hembra (nulo si no está en ninguno). */
+  /** Empadre abierto en el que está la hembra (nulo si no está en ninguno). */
   empadronamiento_id: string | null;
   empadronamiento_nombre: string | null;
   empadronamiento_macho_id: string | null;
 };
 
-/** Un empadronamiento (temporada de monta) con sus conteos: `v_empadronamientos`. */
+/** Un empadre (temporada de monta) con sus conteos: `v_empadronamientos`. */
 export type Empadronamiento = {
   id: string;
   finca_id: string;
@@ -1434,7 +1434,7 @@ export type EmpadronamientoHembra = {
 
 export type CriterioEmp = "ok" | "no" | "sin_dato";
 
-/** Una hembra que podría entrar al empadronamiento (`empadronamiento_candidatas`): sus datos y si cumple cada criterio. */
+/** Una hembra que podría entrar al empadre (`empadronamiento_candidatas`): sus datos y si cumple cada criterio. */
 export type CandidataEmp = {
   animal_id: string;
   numero_arete: string;

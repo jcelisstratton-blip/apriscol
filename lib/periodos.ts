@@ -1,6 +1,6 @@
 import { sumarDias } from "@/lib/fechas";
 
-/** Los periodos del filtro por fechas que comparten los menús (Sanidad, Corrales, resumen de empadronamientos…). */
+/** Los periodos del filtro por fechas que comparten los menús (Sanidad, Corrales, resumen de empadres…). */
 export type Periodo = "todo" | "anio" | "12m" | "6m" | "3m" | "rango";
 export const PERIODOS: { valor: Periodo; etiqueta: string }[] = [
   { valor: "todo", etiqueta: "Todo" },

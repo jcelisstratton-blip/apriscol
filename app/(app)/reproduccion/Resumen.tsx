@@ -76,7 +76,7 @@ export async function Resumen({
       {enMonta > 0 ? (
         <Aviso tipo="info">
           {enMonta === 1 ? "1 hembra está" : `${enMonta} hembras están`} en una temporada de monta abierta.{" "}
-          <Link href="/reproduccion?vista=empadronamiento" className="font-semibold text-musgo underline underline-offset-2">Ver empadronamientos</Link>
+          <Link href="/reproduccion?vista=empadronamiento" className="font-semibold text-musgo underline underline-offset-2">Ver empadres</Link>
         </Aviso>
       ) : null}
 

@@ -39,7 +39,7 @@ export function vistasHato(ver: { leche: boolean; carne: boolean; repro: boolean
   return [
     ...(ver.leche ? ([{ id: "ordeno", href: DIRECCION_ORDENO, texto: "Ordeño", detalle: "Registrar y programar turnos" }] as const) : []),
     ...(ver.carne ? ([{ id: "ceba", href: DIRECCION_CEBA, texto: "Ceba", detalle: "Pesos, lotes y candidatos" }] as const) : []),
-    ...(ver.repro ? ([{ id: "empadronamiento", href: DIRECCION_EMPADRONAMIENTO, texto: "Empadronamiento", detalle: "Temporada de monta" }] as const) : []),
+    ...(ver.repro ? ([{ id: "empadronamiento", href: DIRECCION_EMPADRONAMIENTO, texto: "Empadre", detalle: "Temporada de monta" }] as const) : []),
     ...(ver.sanidad ? ([{ id: "sanidad", href: DIRECCION_SANIDAD, texto: "Sanidad", detalle: "Vacunas y tratamientos" }] as const) : []),
     ...(ver.corrales ? ([{ id: "corrales", href: DIRECCION_CORRALES, texto: "Corrales", detalle: "Dónde está cada animal" }] as const) : []),
     ...(ver.gastos ? ([{ id: "gastos", href: DIRECCION_GASTOS, texto: "Compras", detalle: "Lo que compras y pagas" }] as const) : []),

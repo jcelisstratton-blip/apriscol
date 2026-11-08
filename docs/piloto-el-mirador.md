@@ -46,4 +46,4 @@ Propietario del piloto y tres alias de la misma bandeja (`+admin`, `+vet`, `+ord
 
 ## Lista de revisión visual (360 y 320 px, luego computador)
 
-Hoy (cobros y compras vencidas) · Hato (hembra, macho, dado de baja) · Leche (programa, despachos por canal, frío, calidad) · Sanidad y FAMACHA · Ceba (12 animales en el lote abierto) · Costos (Resumen +$64,4 millones, Compras con por pagar y vencida, Ventas, Reportes) · Proyecciones (3 escenarios, Comparar, Riesgos) · Reproducción → Empadronamiento · cada rol con su alias.
+Hoy (cobros y compras vencidas) · Hato (hembra, macho, dado de baja) · Leche (programa, despachos por canal, frío, calidad) · Sanidad y FAMACHA · Ceba (12 animales en el lote abierto) · Costos (Resumen +$64,4 millones, Compras con por pagar y vencida, Ventas, Reportes) · Proyecciones (3 escenarios, Comparar, Riesgos) · Reproducción → Empadre · cada rol con su alias.
