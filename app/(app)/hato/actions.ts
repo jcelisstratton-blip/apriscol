@@ -225,6 +225,7 @@ const esquemaBaja = z.object({
   cobroVence: z.preprocess(vacio, z.iso.date("La fecha en que esperas el pago no es válida.").optional()),
   valor: z.preprocess(vacio, z.number().min(0, "El valor no puede ser negativo.").max(9_999_999_999, "Revisa el valor: es demasiado alto.").optional()),
   destinoConsumo: z.boolean(),
+  ivaTarifa: z.preprocess(vacio, z.number("La tarifa del IVA debe ser un número.").min(0, "La tarifa del IVA no puede ser negativa.").max(100, "La tarifa del IVA no puede pasar de 100 %.").optional()),
   detalle: z.preprocess(vacio, z.string().trim().max(1000, "Las notas son muy largas.").optional()),
   // Trazabilidad de la salida comercial (venta o sacrificio): peso en vivo, guía de movilización y a dónde fue.
   pesoKg: z.preprocess(vacio, z.number("El peso debe ser un número.").positive("El peso debe ser mayor que cero.").max(250, "El peso no puede pasar de 250 kg.").optional()),
@@ -302,6 +303,7 @@ export async function darDeBaja(entrada: z.input<typeof esquemaBaja>): Promise<R
     motivo: d.motivo ?? null,
     ...venta,
     valor: esVenta ? (d.valor ?? null) : null,
+    iva_tarifa: esVenta && d.valor != null ? (d.ivaTarifa ?? null) : null,
     destino_consumo: esVenta && d.destinoConsumo,
     detalle: d.detalle ?? null,
     ...datosComerciales(d),
@@ -417,6 +419,7 @@ const esquemaSalida = z.object({
   cobroVence: z.preprocess(vacio, z.iso.date("La fecha en que esperas el pago no es válida.").optional()),
   valor: z.preprocess(vacio, z.number("El valor debe ser un número.").min(0, "El valor no puede ser negativo.").max(9_999_999_999, "Revisa el valor: es demasiado alto.").optional()),
   detalle: z.preprocess(vacio, z.string().trim().max(1000, "Las notas son muy largas.").optional()),
+  ivaTarifa: z.preprocess(vacio, z.number("La tarifa del IVA debe ser un número.").min(0, "La tarifa del IVA no puede ser negativa.").max(100, "La tarifa del IVA no puede pasar de 100 %.").optional()),
   pesoKg: z.preprocess(vacio, z.number("El peso debe ser un número.").positive("El peso debe ser mayor que cero.").max(250, "El peso no puede pasar de 250 kg.").optional()),
   guiaMovilizacion: z.preprocess(vacio, z.string().trim().max(60, "La guía de movilización es muy larga.").optional()),
   destino: z.preprocess(vacio, z.string().trim().max(160, "El destino es muy largo.").optional()),
@@ -445,6 +448,7 @@ export async function corregirSalida(entrada: z.input<typeof esquemaSalida>): Pr
       detalle: d.detalle ?? null,
       ...venta,
       valor: baja.tipo === "venta" ? (d.valor ?? null) : null,
+      iva_tarifa: baja.tipo === "venta" && d.valor != null ? (d.ivaTarifa ?? null) : null,
       ...datosComerciales({ tipo: baja.tipo, pesoKg: d.pesoKg, guiaMovilizacion: d.guiaMovilizacion, destino: d.destino }),
     })
     .eq("id", baja.id)

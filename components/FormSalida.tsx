@@ -7,6 +7,7 @@ import { Aviso } from "@/components/Aviso";
 import { Boton, clasesBoton } from "@/components/Boton";
 import { CamposTrazabilidad } from "@/components/CamposTrazabilidad";
 import { Campo, CLASE_INPUT } from "@/components/Campo";
+import { CampoIva } from "@/components/CampoIva";
 import { SelectorTarjetas } from "@/components/SelectorTarjetas";
 import { SelectorTercero } from "@/components/SelectorTercero";
 import { useToast } from "@/components/Toast";
@@ -30,6 +31,7 @@ export function FormSalida({ baja, terceros }: { baja: Baja; terceros: Tercero[]
   const [tercero, setTercero] = useState(baja.tercero_id ?? "");
   const [cobro, setCobro] = useState<"cobrado" | "por_cobrar">(baja.valor && !baja.cobrado_en ? "por_cobrar" : "cobrado");
   const [cobroVence, setCobroVence] = useState(baja.cobro_vence ?? "");
+  const [iva, setIva] = useState("");
   const [valor, setValor] = useState(coma(baja.valor));
   const [peso, setPeso] = useState(coma(baja.peso_kg));
   const [guia, setGuia] = useState(baja.guia_movilizacion ?? "");
@@ -56,6 +58,7 @@ export function FormSalida({ baja, terceros }: { baja: Baja; terceros: Tercero[]
         cobro: baja.tipo === "venta" && numeroValor ? cobro : undefined,
         cobroVence: cobro === "por_cobrar" ? cobroVence : undefined,
         valor: baja.tipo === "venta" ? numeroValor : undefined,
+        ivaTarifa: leerNumero(iva) ?? undefined,
         detalle,
         ...(comercial ? { pesoKg: numeroPeso, guiaMovilizacion: guia, destino } : {}),
       });
@@ -77,6 +80,7 @@ export function FormSalida({ baja, terceros }: { baja: Baja; terceros: Tercero[]
           <Campo etiqueta="Valor de la venta" ayuda="Opcional. En pesos." error={valorInvalido ? "Escribe solo números." : undefined}>
             {(id) => <input id={id} value={valor} inputMode="decimal" autoComplete="off" onChange={(e) => setValor(e.target.value)} placeholder="Ej. 450.000" className={CLASE_INPUT} />}
           </Campo>
+          {numeroValor && Number.isFinite(numeroValor) ? <CampoIva total={numeroValor} inicial={baja.iva_tarifa} onCambio={setIva} /> : null}
           {numeroValor ? (
             <>
               <Campo etiqueta="¿Ya te pagaron?">

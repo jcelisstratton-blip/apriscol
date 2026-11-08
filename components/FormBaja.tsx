@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Aviso } from "@/components/Aviso";
 import { Boton } from "@/components/Boton";
 import { Campo, CLASE_INPUT } from "@/components/Campo";
+import { CampoIva } from "@/components/CampoIva";
 import { SelectorTarjetas } from "@/components/SelectorTarjetas";
 import { SelectorTercero } from "@/components/SelectorTercero";
 import { useToast } from "@/components/Toast";
@@ -24,6 +25,7 @@ export function FormBaja({
   nacimiento,
   enOrdeno,
   terceros,
+  ivaDefecto = null,
 }: {
   animalId: string;
   etiqueta: string;
@@ -33,6 +35,8 @@ export function FormBaja({
   enOrdeno: boolean;
   /** Los compradores de la finca: el comprador se elige de la lista. */
   terceros: Tercero[];
+  /** El IVA predeterminado de la finca: se escribe solo si la salida es una venta con valor. */
+  ivaDefecto?: number | null;
 }) {
   const router = useRouter();
   const toast = useToast();
@@ -43,6 +47,7 @@ export function FormBaja({
   const [cobro, setCobro] = useState<"cobrado" | "por_cobrar">("cobrado");
   const [cobroVence, setCobroVence] = useState("");
   const [valor, setValor] = useState("");
+  const [iva, setIva] = useState("");
   const [consumo, setConsumo] = useState(false);
   const [detalle, setDetalle] = useState("");
   const [peso, setPeso] = useState("");
@@ -70,6 +75,7 @@ export function FormBaja({
         cobro: tipo === "venta" && numeroValor ? cobro : undefined,
         cobroVence: cobro === "por_cobrar" ? cobroVence : undefined,
         valor: numeroValor,
+        ivaTarifa: leerNumero(iva) ?? undefined,
         destinoConsumo: consumo,
         detalle,
         ...(comercial ? { pesoKg: numeroPeso, guiaMovilizacion: guia, destino } : {}),
@@ -103,6 +109,7 @@ export function FormBaja({
           <Campo etiqueta="Valor de la venta" ayuda="Opcional. En pesos." error={valorInvalido ? "Escribe solo números." : undefined}>
             {(id) => <input id={id} value={valor} inputMode="decimal" autoComplete="off" onChange={(e) => setValor(e.target.value)} className={CLASE_INPUT} placeholder="Ej. 450000" />}
           </Campo>
+          {numeroValor && Number.isFinite(numeroValor) ? <CampoIva total={numeroValor} inicial={ivaDefecto} onCambio={setIva} /> : null}
           {numeroValor ? (
             <>
               <Campo etiqueta="¿Ya te pagaron?">

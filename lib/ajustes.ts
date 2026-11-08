@@ -7,7 +7,7 @@ import type { Especie } from "@/lib/tipos";
  * valida cada ajuste; el formulario, la acción de guardado y la lectura salen de ella para que no se desincronicen.
  */
 
-export type GrupoAjustes = "reproduccion" | "ceba" | "leche" | "sanidad" | "nutricion" | "crecimiento" | "personal";
+export type GrupoAjustes = "reproduccion" | "ceba" | "leche" | "sanidad" | "nutricion" | "crecimiento" | "personal" | "dinero";
 
 /** Ajustes generales de la finca (una fila). */
 export type AjustesFinca = {
@@ -40,6 +40,8 @@ export type AjustesFinca = {
   ms_produccion_max_pct: number;
   stock_autonomia_dias: number;
   factor_prestacional: number;
+  /** IVA que aparece ya escrito en compras y ventas; nulo = no se precarga nada. */
+  iva_tarifa_defecto: number | null;
   created_at: string;
   updated_at: string;
   updated_by: string | null;
@@ -188,6 +190,15 @@ export const GRUPOS_AJUSTES: GrupoDefinicion[] = [
     detalle: "Cuánto cuesta de verdad una persona con contrato de trabajo, contando las cargas de ley. Se usa en cada pago de Personal.",
     general: [
       { clave: "factor_prestacional", etiqueta: "Factor prestacional", unidad: "veces el salario", ayuda: "Multiplica el salario o el jornal para incluir prestaciones y seguridad social. En Colombia suele estar cerca de 1,63. No aplica a contratos de prestación de servicios.", min: 1, max: 3, decimales: 2 },
+    ],
+    especie: [],
+  },
+  {
+    id: "dinero",
+    titulo: "Dinero e impuestos",
+    detalle: "El IVA (impuesto al valor agregado) que aparece ya escrito al registrar compras y ventas. En cada registro se puede cambiar o borrar.",
+    general: [
+      { clave: "iva_tarifa_defecto", etiqueta: "IVA predeterminado", unidad: "%", ayuda: "En Colombia la tarifa general es 19 %. Se puede cambiar en cada compra o venta (hay productos sin IVA, como la leche). Déjalo vacío si no quieres que se escriba solo.", min: 0, max: 100, decimales: 2, opcional: true },
     ],
     especie: [],
   },
