@@ -7,6 +7,7 @@ import { Aviso } from "@/components/Aviso";
 import { Encabezado } from "@/components/Encabezado";
 import { FormVenta } from "@/components/FormVenta";
 import { obtenerContexto } from "@/lib/contexto";
+import { obtenerAjustes } from "@/lib/ajustes-servidor";
 import { obtenerProductos, obtenerTerceros } from "@/lib/catalogos-servidor";
 import { hoyBogota } from "@/lib/fechas";
 import { puedeEscribir } from "@/lib/permisos";
@@ -33,7 +34,7 @@ export default async function PaginaVentaNueva() {
             <Link href="/leche?vista=despachos" className="font-semibold text-musgo underline underline-offset-4">Leche → Despachos</Link>, y los <strong>animales</strong> vendidos, desde su salida del hato.
           </Aviso>
         </div>
-        <FormVenta hoy={hoyBogota()} productos={ventasManuales(productos).filter((p) => p.activo)} terceros={terceros} solicitud={randomUUID()} />
+        <FormVenta hoy={hoyBogota()} productos={ventasManuales(productos).filter((p) => p.activo)} terceros={terceros} solicitud={randomUUID()} ivaDefecto={(await obtenerAjustes()).general.iva_tarifa_defecto} />
       </div>
     </>
   );

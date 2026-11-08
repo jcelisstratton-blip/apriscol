@@ -379,6 +379,8 @@ export type Database = {
       }
       bajas: {
         Row: {
+          iva_tarifa: number | null
+          iva_valor: number | null
           animal_id: string
           cobrado_en: string | null
           cobro_vence: string | null
@@ -400,6 +402,8 @@ export type Database = {
           valor: number | null
         }
         Insert: {
+          iva_tarifa?: number | null
+          iva_valor?: number | null
           animal_id: string
           cobrado_en?: string | null
           cobro_vence?: string | null
@@ -421,6 +425,8 @@ export type Database = {
           valor?: number | null
         }
         Update: {
+          iva_tarifa?: number | null
+          iva_valor?: number | null
           animal_id?: string
           cobrado_en?: string | null
           cobro_vence?: string | null
@@ -1033,6 +1039,8 @@ export type Database = {
       }
       despachos_leche: {
         Row: {
+          iva_tarifa: number | null
+          iva_valor: number | null
           client_request_id: string | null
           cobrado_en: string | null
           cobro_vence: string | null
@@ -1054,6 +1062,8 @@ export type Database = {
           valor_total: number | null
         }
         Insert: {
+          iva_tarifa?: number | null
+          iva_valor?: number | null
           client_request_id?: string | null
           cobrado_en?: string | null
           cobro_vence?: string | null
@@ -1075,6 +1085,8 @@ export type Database = {
           valor_total?: number | null
         }
         Update: {
+          iva_tarifa?: number | null
+          iva_valor?: number | null
           client_request_id?: string | null
           cobrado_en?: string | null
           cobro_vence?: string | null
@@ -1922,6 +1934,7 @@ export type Database = {
       }
       finca_ajustes: {
         Row: {
+          iva_tarifa_defecto: number | null
           cc_venta_max: number
           cc_venta_min: number
           ccs_limite_miles_ml: number
@@ -1956,6 +1969,7 @@ export type Database = {
           vacuna_rabia_dias: number | null
         }
         Insert: {
+          iva_tarifa_defecto?: number | null
           cc_venta_max?: number
           cc_venta_min?: number
           ccs_limite_miles_ml?: number
@@ -1990,6 +2004,7 @@ export type Database = {
           vacuna_rabia_dias?: number | null
         }
         Update: {
+          iva_tarifa_defecto?: number | null
           cc_venta_max?: number
           cc_venta_min?: number
           ccs_limite_miles_ml?: number

@@ -25,7 +25,7 @@ const ETIQUETA_COBRO: Record<EstadoCobro, string> = { cobrado: "Ya me pagaron", 
  * precio), a quién (de la lista de compradores) y si ya se cobró: lo único que se escribe es la cantidad. La leche y los animales vendidos no se
  * registran aquí: entran solos desde Leche → Despachos y desde la baja del animal.
  */
-export function FormVenta({ hoy, productos, terceros, venta, solicitud }: { hoy: string; productos: Producto[]; terceros: Tercero[]; venta?: Venta; solicitud?: string }) {
+export function FormVenta({ hoy, productos, terceros, venta, solicitud, ivaDefecto = null }: { hoy: string; productos: Producto[]; terceros: Tercero[]; venta?: Venta; solicitud?: string; /** El IVA predeterminado de la finca: se escribe solo en una venta nueva. */ ivaDefecto?: number | null }) {
   const editando = Boolean(venta);
   const [estado, enviar, pendiente] = useActionState(editando ? editarVenta : crearVenta, undefined);
   const [, iniciar] = useTransition();
@@ -122,7 +122,7 @@ export function FormVenta({ hoy, productos, terceros, venta, solicitud }: { hoy:
             </Campo>
           )}
 
-          <CampoIva total={total} inicial={venta?.iva_tarifa} />
+          <CampoIva total={total} inicial={venta ? venta.iva_tarifa : ivaDefecto} />
 
           <Campo etiqueta="Observaciones" ayuda="Opcional.">
             {(id) => <textarea id={id} name="observaciones" defaultValue={venta?.observaciones ?? ""} rows={2} maxLength={1000} className={`${CLASE_INPUT} py-3`} />}

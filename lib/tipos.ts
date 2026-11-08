@@ -86,6 +86,9 @@ export type Baja = {
   destino_consumo: boolean;
   peso_kg: number | null;
   valor: number | null;
+  /** IVA opcional de la venta (el valor ya lo incluye). */
+  iva_tarifa: number | null;
+  iva_valor: number | null;
   guia_movilizacion: string | null;
   detalle: string | null;
   created_by: string | null;
@@ -1043,6 +1046,9 @@ export type DespachoLeche = {
   precio_litro: number | null;
   /** Generada por la base: litros × precio por litro. */
   valor_total: number | null;
+  /** IVA opcional: porcentaje escrito y parte del valor que es IVA (el valor ya lo incluye). */
+  iva_tarifa: number | null;
+  iva_valor: number | null;
   temperatura_c: number | null;
   observaciones: string | null;
   client_request_id: string | null;

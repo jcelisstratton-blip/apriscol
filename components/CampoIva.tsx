@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Campo, CLASE_INPUT } from "@/components/Campo";
 import { pesos } from "@/lib/ferias";
 import { IMPUESTO, ivaIncluido } from "@/lib/impuestos";
@@ -12,8 +12,10 @@ const coma = (n: number | null | undefined) => (n == null ? "" : String(n).repla
  * El IVA de una compra o de una venta: opcional. La persona escribe el porcentaje (el que dice su factura) y se le muestra cuánto del total es
  * impuesto, suponiendo que el total ya lo incluye. Vacío = no se registra. La tarifa no se propone: cambia por ley y hay productos sin IVA.
  */
-export function CampoIva({ total, inicial }: { total: number | null; inicial?: number | null }) {
+export function CampoIva({ total, inicial, onCambio }: { total: number | null; inicial?: number | null; /** Para los formularios que no envían un <form>: recibe el texto escrito. */ onCambio?: (texto: string) => void }) {
   const [texto, setTexto] = useState(coma(inicial));
+  // El valor precargado también cuenta: quien controla el formulario a mano lo recibe desde el primer momento.
+  useEffect(() => onCambio?.(coma(inicial)), []); // eslint-disable-line react-hooks/exhaustive-deps
   const tarifa = leerNumero(texto);
   const invalida = texto.trim() !== "" && (tarifa === null || tarifa < 0 || tarifa > 100);
   const iva = !invalida && total !== null ? ivaIncluido(total, tarifa) : null;
@@ -26,7 +28,7 @@ export function CampoIva({ total, inicial }: { total: number | null; inicial?: n
       {(id) => (
         <div className="space-y-2">
           <div className="flex items-center gap-2">
-            <input id={id} name="iva_tarifa" value={texto} onChange={(e) => setTexto(e.target.value)} inputMode="decimal" autoComplete="off" enterKeyHint="next" placeholder="Ej. 19" aria-invalid={invalida} className={`${CLASE_INPUT} max-w-32`} />
+            <input id={id} name="iva_tarifa" value={texto} onChange={(e) => { setTexto(e.target.value); onCambio?.(e.target.value); }} inputMode="decimal" autoComplete="off" enterKeyHint="next" placeholder="Ej. 19" aria-invalid={invalida} className={`${CLASE_INPUT} max-w-32`} />
             <span className="text-base font-semibold text-humo" aria-hidden="true">%</span>
           </div>
           {iva !== null && total !== null ? (

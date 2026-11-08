@@ -49,6 +49,7 @@ export function FormGasto({
   productosVet,
   conSanidad,
   conInventario = false,
+  ivaDefecto = null,
 }: {
   fincaId: string;
   especies: Especie[];
@@ -77,6 +78,8 @@ export function FormGasto({
   conSanidad: boolean;
   /** El plan incluye el inventario de bodega: la compra avisa si no va a sumar. */
   conInventario?: boolean;
+  /** El IVA predeterminado de la finca (Ajustes → Dinero e impuestos): se escribe solo en una compra nueva. */
+  ivaDefecto?: number | null;
 }) {
   const editando = Boolean(gasto);
   const [estado, enviar, pendiente] = useActionState(editando ? editarGasto : crearGasto, undefined);
@@ -381,7 +384,7 @@ export function FormGasto({
         </p>
       )}
 
-      <CampoIva total={total ?? null} inicial={gasto?.iva_tarifa} />
+      <CampoIva total={total ?? null} inicial={gasto ? gasto.iva_tarifa : ivaDefecto} />
 
       <Campo etiqueta="Observaciones" ayuda="Opcional.">
         {(id) => <textarea id={id} name="observaciones" defaultValue={gasto?.observaciones ?? ""} rows={2} maxLength={1000} className={`${CLASE_INPUT} py-3`} />}

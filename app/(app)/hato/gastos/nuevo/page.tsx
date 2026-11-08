@@ -7,6 +7,7 @@ import { Encabezado } from "@/components/Encabezado";
 import { FormGasto } from "@/components/FormGasto";
 import { moduloEnPlan, servicioEnPlan } from "@/lib/planes";
 import { obtenerContexto } from "@/lib/contexto";
+import { obtenerAjustes } from "@/lib/ajustes-servidor";
 import { obtenerProductos, obtenerTerceros } from "@/lib/catalogos-servidor";
 import { crearClienteServidor } from "@/lib/supabase/server";
 import { puedeEscribir } from "@/lib/permisos";
@@ -75,6 +76,7 @@ export default async function PaginaGastoNuevo({ searchParams }: { searchParams:
           productosVet={productosVet ?? []}
           conSanidad={conSanidad}
           conInventario={moduloEnPlan(finca.plan, "inventario")}
+          ivaDefecto={(await obtenerAjustes()).general.iva_tarifa_defecto}
         />
       </div>
     </>

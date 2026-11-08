@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Aviso } from "@/components/Aviso";
 import { Boton, clasesBoton } from "@/components/Boton";
 import { Campo, CLASE_INPUT } from "@/components/Campo";
+import { CampoIva } from "@/components/CampoIva";
 import { SelectorTarjetas } from "@/components/SelectorTarjetas";
 import { SelectorTercero } from "@/components/SelectorTercero";
 import { crearDespacho, editarDespacho } from "@/app/(app)/leche/gestion";
@@ -23,6 +24,7 @@ export function FormDespacho({
   solicitud,
   terceros,
   precioHabitual,
+  ivaDefecto = null,
 }: {
   hoy: string;
   despacho?: DespachoLeche;
@@ -31,6 +33,8 @@ export function FormDespacho({
   terceros: Tercero[];
   /** El último precio por litro al que se vendió leche: se propone en un despacho nuevo. */
   precioHabitual?: number | null;
+  /** El IVA predeterminado de la finca: se escribe solo en un despacho nuevo. */
+  ivaDefecto?: number | null;
 }) {
   const editando = Boolean(despacho);
   const [estado, enviar, pendiente] = useActionState(editando ? editarDespacho : crearDespacho, undefined);
@@ -87,6 +91,7 @@ export function FormDespacho({
         )}
       </Campo>
       {total > 0 ? <p className="-mt-2 text-sm font-semibold">Valor del despacho: {pesos(total)}</p> : null}
+      {total > 0 ? <CampoIva total={total} inicial={despacho ? despacho.iva_tarifa : ivaDefecto} /> : null}
 
       {total > 0 ? (
         <>
