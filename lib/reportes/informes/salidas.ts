@@ -5,6 +5,7 @@ import { traerTodo } from "@/lib/consultas";
 import type { AnimalBase, ContextoReporte } from "@/lib/reportes/base";
 import { suma } from "@/lib/reportes/calculos";
 import { cifra } from "@/lib/reportes/formato";
+import { dinero } from "@/lib/moneda";
 import type { FilaReporte, Indicador, ResultadoReporte, TonoFila } from "@/lib/reportes/tipos";
 import type { Baja } from "@/lib/tipos";
 
@@ -18,6 +19,8 @@ export type DatosSalidas = {
   animales: Map<string, AnimalBase>;
   especie: (a: AnimalBase) => boolean;
   truncado: boolean;
+  /** La moneda de la finca; sin ella, pesos colombianos. */
+  moneda?: string;
 };
 
 const TONO: Record<Baja["tipo"], TonoFila> = { venta: "ok", muerte: "alerta", sacrificio: "neutro", perdida: "alerta" };
@@ -63,7 +66,7 @@ export function construirSalidas(d: DatosSalidas): ResultadoReporte {
   ];
   if (d.conValores) {
     const vendido = suma(delPeriodo.filter((s) => s.tipo === "venta").map((s) => Number(s.valor ?? 0)));
-    indicadores.push({ etiqueta: "Valor vendido", valor: `$ ${cifra(vendido)}` });
+    indicadores.push({ etiqueta: "Valor vendido", valor: dinero(vendido, d.moneda) });
   }
 
   return {
@@ -104,5 +107,6 @@ export async function informeSalidas(c: ContextoReporte): Promise<ResultadoRepor
     animales: animales.porId,
     especie: (a) => pasaEspecie(c, a.especie),
     truncado: salidas.truncado || animales.truncado,
+    moneda: c.moneda,
   });
 }

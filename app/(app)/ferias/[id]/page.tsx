@@ -86,6 +86,7 @@ export default async function DetalleFeria({ params, searchParams }: { params: P
           {lista.map((p) => (
             <li key={p.id} className="min-w-0">
               <FilaParticipacion
+                moneda={finca.moneda}
                 p={p}
                 titulo={nombres.get(p.animal_id) ?? "Animal"}
                 enlace={`/hato/${p.animal_id}`}

@@ -108,6 +108,8 @@ export type Finca = {
   proposito: Vocacion;
   umbral_endogamia: number;
   zona_horaria: string;
+  /** Moneda de la finca (ISO 4217, de fábrica COP): con ella se escribe todo el dinero. Ver `lib/moneda.ts`. */
+  moneda: string;
   plan: PlanId;
   /** Último día pagado del plan (null: sin vencimiento registrado). */
   plan_vence_en: string | null;

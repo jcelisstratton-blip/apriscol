@@ -54,6 +54,7 @@ export async function GET(req: NextRequest) {
     periodoTexto: TEXTO_PERIODO[periodo],
     filtros: [],
     generado: new Date(),
+    moneda: finca.moneda,
   };
 
   /** Todo el detalle del periodo, por páginas (la base devuelve hasta 5.000 filas por llamada). */

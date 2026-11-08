@@ -4,7 +4,7 @@ import { Tarjeta } from "@/components/Tarjeta";
 import { puedeEscribir, puedeGestionar, puedeVer } from "@/lib/permisos";
 import { clasesBoton } from "@/components/Boton";
 import { formatoFecha, litros } from "@/lib/fechas";
-import { pesos } from "@/lib/ferias";
+import { dinero } from "@/lib/moneda";
 import { ETIQUETA_MOTIVO_BAJA, ETIQUETA_TIPO_BAJA } from "@/lib/bajas";
 import { DeshacerBaja } from "@/components/DeshacerBaja";
 import { CobroVenta } from "@/components/CobroVenta";
@@ -40,7 +40,7 @@ export async function TarjetaSalida({ c }: { c: CtxFicha }) {
           <Dato etiqueta="Fecha">{formatoFecha(baja.data?.fecha ?? animal.fecha_baja)}</Dato>
           {baja.data?.motivo ? <Dato etiqueta="Motivo">{ETIQUETA_MOTIVO_BAJA[baja.data.motivo]}</Dato> : null}
           {baja.data?.comprador ? <Dato etiqueta="Comprador">{baja.data.comprador}</Dato> : null}
-          {baja.data?.valor ? <Dato etiqueta="Valor">{pesos(baja.data.valor)}</Dato> : null}
+          {baja.data?.valor ? <Dato etiqueta="Valor">{dinero(baja.data.valor, finca.moneda)}</Dato> : null}
           {baja.data?.peso_kg ? <Dato etiqueta="Peso en vivo">{kg(baja.data.peso_kg)}</Dato> : null}
           {baja.data?.guia_movilizacion ? <Dato etiqueta="Guía de movilización">{baja.data.guia_movilizacion}</Dato> : null}
           {baja.data?.destino ? <Dato etiqueta={baja.data.tipo === "sacrificio" ? "Lugar del beneficio" : "Destino"}>{baja.data.destino}</Dato> : null}

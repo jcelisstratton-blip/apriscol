@@ -15,7 +15,7 @@ import { SubirSoporte } from "@/components/SubirSoporte";
 import { crearGasto, editarGasto } from "@/app/(app)/hato/gastos/actions";
 import { DESTINOS, DETALLE_DESTINO, DETALLE_GRUPO, ETIQUETA_DESTINO, ETIQUETA_GRUPO, ETIQUETA_PAGO, ETIQUETA_RUBRO, GRUPO_DE, GRUPOS, RUBROS_CON_LOTE, RUBROS_DE, RUBROS_LOTE_OBLIGATORIO, UNIDADES_GASTO, UNIDAD_SUGERIDA, type EstadoPago, type GrupoGasto } from "@/lib/costos";
 import { ESCENA_DESTINO_GASTO, ESCENA_ESPECIE, ESCENA_GRUPO_GASTO, ESCENA_PAGO, ESCENA_RUBRO } from "@/lib/escenas-costos";
-import { pesos } from "@/lib/ferias";
+import { useDinero, useMoneda } from "@/components/ProveedorMoneda";
 import { avisoCompraInventario } from "@/lib/inventario-alimento";
 import { leerNumero } from "@/lib/numeros";
 import { comprasDeGrupo, textoPrecio } from "@/lib/productos";
@@ -81,6 +81,8 @@ export function FormGasto({
   /** El IVA predeterminado de la finca (Ajustes → Dinero e impuestos): se escribe solo en una compra nueva. */
   ivaDefecto?: number | null;
 }) {
+  const dinero = useDinero();
+  const moneda = useMoneda();
   const editando = Boolean(gasto);
   const [estado, enviar, pendiente] = useActionState(editando ? editarGasto : crearGasto, undefined);
   const [, iniciar] = useTransition();
@@ -255,7 +257,7 @@ export function FormGasto({
           </div>
           {totalLista ? (
             <p className="-mt-2 rounded-2xl bg-lana px-4 py-3 text-[0.9375rem]">
-              Total de la compra: <span className="font-display text-lg font-semibold tabular-nums">{pesos(totalLista)}</span>
+              Total de la compra: <span className="font-display text-lg font-semibold tabular-nums">{dinero(totalLista)}</span>
             </p>
           ) : null}
           <Campo etiqueta="Fecha de la compra">
@@ -265,7 +267,7 @@ export function FormGasto({
       ) : producto === "otro" ? (
         <>
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-            <Campo etiqueta="Valor total" ayuda={porUnidad ? `${pesos(porUnidad)} por ${unidad || "unidad"}` : "En pesos, lo que costó todo."}>
+            <Campo etiqueta="Valor total" ayuda={porUnidad ? `${dinero(porUnidad)} por ${unidad || "unidad"}` : `En ${moneda.codigo}, lo que costó todo.`}>
               {(id) => <input id={id} name="monto" value={monto} onChange={(e) => setMonto(e.target.value)} required inputMode="decimal" autoComplete="off" enterKeyHint="next" placeholder="Ej. 1.250.000" className={CLASE_INPUT} />}
             </Campo>
             <Campo etiqueta="Fecha de la compra">

@@ -12,7 +12,7 @@ import { marcarPagoPersonal } from "@/app/(app)/personal/actions";
 import { ESCENA_PAGO, ESCENA_TODAS_LINEAS } from "@/lib/escenas-costos";
 import { direccionSoporte } from "@/lib/soportes";
 import { formatoFecha } from "@/lib/fechas";
-import { pesos } from "@/lib/ferias";
+import { useDinero } from "@/components/ProveedorMoneda";
 import { UNIDAD_PAGO } from "@/lib/nomina";
 import { crearClienteNavegador } from "@/lib/supabase/client";
 import type { PagoPersonal, Persona } from "@/lib/tipos";
@@ -25,6 +25,7 @@ const textoNumero = (n: number) => String(Number(n)).replace(".", ",");
  * de servicios se le pide antes el PILA, y eso se hace al corregir el pago). Pagina en el servidor.
  */
 export function ListaPagosPersonal({ fincaId, personal, puedeEditar }: { fincaId: string; personal: Persona[]; puedeEditar: boolean }) {
+  const dinero = useDinero();
   const toast = useToast();
   const [filtro, setFiltro] = useState<Filtro>("todos");
   const [version, setVersion] = useState(0);
@@ -86,12 +87,12 @@ export function ListaPagosPersonal({ fincaId, personal, puedeEditar }: { fincaId
                     {formatoFecha(p.fecha, { day: "numeric", month: "short", year: "numeric" })} · {cuenta}
                   </p>
                 </div>
-                <p className="shrink-0 text-right font-display text-lg font-semibold tabular-nums">{pesos(Number(p.costo_total))}</p>
+                <p className="shrink-0 text-right font-display text-lg font-semibold tabular-nums">{dinero(Number(p.costo_total))}</p>
               </div>
               <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
                 {p.pagado_en ? <Insignia tono="ok">Pagado</Insignia> : <Insignia tono="aviso">Por pagar</Insignia>}
                 <Insignia tono="neutro">{persona?.vinculacion === "servicios" ? "Prestación de servicios" : "Contrato de trabajo"}</Insignia>
-                {Number(p.factor) > 1 ? <span className="text-xs text-humo">recibe {pesos(Number(p.valor_pago))} · cargas ×{String(Number(p.factor)).replace(".", ",")}</span> : null}
+                {Number(p.factor) > 1 ? <span className="text-xs text-humo">recibe {dinero(Number(p.valor_pago))} · cargas ×{String(Number(p.factor)).replace(".", ",")}</span> : null}
               </div>
               {p.soporte_pila ? (
                 <p className="mt-1 text-sm">

@@ -79,12 +79,12 @@ export default async function PaginaHato({ searchParams }: { searchParams: Promi
       ) : enGastos ? (
         <div className="space-y-4">
           <TarjetasHato especies={finca.especies} vistas={vistas} conteos={conteos} vistaActiva="gastos" />
-          <Gastos fincaId={finca.id} puedeEditar={puedeEscribir(rol, "contabilidad", finca.plan)} guardado={sp.guardado === "1"} />
+          <Gastos moneda={finca.moneda} fincaId={finca.id} puedeEditar={puedeEscribir(rol, "contabilidad", finca.plan)} guardado={sp.guardado === "1"} />
         </div>
       ) : enVentas ? (
         <div className="space-y-4">
           <TarjetasHato especies={finca.especies} vistas={vistas} conteos={conteos} vistaActiva="ventas" />
-          <Ventas fincaId={finca.id} puedeEditar={puedeEscribir(rol, "contabilidad", finca.plan)} guardado={sp.guardado === "1"} />
+          <Ventas moneda={finca.moneda} fincaId={finca.id} puedeEditar={puedeEscribir(rol, "contabilidad", finca.plan)} guardado={sp.guardado === "1"} />
         </div>
       ) : enOrdeno ? (
         <div className="space-y-4">

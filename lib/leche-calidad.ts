@@ -46,9 +46,6 @@ export const ETIQUETA_DESTINO: Record<DestinoLeche, string> = {
   otro: "Otro",
 };
 
-export const pesos = (n: number | null | undefined) =>
-  n == null ? "—" : n.toLocaleString("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 });
-
 // ───────────────────────── Equipo de ordeño ─────────────────────────
 export const TIPOS_MANTENIMIENTO: TipoMantenimiento[] = ["lavado_alcalino", "lavado_acido", "presion_vacio", "pulsadores", "revision", "otro"];
 export const ETIQUETA_MANTENIMIENTO: Record<TipoMantenimiento, string> = {

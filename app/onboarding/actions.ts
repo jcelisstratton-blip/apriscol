@@ -9,6 +9,7 @@ import { obtenerContexto, obtenerUsuario } from "@/lib/contexto";
 import { puedeAgregarFinca, puedeGestionar } from "@/lib/permisos";
 import { mensajeAmigable } from "@/lib/mensaje-amigable";
 import type { RolFinca } from "@/lib/tipos";
+import { esMonedaValida } from "@/lib/moneda";
 import { BUCKET_LOGOS, TIPOS_LOGO, rutaLogoValida } from "@/lib/logo-finca";
 
 export type EstadoFinca = { error?: string } | undefined;
@@ -19,6 +20,7 @@ const esquema = z.object({
   municipio: z.string().trim().max(80).optional(),
   vereda: z.string().trim().max(80).optional(),
   proposito: z.enum(["leche", "carne", "doble"]),
+  moneda: z.string().refine(esMonedaValida, "Elige la moneda de tu finca."),
   especies: z.array(z.enum(["caprino", "ovino"])).min(1, "Elige al menos una especie."),
 });
 
@@ -30,6 +32,7 @@ export async function crearFinca(_: EstadoFinca, form: FormData): Promise<Estado
     municipio: form.get("municipio") || undefined,
     vereda: form.get("vereda") || undefined,
     proposito: form.get("proposito"),
+    moneda: form.get("moneda") || "COP",
     especies: form.getAll("especies"),
   });
   if (!datos.success) return { error: datos.error.issues[0]?.message };
@@ -78,6 +81,7 @@ export async function editarFinca(_: EstadoFinca, form: FormData): Promise<Estad
     municipio: form.get("municipio") || undefined,
     vereda: form.get("vereda") || undefined,
     proposito: form.get("proposito"),
+    moneda: form.get("moneda") || "COP",
     especies: form.getAll("especies"),
   });
   if (!datos.success) return { error: datos.error.issues[0]?.message };
@@ -104,7 +108,7 @@ export async function editarFinca(_: EstadoFinca, form: FormData): Promise<Estad
 
   const { error } = await supabase
     .from("fincas")
-    .update({ nombre: d.nombre, departamento: d.departamento ?? null, municipio: d.municipio ?? null, vereda: d.vereda ?? null, proposito: d.proposito, especies: d.especies, logo_path: logoNuevo })
+    .update({ nombre: d.nombre, departamento: d.departamento ?? null, municipio: d.municipio ?? null, vereda: d.vereda ?? null, proposito: d.proposito, moneda: d.moneda, especies: d.especies, logo_path: logoNuevo })
     .eq("id", finca.id);
   if (error) return { error: mensajeAmigable(error.message) };
 

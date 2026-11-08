@@ -8,7 +8,7 @@ import { ListaPremios } from "@/components/ListaPremios";
 import { obtenerContexto } from "@/lib/contexto";
 import { crearClienteServidor } from "@/lib/supabase/server";
 import { puedeEscribir, puedeVer } from "@/lib/permisos";
-import { pesos } from "@/lib/ferias";
+import { dinero } from "@/lib/moneda";
 
 export const metadata: Metadata = { title: "Premios" };
 
@@ -34,7 +34,7 @@ export default async function PaginaPremios({ searchParams }: { searchParams: Pr
     ["Premios", String(totales?.premios ?? 0)],
     ["Campeonatos", String(totales?.campeonatos ?? 0)],
   ];
-  const dinero = Number(totales?.dinero ?? 0);
+  const premiosEnDinero = Number(totales?.dinero ?? 0);
 
   return (
     <>
@@ -50,10 +50,10 @@ export default async function PaginaPremios({ searchParams }: { searchParams: Pr
               </div>
             ))}
           </dl>
-          {dinero > 0 || (totales?.animales_premiados ?? 0) > 0 ? (
+          {premiosEnDinero > 0 || (totales?.animales_premiados ?? 0) > 0 ? (
             <p className="mt-3 border-t border-arena pt-3 text-center text-sm text-humo [overflow-wrap:anywhere]">
               {totales?.animales_premiados ?? 0} {(totales?.animales_premiados ?? 0) === 1 ? "animal premiado" : "animales premiados"}
-              {dinero > 0 ? <> · <span className="font-semibold text-tinta">{pesos(dinero)}</span> en premios</> : null}
+              {premiosEnDinero > 0 ? <> · <span className="font-semibold text-tinta">{dinero(premiosEnDinero, finca.moneda)}</span> en premios</> : null}
             </p>
           ) : null}
         </section>

@@ -2264,6 +2264,7 @@ export type Database = {
       }
       fincas: {
         Row: {
+          moneda: string
           activada_en: string | null
           created_at: string
           created_by: string | null
@@ -2284,6 +2285,7 @@ export type Database = {
           zona_horaria: string
         }
         Insert: {
+          moneda?: string
           activada_en?: string | null
           created_at?: string
           created_by?: string | null
@@ -2304,6 +2306,7 @@ export type Database = {
           zona_horaria?: string
         }
         Update: {
+          moneda?: string
           activada_en?: string | null
           created_at?: string
           created_by?: string | null

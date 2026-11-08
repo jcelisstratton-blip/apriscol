@@ -28,7 +28,7 @@ export default async function PaginaSemaforos({ searchParams }: { searchParams: 
   const supabase = await crearClienteServidor();
   const hoy = hoyBogota();
   const ajustes = await obtenerAjustes();
-  const todas = await cargarSemaforos({ supabase, fincaId: finca.id, rol, plan: finca.plan, hoy, ajustes });
+  const todas = await cargarSemaforos({ supabase, fincaId: finca.id, rol, plan: finca.plan, hoy, ajustes, moneda: finca.moneda });
   const senales = area ? todas.filter((s) => s.area === area) : todas;
   const c = contarSenales(senales);
 

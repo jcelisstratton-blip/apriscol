@@ -15,7 +15,7 @@ import { crearClienteNavegador } from "@/lib/supabase/client";
 import { etiquetaAnimal } from "@/lib/animal";
 import { kg } from "@/lib/carne";
 import { formatoFecha } from "@/lib/fechas";
-import { pesos } from "@/lib/leche-calidad";
+import { useDinero } from "@/components/ProveedorMoneda";
 import type { Baja, ControlCalidad } from "@/lib/tipos";
 
 type FilaSalida = Baja & { animal?: { numero_arete: string; nombre: string | null }; controles?: ControlCalidad[] };
@@ -26,6 +26,7 @@ type Filtro = "todas" | "sacrificio" | "consumo" | "pie";
  * el sistema ya verificó que no estuviera en periodo de retiro de carne (no deja registrarlo si lo está).
  */
 export function ListaSalidas({ fincaId, puedeEditar }: { fincaId: string; puedeEditar: boolean }) {
+  const dinero = useDinero();
   const [busqueda, setBusqueda] = useState("");
   const [filtro, setFiltro] = useState<Filtro>("todas");
   const alBuscar = useCallback((t: string) => setBusqueda(t), []);
@@ -88,7 +89,7 @@ export function ListaSalidas({ fincaId, puedeEditar }: { fincaId: string; puedeE
                 {b.destino ? ` · ${b.destino}` : ""}
               </span>
               <span className="block text-sm text-humo [overflow-wrap:anywhere]">
-                {[b.peso_kg ? `${kg(b.peso_kg)} en vivo` : null, b.guia_movilizacion ? `Guía ${b.guia_movilizacion}` : null, b.valor ? pesos(b.valor) : null].filter(Boolean).join(" · ")}
+                {[b.peso_kg ? `${kg(b.peso_kg)} en vivo` : null, b.guia_movilizacion ? `Guía ${b.guia_movilizacion}` : null, b.valor ? dinero(b.valor) : null].filter(Boolean).join(" · ")}
               </span>
               <span className="mt-1.5 flex flex-wrap gap-1.5">
                 <Insignia tono={b.tipo === "sacrificio" ? "alerta" : "musgo"}>{b.tipo === "sacrificio" ? "Sacrificio" : b.destino_consumo ? "Venta para consumo" : "Venta en pie"}</Insignia>

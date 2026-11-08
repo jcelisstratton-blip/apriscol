@@ -1,5 +1,6 @@
 import ExcelJS from "exceljs";
 import { COLOR, FMT, aFechaExcel, escribirEncabezados, escribirTitulo, limpiarNombreArchivo, textoFecha } from "@/lib/excel-estilo";
+import { formatoExcelDinero } from "@/lib/moneda";
 import type { Columna, ReporteDef, ResultadoReporte } from "@/lib/reportes/tipos";
 
 export type DatosLibro = {
@@ -10,10 +11,12 @@ export type DatosLibro = {
   periodo: { texto: string; desde: string | null; hasta: string | null } | null;
   filtros: string[];
   hoy: string;
+  /** La moneda de la finca; sin ella, pesos colombianos. */
+  moneda?: string;
   generado: Date;
 };
 
-function formatoExcel(c: Columna): string | undefined {
+function formatoExcel(c: Columna, moneda?: string): string | undefined {
   switch (c.tipo) {
     case "fecha":
       return FMT.fecha;
@@ -24,7 +27,7 @@ function formatoExcel(c: Columna): string | undefined {
     case "porcentaje":
       return FMT.porcentaje;
     case "pesos":
-      return FMT.pesos;
+      return formatoExcelDinero(moneda);
     default:
       return undefined;
   }
@@ -74,7 +77,7 @@ export async function construirLibroReporte(d: DatosLibro): Promise<Buffer> {
     cols.forEach((c, i) => {
       const celda = row.getCell(i + 1);
       celda.value = valorCelda(c, fila.valores[c.clave] ?? null);
-      const f = formatoExcel(c);
+      const f = formatoExcel(c, d.moneda);
       if (f) celda.numFmt = f;
       celda.alignment = { vertical: "top", horizontal: c.tipo === "texto" ? "left" : "right", wrapText: c.tipo === "texto" };
       celda.border = { bottom: { style: "hair", color: { argb: COLOR.arena } } };

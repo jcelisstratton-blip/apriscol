@@ -17,7 +17,7 @@ import { puedeEscribir, puedeVer } from "@/lib/permisos";
 import { etiquetaAnimal } from "@/lib/animal";
 import { formatoFecha } from "@/lib/fechas";
 import { conversion, gdp, kg, textoConversion } from "@/lib/carne";
-import { pesos } from "@/lib/leche-calidad";
+import { dinero } from "@/lib/moneda";
 
 export const metadata: Metadata = { title: "Lote de ceba" };
 const ID_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -100,8 +100,8 @@ export default async function PaginaLote({ params, searchParams }: { params: Pro
             {lote.peso_meta_kg != null ? <Insignia tono={(e?.listos ?? 0) > 0 ? "ok" : "neutro"}>{`Meta ${kg(lote.peso_meta_kg)} · ${e?.listos ?? 0} ${(e?.listos ?? 0) === 1 ? "listo" : "listos"}`}</Insignia> : <span>Sin peso meta: edítalo para ver cuáles animales están listos.</span>}
             {kgAlimento > 0 ? (
               <span>
-                {kg(kgAlimento)} de alimento{costo > 0 ? ` · ${pesos(costo)}` : ""}
-                {costo > 0 && kgGanados > 0 ? ` · ${pesos(costo / kgGanados)} por kg ganado` : ""}
+                {kg(kgAlimento)} de alimento{costo > 0 ? ` · ${dinero(costo, finca.moneda)}` : ""}
+                {costo > 0 && kgGanados > 0 ? ` · ${dinero(costo / kgGanados, finca.moneda)} por kg ganado` : ""}
               </span>
             ) : null}
           </div>

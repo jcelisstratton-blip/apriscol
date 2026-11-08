@@ -20,6 +20,7 @@ import { ANESTESIAS, CATEGORIAS, COJERAS, diasSugeridosProxima, ETAPAS, MOTIVOS,
 import { ETIQUETA_EVENTO, ETIQUETA_PRODUCTO, ETIQUETA_VIA, TIPOS_EVENTO, UNIDADES_DOSIS, VIAS, textoRetiro } from "@/lib/sanidad";
 import type { VeterinarioRef } from "@/lib/veterinarios";
 import type { Especie, ProductoVeterinario, TipoEvento, ViaAplicacion } from "@/lib/tipos";
+import { useMoneda } from "@/components/ProveedorMoneda";
 
 /** Los datos de un evento, para corregirlo o para proponer la siguiente aplicación de uno anterior. */
 export type DatosEvento = {
@@ -110,6 +111,7 @@ export function FormEvento({
   /** Quien puede registrar compras ve el enlace para agregar el lote que falta. */
   puedeComprar: boolean;
 }) {
+  const moneda = useMoneda();
   const editando = Boolean(datos?.id);
   const [estado, enviar, pendiente] = useActionState(editando ? editarEvento : crearEvento, undefined);
   const [, iniciar] = useTransition();
@@ -559,7 +561,7 @@ export function FormEvento({
               </Campo>
             </>
           ) : null}
-          <Campo etiqueta="Costo" ayuda="Opcional, en pesos.">
+          <Campo etiqueta="Costo" ayuda={`Opcional, en ${moneda.codigo}.`}>
             {(id) => <input id={id} name="costo" defaultValue={coma(datos?.costo)} inputMode="decimal" autoComplete="off" className={CLASE_INPUT} placeholder="0" />}
           </Campo>
         </div>

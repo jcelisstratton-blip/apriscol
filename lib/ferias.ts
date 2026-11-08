@@ -39,6 +39,3 @@ export const TIPOS_FOTO: Record<string, "jpg" | "png" | "webp"> = {
   "image/webp": "webp",
 };
 
-export function pesos(n: number | null | undefined): string {
-  return new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 }).format(n ?? 0);
-}

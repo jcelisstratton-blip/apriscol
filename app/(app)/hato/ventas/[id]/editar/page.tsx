@@ -8,7 +8,7 @@ import { FormVenta } from "@/components/FormVenta";
 import { obtenerContexto } from "@/lib/contexto";
 import { obtenerProductos, obtenerTerceros } from "@/lib/catalogos-servidor";
 import { formatoFecha, hoyBogota } from "@/lib/fechas";
-import { pesos } from "@/lib/ferias";
+import { dinero } from "@/lib/moneda";
 import { puedeEscribir, puedeGestionar } from "@/lib/permisos";
 import { ventasManuales } from "@/lib/productos";
 import { crearClienteServidor } from "@/lib/supabase/server";
@@ -40,7 +40,7 @@ export default async function PaginaVentaEditar({ params }: { params: Promise<{ 
         {puedeGestionar(rol) ? (
           <EliminarRegistro
             etiqueta="Eliminar esta venta"
-            resumen={`${producto?.nombre ?? "Venta"} (${pesos(venta.valor_total)}) del ${formatoFecha(venta.fecha)}`}
+            resumen={`${producto?.nombre ?? "Venta"} (${dinero(venta.valor_total, finca.moneda)}) del ${formatoFecha(venta.fecha)}`}
             accion={eliminarVenta.bind(null, id)}
             destino="/hato?vista=ventas"
             mensaje="Venta eliminada"

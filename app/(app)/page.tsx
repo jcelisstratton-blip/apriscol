@@ -21,7 +21,7 @@ import { crearClienteServidor } from "@/lib/supabase/server";
 import { destinoNovedades, puedeEscribir, puedeVer } from "@/lib/permisos";
 import { diasHasta, formatoFecha, hoyBogota, litros, sumarDias } from "@/lib/fechas";
 import { etiquetaAnimal, saludo } from "@/lib/animal";
-import { pesos } from "@/lib/ferias";
+import { dinero } from "@/lib/moneda";
 import { IconoEvento } from "@/components/IconoEvento";
 import { ETIQUETA_EVENTO, estadoDosis, estadoFechaPrograma, nombreEvento } from "@/lib/sanidad";
 import type { CandidatoCeba, CuarentenaAlerta, ProgramaSanitarioResumen, SanidadPendiente, ServicioConParto, TipoEvento, UbicacionVista } from "@/lib/tipos";
@@ -134,7 +134,7 @@ export default async function PaginaHoy({ searchParams }: { searchParams: Promis
 
   // Semáforos: solo lo que le toca a su rol (el veterinario, reproducción y sanidad); si algo falla no debe tumbar la pantalla de inicio.
   const senalesHoy = hato > 0 && areasSemaforo(rol, finca.plan).length > 0
-    ? await cargarSemaforos({ supabase, fincaId: finca.id, rol, plan: finca.plan, hoy, ajustes: await obtenerAjustes() }).catch(() => null)
+    ? await cargarSemaforos({ supabase, fincaId: finca.id, rol, plan: finca.plan, hoy, ajustes: await obtenerAjustes(), moneda: finca.moneda }).catch(() => null)
     : null;
 
   // Novedades nuevas del equipo (solo quien las revisa); si falla no debe tumbar la pantalla de inicio.
@@ -314,7 +314,7 @@ export default async function PaginaHoy({ searchParams }: { searchParams: Promis
 
           {gastosVencidos.length > 0 ? (
             <Tarjeta titulo="Compras por pagar vencidas" acciones={<Link href="/hato?vista=gastos" className="text-sm font-semibold text-musgo">Ver Hato → Compras</Link>}>
-              <p className="font-display text-2xl font-semibold tabular-nums">{pesos(gastosVencidos.reduce((s, g) => s + Number(g.monto), 0))}</p>
+              <p className="font-display text-2xl font-semibold tabular-nums">{dinero(gastosVencidos.reduce((s, g) => s + Number(g.monto), 0), finca.moneda)}</p>
               <ul className="mt-2 divide-y divide-arena">
                 {gastosVencidos.slice(0, 4).map((g) => (
                   <li key={g.id} className="flex items-center justify-between gap-3 py-2">
@@ -322,7 +322,7 @@ export default async function PaginaHoy({ searchParams }: { searchParams: Promis
                       <span className="block font-medium [overflow-wrap:anywhere]">{g.descripcion}</span>
                       <span className="block text-sm text-humo">Venció hace {-diasHasta(g.vence!, hoy)} {-diasHasta(g.vence!, hoy) === 1 ? "día" : "días"}</span>
                     </span>
-                    <span className="shrink-0 font-semibold tabular-nums">{pesos(Number(g.monto))}</span>
+                    <span className="shrink-0 font-semibold tabular-nums">{dinero(Number(g.monto), finca.moneda)}</span>
                   </li>
                 ))}
               </ul>
@@ -332,7 +332,7 @@ export default async function PaginaHoy({ searchParams }: { searchParams: Promis
 
           {cobrosVencidos.length > 0 ? (
             <Tarjeta titulo="Ventas por cobrar vencidas" acciones={<Link href="/hato?vista=ventas" className="text-sm font-semibold text-musgo">Ver Hato → Ventas</Link>}>
-              <p className="font-display text-2xl font-semibold tabular-nums">{pesos(cobrosVencidos.reduce((s, v) => s + Number(v.valor), 0))}</p>
+              <p className="font-display text-2xl font-semibold tabular-nums">{dinero(cobrosVencidos.reduce((s, v) => s + Number(v.valor), 0), finca.moneda)}</p>
               <ul className="mt-2 divide-y divide-arena">
                 {cobrosVencidos.slice(0, 4).map((v) => (
                   <li key={`${v.origen}-${v.origen_id}`} className="flex items-center justify-between gap-3 py-2">
@@ -340,7 +340,7 @@ export default async function PaginaHoy({ searchParams }: { searchParams: Promis
                       <span className="block font-medium [overflow-wrap:anywhere]">{v.producto}{v.tercero ? ` · ${v.tercero}` : ""}</span>
                       <span className="block text-sm text-humo">Lo esperabas hace {-diasHasta(v.cobro_vence!, hoy)} {-diasHasta(v.cobro_vence!, hoy) === 1 ? "día" : "días"}</span>
                     </span>
-                    <span className="shrink-0 font-semibold tabular-nums">{pesos(Number(v.valor))}</span>
+                    <span className="shrink-0 font-semibold tabular-nums">{dinero(Number(v.valor), finca.moneda)}</span>
                   </li>
                 ))}
               </ul>

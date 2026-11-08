@@ -15,6 +15,7 @@ import { nombreTipo } from "@/lib/animal";
 import { hoyBogota } from "@/lib/fechas";
 import { ESCENA_ESPECIE, ESCENA_ORIGEN_ANIMAL, ESCENA_SEXO, ESCENA_USO_MACHO, ESCENA_VOCACION } from "@/lib/escenas-forms-b-hato";
 import type { Especie, Raza, SexoAnimal, UsoMacho, Vocacion } from "@/lib/tipos";
+import { useMoneda } from "@/components/ProveedorMoneda";
 
 type Ref = { id: string; numero_arete: string; nombre: string | null };
 
@@ -78,6 +79,7 @@ export function FormAnimal({
   /** En edición: por qué el sexo y la especie no se pueden cambiar (o `null` si se pueden). */
   bloqueoIdentidad?: string | null;
 }) {
+  const moneda = useMoneda();
   const editando = Boolean(animal);
   const [estado, enviar, pendiente] = useActionState(editando ? editarAnimal : crearAnimal, undefined);
   const [, iniciar] = useTransition();
@@ -261,7 +263,7 @@ export function FormAnimal({
             </Campo>
           ) : null}
 
-          <Campo etiqueta={origen === "comprado" ? "Valor de compra" : "Valor de reposición"} ayuda={origen === "comprado" ? "Opcional. En pesos, lo que costó. Sirve para medir la pérdida si se descarta o muere." : "Opcional. En pesos, lo que costaría reponerlo. Sirve para medir la pérdida si se descarta o muere."}>
+          <Campo etiqueta={origen === "comprado" ? "Valor de compra" : "Valor de reposición"} ayuda={origen === "comprado" ? `Opcional. En ${moneda.codigo}, lo que costó. Sirve para medir la pérdida si se descarta o muere.` : `Opcional. En ${moneda.codigo}, lo que costaría reponerlo. Sirve para medir la pérdida si se descarta o muere.`}>
             {(id) => <input id={id} name="valor_compra" defaultValue={animal?.valor_compra != null ? String(animal.valor_compra) : ""} inputMode="decimal" autoComplete="off" enterKeyHint="next" className={CLASE_INPUT} placeholder="Ej. 800.000" />}
           </Campo>
           {origen === "comprado" ? (

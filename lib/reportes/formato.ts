@@ -1,4 +1,5 @@
 import { formatoFecha } from "@/lib/fechas";
+import { dinero } from "@/lib/moneda";
 import type { Celda, Columna } from "@/lib/reportes/tipos";
 
 const numero = (decimales: number) => new Intl.NumberFormat("es-CO", { minimumFractionDigits: decimales, maximumFractionDigits: decimales });
@@ -10,7 +11,7 @@ const formato = (d: number) => {
 };
 
 /** El valor de una celda como lo lee una persona: números a la colombiana (coma decimal, punto de miles), fechas cortas, vacío = «—». */
-export function textoCelda(columna: Pick<Columna, "tipo" | "decimales">, valor: Celda): string {
+export function textoCelda(columna: Pick<Columna, "tipo" | "decimales">, valor: Celda, moneda?: string): string {
   if (valor === null || valor === undefined || valor === "") return "—";
   switch (columna.tipo) {
     case "fecha":
@@ -22,7 +23,7 @@ export function textoCelda(columna: Pick<Columna, "tipo" | "decimales">, valor: 
     case "porcentaje":
       return `${formato(columna.decimales ?? 1).format(Number(valor) * 100)} %`;
     case "pesos":
-      return `$ ${formato(0).format(Number(valor))}`;
+      return dinero(Number(valor), moneda);
     default:
       return String(valor);
   }

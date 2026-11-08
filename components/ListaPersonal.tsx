@@ -7,7 +7,7 @@ import { CampoBusqueda } from "@/components/CampoBusqueda";
 import { EstadoVacio } from "@/components/EstadoVacio";
 import { Insignia } from "@/components/Insignia";
 import { ListaPorTramos } from "@/components/ListaPorTramos";
-import { pesos } from "@/lib/ferias";
+import { useDinero } from "@/components/ProveedorMoneda";
 import { ETIQUETA_ROL } from "@/lib/permisos";
 import { telefonoWhatsApp } from "@/lib/cobranza";
 import { perfilDePersona, resumenPerfil, type DatosPerfil } from "@/lib/perfil-personal";
@@ -18,6 +18,7 @@ import { sinTildes } from "@/lib/texto";
 
 /** Las personas de la finca: quién es, cómo está vinculada, cómo y cuánto se le paga. Con buscador cuando la lista crece. */
 export function ListaPersonal({ personal, puedeEditar }: { personal: Persona[]; puedeEditar: boolean }) {
+  const dinero = useDinero();
   const [texto, setTexto] = useState("");
   const visibles = useMemo(() => {
     const t = sinTildes(texto.trim());
@@ -45,7 +46,7 @@ export function ListaPersonal({ personal, puedeEditar }: { personal: Persona[]; 
                   {p.cargo ? <p className="text-sm text-humo [overflow-wrap:anywhere]">{p.cargo}</p> : null}
                   {resumenPerfil(perfilDePersona(p), p as unknown as Partial<DatosPerfil>) ? <p className="text-sm text-humo [overflow-wrap:anywhere]">{resumenPerfil(perfilDePersona(p), p as unknown as Partial<DatosPerfil>)}</p> : null}
                 </div>
-                <p className="shrink-0 text-right font-display text-lg font-semibold tabular-nums">{pesos(Number(p.valor_base))}</p>
+                <p className="shrink-0 text-right font-display text-lg font-semibold tabular-nums">{dinero(Number(p.valor_base))}</p>
               </div>
               <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
                 <Insignia tono={p.activo ? "ok" : "neutro"}>{p.activo ? "Activa" : "Retirada"}</Insignia>

@@ -10,7 +10,7 @@ import { SelectorTarjetas } from "@/components/SelectorTarjetas";
 import { SelectorTercero } from "@/components/SelectorTercero";
 import { crearVenta, editarVenta } from "@/app/(app)/hato/ventas/actions";
 import { ESCENA_COBRO, ESCENA_LINEA_VENTA } from "@/lib/escenas-costos";
-import { pesos } from "@/lib/ferias";
+import { useDinero } from "@/components/ProveedorMoneda";
 import { leerNumero } from "@/lib/numeros";
 import { textoPrecio } from "@/lib/productos";
 import { precioDeCada, textoPorUnidad } from "@/lib/unidades";
@@ -26,6 +26,7 @@ const ETIQUETA_COBRO: Record<EstadoCobro, string> = { cobrado: "Ya me pagaron", 
  * registran aquí: entran solos desde Leche → Despachos y desde la baja del animal.
  */
 export function FormVenta({ hoy, productos, terceros, venta, solicitud, ivaDefecto = null }: { hoy: string; productos: Producto[]; terceros: Tercero[]; venta?: Venta; solicitud?: string; /** El IVA predeterminado de la finca: se escribe solo en una venta nueva. */ ivaDefecto?: number | null }) {
+  const dinero = useDinero();
   const editando = Boolean(venta);
   const [estado, enviar, pendiente] = useActionState(editando ? editarVenta : crearVenta, undefined);
   const [, iniciar] = useTransition();
@@ -88,7 +89,7 @@ export function FormVenta({ hoy, productos, terceros, venta, solicitud, ivaDefec
           </div>
           {total !== null ? (
             <p className="-mt-2 rounded-2xl bg-lana px-4 py-3 text-[0.9375rem]">
-              Total de la venta: <span className="font-display text-lg font-semibold tabular-nums">{pesos(total)}</span>
+              Total de la venta: <span className="font-display text-lg font-semibold tabular-nums">{dinero(total)}</span>
             </p>
           ) : null}
 

@@ -60,7 +60,7 @@ export default async function PaginaLeche({
         <Historial fincaId={finca.id} puedeEditar={puedeEditar} pedido={{ periodo: sp.periodo, desde: sp.desde, hasta: sp.hasta, animal: sp.animal }} />
       ) : null}
       {vista === "calidad" ? <Calidad fincaId={finca.id} puedeEditar={puedeEditar} especies={finca.especies} /> : null}
-      {vista === "despachos" ? <Despachos fincaId={finca.id} puedeEditar={puedeEditar} /> : null}
+      {vista === "despachos" ? <Despachos moneda={finca.moneda} fincaId={finca.id} puedeEditar={puedeEditar} /> : null}
       {vista === "frio" ? <FrioEquipo fincaId={finca.id} puedeEditar={puedeEditar} /> : null}
     </>
   );

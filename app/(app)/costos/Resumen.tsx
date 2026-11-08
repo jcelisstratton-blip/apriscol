@@ -7,7 +7,7 @@ import { crearClienteServidor } from "@/lib/supabase/server";
 import { ALIMENTACION_HABITUAL, ETIQUETA_GRUPO_COSTO, ETIQUETA_RUBRO, GRUPOS_COSTO, grupoDe, porcentaje, type GrupoCosto } from "@/lib/costos";
 import { ETIQUETA_LINEA, LINEAS } from "@/lib/ventas";
 import { formatoFecha, hoyBogota, litros } from "@/lib/fechas";
-import { pesos } from "@/lib/ferias";
+import { dinero } from "@/lib/moneda";
 import { rangoPeriodo, type Periodo } from "@/lib/periodos";
 
 export type FiltrosCostos = { periodo: Periodo; desde?: string; hasta?: string };
@@ -23,7 +23,10 @@ export async function Resumen({
   fincaId,
   filtros,
   cliente,
+  moneda = "COP",
 }: {
+  /** La moneda de la finca (`finca.moneda`). */
+  moneda?: string;
   fincaId: string;
   filtros: FiltrosCostos;
   /** Solo para pruebas: un cliente de base de datos en lugar del de la sesión. */
@@ -86,10 +89,10 @@ export async function Resumen({
   }
 
   const cifras: [string, string, "ok" | "alerta" | null][] = [
-    ["Compras", pesos(compras), null],
-    ["Mano de obra", pesos(manoObra), null],
-    ["Ventas", pesos(ventas), null],
-    ["Resultado", pesos(resultado), resultado < 0 ? "alerta" : resultado > 0 ? "ok" : null],
+    ["Compras", dinero(compras, moneda), null],
+    ["Mano de obra", dinero(manoObra, moneda), null],
+    ["Ventas", dinero(ventas, moneda), null],
+    ["Resultado", dinero(resultado, moneda), resultado < 0 ? "alerta" : resultado > 0 ? "ok" : null],
   ];
 
   return (
@@ -104,30 +107,30 @@ export async function Resumen({
           ))}
         </dl>
         <p className="mt-3 border-t border-arena pt-2 text-center text-sm text-humo [overflow-wrap:anywhere]">
-          {litrosPeriodo > 0 ? `${litros(litrosPeriodo)} L producidos · ${pesos(costos / litrosPeriodo)} de costo por litro` : "Sin litros registrados"}
-          {activos > 0 && costos > 0 ? ` · ${pesos(costos / activos)} por animal activo` : ""}
+          {litrosPeriodo > 0 ? `${litros(litrosPeriodo)} L producidos · ${dinero(costos / litrosPeriodo, moneda)} de costo por litro` : "Sin litros registrados"}
+          {activos > 0 && costos > 0 ? ` · ${dinero(costos / activos, moneda)} por animal activo` : ""}
         </p>
       </Tarjeta>
 
       <div className="space-y-3.5 lg:columns-2 lg:gap-x-4 lg:space-y-0 lg:[&>*]:mb-3.5 lg:[&>*]:break-inside-avoid">
         {Number(ind?.por_pagar ?? 0) > 0 ? (
           <Tarjeta titulo="Por pagar" acciones={<Link href="/hato?vista=gastos" className="text-sm font-semibold text-musgo">Hato → Compras</Link>}>
-            <p className="font-display text-2xl font-semibold tabular-nums">{pesos(Number(ind?.por_pagar))}</p>
-            {Number(ind?.vencido ?? 0) > 0 ? <p className="mt-1 text-[0.9375rem] text-rojo">{pesos(Number(ind?.vencido))} ya venció.</p> : <p className="mt-1 text-[0.9375rem] text-humo">Nada vencido todavía.</p>}
+            <p className="font-display text-2xl font-semibold tabular-nums">{dinero(Number(ind?.por_pagar), moneda)}</p>
+            {Number(ind?.vencido ?? 0) > 0 ? <p className="mt-1 text-[0.9375rem] text-rojo">{dinero(Number(ind?.vencido), moneda)} ya venció.</p> : <p className="mt-1 text-[0.9375rem] text-humo">Nada vencido todavía.</p>}
           </Tarjeta>
         ) : null}
 
         {porCobrar > 0 ? (
           <Tarjeta titulo="Por cobrar" acciones={<Link href="/hato?vista=ventas" className="text-sm font-semibold text-musgo">Hato → Ventas</Link>}>
-            <p className="font-display text-2xl font-semibold tabular-nums">{pesos(porCobrar)}</p>
-            {cobroVencido > 0 ? <p className="mt-1 text-[0.9375rem] text-rojo">{pesos(cobroVencido)} ya pasó la fecha en que lo esperabas.</p> : <p className="mt-1 text-[0.9375rem] text-humo">Nada vencido todavía.</p>}
+            <p className="font-display text-2xl font-semibold tabular-nums">{dinero(porCobrar, moneda)}</p>
+            {cobroVencido > 0 ? <p className="mt-1 text-[0.9375rem] text-rojo">{dinero(cobroVencido, moneda)} ya pasó la fecha en que lo esperabas.</p> : <p className="mt-1 text-[0.9375rem] text-humo">Nada vencido todavía.</p>}
           </Tarjeta>
         ) : null}
 
         {doble.length > 0 ? (
           <Tarjeta titulo="Revisa que no se cuente dos veces">
             <Aviso tipo="atencion">
-              {doble.map((d) => `${ETIQUETA_RUBRO[d.rubro]}: ${pesos(Number(d.compras))} en compras y ${pesos(Number(d.consumo))} ${d.origen_consumo === "ceba" ? "de alimento de ceba" : d.origen_consumo === "nomina" ? "de pagos al personal" : "de tratamientos"}`).join(". ")}.
+              {doble.map((d) => `${ETIQUETA_RUBRO[d.rubro]}: ${dinero(Number(d.compras), moneda)} en compras y ${dinero(Number(d.consumo), moneda)} ${d.origen_consumo === "ceba" ? "de alimento de ceba" : d.origen_consumo === "nomina" ? "de pagos al personal" : "de tratamientos"}`).join(". ")}.
               {doble.some((d) => d.origen_consumo === "nomina") ? " Si la mano de obra de las compras es la misma que pagaste en Personal, se está sumando dos veces: déjala solo en Personal y elimina o corrige la compra." : ""}
               {doble.some((d) => d.origen_consumo !== "nomina") ? " Si es el mismo alimento o la misma medicina, se está sumando dos veces: deja el costo en un solo lugar (la compra o el registro de ceba o de sanidad)." : ""}
             </Aviso>
@@ -147,7 +150,7 @@ export async function Resumen({
                       <div className="flex items-baseline justify-between gap-3">
                         <span className="min-w-0 font-semibold">{ETIQUETA_GRUPO_COSTO[g]}</span>
                         <span className="shrink-0 text-sm tabular-nums text-humo">
-                          {pesos(dato.total)} · {String(pct).replace(".", ",")} %
+                          {dinero(dato.total, moneda)} · {String(pct).replace(".", ",")} %
                         </span>
                       </div>
                       <div className="mt-1 h-2 overflow-hidden rounded-full bg-arena" aria-hidden="true">
@@ -157,7 +160,7 @@ export async function Resumen({
                         {dato.rubros
                           .sort((a, b) => Number(b.total) - Number(a.total))
                           .slice(0, 3)
-                          .map((r) => `${ETIQUETA_RUBRO[r.rubro]} ${pesos(Number(r.total))}`)
+                          .map((r) => `${ETIQUETA_RUBRO[r.rubro]} ${dinero(Number(r.total), moneda)}`)
                           .join(" · ")}
                       </p>
                     </li>
@@ -185,13 +188,13 @@ export async function Resumen({
                     <div className="flex items-baseline justify-between gap-3">
                       <span className="min-w-0 font-semibold">{ETIQUETA_LINEA[l]}</span>
                       <span className="shrink-0 text-sm tabular-nums text-humo">
-                        {pesos(Number(dato.total))} · {String(pct).replace(".", ",")} %
+                        {dinero(Number(dato.total), moneda)} · {String(pct).replace(".", ",")} %
                       </span>
                     </div>
                     <div className="mt-1 h-2 overflow-hidden rounded-full bg-arena" aria-hidden="true">
                       <div className="h-full rounded-full bg-ok" style={{ width: `${Math.max(3, pct)}%` }} />
                     </div>
-                    {Number(dato.por_cobrar) > 0 ? <p className="mt-1 text-xs text-humo">Por cobrar {pesos(Number(dato.por_cobrar))}</p> : null}
+                    {Number(dato.por_cobrar) > 0 ? <p className="mt-1 text-xs text-humo">Por cobrar {dinero(Number(dato.por_cobrar), moneda)}</p> : null}
                   </li>
                 );
               })}
@@ -210,10 +213,10 @@ export async function Resumen({
                     <span className="min-w-0">
                       <span className="block font-semibold first-letter:uppercase">{mes(m.mes)}</span>
                       <span className="block text-sm text-humo [overflow-wrap:anywhere]">
-                        Costos {pesos(Number(m.costos))} · Ventas {pesos(entra)}
+                        Costos {dinero(Number(m.costos), moneda)} · Ventas {dinero(entra, moneda)}
                       </span>
                     </span>
-                    <span className={`shrink-0 text-right font-semibold tabular-nums ${queda < 0 ? "text-rojo" : queda > 0 ? "text-ok" : ""}`}>{pesos(queda)}</span>
+                    <span className={`shrink-0 text-right font-semibold tabular-nums ${queda < 0 ? "text-rojo" : queda > 0 ? "text-ok" : ""}`}>{dinero(queda, moneda)}</span>
                   </li>
                 );
               })}
@@ -231,7 +234,7 @@ export async function Resumen({
                   <li key={d.tipo} className="py-2.5">
                     <div className="flex items-baseline justify-between gap-3">
                       <span className="font-semibold">{d.tipo === "saca" ? "Saca" : "Mortalidad"}</span>
-                      <span className="font-semibold tabular-nums">{pesos(Number(d.perdida))}</span>
+                      <span className="font-semibold tabular-nums">{dinero(Number(d.perdida), moneda)}</span>
                     </div>
                     <p className="text-sm text-humo">
                       {d.animales} {d.animales === 1 ? "animal" : "animales"}

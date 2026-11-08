@@ -47,6 +47,7 @@ import { BarraEscenarios } from "./BarraEscenarios";
 import { Comparar } from "./Comparar";
 import { Riesgos } from "./Riesgos";
 import { guardarEscenario } from "./actions";
+import { useMoneda } from "@/components/ProveedorMoneda";
 
 type Pestana = "resumen" | "hato" | "alimento" | "dinero" | "comparar" | "riesgos" | "supuestos";
 
@@ -89,6 +90,7 @@ const mismos = (a: Ajustes, b: Ajustes) => {
 const entrada = (d: DefinicionSupuesto, n: number) => new Intl.NumberFormat("es-CO", { maximumFractionDigits: d.decimales, useGrouping: Math.abs(n) >= 10000 }).format(n);
 
 export function Proyecciones(p: PropsProyecciones) {
+  const moneda = useMoneda();
   const toast = useToast();
   const [pendiente, empezar] = useTransition();
   const [pestana, setPestana] = useState<Pestana>("resumen");
@@ -247,7 +249,7 @@ export function Proyecciones(p: PropsProyecciones) {
           {pestana === "alimento" ? (
             <div className="space-y-3">
               <Aviso tipo="info">
-                Toneladas de materia seca (el alimento sin agua) y su costo, con {formatear("pesos", supuestos.costo_kg_ms)} por kilo. Incluye pasto, forraje, concentrado y sales.
+                Toneladas de materia seca (el alimento sin agua) y su costo, con {formatear("pesos", supuestos.costo_kg_ms, moneda.codigo)} por kilo. Incluye pasto, forraje, concentrado y sales.
               </Aviso>
               {p.estacion.mesesLluvia.length === 0 ? (
                 <Aviso tipo="info">
@@ -277,6 +279,7 @@ export function Proyecciones(p: PropsProyecciones) {
 }
 
 function Resumen({ hoy, p, supuestos, proyeccion, bloques, enfoque }: { hoy: string; p: PropsProyecciones; supuestos: Supuestos; proyeccion: ReturnType<typeof simular>; bloques: ReturnType<typeof porAnio>; enfoque: Enfoque }) {
+  const moneda = useMoneda();
   const lineas = lineasResumen(enfoque);
   const machos = repartirMachos(p.inicio, supuestos.hembras_por_semental);
   const compartidos = bloques[0] ? costosSinRestar(bloques[0], enfoque) : null;
@@ -296,7 +299,7 @@ function Resumen({ hoy, p, supuestos, proyeccion, bloques, enfoque }: { hoy: str
       ) : null}
       {compartidos ? (
         <Aviso tipo="atencion">
-          Ojo: en el primer año esta vista no resta {formatear("pesos", compartidos.sinRestar)} de costos compartidos (alimento base de reproductoras y sementales, sanidad y costos fijos), que sirven a la carne y a la leche. Con todo restado, la finca queda en {formatear("pesos", compartidos.resultadoCompleto)}: míralo en «Todo».
+          Ojo: en el primer año esta vista no resta {formatear("pesos", compartidos.sinRestar, moneda.codigo)} de costos compartidos (alimento base de reproductoras y sementales, sanidad y costos fijos), que sirven a la carne y a la leche. Con todo restado, la finca queda en {formatear("pesos", compartidos.resultadoCompleto, moneda.codigo)}: míralo en «Todo».
         </Aviso>
       ) : null}
       <Avisos avisos={proyeccion.avisos} />
@@ -310,7 +313,7 @@ function Resumen({ hoy, p, supuestos, proyeccion, bloques, enfoque }: { hoy: str
               {lineas.map((l) => (
                 <div key={l.titulo} className={`flex items-baseline justify-between gap-3 ${l.destacada ? "border-t border-arena pt-2 font-bold" : ""}`}>
                   <dt className={`min-w-0 text-[0.9375rem] [overflow-wrap:anywhere] ${l.destacada ? "" : "text-humo"}`}>{l.titulo}</dt>
-                  <dd className="shrink-0 text-right text-[0.9375rem] font-semibold tabular-nums">{formatear(l.formato, l.valor(b))}</dd>
+                  <dd className="shrink-0 text-right text-[0.9375rem] font-semibold tabular-nums">{formatear(l.formato, l.valor(b), moneda.codigo)}</dd>
                 </div>
               ))}
             </dl>
@@ -343,6 +346,7 @@ function Dinero({ hoy, proyeccion, enfoque }: { hoy: string; proyeccion: ReturnT
 
 /** El mes a mes: tabla en pantallas anchas y una tarjeta por mes en el celular (cada mes muestra todos sus datos). */
 function TablaMeses({ hoy, meses, columnas, titulo, conTotal = false }: { hoy: string; meses: Mes[]; columnas: ColumnaMes[]; titulo: string; conTotal?: boolean }) {
+  const moneda = useMoneda();
   const total = (c: ColumnaMes) => meses.reduce((s, m) => s + c.valor(m), 0);
   return (
     <section aria-label={titulo} className="min-w-0">
@@ -361,7 +365,7 @@ function TablaMeses({ hoy, meses, columnas, titulo, conTotal = false }: { hoy: s
               <tr key={m.n} className="border-b border-arena/60 last:border-0">
                 <th scope="row" className="whitespace-nowrap px-4 py-2.5 text-left font-semibold">{m.n} · {etiquetaMes(hoy, m.n)}{m.seco ? " · seco" : ""}</th>
                 {columnas.map((c) => (
-                  <td key={c.clave} className={`px-3 py-2.5 text-right ${c.formato === "pesos" && c.valor(m) < 0 ? "text-rojo" : ""}`}>{formatear(c.formato, c.valor(m))}</td>
+                  <td key={c.clave} className={`px-3 py-2.5 text-right ${c.formato === "pesos" && c.valor(m) < 0 ? "text-rojo" : ""}`}>{formatear(c.formato, c.valor(m), moneda.codigo)}</td>
                 ))}
               </tr>
             ))}
@@ -369,7 +373,7 @@ function TablaMeses({ hoy, meses, columnas, titulo, conTotal = false }: { hoy: s
               <tr className="border-t-2 border-arena bg-lana/60 font-bold">
                 <th scope="row" className="px-4 py-3 text-left">Total</th>
                 {columnas.map((c) => (
-                  <td key={c.clave} className="px-3 py-3 text-right">{c.suma ? formatear(c.formato, total(c)) : ""}</td>
+                  <td key={c.clave} className="px-3 py-3 text-right">{c.suma ? formatear(c.formato, total(c), moneda.codigo) : ""}</td>
                 ))}
               </tr>
             ) : null}
@@ -384,7 +388,7 @@ function TablaMeses({ hoy, meses, columnas, titulo, conTotal = false }: { hoy: s
               {columnas.map((c) => (
                 <div key={c.clave} className="flex items-baseline justify-between gap-3 text-[0.9375rem]">
                   <dt className="min-w-0 text-humo [overflow-wrap:anywhere]">{c.titulo}</dt>
-                  <dd className={`shrink-0 text-right font-semibold tabular-nums ${c.formato === "pesos" && c.valor(m) < 0 ? "text-rojo" : ""}`}>{formatear(c.formato, c.valor(m))}</dd>
+                  <dd className={`shrink-0 text-right font-semibold tabular-nums ${c.formato === "pesos" && c.valor(m) < 0 ? "text-rojo" : ""}`}>{formatear(c.formato, c.valor(m), moneda.codigo)}</dd>
                 </div>
               ))}
             </dl>
@@ -397,7 +401,7 @@ function TablaMeses({ hoy, meses, columnas, titulo, conTotal = false }: { hoy: s
               {columnas.filter((c) => c.suma).map((c) => (
                 <div key={c.clave} className="flex items-baseline justify-between gap-3 text-[0.9375rem]">
                   <dt className="min-w-0 text-humo [overflow-wrap:anywhere]">{c.titulo}</dt>
-                  <dd className="shrink-0 text-right font-bold tabular-nums">{formatear(c.formato, total(c))}</dd>
+                  <dd className="shrink-0 text-right font-bold tabular-nums">{formatear(c.formato, total(c), moneda.codigo)}</dd>
                 </div>
               ))}
             </dl>
@@ -410,14 +414,15 @@ function TablaMeses({ hoy, meses, columnas, titulo, conTotal = false }: { hoy: s
 
 /** Barras por mes: hacia arriba lo que queda a favor y hacia abajo lo que falta. */
 function GraficoMeses({ hoy, valores }: { hoy: string; valores: number[] }) {
+  const moneda = useMoneda();
   const maximo = Math.max(1, ...valores.map((v) => Math.abs(v)));
   const hayNegativos = valores.some((v) => v < 0);
-  const resumen = valores.map((v, i) => `${etiquetaMes(hoy, i + 1)}: ${formatear("pesos", v)}`).join("; ");
+  const resumen = valores.map((v, i) => `${etiquetaMes(hoy, i + 1)}: ${formatear("pesos", v, moneda.codigo)}`).join("; ");
   return (
     <figure className="space-y-1.5">
       <div className="flex h-36 gap-0.5" role="img" aria-label={resumen}>
         {valores.map((v, i) => (
-          <div key={i} className="flex min-w-0 flex-1 flex-col" title={`${etiquetaMes(hoy, i + 1)}: ${formatear("pesos", v)}`}>
+          <div key={i} className="flex min-w-0 flex-1 flex-col" title={`${etiquetaMes(hoy, i + 1)}: ${formatear("pesos", v, moneda.codigo)}`}>
             <div className={`flex items-end ${hayNegativos ? "h-1/2" : "h-full"}`}>
               <div className="w-full rounded-t-sm bg-musgo" style={{ height: `${v > 0 ? Math.max(3, (v / maximo) * 100) : 0}%` }} />
             </div>
