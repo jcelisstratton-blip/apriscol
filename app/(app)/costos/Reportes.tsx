@@ -1,5 +1,5 @@
 import { Download } from "lucide-react";
-import { TarjetaOpcion } from "@/components/TarjetaOpcion";
+import { RecuadroTarjetas, TarjetaOpcion } from "@/components/TarjetaOpcion";
 import { direccionExportar, REPORTES } from "@/lib/costos-reportes";
 import { ESCENA_REPORTE } from "@/lib/escenas-costos";
 import { formatoFecha, hoyBogota } from "@/lib/fechas";
@@ -24,11 +24,13 @@ export function Reportes({ filtro }: { filtro: { periodo: Periodo; desde?: strin
           Cada reporte se descarga en Excel con el nombre de la finca, el reporte y las fechas, <strong className="font-semibold text-tinta">{texto}</strong>. Cambia el periodo arriba para descargar otro.
         </span>
       </p>
+      <RecuadroTarjetas>
       <div className="grid grid-cols-1 gap-2.5 min-[480px]:grid-cols-2 lg:grid-cols-3">
         {REPORTES.map((r) => (
           <TarjetaOpcion key={r.id} tamano="normal" escena={ESCENA_REPORTE[r.id]} titulo={r.titulo} detalle={r.contiene} dato="Descargar Excel" href={direccionExportar(r.id, filtro)} descarga />
         ))}
       </div>
+      </RecuadroTarjetas>
     </div>
   );
 }

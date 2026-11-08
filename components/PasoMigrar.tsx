@@ -1,9 +1,7 @@
-import Link from "next/link";
-import { Activity, ArrowRight, Check, Circle, CircleCheck, Fence, Lock, Pill, PawPrint, Scale, ShieldPlus, Sprout, Syringe, Tags, Wheat, Milk, Droplets, Boxes } from "lucide-react";
-import { clasesBoton } from "@/components/Boton";
-import { Escena } from "@/components/TarjetaOpcion";
+import { Activity, Check, Circle, CircleCheck, Fence, FileSpreadsheet, Lock, Pill, PawPrint, Scale, ShieldPlus, Sprout, Syringe, Tags, Upload, Wheat, Milk, Droplets, Boxes } from "lucide-react";
+import { Escena, TarjetaOpcion } from "@/components/TarjetaOpcion";
 import { escena, type EscenaDef } from "@/lib/escenas";
-import type { PasoId, PasoMigracion } from "@/lib/migracion";
+import { TEXTO_TARJETAS, type PasoId, type PasoMigracion } from "@/lib/migracion";
 
 /** El ícono y el color de cada paso (los mismos de los módulos a los que lleva, para que se reconozcan). */
 const ESCENA: Record<PasoId, EscenaDef> = {
@@ -16,6 +14,9 @@ const ESCENA: Record<PasoId, EscenaDef> = {
   alimento: escena(Wheat, "ambar", Sprout),
   revision: escena(Activity, "oliva"),
 };
+
+/** La escena de la tarjeta que carga un archivo: un Excel que sube. */
+const ESCENA_CARGAR = escena(FileSpreadsheet, "musgo", Upload);
 
 function Estado({ p, siguiente }: { p: PasoMigracion; siguiente: boolean }) {
   const base = "inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold";
@@ -73,13 +74,9 @@ export function PasoMigrar({ p, siguiente = false, principal = siguiente }: { p:
         {bloqueado ? (
           <p className="text-sm font-semibold text-humo">{p.motivo}</p>
         ) : (
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 pt-0.5">
-            <Link href={p.href} className={clasesBoton(principal && !hecho ? "primario" : "secundario", false)}>
-              {p.accion} <ArrowRight className="size-4" strokeWidth={2.2} aria-hidden="true" />
-            </Link>
-            <Link href={p.alternativa.href} className="inline-flex min-h-11 items-center text-sm font-semibold text-musgo underline-offset-4 hover:underline">
-              {p.alternativa.texto}
-            </Link>
+          <div className="grid grid-cols-1 gap-2.5 pt-0.5 min-[420px]:grid-cols-2">
+            <TarjetaOpcion tamano="normal" destacada={principal && !hecho} escena={p.porExcel ? ESCENA_CARGAR : ESCENA[p.id]} titulo={p.accion} detalle={TEXTO_TARJETAS[p.id].cargar} href={p.href} />
+            <TarjetaOpcion tamano="normal" escena={ESCENA[p.id]} titulo={p.alternativa.texto} detalle={TEXTO_TARJETAS[p.id].ver} href={p.alternativa.href} />
           </div>
         )}
       </div>

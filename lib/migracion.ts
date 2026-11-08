@@ -31,6 +31,21 @@ export type PasoId = "corrales" | "animales" | "pesajes" | "ordenos" | "sanidad"
 
 export type SubPaso = { titulo: string; hecho: boolean; dato: string | null };
 
+/**
+ * Lo que dice cada una de las dos tarjetas de un paso (la de cargar y la de «Ver…»), en una línea. Salen de aquí y no de cada paso para que todos se escriban igual;
+ * la pantalla le añade a la de «Ver…» lo que ya hay cargado. Sin la palabra «plantilla»: eso lo explica el propio cargue.
+ */
+export const TEXTO_TARJETAS: Record<PasoId, { cargar: string; ver: string }> = {
+  corrales: { cargar: "Con un Excel, todos de una vez", ver: "Los corrales y potreros que ya tienes" },
+  animales: { cargar: "Tu hato desde un Excel, con padres y partos", ver: "Los animales que ya están en tu hato" },
+  pesajes: { cargar: "El historial de pesos, por arete", ver: "Los pesos que ya cargaste" },
+  ordenos: { cargar: "Los litros de cada ordeño, por arete", ver: "La leche que ya cargaste" },
+  sanidad: { cargar: "Vacunas y tratamientos que ya hiciste", ver: "Lo sanitario que ya cargaste" },
+  medicamentos: { cargar: "Tus medicamentos y vacunas, con lotes y existencias", ver: "Tu bodega de medicamentos y vacunas" },
+  alimento: { cargar: "Tus alimentos y cuánto tienes en bodega", ver: "Tu bodega de alimento" },
+  revision: { cargar: "Lo que pide atención con tus datos", ver: "Tu hato completo" },
+};
+
 export type PasoMigracion = {
   id: PasoId;
   etapa: EtapaId;
