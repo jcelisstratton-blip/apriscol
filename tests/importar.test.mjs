@@ -690,3 +690,15 @@ test("guía de migración: todas las tarjetas se escriben igual (acción «Carga
     }
   }
 });
+
+test("guía de migración: cada paso tiene el texto de sus dos tarjetas y no habla de plantillas", async () => {
+  const { TEXTO_TARJETAS } = await import("../lib/migracion.ts");
+  const ids = ["corrales", "animales", "pesajes", "ordenos", "sanidad", "medicamentos", "alimento", "revision"];
+  assert.deepEqual(Object.keys(TEXTO_TARJETAS).sort(), [...ids].sort());
+  for (const id of ids) {
+    const { cargar, ver } = TEXTO_TARJETAS[id];
+    assert.ok(cargar.length > 10 && ver.length > 10, id);
+    assert.ok(!/plantilla/i.test(cargar + ver), id);
+    assert.ok(cargar.length <= 60 && ver.length <= 60, `${id}: la línea de una tarjeta debe ser corta`);
+  }
+});

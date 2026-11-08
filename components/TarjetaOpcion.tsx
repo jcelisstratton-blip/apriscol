@@ -51,6 +51,7 @@ export function TarjetaOpcion({
   rol = "boton",
   deshabilitada = false,
   descarga = false,
+  destacada = false,
 }: {
   escena: EscenaDef;
   titulo: string;
@@ -66,10 +67,12 @@ export function TarjetaOpcion({
   deshabilitada?: boolean;
   /** Con `href`: la tarjeta descarga un archivo (un enlace común, sin navegación de la aplicación). */
   descarga?: boolean;
+  /** Resalta la tarjeta (borde verde) sin marcarla como elegida: la acción principal de una pantalla. */
+  destacada?: boolean;
 }) {
   const ancho = tamano === "compacta" ? "w-[9.5rem] shrink-0 snap-start" : "w-full min-w-0";
   const clases = `group relative flex ${ancho} flex-col overflow-hidden rounded-3xl text-left ring-1 transition motion-safe:duration-200 motion-safe:hover:-translate-y-0.5 motion-safe:active:scale-[0.98] disabled:opacity-50 ${
-    activo ? "bg-musgo/[0.07] ring-2 ring-musgo" : "bg-papel ring-arena hover:ring-musgo/40"
+    activo ? "bg-musgo/[0.07] ring-2 ring-musgo" : destacada ? "bg-papel ring-2 ring-musgo/70 hover:ring-musgo" : "bg-papel ring-arena hover:ring-musgo/40"
   }`;
   const contenido = (
     <>
@@ -114,18 +117,28 @@ export function TarjetaOpcion({
 }
 
 /**
+ * El recuadro que encierra un grupo de tarjetas (el mismo de las tarjetas de «Migrar mi finca»): todas las tarjetas de la app van dentro de uno, ya sea una
+ * fila que se desplaza (`FilaTarjetas`), una rejilla de opciones de un formulario o los reportes. `compacto` quita relleno para las rejillas de formularios.
+ */
+export function RecuadroTarjetas({ children, className = "", compacto = false }: { children: React.ReactNode; className?: string; compacto?: boolean }) {
+  return <div className={`min-w-0 rounded-3xl bg-papel/70 ring-1 ring-arena ${compacto ? "p-2" : "p-2.5"} ${className}`}>{children}</div>;
+}
+
+/**
  * Una fila de tarjetas: en el celular se desplaza de lado y se difumina en el borde con más contenido; en el computador (desde `lg`) se acomoda
  * en varias filas para que se vea todo sin desplazar.
  */
 export function FilaTarjetas({ children, className = "", etiqueta }: { children: React.ReactNode; className?: string; etiqueta?: string }) {
   return (
-    <div
-      role={etiqueta ? "group" : undefined}
-      aria-label={etiqueta}
-      className={`no-scrollbar -mx-4 flex snap-x gap-2.5 overflow-x-auto px-4 pb-1 pt-1 [mask-image:linear-gradient(to_right,transparent,#000_16px,#000_calc(100%-24px),transparent)] lg:mx-0 lg:flex-wrap lg:overflow-visible lg:px-0 lg:[mask-image:none] ${className}`}
-    >
-      {children}
-    </div>
+    <RecuadroTarjetas className={className}>
+      <div
+        role={etiqueta ? "group" : undefined}
+        aria-label={etiqueta}
+        className="no-scrollbar -mx-2.5 flex snap-x gap-2.5 overflow-x-auto px-2.5 pb-1 pt-1 [mask-image:linear-gradient(to_right,transparent,#000_10px,#000_calc(100%-24px),transparent)] lg:mx-0 lg:flex-wrap lg:overflow-visible lg:px-0 lg:[mask-image:none]"
+      >
+        {children}
+      </div>
+    </RecuadroTarjetas>
   );
 }
 

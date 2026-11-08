@@ -1,6 +1,6 @@
 "use client";
 
-import { TarjetaOpcion } from "@/components/TarjetaOpcion";
+import { RecuadroTarjetas, TarjetaOpcion } from "@/components/TarjetaOpcion";
 import { escena, type EscenaDef } from "@/lib/escenas";
 import { CircleSlash } from "lucide-react";
 
@@ -38,12 +38,14 @@ export function SelectorTarjetas<T extends string | number>({
   return (
     <>
       {nombre ? <input type="hidden" name={nombre} value={valor} /> : null}
+      <RecuadroTarjetas compacto>
       <div id={id} role="radiogroup" aria-label={titulo} className="grid grid-cols-2 gap-2.5 lg:grid-cols-3">
         {permitirVacio ? <TarjetaOpcion tamano="normal" rol="radio" escena={SIN_ESPECIFICAR} titulo={etiquetaVacio} activo={valor === ""} onClick={() => onCambio("")} deshabilitada={deshabilitado} /> : null}
         {opciones.map((o) => (
           <TarjetaOpcion key={o.valor} tamano="normal" rol="radio" escena={o.escena} titulo={o.etiqueta} detalle={o.detalle} activo={o.valor === valor} onClick={() => onCambio(o.valor)} deshabilitada={deshabilitado} />
         ))}
       </div>
+      </RecuadroTarjetas>
     </>
   );
 }

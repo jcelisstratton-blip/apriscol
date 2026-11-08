@@ -1,6 +1,6 @@
 "use client";
 
-import { TarjetaOpcion } from "@/components/TarjetaOpcion";
+import { RecuadroTarjetas, TarjetaOpcion } from "@/components/TarjetaOpcion";
 import type { OpcionTarjeta } from "@/components/SelectorTarjetas";
 
 /**
@@ -26,11 +26,13 @@ export function SelectorTarjetasMultiple<T extends string>({
   return (
     <>
       {nombre ? <input type="hidden" name={nombre} value={valor.join(",")} /> : null}
+      <RecuadroTarjetas compacto>
       <div id={id} role="group" aria-label={titulo} className="grid grid-cols-2 gap-2.5 lg:grid-cols-3">
         {opciones.map((o) => (
           <TarjetaOpcion key={o.valor} tamano="normal" escena={o.escena} titulo={o.etiqueta} detalle={o.detalle} activo={valor.includes(o.valor)} onClick={() => alternar(o.valor)} />
         ))}
       </div>
+      </RecuadroTarjetas>
     </>
   );
 }
