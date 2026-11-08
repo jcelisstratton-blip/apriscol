@@ -75,7 +75,7 @@ export async function TarjetaReproduccion({ c, sinCrear }: { c: CtxFicha; sinCre
             {enObservacion(repro) ? <Insignia tono="aviso">{ETIQUETA_OBSERVACION}</Insignia> : null}
             {repro.fecha_prevista_parto ? <Insignia tono={plazoParto(repro.fecha_prevista_parto, hoyBogota()).tono}>{plazoParto(repro.fecha_prevista_parto, hoyBogota()).texto}</Insignia> : null}
             {repro.en_lactancia ? <Insignia tono="musgo">En lactancia</Insignia> : null}
-            {repro.empadronamiento_id ? <Insignia tono="aviso">En empadronamiento</Insignia> : null}
+            {repro.empadronamiento_id ? <Insignia tono="aviso">En empadre</Insignia> : null}
           </div>
           <dl className="divide-y divide-arena">
             {repro.empadronamiento_id ? (

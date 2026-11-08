@@ -33,7 +33,7 @@ export function ListaHato({
   puedeTraer?: boolean;
   /** El filtro con el que abre la lista (por ejemplo, al volver desde «Ordeño»). */
   filtroInicial?: FiltroHato;
-  /** Las vistas de trabajo que se ofrecen junto a los filtros (Ordeño, Ceba, Empadronamiento, Sanidad, Corrales…), según lo que la persona puede ver. */
+  /** Las vistas de trabajo que se ofrecen junto a los filtros (Ordeño, Ceba, Empadre, Sanidad, Corrales…), según lo que la persona puede ver. */
   vistas?: VistaHato[];
   /** Cuántos animales hay en cada filtro (el dato de cada tarjeta). */
   conteos?: Record<FiltroHato, number>;

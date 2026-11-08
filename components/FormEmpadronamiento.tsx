@@ -27,7 +27,7 @@ type Macho = { id: string; numero_arete: string; nombre: string | null; fecha_na
 type HembrasElegidas = { ids: string[]; excepciones: string[]; etiquetas: Record<string, string>; clave: string };
 
 /**
- * Crear o corregir un empadronamiento (temporada de monta): fechas, criterios para elegir hembras y, al crearlo, el primer semental con
+ * Crear o corregir un empadre (temporada de monta): fechas, criterios para elegir hembras y, al crearlo, el primer semental con
  * sus hembras (solo hembras libres: sin gestación). Más sementales y más hembras se suman después desde la temporada.
  * Cerrado, solo se corrigen las observaciones.
  */
@@ -154,7 +154,7 @@ export function FormEmpadronamiento({
         <input type="hidden" name="edad_min_meses" value={lote.edad_min_meses} />
         <input type="hidden" name="peso_min_kg" value={lote.peso_min_kg} />
         <input type="hidden" name="cc_min" value={lote.cc_min} />
-        <Aviso tipo="info">Este empadronamiento ya está cerrado y es parte de la historia: solo se pueden corregir sus observaciones.</Aviso>
+        <Aviso tipo="info">Este empadre ya está cerrado y es parte de la historia: solo se pueden corregir sus observaciones.</Aviso>
         <Campo etiqueta="Observaciones" ayuda="Opcional.">
           {(id) => <textarea id={id} name="observaciones" defaultValue={lote.observaciones ?? ""} rows={4} maxLength={1000} className={`${CLASE_INPUT} py-3`} />}
         </Campo>
@@ -317,7 +317,7 @@ export function FormEmpadronamiento({
       {estado?.error ? <Aviso tipo="error">{estado.error}</Aviso> : null}
       {requisito ? <Aviso tipo="atencion">{requisito}</Aviso> : null}
       <div className="space-y-2">
-        <Boton type="submit" pendiente={pendiente} disabled={requisito != null} cargando="Guardando…">{editando ? "Guardar cambios" : "Crear empadronamiento"}</Boton>
+        <Boton type="submit" pendiente={pendiente} disabled={requisito != null} cargando="Guardando…">{editando ? "Guardar cambios" : "Crear empadre"}</Boton>
         <Link href={volver} className={clasesBoton("fantasma")}>Cancelar</Link>
       </div>
     </form>

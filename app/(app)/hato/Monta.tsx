@@ -18,7 +18,7 @@ import { leerTodo } from "@/lib/consultas";
 
 /**
  * Hato → Empadronamiento: las temporadas de monta abiertas, donde se arman y se cierran: crear una, agregar hembras a sus sementales
- * y cerrarla para pasarlas a gestación. El resumen de todas (y con qué hembras se hizo cada una) está en Reproducción → Empadronamiento.
+ * y cerrarla para pasarlas a gestación. El resumen de todas (y con qué hembras se hizo cada una) está en Reproducción → Empadre.
  */
 export async function Monta({
   fincaId,
@@ -74,7 +74,7 @@ export async function Monta({
 
   const nuevo = puedeEditar ? (
     <Link href="/reproduccion/empadronamiento/nuevo" className={clasesBoton("primario")}>
-      <Plus className="size-5" strokeWidth={2.2} aria-hidden="true" /> Nuevo empadronamiento
+      <Plus className="size-5" strokeWidth={2.2} aria-hidden="true" /> Nuevo empadre
     </Link>
   ) : null;
 
@@ -86,7 +86,7 @@ export async function Monta({
         <EstadoVacio
           icono={<CalendarRange strokeWidth={1.5} />}
           titulo="No hay ninguna temporada abierta"
-          descripcion="Crea un empadronamiento para agrupar a los sementales con las hembras por un tiempo definido y que los partos caigan juntos."
+          descripcion="Crea un empadre para agrupar a los sementales con las hembras por un tiempo definido y que los partos caigan juntos."
         >
           {nuevo}
         </EstadoVacio>

@@ -22,16 +22,16 @@ type Cliente = Awaited<ReturnType<typeof crearClienteServidor>>;
 
 const ID_UUID = z.uuid();
 const destinoLote = (id: string) => `/reproduccion/empadronamiento/${id}`;
-const REPETIDO_NOMBRE = "Ya tienes un empadronamiento con ese nombre. Ponle otro (por ejemplo, con el año).";
+const REPETIDO_NOMBRE = "Ya tienes un empadre con ese nombre. Ponle otro (por ejemplo, con el año).";
 
 const permiso = permisoPara("reproduccion");
 
-/** El empadronamiento existe, es de la finca y sigue abierto (o se acepta cerrado si `abierto` es falso). */
+/** El empadre existe, es de la finca y sigue abierto (o se acepta cerrado si `abierto` es falso). */
 async function cargarLote(supabase: Cliente, fincaId: string, id: string, abierto = true): Promise<{ ok: false; error: string } | { ok: true; lote: Omit<Empadronamiento, "machos" | "hembras" | "excepciones"> }> {
-  if (!ID_UUID.safeParse(id).success) return { ok: false, error: "Empadronamiento no válido." };
+  if (!ID_UUID.safeParse(id).success) return { ok: false, error: "Empadre no válido." };
   const { data } = await supabase.from("empadronamientos").select("*").eq("id", id).eq("finca_id", fincaId).maybeSingle();
-  if (!data) return { ok: false, error: "No encontramos ese empadronamiento." };
-  if (abierto && data.cerrado_en) return { ok: false, error: "Este empadronamiento ya está cerrado: es parte de la historia y no se cambia." };
+  if (!data) return { ok: false, error: "No encontramos ese empadre." };
+  if (abierto && data.cerrado_en) return { ok: false, error: "Este empadre ya está cerrado: es parte de la historia y no se cambia." };
   return { ok: true, lote: data };
 }
 
@@ -39,7 +39,7 @@ async function cargarLote(supabase: Cliente, fincaId: string, id: string, abiert
 async function machosValidos(supabase: Cliente, fincaId: string, especie: string, ids: string[]) {
   const { data } = await supabase.from("animales").select("id, sexo, especie, estado").in("id", ids).eq("finca_id", fincaId).is("deleted_at", null);
   const buenos = (data ?? []).filter((m) => m.sexo === "macho" && m.especie === especie && m.estado === "activo");
-  return buenos.length === new Set(ids).size ? null : "Los sementales deben ser machos activos de tu hato y de la misma especie del empadronamiento.";
+  return buenos.length === new Set(ids).size ? null : "Los sementales deben ser machos activos de tu hato y de la misma especie del empadre.";
 }
 
 // ───────────────────────── Crear y editar ─────────────────────────
@@ -116,7 +116,7 @@ const filaExterno = (fincaId: string, especie: Especie, d: DatosExternoValidos) 
 });
 
 const esquema = z.object({
-  nombre: z.string().trim().min(1, "Ponle un nombre al empadronamiento.").max(80, "El nombre es muy largo (máximo 80 letras)."),
+  nombre: z.string().trim().min(1, "Ponle un nombre al empadre.").max(80, "El nombre es muy largo (máximo 80 letras)."),
   especie: z.enum(["caprino", "ovino"], "Elige la especie."),
   fecha_inicio: z.iso.date("Indica cuándo empieza la temporada."),
   duracion_dias: z.preprocess((v) => (typeof v === "string" ? Number(v) : v), z.number("Indica cuántos días dura la temporada.").int("Los días deben ser un número entero.").min(1, "La temporada dura al menos un día.").max(DURACION_MAX_DIAS, `La temporada no puede durar más de ${DURACION_MAX_DIAS} días.`)),
@@ -143,7 +143,7 @@ function fechasValidas(inicio: string, duracion: number, hoy: string) {
 }
 
 export async function crearEmpadronamiento(_: EstadoForm, form: FormData): Promise<EstadoForm> {
-  const p = await permiso("crear empadronamientos");
+  const p = await permiso("crear empadres");
   if (!p.ok) return { error: p.error };
   const datos = esquema.safeParse(Object.fromEntries(form));
   if (!datos.success) return { error: datos.error.issues[0]?.message ?? "Revisa los datos." };
@@ -224,17 +224,17 @@ export async function crearEmpadronamiento(_: EstadoForm, form: FormData): Promi
 }
 
 export async function editarEmpadronamiento(_: EstadoForm, form: FormData): Promise<EstadoForm> {
-  const p = await permiso("editar empadronamientos");
+  const p = await permiso("editar empadres");
   if (!p.ok) return { error: p.error };
   const datos = esquema.safeParse(Object.fromEntries(form));
   if (!datos.success) return { error: datos.error.issues[0]?.message ?? "Revisa los datos." };
   const d = datos.data;
-  if (!d.empadronamiento_id) return { error: "No encontramos ese empadronamiento." };
+  if (!d.empadronamiento_id) return { error: "No encontramos ese empadre." };
   const supabase = await crearClienteServidor();
   const c = await cargarLote(supabase, p.finca.id, d.empadronamiento_id, false);
   if (!c.ok) return { error: c.error };
 
-  // Un empadronamiento cerrado solo deja corregir sus observaciones.
+  // Un empadre cerrado solo deja corregir sus observaciones.
   const cambios = c.lote.cerrado_en
     ? { observaciones: d.observaciones ?? null }
     : {
@@ -253,15 +253,15 @@ export async function editarEmpadronamiento(_: EstadoForm, form: FormData): Prom
   const { data, error } = await supabase.from("empadronamientos").update(cambios).eq("id", c.lote.id).eq("finca_id", p.finca.id).select("id");
   if (error?.code === "23505") return { error: REPETIDO_NOMBRE };
   if (error) return { error: mensajeAmigable(error.message) };
-  if (!data || data.length === 0) return { error: "No encontramos ese empadronamiento." };
+  if (!data || data.length === 0) return { error: "No encontramos ese empadre." };
   revalidatePath("/reproduccion");
   redirect(`${destinoLote(c.lote.id)}?guardado=1`);
 }
 
 export async function eliminarEmpadronamiento(id: string): Promise<Resultado> {
   const { finca, rol } = await obtenerContexto();
-  if (!puedeGestionar(rol)) return { ok: false, error: "Solo el propietario o un administrador puede eliminar empadronamientos." };
-  if (!ID_UUID.safeParse(id).success) return { ok: false, error: "Empadronamiento no válido." };
+  if (!puedeGestionar(rol)) return { ok: false, error: "Solo el propietario o un administrador puede eliminar empadres." };
+  if (!ID_UUID.safeParse(id).success) return { ok: false, error: "Empadre no válido." };
   const supabase = await crearClienteServidor();
   // Un solo paso en la base: borra la temporada y los datos de los sementales de otro hato que solo vivían en ella.
   const { error } = await supabase.rpc("eliminar_empadronamiento", { p_finca: finca.id, p_lote: id });
@@ -458,7 +458,7 @@ const esquemaCierre = z.object({ loteId: z.uuid(), cierre: z.iso.date("Indica la
 
 /** Cierra la temporada: cada hembra queda servida por su semental, con su fecha prevista de parto (147 días ovinos, 150 caprinos). */
 export async function cerrarEmpadronamiento(entrada: z.input<typeof esquemaCierre>): Promise<{ ok: true; servicios: number } | { ok: false; error: string }> {
-  const p = await permiso("cerrar empadronamientos");
+  const p = await permiso("cerrar empadres");
   if (!p.ok) return { ok: false, error: p.error };
   const datos = esquemaCierre.safeParse(entrada);
   if (!datos.success) return { ok: false, error: datos.error.issues[0]?.message ?? "Revisa las fechas." };

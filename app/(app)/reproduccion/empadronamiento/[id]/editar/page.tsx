@@ -13,7 +13,7 @@ import { puedeEscribir, puedeGestionar } from "@/lib/permisos";
 import { hoyBogota } from "@/lib/fechas";
 import { eliminarEmpadronamiento } from "@/app/(app)/reproduccion/empadronamiento/actions";
 
-export const metadata: Metadata = { title: "Editar empadronamiento" };
+export const metadata: Metadata = { title: "Editar empadre" };
 const ID_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export default async function PaginaEmpadronamientoEditar({ params }: { params: Promise<{ id: string }> }) {
@@ -30,17 +30,17 @@ export default async function PaginaEmpadronamientoEditar({ params }: { params: 
       <Link href={`/reproduccion/empadronamiento/${id}`} className="-ml-2 mt-3 inline-flex min-h-11 items-center gap-1 rounded-full px-2 text-[0.9375rem] font-semibold text-musgo">
         <ChevronLeft className="size-5" strokeWidth={2} /> {lote.nombre}
       </Link>
-      <Encabezado titulo="Editar empadronamiento" subtitulo={finca.nombre} />
+      <Encabezado titulo="Editar empadre" subtitulo={finca.nombre} />
       <div className="space-y-8 lg:max-w-xl">
         <FormEmpadronamiento fincaId={finca.id} umbral={finca.umbral_endogamia} especies={finca.especies} hoy={hoyBogota()} lote={lote}  criterios={criteriosServicio(await obtenerAjustes())} />
         {puedeGestionar(rol) && !lote.cerrado_en ? (
           <EliminarRegistro
-            etiqueta="Eliminar este empadronamiento"
+            etiqueta="Eliminar este empadre"
             resumen={lote.nombre}
             consecuencia={lote.hembras > 0 ? `Las ${lote.hembras} hembras asignadas salen de la temporada (los animales no se tocan)` : undefined}
             accion={eliminarEmpadronamiento.bind(null, id)}
             destino="/hato?vista=empadronamiento"
-            mensaje="Empadronamiento eliminado"
+            mensaje="Empadre eliminado"
           />
         ) : null}
       </div>

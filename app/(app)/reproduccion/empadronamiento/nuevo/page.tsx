@@ -12,9 +12,9 @@ import { criteriosServicio } from "@/lib/ajustes";
 import { puedeEscribir } from "@/lib/permisos";
 import { hoyBogota } from "@/lib/fechas";
 
-export const metadata: Metadata = { title: "Nuevo empadronamiento" };
+export const metadata: Metadata = { title: "Nuevo empadre" };
 
-/** Una temporada de monta se arma desde Hato → Empadronamiento y vuelve a él. */
+/** Una temporada de monta se arma desde Hato → Empadre y vuelve a él. */
 export default async function PaginaEmpadronamientoNuevo() {
   const { finca, rol } = await obtenerContexto();
   if (!puedeEscribir(rol, "reproduccion", finca.plan)) redirect("/hato?vista=empadronamiento");
@@ -24,7 +24,7 @@ export default async function PaginaEmpadronamientoNuevo() {
       <Link href="/hato?vista=empadronamiento" className="-ml-2 mt-3 inline-flex min-h-11 items-center gap-1 rounded-full px-2 text-[0.9375rem] font-semibold text-musgo">
         <ChevronLeft className="size-5" strokeWidth={2} /> Hato
       </Link>
-      <Encabezado titulo="Nuevo empadronamiento" subtitulo={finca.nombre} />
+      <Encabezado titulo="Nuevo empadre" subtitulo={finca.nombre} />
       <div className="lg:max-w-xl">
         <FormEmpadronamiento fincaId={finca.id} umbral={finca.umbral_endogamia} razas={razas ?? []} especies={finca.especies} hoy={hoyBogota()} solicitud={randomUUID()}  criterios={criteriosServicio(await obtenerAjustes())} />
       </div>

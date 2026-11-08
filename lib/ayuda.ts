@@ -72,7 +72,7 @@ export const ayudaSanidad = (a: Pick<AjustesFinca, "podologia_inspeccion_dias" |
 export const AYUDA_EMPADRONAMIENTO: Ayuda = {
   titulo: "Temporada de monta",
   puntos: [
-    { titulo: "Temporada", texto: "Reúne a los sementales y a las hembras que se montan en un periodo, con su fecha de inicio y de cierre prevista." },
+    { titulo: "Temporada", texto: "El empadre (también llamado empadronamiento, monta controlada o temporada de servicio) reúne a los sementales y a las hembras que se montan en un periodo, con su inicio y su cierre previsto." },
     { titulo: "Sementales", texto: "Cada semental tiene su número de hembras. Pueden ser tuyos o prestados de otro hato." },
     { titulo: "Hembras libres", texto: "Solo entran hembras sin gestación, sin servicio esperando diagnóstico y fuera de otra temporada abierta." },
     { titulo: "Endogamia", texto: "La app calcula la endogamia de cada pareja antes de confirmarla. Si llega al umbral, solo entra como excepción registrada." },

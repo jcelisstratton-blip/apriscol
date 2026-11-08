@@ -17,7 +17,7 @@ export const metadata: Metadata = { title: "Reproducción" };
 
 const PESTANAS = [
   { valor: "resumen", etiqueta: "Resumen", detalle: "Gestaciones y partos" },
-  { valor: "empadronamiento", etiqueta: "Empadronamiento", detalle: "Temporadas de monta" },
+  { valor: "empadronamiento", etiqueta: "Empadre", detalle: "Temporadas de monta" },
   { valor: "servicios", etiqueta: "Servicios", detalle: "Montas e inseminaciones" },
   { valor: "partos", etiqueta: "Partos", detalle: "Crías y lactancias" },
 ] as const;

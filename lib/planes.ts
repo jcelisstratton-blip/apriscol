@@ -45,7 +45,7 @@ export const PLANES: Plan[] = [
     incluyeDe: "Cría",
     funciones: [
       "Corrales y potreros con rotación y cuarentena",
-      "Temporada de monta (empadronamiento)",
+      "Temporada de monta (empadre)",
       "Programas sanitarios, FAMACHA y pediluvio",
       "Premios y ferias, y simulador de cruzas",
     ],

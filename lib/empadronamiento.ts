@@ -22,7 +22,7 @@ export function avanceEmp(e: Pick<Empadronamiento, "fecha_inicio" | "fecha_fin_p
 
 /**
  * Qué se puede hacer con una candidata: `apta` (cumple todo), `verificar` (algún dato falta: se puede agregar y revisar) o
- * `no` (no cumple un criterio, ya está servida o gestante, o está en otro empadronamiento abierto).
+ * `no` (no cumple un criterio, ya está servida o gestante, o está en otro empadre abierto).
  */
 export type Aptitud = { clase: "apta" | "verificar" | "no"; motivos: string[] };
 
@@ -83,5 +83,5 @@ export function leerNumeroHembras(texto: string): number | null {
 export const ETIQUETA_CAPACIDAD = { fijada: "fijado en la temporada", joven: "macho joven", adulto: "macho adulto" } as const;
 
 // ───────────────────────── Filtro por fechas del resumen ─────────────────────────
-// El filtro por periodos es de todos los menús (ver `lib/periodos.ts`); estos nombres se conservan para el resumen de empadronamientos.
+// El filtro por periodos es de todos los menús (ver `lib/periodos.ts`); estos nombres se conservan para el resumen de empadres.
 export { PERIODOS as PERIODOS_EMP, esPeriodo as esPeriodoEmp, rangoPeriodo, type Periodo as PeriodoEmp } from "@/lib/periodos";
