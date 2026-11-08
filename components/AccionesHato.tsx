@@ -3,7 +3,7 @@ import { FileSpreadsheet, Inbox, Plus } from "lucide-react";
 
 /**
  * Los botones del encabezado del Hato. Cada uno dice qué hace con texto (los que caben) y con una ayuda al pasar el mouse (`title`):
- * «Cargar desde Excel» abre «Migrar mi finca», la guía de todo el proceso (animales, genealogía, pesos, ordeños y sanidad).
+ * «Migrar mi finca» abre la guía de todo el proceso (animales, genealogía, pesos, ordeños y sanidad).
  */
 export function AccionesHato({ puedeNovedad, puedeCrear }: { puedeNovedad: boolean; puedeCrear: boolean }) {
   return (
@@ -25,12 +25,12 @@ export function AccionesHato({ puedeNovedad, puedeCrear }: { puedeNovedad: boole
               <>
                 <Link
                   href="/hato/migrar"
-                  title="Migrar mi finca desde Excel: animales, genealogía, pesos, ordeños y sanidad"
+                  title="Migrar mi finca desde Excel: corrales, animales, genealogía, pesos, ordeños, sanidad e inventario"
                   className="inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-full bg-arena px-3.5 text-sm font-semibold text-musgo transition active:scale-95"
                 >
                   <FileSpreadsheet className="size-4" strokeWidth={1.9} aria-hidden="true" />
-                  <span className="sm:hidden">Excel</span>
-                  <span className="hidden sm:inline">Cargar desde Excel</span>
+                  <span className="sm:hidden">Migrar</span>
+                  <span className="hidden sm:inline">Migrar mi finca</span>
                 </Link>
                 <Link
                   href="/hato/nuevo"

@@ -121,7 +121,7 @@ export function TarjetaOpcion({
  * fila que se desplaza (`FilaTarjetas`), una rejilla de opciones de un formulario o los reportes. `compacto` quita relleno para las rejillas de formularios.
  */
 export function RecuadroTarjetas({ children, className = "", compacto = false }: { children: React.ReactNode; className?: string; compacto?: boolean }) {
-  return <div className={`min-w-0 rounded-3xl bg-papel/70 ring-1 ring-arena ${compacto ? "p-2" : "p-2.5"} ${className}`}>{children}</div>;
+  return <div className={`min-w-0 rounded-3xl bg-papel shadow-[0_1px_2px_rgba(60,45,20,0.05)] ring-1 ring-arena ${compacto ? "p-2" : "p-2.5 lg:p-4"} ${className}`}>{children}</div>;
 }
 
 /**
@@ -134,7 +134,7 @@ export function FilaTarjetas({ children, className = "", etiqueta }: { children:
       <div
         role={etiqueta ? "group" : undefined}
         aria-label={etiqueta}
-        className="no-scrollbar -mx-2.5 flex snap-x gap-2.5 overflow-x-auto px-2.5 pb-1 pt-1 [mask-image:linear-gradient(to_right,transparent,#000_10px,#000_calc(100%-24px),transparent)] lg:mx-0 lg:flex-wrap lg:overflow-visible lg:px-0 lg:[mask-image:none]"
+        className="no-scrollbar -mx-2.5 flex snap-x gap-2.5 overflow-x-auto px-2.5 pb-1 pt-1 [mask-image:linear-gradient(to_right,transparent,#000_10px,#000_calc(100%-24px),transparent)] lg:mx-0 lg:grid lg:grid-cols-[repeat(auto-fill,minmax(9.5rem,1fr))] lg:gap-3 lg:overflow-visible lg:p-0 lg:[mask-image:none] lg:[&>*]:w-full"
       >
         {children}
       </div>
