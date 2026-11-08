@@ -39,6 +39,13 @@ por separado, y el usuario elige de listas en vez de escribir** (decisión del d
   (`lib/reportes-excel.ts`, `exceljs`): título con finca, reporte, periodo y filtros dentro de la hoja, totales como fórmulas, y el archivo se llama `<finca> - <reporte> - <desde> a <hasta>.xlsx`. Un reporte nuevo se agrega en
   `lib/costos-reportes.ts` y en `construirLibro`.
 
+## IVA en compras y ventas (opcional)
+
+Cada **compra** (`gastos`) y cada **venta** registrada (`ventas`) tiene un campo opcional **IVA** (`CampoIva`, `components/CampoIva.tsx`): la persona escribe el porcentaje de su factura y el formulario muestra «IVA incluido» y «sin IVA». Se guarda `iva_tarifa` (0 a 100, vacío = no se registró); `iva_valor` es una **columna generada** (`total − total / (1 + tarifa)`), igual que `ivaIncluido` en `lib/impuestos.ts` (migración `20261108124654`, solo agrega columnas).
+- **El total ya incluye el IVA** y **no cambia ningún total ni reporte**: el IVA es informativo. Las compras lo muestran en su lista; en las ventas se ve al editarla. **Pendiente a propósito:** la leche despachada y los animales vendidos (entran por Leche y por la baja) y el valor de compra de un animal no piden IVA todavía; los reportes (`costos_*`, `ventas_*`, Excel) no lo suman.
+- **La tarifa no se propone ni se valida contra la ley**: cambia (hoy la general en Colombia es 19 %, hay 5 %, y bienes excluidos o exentos como la leche o el ganado) y no se inventan tarifas legales.
+- **Cómo se llama en el mundo** (es el mismo impuesto con otro nombre; Apriscol opera con fincas colombianas y escribe «IVA», `IMPUESTO` en `lib/impuestos.ts`): **IVA** (Impuesto al Valor Agregado) en Colombia, España, México, Argentina, Chile, Uruguay, Paraguay, Bolivia, Ecuador, Guatemala, El Salvador y Portugal; **VAT** en el Reino Unido, Irlanda, Sudáfrica y la mayoría de la UE en inglés; **TVA** en Francia, Rumania, Luxemburgo y Marruecos; **MwSt / USt** en Alemania, Austria y Suiza; **GST** en Australia, India, Canadá, Nueva Zelanda y Singapur; **IGV** en Perú; **ITBMS** en Panamá; **ITBIS** en República Dominicana. En Estados Unidos no hay IVA: es un impuesto a las ventas estatal (*sales tax*). Si Apriscol llega a otro país, el nombre sale de esa lista.
+
 ## Datos de cada perfil del equipo
 
 Al agregar a alguien en Equipo (`FormInvitar`), con el perfil elegido se abre su bloque de datos (`CamposPerfil`, reglas en `lib/perfil-personal.ts#perfilPorRol`, que lo exige la acción y solo guarda lo del perfil). Se guardan en `personal` (migración `20261024150504_personal_perfil_por_cargo`, solo agrega columnas y amplía `registrar_persona`). **Nunca se pide documento de identidad**; la tarjeta profesional es el registro del oficio.

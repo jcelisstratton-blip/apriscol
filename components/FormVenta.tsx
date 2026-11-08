@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Aviso } from "@/components/Aviso";
 import { Boton, clasesBoton } from "@/components/Boton";
 import { Campo, CLASE_INPUT } from "@/components/Campo";
+import { CampoIva } from "@/components/CampoIva";
 import { SelectorTarjetas } from "@/components/SelectorTarjetas";
 import { SelectorTercero } from "@/components/SelectorTercero";
 import { crearVenta, editarVenta } from "@/app/(app)/hato/ventas/actions";
@@ -120,6 +121,8 @@ export function FormVenta({ hoy, productos, terceros, venta, solicitud }: { hoy:
               {(id) => <input id={id} name="cobro_vence" type="date" defaultValue={venta?.cobro_vence ?? ""} min={fecha} className={CLASE_INPUT} />}
             </Campo>
           )}
+
+          <CampoIva total={total} inicial={venta?.iva_tarifa} />
 
           <Campo etiqueta="Observaciones" ayuda="Opcional.">
             {(id) => <textarea id={id} name="observaciones" defaultValue={venta?.observaciones ?? ""} rows={2} maxLength={1000} className={`${CLASE_INPUT} py-3`} />}

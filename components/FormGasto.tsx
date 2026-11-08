@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Aviso } from "@/components/Aviso";
 import { Boton, clasesBoton } from "@/components/Boton";
 import { Campo, CLASE_INPUT } from "@/components/Campo";
+import { CampoIva } from "@/components/CampoIva";
 import { Selector } from "@/components/Selector";
 import { SelectorAnimal } from "@/components/SelectorAnimal";
 import { SelectorTarjetas } from "@/components/SelectorTarjetas";
@@ -379,6 +380,8 @@ export function FormGasto({
           </Link>
         </p>
       )}
+
+      <CampoIva total={total ?? null} inicial={gasto?.iva_tarifa} />
 
       <Campo etiqueta="Observaciones" ayuda="Opcional.">
         {(id) => <textarea id={id} name="observaciones" defaultValue={gasto?.observaciones ?? ""} rows={2} maxLength={1000} className={`${CLASE_INPUT} py-3`} />}

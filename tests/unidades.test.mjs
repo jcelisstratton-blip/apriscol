@@ -56,3 +56,15 @@ test("unidades: el catálogo con el que nace cada finca usa unidades que existen
   assert.equal(filas.filter((f) => f.clave === "yogur_lacteos").length, 1);
   assert.ok(unidad("derivados_solidos"));
 });
+
+// IVA opcional en compras y ventas: el cálculo del navegador debe coincidir con la columna generada `iva_valor` de la base.
+test("ivaIncluido: la parte del total que es IVA (el total ya lo incluye)", async () => {
+  const { ivaIncluido, IMPUESTO } = await import("../lib/impuestos.ts");
+  assert.equal(IMPUESTO.sigla, "IVA");
+  assert.equal(ivaIncluido(1190000, 19), 190000);
+  assert.equal(ivaIncluido(105000, 5), 5000);
+  assert.equal(ivaIncluido(50000, 0), 0);
+  assert.equal(ivaIncluido(50000, null), null);
+  assert.equal(ivaIncluido(null, 19), null);
+  assert.equal(ivaIncluido(100, -1), null);
+});

@@ -14,6 +14,7 @@ import { ETIQUETA_GRUPO, ETIQUETA_RUBRO, GRUPOS, RUBROS_DE, estaVencido, type Gr
 import { ESCENA_GRUPO_GASTO, ESCENA_TODOS_GRUPOS } from "@/lib/escenas-costos";
 import { formatoFecha } from "@/lib/fechas";
 import { pesos } from "@/lib/ferias";
+import { IMPUESTO } from "@/lib/impuestos";
 import { direccionSoporte } from "@/lib/soportes";
 import { crearClienteNavegador } from "@/lib/supabase/client";
 import type { Gasto } from "@/lib/tipos";
@@ -104,6 +105,7 @@ export function ListaGastos({
                 {g.pagado_en ? <Insignia tono="ok">Pagado</Insignia> : vencido ? <Insignia tono="alerta">Vencido</Insignia> : <Insignia tono="aviso">Por pagar</Insignia>}
                 {!g.pagado_en && g.vence ? <span className="text-xs text-humo">vence el {formatoFecha(g.vence, { day: "numeric", month: "short" })}</span> : null}
                 {g.cantidad ? <span className="text-xs text-humo">{String(g.cantidad).replace(".", ",")} {g.unidad ?? ""}</span> : null}
+                {g.iva_valor != null ? <span className="text-xs text-humo">{IMPUESTO.sigla} {pesos(Number(g.iva_valor))} ({String(g.iva_tarifa).replace(".", ",")} %)</span> : null}
               </div>
               <div className="mt-1 flex flex-wrap items-center gap-x-4 border-t border-arena pt-1">
                 {puedeEditar && !g.pagado_en ? (

@@ -2327,6 +2327,8 @@ export type Database = {
           lote_producto: string | null
           lote_vencimiento: string | null
           monto: number
+          iva_tarifa: number | null
+          iva_valor: number | null
           producto_vet_id: string | null
           observaciones: string | null
           pagado_en: string | null
@@ -2356,6 +2358,8 @@ export type Database = {
           lote_producto?: string | null
           lote_vencimiento?: string | null
           monto: number
+          iva_tarifa: number | null
+          iva_valor: number | null
           producto_vet_id?: string | null
           observaciones?: string | null
           pagado_en?: string | null
@@ -2385,6 +2389,8 @@ export type Database = {
           lote_producto?: string | null
           lote_vencimiento?: string | null
           monto?: number
+          iva_tarifa?: number | null
+          iva_valor?: number | null
           producto_vet_id?: string | null
           observaciones?: string | null
           pagado_en?: string | null
@@ -5046,6 +5052,8 @@ export type Database = {
           unidad: string | null
           updated_at: string
           valor_total: number | null
+          iva_tarifa: number | null
+          iva_valor: number | null
         }
         Insert: {
           cantidad: number
@@ -5064,6 +5072,8 @@ export type Database = {
           unidad?: string | null
           updated_at?: string
           valor_total?: number | null
+          iva_tarifa?: number | null
+          iva_valor?: number | null
         }
         Update: {
           cantidad?: number
@@ -5082,6 +5092,8 @@ export type Database = {
           unidad?: string | null
           updated_at?: string
           valor_total?: number | null
+          iva_tarifa?: number | null
+          iva_valor?: number | null
         }
         Relationships: [
           {
