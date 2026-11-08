@@ -498,6 +498,9 @@ export type Gasto = {
   cantidad: number | null;
   unidad: string | null;
   monto: number;
+  /** IVA opcional: el porcentaje que escribió la persona y, derivado por la base, la parte del monto que es IVA (el monto ya lo incluye). */
+  iva_tarifa: number | null;
+  iva_valor: number | null;
   destino_tipo: DestinoGasto;
   especie: Especie | null;
   ubicacion_id: string | null;
@@ -571,6 +574,9 @@ export type Venta = {
   precio_unitario: number;
   /** Generada por la base: cantidad × precio. */
   valor_total: number;
+  /** IVA opcional: porcentaje escrito y parte del total que es IVA (el total ya lo incluye). */
+  iva_tarifa: number | null;
+  iva_valor: number | null;
   tercero_id: string | null;
   cobrado_en: string | null;
   cobro_vence: string | null;

@@ -29,6 +29,7 @@ const esquema = z.object({
   cobro: z.enum(["cobrado", "por_cobrar"], "Indica si ya te pagaron."),
   cobrado_en: opcional(z.iso.date("Indica la fecha del cobro.")),
   cobro_vence: opcional(z.iso.date("Indica cuándo esperas el pago.")),
+  iva_tarifa: opcional(numero("La tarifa del IVA debe ser un número (por ejemplo 19).").pipe(z.number().min(0, "La tarifa del IVA no puede ser negativa.").max(100, "La tarifa del IVA no puede pasar de 100 %."))),
   observaciones: opcional(z.string().trim().max(1000, "Las observaciones son muy largas.")),
   client_request_id: opcional(ID_UUID),
   venta_id: opcional(ID_UUID),
@@ -45,6 +46,7 @@ const fila = (d: Datos) => ({
   tercero_id: d.tercero_id ?? null,
   cobrado_en: d.cobro === "cobrado" ? (d.cobrado_en ?? d.fecha) : null,
   cobro_vence: d.cobro === "por_cobrar" ? (d.cobro_vence ?? null) : null,
+  iva_tarifa: d.iva_tarifa ?? null,
   observaciones: d.observaciones ?? null,
 });
 

@@ -48,6 +48,7 @@ const esquema = z
     pagado_en: opcional(z.iso.date("Indica la fecha de pago.")),
     vence: opcional(z.iso.date("Indica cuándo vence el pago.")),
     soporte_path: opcional(z.string().max(200)),
+    iva_tarifa: opcional(numero("La tarifa del IVA debe ser un número (por ejemplo 19).").pipe(z.number().min(0, "La tarifa del IVA no puede ser negativa.").max(100, "La tarifa del IVA no puede pasar de 100 %."))),
     observaciones: opcional(z.string().trim().max(1000, "Las observaciones son muy largas.")),
     client_request_id: opcional(ID_UUID),
     gasto_id: opcional(ID_UUID),
@@ -85,6 +86,7 @@ function fila(d: Datos, proveedor: string | null) {
     pagado_en: d.pago === "pagado" ? (d.pagado_en ?? d.fecha) : null,
     vence: d.pago === "por_pagar" ? (d.vence ?? null) : null,
     soporte_path: d.soporte_path ?? null,
+    iva_tarifa: d.iva_tarifa ?? null,
     observaciones: d.observaciones ?? null,
   };
 }
