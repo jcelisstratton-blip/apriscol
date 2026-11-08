@@ -8,6 +8,7 @@ import type { EscenarioGuardado } from "@/lib/proyeccion/escenarios";
 import { aplicarAjustes, type Ajustes, type Supuestos } from "@/lib/proyeccion/supuestos";
 import { FILAS_COMPARACION, ganadores } from "@/lib/proyeccion/comparacion";
 import { formatear } from "@/lib/proyeccion/vista";
+import { useMoneda } from "@/components/ProveedorMoneda";
 
 /** Un escenario para comparar: los guardados y, aparte, lo que se ve ahora en pantalla (que puede tener cambios sin guardar). */
 type Candidato = { clave: string; nombre: string; ajustes: Ajustes };
@@ -15,6 +16,7 @@ const PANTALLA = "__pantalla__";
 const MAX = 3;
 
 export function Comparar({ escenarios, ajustesPantalla, hayCambios, activoId, base, entrada }: { escenarios: EscenarioGuardado[]; ajustesPantalla: Ajustes; hayCambios: boolean; activoId: string | null; base: Supuestos; entrada: Entrada }) {
+  const moneda = useMoneda();
   const candidatos: Candidato[] = useMemo(() => {
     const lista: Candidato[] = escenarios.map((e) => ({ clave: e.id, nombre: e.nombre, ajustes: e.id === activoId ? ajustesPantalla : e.ajustes }));
     if (escenarios.length === 0 || (hayCambios && activoId === null)) lista.push({ clave: PANTALLA, nombre: "Lo que ves en pantalla", ajustes: ajustesPantalla });
@@ -86,7 +88,7 @@ export function Comparar({ escenarios, ajustesPantalla, hayCambios, activoId, ba
                       <th scope="row" className="px-4 py-2.5 text-left font-semibold">{f.titulo}</th>
                       {valores.map((v, i) => (
                         <td key={i} className={`px-3 py-2.5 text-right ${v < 0 && f.formato === "pesos" ? "text-rojo" : ""} ${gana[i] ? "font-bold text-musgo" : ""}`}>
-                          {formatear(f.formato, v)}{gana[i] ? " ✓" : ""}
+                          {formatear(f.formato, v, moneda.codigo)}{gana[i] ? " ✓" : ""}
                         </td>
                       ))}
                     </tr>
@@ -107,7 +109,7 @@ export function Comparar({ escenarios, ajustesPantalla, hayCambios, activoId, ba
                         <div key={f.titulo} className={`flex items-baseline justify-between gap-3 ${f.destacada ? "border-t border-arena pt-2 font-bold" : ""}`}>
                           <dt className={`min-w-0 text-[0.9375rem] [overflow-wrap:anywhere] ${f.destacada ? "" : "text-humo"}`}>{f.titulo}</dt>
                           <dd className={`shrink-0 text-right text-[0.9375rem] font-semibold tabular-nums ${valores[i] < 0 && f.formato === "pesos" ? "text-rojo" : ""} ${gana ? "text-musgo" : ""}`}>
-                            {formatear(f.formato, valores[i])}{gana ? " ✓" : ""}
+                            {formatear(f.formato, valores[i], moneda.codigo)}{gana ? " ✓" : ""}
                           </dd>
                         </div>
                       );

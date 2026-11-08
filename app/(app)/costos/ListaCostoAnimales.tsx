@@ -8,12 +8,13 @@ import { EstadoVacio } from "@/components/EstadoVacio";
 import { Insignia } from "@/components/Insignia";
 import { ListaPorTramos } from "@/components/ListaPorTramos";
 import { etiquetaAnimal } from "@/lib/animal";
-import { pesos } from "@/lib/ferias";
+import { useDinero } from "@/components/ProveedorMoneda";
 
 export type CostoAnimalFila = { animal_id: string; numero_arete: string; nombre: string | null; estado: string; directo: number; repartido: number; total: number; valor_compra: number | null };
 
 /** El costo de cada animal en el periodo, del que más cuesta al que menos. Ya viene completo del servidor: se busca y se muestra por tramos. */
 export function ListaCostoAnimales({ filas }: { filas: CostoAnimalFila[] }) {
+  const dinero = useDinero();
   const [busqueda, setBusqueda] = useState("");
   const alBuscar = useCallback((t: string) => setBusqueda(t.toLowerCase()), []);
   const visibles = busqueda ? filas.filter((f) => f.numero_arete.toLowerCase().includes(busqueda) || (f.nombre ?? "").toLowerCase().includes(busqueda)) : filas;
@@ -38,14 +39,14 @@ export function ListaCostoAnimales({ filas }: { filas: CostoAnimalFila[] }) {
                 <span className="min-w-0">
                   <span className="block font-bold [overflow-wrap:anywhere]">{etiquetaAnimal(f)}</span>
                   <span className="block text-sm text-humo">
-                    Directo {pesos(f.directo)} · Repartido {pesos(f.repartido)}
+                    Directo {dinero(f.directo)} · Repartido {dinero(f.repartido)}
                   </span>
                 </span>
-                <span className="shrink-0 text-right font-display text-lg font-semibold tabular-nums">{pesos(f.total)}</span>
+                <span className="shrink-0 text-right font-display text-lg font-semibold tabular-nums">{dinero(f.total)}</span>
               </span>
               <span className="mt-1.5 flex flex-wrap items-center gap-1.5">
                 {f.estado !== "activo" ? <Insignia>Fuera del hato</Insignia> : null}
-                {f.valor_compra != null ? <span className="text-xs text-humo">Compra {pesos(f.valor_compra)}</span> : null}
+                {f.valor_compra != null ? <span className="text-xs text-humo">Compra {dinero(f.valor_compra)}</span> : null}
               </span>
             </Link>
           )}

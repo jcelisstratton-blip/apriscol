@@ -15,7 +15,7 @@ import type { PlanId } from "@/lib/tipos";
 export type ReporteListo = {
   def: ReporteDef;
   resultado: ResultadoReporte;
-  finca: { id: string; nombre: string; plan: PlanId };
+  finca: { id: string; nombre: string; plan: PlanId; moneda: string };
   filtrosDef: FiltroDef[];
   /** Los valores elegidos de cada filtro. */
   filtros: Record<string, string>;
@@ -57,6 +57,7 @@ export async function prepararReporte(id: ReporteId, params: Record<string, stri
     filtros,
     rango,
     puede: (modulo) => puedeVer(rol, modulo, finca.plan),
+    moneda: finca.moneda,
   };
   const completo = await generarReporte(id, contexto);
   // La pantalla recibe un máximo de filas (el celular no aguanta miles); el Excel lleva todas.
@@ -65,7 +66,7 @@ export async function prepararReporte(id: ReporteId, params: Record<string, stri
   return {
     def,
     resultado,
-    finca: { id: finca.id, nombre: finca.nombre, plan: finca.plan },
+    finca: { id: finca.id, nombre: finca.nombre, plan: finca.plan, moneda: finca.moneda },
     filtrosDef: filtrosDe(def, finca.especies),
     filtros,
     filtrosTexto: textoFiltros(def, finca.especies, filtros),

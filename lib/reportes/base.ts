@@ -19,6 +19,8 @@ export type ContextoReporte = {
   rango: { desde: string | null; hasta: string | null };
   /** Si el rol y el plan de la persona ven un módulo (para columnas que dependen de otro módulo). */
   puede: (modulo: ModuloApp) => boolean;
+  /** La moneda de la finca (`finca.moneda`); sin ella, pesos colombianos. */
+  moneda?: string;
 };
 
 export type AnimalBase = Pick<Animal, "id" | "numero_arete" | "nombre" | "especie" | "sexo" | "estado" | "fecha_nacimiento" | "raza_id" | "lote_id" | "vocacion" | "uso_macho" | "partos_previos">;

@@ -3,7 +3,8 @@ import { Pencil } from "lucide-react";
 import { Insignia } from "@/components/Insignia";
 import { VisorFoto } from "@/components/VisorFoto";
 import { formatoFecha, litros } from "@/lib/fechas";
-import { ETIQUETA_RESULTADO, pesos, TONO_RESULTADO } from "@/lib/ferias";
+import { ETIQUETA_RESULTADO, TONO_RESULTADO } from "@/lib/ferias";
+import { dinero } from "@/lib/moneda";
 import type { ResultadoFeria } from "@/lib/tipos";
 
 export type DatosParticipacion = {
@@ -24,7 +25,10 @@ export function FilaParticipacion({
   detalle,
   fotoUrl,
   editar,
+  moneda = "COP",
 }: {
+  /** La moneda de la finca (`finca.moneda`). */
+  moneda?: string;
   p: DatosParticipacion;
   titulo: string;
   enlace?: string;
@@ -47,7 +51,7 @@ export function FilaParticipacion({
         <span className="mt-1.5 block text-sm">
           {p.premio_descripcion}
           {p.premio_descripcion && p.premio_en_dinero ? " · " : ""}
-          {p.premio_en_dinero ? <span className="font-semibold">{pesos(p.premio_en_dinero)}</span> : null}
+          {p.premio_en_dinero ? <span className="font-semibold">{dinero(p.premio_en_dinero, moneda)}</span> : null}
         </span>
       ) : null}
     </span>

@@ -11,7 +11,7 @@ import { useToast } from "@/components/Toast";
 import { marcarCobro } from "@/app/(app)/hato/ventas/actions";
 import { ESCENA_LINEA_VENTA, ESCENA_TODAS_LINEAS } from "@/lib/escenas-costos";
 import { formatoFecha } from "@/lib/fechas";
-import { pesos } from "@/lib/ferias";
+import { useDinero } from "@/components/ProveedorMoneda";
 import { crearClienteNavegador } from "@/lib/supabase/client";
 import { cobroVencido, destinoVenta, ETIQUETA_LINEA, ETIQUETA_ORIGEN_VENTA, LINEAS } from "@/lib/ventas";
 import type { LineaVenta, VentaLinea } from "@/lib/tipos";
@@ -33,6 +33,7 @@ export function ListaVentas({
   puedeEditar: boolean;
   rango?: { desde: string | null; hasta: string | null };
 }) {
+  const dinero = useDinero();
   const toast = useToast();
   const [linea, setLinea] = useState<LineaVenta | "todas">("todas");
   const [version, setVersion] = useState(0);
@@ -95,7 +96,7 @@ export function ListaVentas({
                     {v.tercero ? ` · ${v.tercero}` : ""}
                   </p>
                 </div>
-                <p className="shrink-0 text-right font-display text-lg font-semibold tabular-nums">{pesos(Number(v.valor))}</p>
+                <p className="shrink-0 text-right font-display text-lg font-semibold tabular-nums">{dinero(Number(v.valor))}</p>
               </div>
               <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
                 <Insignia tono={v.origen === "venta" ? "neutro" : "musgo"}>{ETIQUETA_ORIGEN_VENTA[v.origen]}</Insignia>

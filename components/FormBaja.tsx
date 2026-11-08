@@ -16,6 +16,7 @@ import { ESCENA_MOTIVO_BAJA, ESCENA_TIPO_BAJA } from "@/lib/escenas-forms-a-hato
 import { ESCENA_COBRO } from "@/lib/escenas-costos";
 import { leerNumero } from "@/lib/numeros";
 import type { MotivoBaja, Tercero, TipoBaja } from "@/lib/tipos";
+import { useMoneda } from "@/components/ProveedorMoneda";
 
 /** Dar de baja a un animal: qué pasó, cuándo y, si fue una venta, a quién y por cuánto. */
 export function FormBaja({
@@ -38,6 +39,7 @@ export function FormBaja({
   /** El IVA predeterminado de la finca: se escribe solo si la salida es una venta con valor. */
   ivaDefecto?: number | null;
 }) {
+  const moneda = useMoneda();
   const router = useRouter();
   const toast = useToast();
   const [tipo, setTipo] = useState<TipoBaja | "">("");
@@ -106,7 +108,7 @@ export function FormBaja({
           <Campo etiqueta="Comprador" ayuda="Opcional. Se elige de tu lista o se agrega una vez.">
             {(id) => <SelectorTercero id={id} tipo="comprador" terceros={terceros} valor={tercero} onCambio={(v) => setTercero(v)} titulo="¿A quién se lo vendiste?" placeholder="Elegir o agregar" />}
           </Campo>
-          <Campo etiqueta="Valor de la venta" ayuda="Opcional. En pesos." error={valorInvalido ? "Escribe solo números." : undefined}>
+          <Campo etiqueta="Valor de la venta" ayuda={`Opcional. En ${moneda.codigo}.`} error={valorInvalido ? "Escribe solo números." : undefined}>
             {(id) => <input id={id} value={valor} inputMode="decimal" autoComplete="off" onChange={(e) => setValor(e.target.value)} className={CLASE_INPUT} placeholder="Ej. 450000" />}
           </Campo>
           {numeroValor && Number.isFinite(numeroValor) ? <CampoIva total={numeroValor} inicial={ivaDefecto} onCambio={setIva} /> : null}

@@ -19,7 +19,7 @@ export const metadata: Metadata = { title: "Secar varias" };
 export default async function PaginaSecarVarias() {
   const { finca, rol } = await obtenerContexto();
   if (!puedeEscribir(rol, "leche", finca.plan) || !areasSemaforo(rol, finca.plan).includes("reproduccion")) redirect("/reproduccion");
-  const senales = await cargarSemaforos({ supabase: await crearClienteServidor(), fincaId: finca.id, rol, plan: finca.plan, hoy: hoyBogota(), ajustes: await obtenerAjustes() }).catch(() => []);
+  const senales = await cargarSemaforos({ supabase: await crearClienteServidor(), fincaId: finca.id, rol, plan: finca.plan, hoy: hoyBogota(), ajustes: await obtenerAjustes(), moneda: finca.moneda }).catch(() => []);
   const hembras: HembraPorSecar[] = (senales.find((s) => s.id === "secado")?.items ?? [])
     .filter((i) => i.clave.startsWith("secar-"))
     .map((i) => ({ id: i.clave.slice("secar-".length), etiqueta: i.etiqueta, detalle: i.detalle, nivel: i.nivel }));

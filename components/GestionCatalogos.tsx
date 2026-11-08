@@ -16,7 +16,7 @@ import { Sheet } from "@/components/Sheet";
 import { useToast } from "@/components/Toast";
 import { actualizarProducto, actualizarTercero, crearProducto, crearTercero } from "@/app/(app)/mas/productos/actions";
 import { ETIQUETA_GRUPO, ETIQUETA_RUBRO, GRUPO_DE, GRUPOS, RUBROS_DE, UNIDADES_GASTO } from "@/lib/costos";
-import { pesos } from "@/lib/ferias";
+import { useDinero } from "@/components/ProveedorMoneda";
 import { textoPrecio } from "@/lib/productos";
 import { ETIQUETA_LINEA, LINEAS } from "@/lib/ventas";
 import type { Producto, RubroGasto, Tercero, TipoTercero } from "@/lib/tipos";
@@ -84,7 +84,8 @@ export function GestionCatalogos({ vista, productos, terceros, puedeEditar }: { 
 const CLASE_FILA = "flex min-h-14 w-full items-center justify-between gap-3 rounded-2xl bg-papel px-3.5 py-2.5 text-left ring-1 ring-arena";
 
 function FilaProducto({ p, alAbrir }: { p: Producto; alAbrir?: () => void }) {
-  const detalle = [textoPorUnidad(p.unidad) ?? null, p.precio_habitual != null ? `último precio ${pesos(p.precio_habitual)}` : "sin precio todavía"].filter(Boolean).join(" · ");
+  const dinero = useDinero();
+  const detalle = [textoPorUnidad(p.unidad) ?? null, p.precio_habitual != null ? `último precio ${dinero(p.precio_habitual)}` : "sin precio todavía"].filter(Boolean).join(" · ");
   const contenido = (
     <>
       <span className="min-w-0">

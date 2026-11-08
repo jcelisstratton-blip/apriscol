@@ -21,7 +21,7 @@ import { ListaVentas } from "@/components/ListaVentas";
 import { Reportes } from "./Reportes";
 import { Resumen } from "./Resumen";
 import { Aviso } from "@/components/Aviso";
-import { pesos } from "@/lib/ferias";
+import { dinero } from "@/lib/moneda";
 import { RequierePlan } from "@/components/RequierePlan";
 import { servicioEnPlan } from "@/lib/planes";
 import { leerTodo } from "@/lib/consultas";
@@ -82,13 +82,13 @@ export default async function PaginaCostos({ searchParams }: { searchParams: Pro
       ) : null}
 
       {vista === "resumen" ? <QueAtender area="dinero" /> : null}
-      {vista === "resumen" ? <Resumen fincaId={finca.id} filtros={filtro} /> : null}
+      {vista === "resumen" ? <Resumen moneda={finca.moneda} fincaId={finca.id} filtros={filtro} /> : null}
       {vista === "compras" ? <ListaCostos fincaId={finca.id} hoy={hoy} puedeEditar={puedeEditar} rango={rango} /> : null}
       {vista === "ventas" ? <ListaVentas fincaId={finca.id} hoy={hoy} puedeEditar={puedeEditar} rango={rango} /> : null}
       {vista === "animales" && !verAnimales ? <RequierePlan servicio="costoAnimal" rol={rol} /> : null}
       {vista === "animales" && animales ? (
         <div className="space-y-3">
-          {animales.generales > 0 ? <Aviso tipo="info">Además hay {pesos(animales.generales)} de compras generales de la finca que no se reparten entre los animales.</Aviso> : null}
+          {animales.generales > 0 ? <Aviso tipo="info">Además hay {dinero(animales.generales, finca.moneda)} de compras generales de la finca que no se reparten entre los animales.</Aviso> : null}
           <ListaCostoAnimales filas={animales.filas} />
         </div>
       ) : null}

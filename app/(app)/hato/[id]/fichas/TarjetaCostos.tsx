@@ -3,7 +3,7 @@ import { Tarjeta } from "@/components/Tarjeta";
 import { puedeEscribir, puedeVer } from "@/lib/permisos";
 import { clasesBoton } from "@/components/Boton";
 import { formatoFecha } from "@/lib/fechas";
-import { pesos } from "@/lib/ferias";
+import { dinero } from "@/lib/moneda";
 import { ETIQUETA_RUBRO } from "@/lib/costos";
 import type { CtxFicha } from "./contexto";
 
@@ -22,11 +22,11 @@ export async function TarjetaCostos({ c }: { c: CtxFicha }) {
       <dl className="divide-y divide-arena">
         <div className="flex items-baseline justify-between gap-3 py-2.5">
           <dt className="shrink-0 text-sm text-humo">Valor de compra</dt>
-          <dd className="min-w-0 text-right font-semibold">{animal.valor_compra != null ? pesos(animal.valor_compra) : <span className="font-normal text-humo">Sin registrar</span>}</dd>
+          <dd className="min-w-0 text-right font-semibold">{animal.valor_compra != null ? dinero(animal.valor_compra, finca.moneda) : <span className="font-normal text-humo">Sin registrar</span>}</dd>
         </div>
         <div className="flex items-baseline justify-between gap-3 py-2.5">
           <dt className="shrink-0 text-sm text-humo">Compras cargadas a él</dt>
-          <dd className="min-w-0 text-right font-semibold tabular-nums">{pesos(totalGastosAnimal)}</dd>
+          <dd className="min-w-0 text-right font-semibold tabular-nums">{dinero(totalGastosAnimal, finca.moneda)}</dd>
         </div>
       </dl>
       {gastosAnimal.length > 0 ? (
@@ -40,7 +40,7 @@ export async function TarjetaCostos({ c }: { c: CtxFicha }) {
                 </span>
               </span>
               <span className="flex shrink-0 flex-col items-end">
-                <span className="font-semibold tabular-nums">{pesos(g.monto)}</span>
+                <span className="font-semibold tabular-nums">{dinero(g.monto, finca.moneda)}</span>
                 {puedeEscribir(rol, "contabilidad", finca.plan) ? (
                   <Link href={`/hato/gastos/${g.id}/editar?volver=${id}`} className="inline-flex min-h-11 items-center text-sm font-semibold text-musgo underline-offset-4 hover:underline">
                     Editar

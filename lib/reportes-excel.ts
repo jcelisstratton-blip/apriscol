@@ -4,6 +4,7 @@ import { ETIQUETA_GRUPO_COSTO, ETIQUETA_ORIGEN, ETIQUETA_RUBRO, GRUPOS_COSTO, gr
 import { ETIQUETA_LINEA, ETIQUETA_ORIGEN_VENTA, LINEAS } from "@/lib/ventas";
 import { REPORTES, type ReporteId } from "@/lib/costos-reportes";
 import type { LineaVenta, OrigenCosto, RubroCosto, RubroGasto, VentaLinea } from "@/lib/tipos";
+import { dinero, formatoExcelDinero } from "@/lib/moneda";
 
 // ───────────────────────── Datos que llegan ya consultados ─────────────────────────
 export type FilaRubro = { rubro: RubroCosto; total: number; por_pagar: number; de_gastos: number; de_sanidad: number; de_ceba: number; movimientos: number };
@@ -34,6 +35,8 @@ export type DatosReporte = {
   periodoTexto: string;
   filtros: string[];
   generado: Date;
+  /** La moneda de la finca; sin ella, pesos colombianos. */
+  moneda?: string;
   rubros?: FilaRubro[];
   meses?: FilaMes[];
   detalle?: FilaDetalle[];
@@ -49,7 +52,6 @@ export type DatosReporte = {
 };
 
 // ───────────────────────── Estilo ─────────────────────────
-const FMT_PESOS = FMT.pesos;
 const FMT_FECHA = FMT.fecha;
 const FMT_LITROS = FMT.litros;
 const FMT_PCT = FMT.porcentaje;
@@ -115,9 +117,9 @@ function hojaRubros(wb: ExcelJS.Workbook, d: DatosReporte, nombre = "Costos por 
   const ws = wb.addWorksheet(nombre);
   const cols: Col[] = [
     { titulo: "Grupo", ancho: 26 }, { titulo: "Rubro", ancho: 30 },
-    { titulo: "Compras registradas", ancho: 18, formato: FMT_PESOS }, { titulo: "Tratamientos (Sanidad)", ancho: 18, formato: FMT_PESOS }, { titulo: "Alimento de ceba", ancho: 18, formato: FMT_PESOS },
-    { titulo: "Animales comprados y personal", ancho: 18, formato: FMT_PESOS },
-    { titulo: "Total", ancho: 18, formato: FMT_PESOS }, { titulo: "% del total", ancho: 12, formato: FMT_PCT }, { titulo: "Por pagar", ancho: 16, formato: FMT_PESOS }, { titulo: "Movimientos", ancho: 13, formato: "0" },
+    { titulo: "Compras registradas", ancho: 18, formato: formatoExcelDinero(d.moneda) }, { titulo: "Tratamientos (Sanidad)", ancho: 18, formato: formatoExcelDinero(d.moneda) }, { titulo: "Alimento de ceba", ancho: 18, formato: formatoExcelDinero(d.moneda) },
+    { titulo: "Animales comprados y personal", ancho: 18, formato: formatoExcelDinero(d.moneda) },
+    { titulo: "Total", ancho: 18, formato: formatoExcelDinero(d.moneda) }, { titulo: "% del total", ancho: 12, formato: FMT_PCT }, { titulo: "Por pagar", ancho: 16, formato: formatoExcelDinero(d.moneda) }, { titulo: "Movimientos", ancho: 13, formato: "0" },
   ];
   const inicio = encabezado(ws, d, titulo, cols);
   const filas = [...(d.rubros ?? [])].sort((a, b) => GRUPOS_COSTO.indexOf(grupoDe(a.rubro)) - GRUPOS_COSTO.indexOf(grupoDe(b.rubro)) || b.total - a.total);
@@ -139,8 +141,8 @@ function hojaRubros(wb: ExcelJS.Workbook, d: DatosReporte, nombre = "Costos por 
 function hojaMeses(wb: ExcelJS.Workbook, d: DatosReporte, nombre = "Por mes", titulo = "Costos y ventas por mes") {
   const ws = wb.addWorksheet(nombre);
   const cols: Col[] = [
-    { titulo: "Mes", ancho: 20 }, { titulo: "Costos", ancho: 18, formato: FMT_PESOS }, { titulo: "Ventas de leche", ancho: 18, formato: FMT_PESOS }, { titulo: "Otras ventas", ancho: 20, formato: FMT_PESOS },
-    { titulo: "Total ventas", ancho: 18, formato: FMT_PESOS }, { titulo: "Resultado", ancho: 18, formato: FMT_PESOS }, { titulo: "Litros producidos", ancho: 16, formato: FMT_LITROS }, { titulo: "Costo por litro", ancho: 16, formato: FMT_PESOS },
+    { titulo: "Mes", ancho: 20 }, { titulo: "Costos", ancho: 18, formato: formatoExcelDinero(d.moneda) }, { titulo: "Ventas de leche", ancho: 18, formato: formatoExcelDinero(d.moneda) }, { titulo: "Otras ventas", ancho: 20, formato: formatoExcelDinero(d.moneda) },
+    { titulo: "Total ventas", ancho: 18, formato: formatoExcelDinero(d.moneda) }, { titulo: "Resultado", ancho: 18, formato: formatoExcelDinero(d.moneda) }, { titulo: "Litros producidos", ancho: 16, formato: FMT_LITROS }, { titulo: "Costo por litro", ancho: 16, formato: formatoExcelDinero(d.moneda) },
   ];
   const inicio = encabezado(ws, d, titulo, cols);
   const filas = d.meses ?? [];
@@ -152,7 +154,7 @@ function hojaMeses(wb: ExcelJS.Workbook, d: DatosReporte, nombre = "Por mes", ti
   const filaTotal = ultima + 1;
   filaTotales(ws, filaTotal, inicio, ultima, cols, [1, 2, 3, 4, 5, 6]);
   ws.getCell(filaTotal, 8).value = { formula: `IF(G${filaTotal}>0,B${filaTotal}/G${filaTotal},"")` };
-  ws.getCell(filaTotal, 8).numFmt = FMT_PESOS;
+  ws.getCell(filaTotal, 8).numFmt = formatoExcelDinero(d.moneda);
   autofiltro(ws, inicio - 1, cols.length);
   if (filas.length === 0) ws.getCell(inicio, 1).value = "No hay movimientos en este periodo.";
 }
@@ -161,7 +163,7 @@ function hojaDetalle(wb: ExcelJS.Workbook, d: DatosReporte) {
   const ws = wb.addWorksheet("Detalle de compras");
   const cols: Col[] = [
     { titulo: "Fecha", ancho: 12, formato: FMT_FECHA, alinear: "left" }, { titulo: "Origen", ancho: 11 }, { titulo: "Grupo", ancho: 24 }, { titulo: "Rubro", ancho: 28 },
-    { titulo: "Descripción", ancho: 40 }, { titulo: "Proveedor", ancho: 26 }, { titulo: "Se cargó a", ancho: 28 }, { titulo: "Estado de pago", ancho: 14 }, { titulo: "Vence", ancho: 12, formato: FMT_FECHA, alinear: "left" }, { titulo: "Valor", ancho: 16, formato: FMT_PESOS },
+    { titulo: "Descripción", ancho: 40 }, { titulo: "Proveedor", ancho: 26 }, { titulo: "Se cargó a", ancho: 28 }, { titulo: "Estado de pago", ancho: 14 }, { titulo: "Vence", ancho: 12, formato: FMT_FECHA, alinear: "left" }, { titulo: "Valor", ancho: 16, formato: formatoExcelDinero(d.moneda) },
   ];
   const inicio = encabezado(ws, d, "Detalle de compras", cols);
   const filas = d.detalle ?? [];
@@ -176,7 +178,7 @@ function hojaAnimales(wb: ExcelJS.Workbook, d: DatosReporte) {
   const ws = wb.addWorksheet("Costo por animal");
   const cols: Col[] = [
     { titulo: "Arete", ancho: 16 }, { titulo: "Nombre", ancho: 22 }, { titulo: "Especie", ancho: 11 }, { titulo: "Sexo", ancho: 9 }, { titulo: "Estado", ancho: 11 },
-    { titulo: "Costo directo", ancho: 16, formato: FMT_PESOS }, { titulo: "Costo repartido", ancho: 16, formato: FMT_PESOS }, { titulo: "Costo total", ancho: 16, formato: FMT_PESOS }, { titulo: "Valor de compra", ancho: 16, formato: FMT_PESOS },
+    { titulo: "Costo directo", ancho: 16, formato: formatoExcelDinero(d.moneda) }, { titulo: "Costo repartido", ancho: 16, formato: formatoExcelDinero(d.moneda) }, { titulo: "Costo total", ancho: 16, formato: formatoExcelDinero(d.moneda) }, { titulo: "Valor de compra", ancho: 16, formato: formatoExcelDinero(d.moneda) },
   ];
   const inicio = encabezado(ws, d, "Costo por animal", cols);
   const filas = d.animales ?? [];
@@ -188,7 +190,7 @@ function hojaAnimales(wb: ExcelJS.Workbook, d: DatosReporte) {
   filaTotales(ws, ultima + 1, inicio, ultima, cols, [5, 6, 7], "Total de los animales");
   const nota = ultima + 3;
   ws.mergeCells(nota, 1, nota, cols.length);
-  ws.getCell(nota, 1).value = `Gastos generales de la finca, que no se reparten a los animales: ${new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 }).format(d.generalesFinca ?? 0)}.`;
+  ws.getCell(nota, 1).value = `Gastos generales de la finca, que no se reparten a los animales: ${dinero(d.generalesFinca ?? 0, d.moneda)}.`;
   ws.getCell(nota, 1).font = { italic: true, color: { argb: "FF6B6457" } };
   ws.mergeCells(nota + 1, 1, nota + 1, cols.length);
   ws.getCell(nota + 1, 1).value = "Costo directo: gastos cargados al animal y su parte de cada tratamiento. Costo repartido: su parte de lo cargado a su lote, su corral o su especie.";
@@ -201,7 +203,7 @@ function hojaPendientes(wb: ExcelJS.Workbook, d: DatosReporte) {
   const ws = wb.addWorksheet("Gastos por pagar");
   const cols: Col[] = [
     { titulo: "Fecha del gasto", ancho: 14, formato: FMT_FECHA, alinear: "left" }, { titulo: "Vence", ancho: 12, formato: FMT_FECHA, alinear: "left" }, { titulo: "Días de atraso", ancho: 13, formato: "0" },
-    { titulo: "Proveedor", ancho: 28 }, { titulo: "Descripción", ancho: 40 }, { titulo: "Rubro", ancho: 28 }, { titulo: "Valor", ancho: 16, formato: FMT_PESOS },
+    { titulo: "Proveedor", ancho: 28 }, { titulo: "Descripción", ancho: 40 }, { titulo: "Rubro", ancho: 28 }, { titulo: "Valor", ancho: 16, formato: formatoExcelDinero(d.moneda) },
   ];
   const inicio = encabezado(ws, d, "Gastos por pagar", cols);
   const filas = d.pendientes ?? [];
@@ -216,7 +218,7 @@ function hojaVentas(wb: ExcelJS.Workbook, d: DatosReporte) {
   const ws = wb.addWorksheet("Ventas");
   const cols: Col[] = [
     { titulo: "Fecha", ancho: 12, formato: FMT_FECHA, alinear: "left" }, { titulo: "Origen", ancho: 18 }, { titulo: "Línea", ancho: 22 }, { titulo: "Producto", ancho: 32 },
-    { titulo: "Comprador", ancho: 28 }, { titulo: "Cantidad", ancho: 12, formato: "#,##0.##" }, { titulo: "Unidad", ancho: 10 }, { titulo: "Estado de cobro", ancho: 15 }, { titulo: "Se espera", ancho: 12, formato: FMT_FECHA, alinear: "left" }, { titulo: "Valor", ancho: 16, formato: FMT_PESOS },
+    { titulo: "Comprador", ancho: 28 }, { titulo: "Cantidad", ancho: 12, formato: "#,##0.##" }, { titulo: "Unidad", ancho: 10 }, { titulo: "Estado de cobro", ancho: 15 }, { titulo: "Se espera", ancho: 12, formato: FMT_FECHA, alinear: "left" }, { titulo: "Valor", ancho: 16, formato: formatoExcelDinero(d.moneda) },
   ];
   const inicio = encabezado(ws, d, "Ventas", cols);
   const filas = d.ventas ?? [];
@@ -234,10 +236,10 @@ const textoHoy = (d: DatosReporte) => d.generado.toISOString().slice(0, 10);
 
 function hojaResultado(wb: ExcelJS.Workbook, d: DatosReporte) {
   const ws = wb.addWorksheet("Resultado");
-  const cols: Col[] = [{ titulo: "Concepto", ancho: 46 }, { titulo: "Valor", ancho: 20, formato: FMT_PESOS }, { titulo: "Nota", ancho: 54 }];
+  const cols: Col[] = [{ titulo: "Concepto", ancho: 46 }, { titulo: "Valor", ancho: 20, formato: formatoExcelDinero(d.moneda) }, { titulo: "Nota", ancho: 54 }];
   const inicio = encabezado(ws, d, "Resultado del periodo", cols);
   const i = d.indicadores;
-  const moneda = (n: number) => new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 }).format(n);
+  const moneda = (n: number) => dinero(n, d.moneda);
   const sec = (fila: number, texto: string) => {
     ws.mergeCells(fila, 1, fila, 3);
     const c = ws.getCell(fila, 1);

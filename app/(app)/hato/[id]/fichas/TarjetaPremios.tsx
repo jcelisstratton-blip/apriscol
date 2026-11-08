@@ -55,6 +55,7 @@ export async function TarjetaPremios({ c }: { c: CtxFicha }) {
               return (
                 <li key={p.id} className="min-w-0">
                   <FilaParticipacion
+                    moneda={c.finca.moneda}
                     p={p}
                     titulo={f?.nombre ?? "Feria"}
                     detalle={f ? formatoFecha(f.fecha_inicio) : undefined}

@@ -5,6 +5,7 @@ import { useCallback, useMemo, useState } from "react";
 import { SearchX } from "lucide-react";
 import { CampoBusqueda } from "@/components/CampoBusqueda";
 import { EstadoVacio } from "@/components/EstadoVacio";
+import { useMoneda } from "@/components/ProveedorMoneda";
 import { Insignia } from "@/components/Insignia";
 import { ListaEscalable } from "@/components/ListaEscalable";
 import { textoCelda } from "@/lib/reportes/formato";
@@ -17,6 +18,7 @@ const MINIMO_BUSCADOR = 8;
 
 /** Una fila del reporte: el título (con su enlace) y la insignia arriba, y debajo todos sus datos, en el celular también. */
 function FilaDeReporte({ fila, columnas }: { fila: FilaReporte; columnas: Columna[] }) {
+  const moneda = useMoneda();
   const insignia = columnas.find((c) => c.insignia);
   const textoInsignia = insignia ? fila.valores[insignia.clave] : null;
   // Solo lo que aplica a este registro: un aborto no tiene crías ni pesos, un macho no tiene lactancia. El Excel sí lleva todas las columnas.
@@ -42,7 +44,7 @@ function FilaDeReporte({ fila, columnas }: { fila: FilaReporte; columnas: Column
           {datos.map((c) => (
             <div key={c.clave} className="min-w-0">
               <dt className="text-xs text-humo">{c.titulo}</dt>
-              <dd className="text-[0.9375rem] font-medium tabular-nums [overflow-wrap:anywhere]">{textoCelda(c, fila.valores[c.clave])}</dd>
+              <dd className="text-[0.9375rem] font-medium tabular-nums [overflow-wrap:anywhere]">{textoCelda(c, fila.valores[c.clave], moneda.codigo)}</dd>
             </div>
           ))}
         </dl>

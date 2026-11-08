@@ -13,7 +13,7 @@ import { marcarPago } from "@/app/(app)/hato/gastos/actions";
 import { ETIQUETA_GRUPO, ETIQUETA_RUBRO, GRUPOS, RUBROS_DE, estaVencido, type GrupoGasto } from "@/lib/costos";
 import { ESCENA_GRUPO_GASTO, ESCENA_TODOS_GRUPOS } from "@/lib/escenas-costos";
 import { formatoFecha } from "@/lib/fechas";
-import { pesos } from "@/lib/ferias";
+import { useDinero } from "@/components/ProveedorMoneda";
 import { IMPUESTO } from "@/lib/impuestos";
 import { direccionSoporte } from "@/lib/soportes";
 import { crearClienteNavegador } from "@/lib/supabase/client";
@@ -36,6 +36,7 @@ export function ListaGastos({
   rango?: { desde: string | null; hasta: string | null };
   soloPorPagar?: boolean;
 }) {
+  const dinero = useDinero();
   const toast = useToast();
   const [busqueda, setBusqueda] = useState("");
   const [grupo, setGrupo] = useState<GrupoGasto | "todos">("todos");
@@ -99,13 +100,13 @@ export function ListaGastos({
                     {g.proveedor ? ` · ${g.proveedor}` : ""}
                   </p>
                 </div>
-                <p className="shrink-0 text-right font-display text-lg font-semibold tabular-nums">{pesos(g.monto)}</p>
+                <p className="shrink-0 text-right font-display text-lg font-semibold tabular-nums">{dinero(g.monto)}</p>
               </div>
               <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
                 {g.pagado_en ? <Insignia tono="ok">Pagado</Insignia> : vencido ? <Insignia tono="alerta">Vencido</Insignia> : <Insignia tono="aviso">Por pagar</Insignia>}
                 {!g.pagado_en && g.vence ? <span className="text-xs text-humo">vence el {formatoFecha(g.vence, { day: "numeric", month: "short" })}</span> : null}
                 {g.cantidad ? <span className="text-xs text-humo">{String(g.cantidad).replace(".", ",")} {g.unidad ?? ""}</span> : null}
-                {g.iva_valor != null ? <span className="text-xs text-humo">{IMPUESTO.sigla} {pesos(Number(g.iva_valor))} ({String(g.iva_tarifa).replace(".", ",")} %)</span> : null}
+                {g.iva_valor != null ? <span className="text-xs text-humo">{IMPUESTO.sigla} {dinero(Number(g.iva_valor))} ({String(g.iva_tarifa).replace(".", ",")} %)</span> : null}
               </div>
               <div className="mt-1 flex flex-wrap items-center gap-x-4 border-t border-arena pt-1">
                 {puedeEditar && !g.pagado_en ? (

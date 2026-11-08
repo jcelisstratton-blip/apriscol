@@ -7,7 +7,7 @@ import { ListaGastos } from "@/components/ListaGastos";
 import { crearClienteServidor } from "@/lib/supabase/server";
 import { AYUDA_GASTOS } from "@/lib/ayuda";
 import { formatoFecha, hoyBogota } from "@/lib/fechas";
-import { pesos } from "@/lib/ferias";
+import { dinero } from "@/lib/moneda";
 import { leerTodo } from "@/lib/consultas";
 
 /**
@@ -19,7 +19,10 @@ export async function Gastos({
   puedeEditar,
   guardado = false,
   cliente,
+  moneda = "COP",
 }: {
+  /** La moneda de la finca (`finca.moneda`). */
+  moneda?: string;
   fincaId: string;
   puedeEditar: boolean;
   guardado?: boolean;
@@ -49,7 +52,7 @@ export async function Gastos({
             <Receipt className="mt-0.5 size-6 shrink-0 text-ocre" strokeWidth={1.75} aria-hidden="true" />
             <div className="min-w-0">
               <p className="font-bold">
-                Por pagar: <span className="tabular-nums">{pesos(porPagar)}</span>
+                Por pagar: <span className="tabular-nums">{dinero(porPagar, moneda)}</span>
               </p>
               <p className="mt-0.5 text-[0.9375rem] text-humo">
                 {(pendientes ?? []).length} {(pendientes ?? []).length === 1 ? "compra" : "compras"}

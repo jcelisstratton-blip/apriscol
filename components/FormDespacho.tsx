@@ -12,8 +12,10 @@ import { crearDespacho, editarDespacho } from "@/app/(app)/leche/gestion";
 import { ESCENA_DESTINO_LECHE } from "@/lib/escenas-forms-a-leche";
 import { ESCENA_COBRO } from "@/lib/escenas-costos";
 import { leerNumero } from "@/lib/numeros";
-import { DESTINOS_LECHE, ETIQUETA_DESTINO, pesos } from "@/lib/leche-calidad";
+import { DESTINOS_LECHE, ETIQUETA_DESTINO } from "@/lib/leche-calidad";
 import type { DespachoLeche, DestinoLeche, Tercero } from "@/lib/tipos";
+import { useDinero } from "@/components/ProveedorMoneda";
+import { useMoneda } from "@/components/ProveedorMoneda";
 
 const coma = (n: number | null | undefined) => (n == null ? "" : String(n).replace(".", ","));
 
@@ -36,6 +38,8 @@ export function FormDespacho({
   /** El IVA predeterminado de la finca: se escribe solo en un despacho nuevo. */
   ivaDefecto?: number | null;
 }) {
+  const moneda = useMoneda();
+  const dinero = useDinero();
   const editando = Boolean(despacho);
   const [estado, enviar, pendiente] = useActionState(editando ? editarDespacho : crearDespacho, undefined);
   const [, iniciar] = useTransition();
@@ -85,12 +89,12 @@ export function FormDespacho({
         {(id) => <input id={id} name="guia" defaultValue={despacho?.guia ?? ""} maxLength={60} autoComplete="off" className={CLASE_INPUT} />}
       </Campo>
 
-      <Campo etiqueta="Precio por litro ($)" ayuda="Opcional.">
+      <Campo etiqueta={`Precio por litro (${moneda.simbolo})`} ayuda="Opcional.">
         {(id) => (
           <input id={id} name="precio_litro" value={precio} onChange={(e) => setPrecio(e.target.value)} inputMode="decimal" autoComplete="off" enterKeyHint="next" placeholder="Ej. 2500" className={CLASE_INPUT} />
         )}
       </Campo>
-      {total > 0 ? <p className="-mt-2 text-sm font-semibold">Valor del despacho: {pesos(total)}</p> : null}
+      {total > 0 ? <p className="-mt-2 text-sm font-semibold">Valor del despacho: {dinero(total)}</p> : null}
       {total > 0 ? <CampoIva total={total} inicial={despacho ? despacho.iva_tarifa : ivaDefecto} /> : null}
 
       {total > 0 ? (

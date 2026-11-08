@@ -13,13 +13,15 @@ import { controlesDe, agruparControles } from "@/lib/controles-datos";
 import { CONTROLES_DESPACHO, etiquetaResumen, resumenControles } from "@/lib/controles";
 import { crearClienteNavegador } from "@/lib/supabase/client";
 import { formatoFecha, litros as formatoLitros } from "@/lib/fechas";
-import { DESTINOS_LECHE, ETIQUETA_DESTINO, pesos } from "@/lib/leche-calidad";
+import { DESTINOS_LECHE, ETIQUETA_DESTINO } from "@/lib/leche-calidad";
 import type { ControlCalidad, DespachoLeche, DestinoLeche } from "@/lib/tipos";
+import { useDinero } from "@/components/ProveedorMoneda";
 
 type FilaDespacho = DespachoLeche & { controles?: ControlCalidad[] };
 
 /** Todos los despachos de leche de la finca, del más reciente al más antiguo. */
 export function ListaDespachos({ fincaId, puedeEditar }: { fincaId: string; puedeEditar: boolean }) {
+  const dinero = useDinero();
   const [busqueda, setBusqueda] = useState("");
   const [destino, setDestino] = useState<DestinoLeche | "todos">("todos");
   const alBuscar = useCallback((t: string) => setBusqueda(t), []);
@@ -71,7 +73,7 @@ export function ListaDespachos({ fincaId, puedeEditar }: { fincaId: string; pued
               ) : null}
               {d.valor_total != null ? (
                 <span className="mt-1.5 block">
-                  <Insignia tono="musgo">{`${pesos(d.valor_total)} (${pesos(d.precio_litro)}/l)`}</Insignia>
+                  <Insignia tono="musgo">{`${dinero(d.valor_total)} (${dinero(d.precio_litro)}/l)`}</Insignia>
                 </span>
               ) : null}
               {d.controles ? (

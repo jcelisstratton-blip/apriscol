@@ -10,7 +10,7 @@ import { FilaTarjetas, TarjetaOpcion } from "@/components/TarjetaOpcion";
 import { ETIQUETA_GRUPO_COSTO, ETIQUETA_ORIGEN, ETIQUETA_RUBRO, GRUPOS_COSTO, type GrupoCosto } from "@/lib/costos";
 import { ESCENA_GRUPO_COSTO, ESCENA_TODOS_GRUPOS } from "@/lib/escenas-costos";
 import { formatoFecha } from "@/lib/fechas";
-import { pesos } from "@/lib/ferias";
+import { useDinero } from "@/components/ProveedorMoneda";
 import { crearClienteNavegador } from "@/lib/supabase/client";
 import type { CostoLinea } from "@/lib/tipos";
 
@@ -24,6 +24,7 @@ const destino = (l: Fila, puedeEditar: boolean) =>
  * Todo lo que costó en el periodo (compras, tratamientos, alimento de ceba y animales comprados), lo más reciente primero, con filtro por grupo. Pagina en el servidor.
  */
 export function ListaCostos({ fincaId, hoy, puedeEditar, rango }: { fincaId: string; hoy: string; puedeEditar: boolean; rango: { desde: string | null; hasta: string | null } }) {
+  const dinero = useDinero();
   const [grupo, setGrupo] = useState<GrupoCosto | "todos">("todos");
 
   const cargar = useCallback(
@@ -69,7 +70,7 @@ export function ListaCostos({ fincaId, hoy, puedeEditar, rango }: { fincaId: str
                     {l.proveedor ? ` · ${l.proveedor}` : ""}
                   </span>
                 </span>
-                <span className="shrink-0 text-right font-display text-lg font-semibold tabular-nums">{pesos(l.monto)}</span>
+                <span className="shrink-0 text-right font-display text-lg font-semibold tabular-nums">{dinero(l.monto)}</span>
               </span>
               <span className="mt-1.5 flex flex-wrap items-center gap-1.5">
                 <Insignia tono={l.origen === "gasto" ? "neutro" : "musgo"}>{ETIQUETA_ORIGEN[l.origen]}</Insignia>

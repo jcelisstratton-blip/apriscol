@@ -8,7 +8,7 @@ import { FormPagoPersonal } from "@/components/FormPagoPersonal";
 import { obtenerAjustes } from "@/lib/ajustes-servidor";
 import { obtenerContexto } from "@/lib/contexto";
 import { formatoFecha, hoyBogota } from "@/lib/fechas";
-import { pesos } from "@/lib/ferias";
+import { dinero } from "@/lib/moneda";
 import { puedeEscribir, puedeGestionar } from "@/lib/permisos";
 import { crearClienteServidor } from "@/lib/supabase/server";
 import { eliminarPago } from "@/app/(app)/personal/actions";
@@ -42,7 +42,7 @@ export default async function PaginaPagoEditar({ params }: { params: Promise<{ i
         {puedeGestionar(rol) ? (
           <EliminarRegistro
             etiqueta="Eliminar este pago"
-            resumen={`Pago a ${persona?.nombre ?? "la persona"} (${pesos(pago.costo_total)}) del ${formatoFecha(pago.fecha)}`}
+            resumen={`Pago a ${persona?.nombre ?? "la persona"} (${dinero(pago.costo_total, finca.moneda)}) del ${formatoFecha(pago.fecha)}`}
             accion={eliminarPago.bind(null, id)}
             destino="/mas/miembros?vista=pagos"
             mensaje="Pago eliminado"

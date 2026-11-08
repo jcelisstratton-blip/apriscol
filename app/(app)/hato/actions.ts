@@ -42,7 +42,7 @@ const esquema = z.object({
   ),
   valor_compra: z.preprocess(
     (v) => (typeof v === "string" ? (leerNumero(v) ?? v) : v),
-    opcional(z.number("El valor debe ser un número, en pesos.").min(0, "El valor no puede ser negativo.").max(99_999_999_999, "El valor es demasiado grande. Revísalo.")),
+    opcional(z.number("El valor debe ser un número.").min(0, "El valor no puede ser negativo.").max(99_999_999_999, "El valor es demasiado grande. Revísalo.")),
   ),
   /** Cuándo se compró (solo animales comprados): la compra cuenta como costo en esa fecha. */
   fecha_compra: opcional(z.iso.date("La fecha de compra no es válida.")),

@@ -7,8 +7,10 @@ import { Boton, clasesBoton } from "@/components/Boton";
 import { Campo, CLASE_INPUT } from "@/components/Campo";
 import { CamposUbicacion } from "@/components/CamposUbicacion";
 import { Segmentado } from "@/components/Segmentado";
+import { Selector } from "@/components/Selector";
 import { SubirFoto } from "@/components/SubirFoto";
 import { urlLogo } from "@/lib/logo-finca";
+import { MONEDAS, MONEDA_DEFECTO } from "@/lib/moneda";
 import type { Especie, Vocacion } from "@/lib/tipos";
 import { crearFinca, editarFinca, prepararSubidaLogo } from "@/app/onboarding/actions";
 
@@ -19,6 +21,7 @@ export type FincaEditable = {
   municipio: string | null;
   vereda: string | null;
   proposito: Vocacion;
+  moneda: string;
   especies: Especie[];
   logo_path: string | null;
 };
@@ -29,6 +32,7 @@ export function FormFinca({ finca, especiesEnUso = [] }: { finca?: FincaEditable
   const [estado, enviar, pendiente] = useActionState(editando ? editarFinca : crearFinca, undefined);
   const [, iniciar] = useTransition();
   const [proposito, setProposito] = useState<Vocacion>(finca?.proposito ?? "leche");
+  const [moneda, setMoneda] = useState<string>(finca?.moneda ?? MONEDA_DEFECTO);
   const [especies, setEspecies] = useState<Especie[]>(finca?.especies ?? ["caprino"]);
   const [subiendoLogo, setSubiendoLogo] = useState(false);
   const logoActual = finca ? urlLogo(finca) : null;
@@ -116,6 +120,19 @@ export function FormFinca({ finca, especiesEnUso = [] }: { finca?: FincaEditable
           ]}
         />
       </div>
+
+      <Campo etiqueta="Moneda" ayuda="Es la moneda en que se escriben las compras, ventas y costos. Cambiarla no convierte los valores ya guardados: solo cambia cómo se escriben.">
+        {(id) => (
+          <Selector
+            id={id}
+            nombre="moneda"
+            valor={moneda}
+            onCambio={(v) => setMoneda(v || MONEDA_DEFECTO)}
+            titulo="Moneda de la finca"
+            opciones={MONEDAS.map((m) => ({ valor: m.codigo, etiqueta: `${m.nombre} (${m.codigo})`, detalle: m.paises }))}
+          />
+        )}
+      </Campo>
 
       {estado?.error ? <Aviso tipo="error">{estado.error}</Aviso> : null}
 

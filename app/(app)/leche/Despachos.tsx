@@ -2,7 +2,7 @@ import { Aviso } from "@/components/Aviso";
 import { ListaDespachos } from "@/components/ListaDespachos";
 import { crearClienteServidor } from "@/lib/supabase/server";
 import { hoyBogota, litros as formatoLitros, sumarDias } from "@/lib/fechas";
-import { pesos } from "@/lib/leche-calidad";
+import { dinero } from "@/lib/moneda";
 import { CONTROLES_DESPACHO, resumenControles } from "@/lib/controles";
 import { agruparControles, controlesDe } from "@/lib/controles-datos";
 import { PorQueAnalizar } from "@/components/PorQueAnalizar";
@@ -13,7 +13,10 @@ export async function Despachos({
   fincaId,
   puedeEditar,
   cliente,
+  moneda = "COP",
 }: {
+  /** La moneda de la finca (`finca.moneda`). */
+  moneda?: string;
   fincaId: string;
   puedeEditar: boolean;
   /** Solo para pruebas: un cliente de base de datos en lugar del de la sesión. */
@@ -41,7 +44,7 @@ export async function Despachos({
   const cifras: [string, string][] = [
     ["Ordeñada al tanque", `${formatoLitros(producida)} l`],
     ["Despachada", `${formatoLitros(despachada)} l`],
-    ["Ingresos", valor > 0 ? pesos(valor) : "—"],
+    ["Ingresos", valor > 0 ? dinero(valor, moneda) : "—"],
   ];
 
   return (

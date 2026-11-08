@@ -30,6 +30,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       periodo: listo.periodoTexto && rango ? { texto: listo.periodoTexto, desde: rango.desde, hasta: rango.hasta } : null,
       filtros: listo.filtrosTexto,
       hoy: listo.hoy,
+      moneda: listo.finca.moneda,
       generado: new Date(),
     });
     const nombre = nombreArchivoReporte(listo.finca.nombre, listo.def.titulo, listo.hoy);

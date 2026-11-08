@@ -19,7 +19,7 @@ import { obtenerContexto } from "@/lib/contexto";
 import { AYUDA_PERSONAL } from "@/lib/ayuda";
 import { escena } from "@/lib/escenas";
 import { formatoFecha, hoyBogota } from "@/lib/fechas";
-import { pesos } from "@/lib/ferias";
+import { dinero } from "@/lib/moneda";
 import { servicioEnPlan } from "@/lib/planes";
 import { ETIQUETA_ROL, puedeEscribir, puedeGestionar, puedeVer } from "@/lib/permisos";
 import { crearClienteServidor } from "@/lib/supabase/server";
@@ -86,7 +86,7 @@ export default async function PaginaMiembros({ searchParams }: { searchParams: P
         <PestanasTarjetas
           pestanas={[
             { valor: "equipo", etiqueta: "Equipo", detalle: `${activas.length || miembros.length} ${(activas.length || miembros.length) === 1 ? "persona" : "personas"}`, href: "/mas/miembros", escena: escena(Users, "ocre") },
-            { valor: "pagos", etiqueta: "Pagos", detalle: porPagar > 0 ? `${pesos(porPagar)} por pagar` : "Lo que pagas al personal", href: "/mas/miembros?vista=pagos", escena: escena(Banknote, "oliva") },
+            { valor: "pagos", etiqueta: "Pagos", detalle: porPagar > 0 ? `${dinero(porPagar, finca.moneda)} por pagar` : "Lo que pagas al personal", href: "/mas/miembros?vista=pagos", escena: escena(Banknote, "oliva") },
           ]}
           actual={vista}
         />
@@ -109,7 +109,7 @@ export default async function PaginaMiembros({ searchParams }: { searchParams: P
             ) : null}
             {costoMes > 0 ? (
               <p className="rounded-2xl bg-lana px-4 py-3 text-[0.9375rem]">
-                Mano de obra de este mes: <span className="font-display text-lg font-semibold tabular-nums">{pesos(costoMes)}</span>
+                Mano de obra de este mes: <span className="font-display text-lg font-semibold tabular-nums">{dinero(costoMes, finca.moneda)}</span>
               </p>
             ) : null}
             <ListaPagosPersonal fincaId={finca.id} personal={lista} puedeEditar={puedeEditar} />

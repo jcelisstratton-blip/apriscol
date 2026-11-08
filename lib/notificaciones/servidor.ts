@@ -59,7 +59,7 @@ export async function contextoDe(destino: Destino, secretKey: string, ahora = ne
   return conSesionDe(destino.user_id, secretKey, async (supabase) => {
     const hoy = hoyBogota(ahora);
     const [{ data: finca }, { data: perfil }, { data: pref }, { data: vigencia }] = await Promise.all([
-      supabase.from("fincas").select("id, nombre, plan").eq("id", destino.finca_id).maybeSingle(),
+      supabase.from("fincas").select("id, nombre, plan, moneda").eq("id", destino.finca_id).maybeSingle(),
       supabase.from("perfiles").select("nombre").eq("id", destino.user_id).maybeSingle(),
       supabase.from("notificacion_preferencias").select("nivel_minimo").eq("finca_id", destino.finca_id).eq("user_id", destino.user_id).maybeSingle(),
       supabase.rpc("estado_vigencia_finca", { p_finca: destino.finca_id }),
@@ -67,7 +67,7 @@ export async function contextoDe(destino: Destino, secretKey: string, ahora = ne
     if (!finca) throw new Error("La persona ya no puede ver esta finca.");
     if (vigencia === "bloqueada" || vigencia === "pendiente") return null;
     const ajustes = await leerAjustesFinca(supabase, finca.id);
-    const senales = await cargarSemaforos({ supabase, fincaId: finca.id, rol: destino.rol as RolFinca, plan: finca.plan, hoy, ajustes });
+    const senales = await cargarSemaforos({ supabase, fincaId: finca.id, rol: destino.rol as RolFinca, plan: finca.plan, hoy, ajustes, moneda: finca.moneda });
     const nivelMinimo: NivelMinimo = pref?.nivel_minimo === "rojo" ? "rojo" : "ambar";
     return { nombre: perfil?.nombre ?? null, finca: finca.nombre, fincaId: finca.id, hoy, saludo: saludo(ahora), senales, nivelMinimo, urlBase: SITE_URL };
   });

@@ -12,7 +12,7 @@ import { crearClienteServidor } from "@/lib/supabase/server";
 import { puedeEscribir, puedeGestionar } from "@/lib/permisos";
 import { ETIQUETA_RUBRO } from "@/lib/costos";
 import { formatoFecha, hoyBogota } from "@/lib/fechas";
-import { pesos } from "@/lib/ferias";
+import { dinero } from "@/lib/moneda";
 import { eliminarGasto } from "@/app/(app)/hato/gastos/actions";
 
 export const metadata: Metadata = { title: "Editar compra" };
@@ -67,7 +67,7 @@ export default async function PaginaGastoEditar({ params, searchParams }: { para
         {puedeGestionar(rol) ? (
           <EliminarRegistro
             etiqueta="Eliminar esta compra"
-            resumen={`${gasto.descripcion} (${ETIQUETA_RUBRO[gasto.rubro]}, ${pesos(gasto.monto)}) del ${formatoFecha(gasto.fecha)}`}
+            resumen={`${gasto.descripcion} (${ETIQUETA_RUBRO[gasto.rubro]}, ${dinero(gasto.monto, finca.moneda)}) del ${formatoFecha(gasto.fecha)}`}
             accion={eliminarGasto.bind(null, id)}
             destino={atrasAnimal ? `/hato/${atrasAnimal}#costos` : "/hato?vista=gastos"}
             mensaje="Compra eliminada"

@@ -1,3 +1,4 @@
+import { dinero } from "@/lib/moneda";
 import type { Bloque, Mes } from "@/lib/proyeccion/motor";
 
 /** Qué parte del negocio se mira: todo junto, solo la carne o solo la leche. */
@@ -10,12 +11,12 @@ export type Formato = "n0" | "n1" | "pesos" | "ton";
 const nf = (d: number) => new Intl.NumberFormat("es-CO", { minimumFractionDigits: d, maximumFractionDigits: d });
 const FORMATOS: Record<Formato, Intl.NumberFormat> = { n0: nf(0), n1: nf(1), pesos: nf(0), ton: nf(2) };
 
-/** Un número como se lee en Colombia: punto de miles, coma decimal. El dinero lleva «$» y los negativos, el signo delante. */
-export function formatear(f: Formato, n: number): string {
+/** Un número como se lee en Colombia: punto de miles, coma decimal. El dinero va en la moneda de la finca (`moneda`) y los negativos, con el signo delante. */
+export function formatear(f: Formato, n: number, moneda?: string): string {
   const v = Math.abs(n) < 0.5 && f === "pesos" ? 0 : n;
   const texto = FORMATOS[f].format(Math.abs(v));
   const signo = v < 0 && Number(texto.replace(/\./g, "").replace(",", ".")) !== 0 ? "−" : "";
-  return f === "pesos" ? `${signo}$ ${texto}` : f === "ton" ? `${signo}${texto} t` : `${signo}${texto}`;
+  return f === "pesos" ? `${signo}${dinero(Math.abs(v), moneda)}` : f === "ton" ? `${signo}${texto} t` : `${signo}${texto}`;
 }
 
 const MESES_CORTOS = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];

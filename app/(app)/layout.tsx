@@ -3,6 +3,7 @@ import { AvisoVigencia } from "@/components/AvisoVigencia";
 import { ColaSemaforo } from "@/components/ColaSemaforo";
 import { BottomNav } from "@/components/BottomNav";
 import { NavLateral } from "@/components/NavLateral";
+import { ProveedorMoneda } from "@/components/ProveedorMoneda";
 import { esAdminPlataforma, obtenerContexto } from "@/lib/contexto";
 import { visibilidadMenu } from "@/lib/menu";
 
@@ -19,7 +20,7 @@ export default async function LayoutApp({ children }: { children: React.ReactNod
   if (estado === "pendiente") redirect("/activar-finca");
 
   return (
-    <>
+    <ProveedorMoneda moneda={finca.moneda}>
       <NavLateral
         nombre={perfil?.nombre || user.email || "Mi cuenta"}
         correo={user.email ?? ""}
@@ -38,6 +39,6 @@ export default async function LayoutApp({ children }: { children: React.ReactNod
         </main>
       </div>
       <BottomNav rol={rol} plan={finca.plan} />
-    </>
+    </ProveedorMoneda>
   );
 }

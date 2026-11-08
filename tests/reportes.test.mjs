@@ -88,7 +88,7 @@ test("formato a la colombiana: coma decimal, punto de miles y vacío como raya",
   assert.equal(textoCelda({ tipo: "entero" }, 12500), "12.500");
   assert.equal(textoCelda({ tipo: "decimal", decimales: 1 }, 3.6), "3,6");
   assert.equal(textoCelda({ tipo: "porcentaje" }, 0.255), "25,5 %");
-  assert.equal(textoCelda({ tipo: "pesos" }, 1250000), "$ 1.250.000");
+  assert.equal(textoCelda({ tipo: "pesos" }, 1250000).replace(/\u00a0/g, " "), "$ 1.250.000");
   assert.match(textoCelda({ tipo: "fecha" }, "2026-10-24"), /^24 .*oct.* 2026$/);
   assert.equal(textoCelda({ tipo: "texto" }, null), "—");
   assert.equal(textoCelda({ tipo: "entero" }, 0), "0", "el cero es un dato, no un vacío");
@@ -182,7 +182,7 @@ test("salidas: filtra por tipo, no muestra valores sin acceso a las cuentas y su
   ];
   const base = { tipo: "todos", conValores: true, salidas, animales, especie: () => true, truncado: false };
   const r = construirSalidas(base);
-  assert.equal(indicador(r, "Valor vendido"), "$ 600.000");
+  assert.equal(indicador(r, "Valor vendido").replace(/\u00a0/g, " "), "$ 600.000");
   assert.equal(valor(r.filas[0], "cobro"), "Por cobrar");
   assert.equal(indicador(r, "Muertes"), "1");
   assert.deepEqual(ids(construirSalidas({ ...base, tipo: "muerte" })), ["b2"]);

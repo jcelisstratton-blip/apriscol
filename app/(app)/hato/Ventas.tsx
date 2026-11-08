@@ -7,7 +7,7 @@ import { ListaVentas } from "@/components/ListaVentas";
 import { crearClienteServidor } from "@/lib/supabase/server";
 import { AYUDA_VENTAS } from "@/lib/ayuda";
 import { hoyBogota } from "@/lib/fechas";
-import { pesos } from "@/lib/ferias";
+import { dinero } from "@/lib/moneda";
 
 /**
  * Hato → Ventas: donde se registra lo que se vende (carne, queso, abono, lana…), se ve lo que queda por cobrar y se corrige. La leche despachada y los
@@ -18,7 +18,10 @@ export async function Ventas({
   puedeEditar,
   guardado = false,
   cliente,
+  moneda = "COP",
 }: {
+  /** La moneda de la finca (`finca.moneda`). */
+  moneda?: string;
   fincaId: string;
   puedeEditar: boolean;
   guardado?: boolean;
@@ -47,9 +50,9 @@ export async function Ventas({
             <Banknote className="mt-0.5 size-6 shrink-0 text-ocre" strokeWidth={1.75} aria-hidden="true" />
             <div className="min-w-0">
               <p className="font-bold">
-                Por cobrar: <span className="tabular-nums">{pesos(porCobrar)}</span>
+                Por cobrar: <span className="tabular-nums">{dinero(porCobrar, moneda)}</span>
               </p>
-              <p className="mt-0.5 text-[0.9375rem] text-humo">{vencido > 0 ? `${pesos(vencido)} ya pasó la fecha en que lo esperabas.` : "Nada vencido todavía."}</p>
+              <p className="mt-0.5 text-[0.9375rem] text-humo">{vencido > 0 ? `${dinero(vencido, moneda)} ya pasó la fecha en que lo esperabas.` : "Nada vencido todavía."}</p>
             </div>
           </div>
         </section>

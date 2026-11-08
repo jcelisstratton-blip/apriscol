@@ -6,6 +6,7 @@ import { Tarjeta } from "@/components/Tarjeta";
 import { DESCRIPCION_RANGO, equilibrio, rango, sensibilidad, type Entrada, type NombreRango } from "@/lib/proyeccion/analisis";
 import { DEFINICION, type Supuestos } from "@/lib/proyeccion/supuestos";
 import { formatear } from "@/lib/proyeccion/vista";
+import { useMoneda } from "@/components/ProveedorMoneda";
 
 const NOMBRE_RANGO: Record<NombreRango, string> = { pesimista: "Si sale mal", base: "Como lo tienes", optimista: "Si sale bien" };
 
@@ -13,6 +14,7 @@ const pct = (n: number) => `${new Intl.NumberFormat("es-CO", { maximumFractionDi
 
 /** Qué tan firme es el resultado: cuánto cambia si se mueve un número, desde qué precio se pierde dinero y qué pasa en un mal o un buen camino. */
 export function Riesgos({ entrada, supuestos }: { entrada: Entrada; supuestos: Supuestos }) {
+  const moneda = useMoneda();
   const analisis = useMemo(
     () => ({
       filas: sensibilidad(entrada, supuestos),
@@ -39,9 +41,9 @@ export function Riesgos({ entrada, supuestos }: { entrada: Entrada; supuestos: S
               const holgura = p.holguraPct ?? 0;
               return (
                 <Tarjeta key={p.clave} titulo={kilo ? "Precio por kilo vivo" : "Precio por litro de leche"}>
-                  <p className="text-2xl font-bold tabular-nums">{formatear("pesos", p.equilibrio ?? 0)}</p>
+                  <p className="text-2xl font-bold tabular-nums">{formatear("pesos", p.equilibrio ?? 0, moneda.codigo)}</p>
                   <p className="mt-1 text-[0.9375rem] text-humo [overflow-wrap:anywhere]">
-                    es el mínimo para que lo que entra iguale a lo que sale. Hoy lo calculas en {formatear("pesos", p.actual)}:{" "}
+                    es el mínimo para que lo que entra iguale a lo que sale. Hoy lo calculas en {formatear("pesos", p.actual, moneda.codigo)}:{" "}
                     {holgura >= 0 ? (
                       <>puede bajar un <strong className="text-tinta">{pct(holgura)}</strong> antes de perder dinero.</>
                     ) : (
@@ -67,7 +69,7 @@ export function Riesgos({ entrada, supuestos }: { entrada: Entrada; supuestos: S
                 <div key={texto} className="mb-1.5 last:mb-0">
                   <div className="flex items-baseline justify-between gap-3 text-[0.8125rem]">
                     <span className="min-w-0 text-humo">{texto}</span>
-                    <span className={`shrink-0 font-semibold tabular-nums ${v < 0 ? "text-rojo" : "text-musgo"}`}>{v > 0 ? "+" : ""}{formatear("pesos", v)}</span>
+                    <span className={`shrink-0 font-semibold tabular-nums ${v < 0 ? "text-rojo" : "text-musgo"}`}>{v > 0 ? "+" : ""}{formatear("pesos", v, moneda.codigo)}</span>
                   </div>
                   <div className="mt-1 h-1.5 rounded-full bg-arena" aria-hidden="true">
                     <div className={`h-full rounded-full ${v < 0 ? "bg-rojo" : "bg-musgo"}`} style={{ width: `${Math.max(2, (Math.abs(v) / mayor) * 100)}%` }} />
@@ -84,13 +86,13 @@ export function Riesgos({ entrada, supuestos }: { entrada: Entrada; supuestos: S
         <div className="grid grid-cols-1 gap-3 lg:grid-cols-3 lg:items-start">
           {analisis.caminos.map((c) => (
             <Tarjeta key={c.nombre} titulo={NOMBRE_RANGO[c.nombre]}>
-              <p className={`text-2xl font-bold tabular-nums ${c.totales.flujo < 0 ? "text-rojo" : ""}`}>{formatear("pesos", c.totales.flujo)}</p>
+              <p className={`text-2xl font-bold tabular-nums ${c.totales.flujo < 0 ? "text-rojo" : ""}`}>{formatear("pesos", c.totales.flujo, moneda.codigo)}</p>
               <p className="text-[0.8125rem] text-humo">queda en total</p>
               <dl className="mt-2.5 space-y-1">
                 {c.flujoPorAnio.map((v, i) => (
                   <div key={i} className="flex items-baseline justify-between gap-3 text-[0.9375rem]">
                     <dt className="text-humo">{i === 0 ? "Primer año" : i === 1 ? "Segundo año" : "Tercer año"}</dt>
-                    <dd className={`font-semibold tabular-nums ${v < 0 ? "text-rojo" : ""}`}>{formatear("pesos", v)}</dd>
+                    <dd className={`font-semibold tabular-nums ${v < 0 ? "text-rojo" : ""}`}>{formatear("pesos", v, moneda.codigo)}</dd>
                   </div>
                 ))}
               </dl>

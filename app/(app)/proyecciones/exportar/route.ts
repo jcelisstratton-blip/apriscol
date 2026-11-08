@@ -42,6 +42,7 @@ export async function GET(req: NextRequest) {
       finca: finca.nombre,
       hoy,
       generado: new Date(),
+      moneda: finca.moneda,
       horizonte,
       proyeccion,
       bloques: porAnio(proyeccion),

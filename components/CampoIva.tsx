@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Campo, CLASE_INPUT } from "@/components/Campo";
-import { pesos } from "@/lib/ferias";
+import { useDinero } from "@/components/ProveedorMoneda";
 import { IMPUESTO, ivaIncluido } from "@/lib/impuestos";
 import { leerNumero } from "@/lib/numeros";
 
@@ -13,6 +13,7 @@ const coma = (n: number | null | undefined) => (n == null ? "" : String(n).repla
  * impuesto, suponiendo que el total ya lo incluye. Vacío = no se registra. La tarifa no se propone: cambia por ley y hay productos sin IVA.
  */
 export function CampoIva({ total, inicial, onCambio }: { total: number | null; inicial?: number | null; /** Para los formularios que no envían un <form>: recibe el texto escrito. */ onCambio?: (texto: string) => void }) {
+  const dinero = useDinero();
   const [texto, setTexto] = useState(coma(inicial));
   // El valor precargado también cuenta: quien controla el formulario a mano lo recibe desde el primer momento.
   useEffect(() => onCambio?.(coma(inicial)), []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -33,9 +34,9 @@ export function CampoIva({ total, inicial, onCambio }: { total: number | null; i
           </div>
           {iva !== null && total !== null ? (
             <p className="rounded-2xl bg-lana px-4 py-2.5 text-[0.9375rem]">
-              {IMPUESTO.sigla} incluido: <span className="font-semibold tabular-nums">{pesos(iva)}</span>
+              {IMPUESTO.sigla} incluido: <span className="font-semibold tabular-nums">{dinero(iva)}</span>
               <span className="text-humo"> · sin {IMPUESTO.sigla}: </span>
-              <span className="font-semibold tabular-nums">{pesos(total - iva)}</span>
+              <span className="font-semibold tabular-nums">{dinero(total - iva)}</span>
             </p>
           ) : null}
         </div>

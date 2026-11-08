@@ -147,9 +147,9 @@ import { formatear, etiquetaMes, columnasDinero, columnasHato, columnasAlimento,
 test("vista: números a la colombiana y signos", () => {
   assert.equal(formatear("n0", 1234567), "1.234.567");
   assert.equal(formatear("n1", 3.64), "3,6");
-  assert.equal(formatear("pesos", 2500000), "$ 2.500.000");
-  assert.equal(formatear("pesos", -1500), "−$ 1.500");
-  assert.equal(formatear("pesos", -0.2), "$ 0");
+  assert.equal(formatear("pesos", 2500000).replace(/\u00a0/g, " "), "$ 2.500.000");
+  assert.equal(formatear("pesos", -1500).replace(/\u00a0/g, " "), "−$ 1.500");
+  assert.equal(formatear("pesos", -0.2).replace(/\u00a0/g, " "), "$ 0");
   assert.equal(formatear("ton", 1.256), "1,26 t");
 });
 

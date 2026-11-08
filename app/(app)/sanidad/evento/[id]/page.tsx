@@ -18,6 +18,7 @@ import { ETIQUETA_EVENTO, ETIQUETA_VIA, estadoDosis, nombreEvento } from "@/lib/
 import { ANESTESIAS, CATEGORIAS, COJERAS, ETAPAS, MOTIVOS, REGLAS, etiquetaDe } from "@/lib/sanidad-campos";
 import { eliminarEvento } from "@/app/(app)/sanidad/actions";
 import { leerTodo } from "@/lib/consultas";
+import { dinero } from "@/lib/moneda";
 
 export const metadata: Metadata = { title: "Registro de sanidad" };
 const ID_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -127,7 +128,7 @@ export default async function DetalleEvento({ params, searchParams }: { params: 
             {e.lote_producto ? <Dato etiqueta="Lote">{e.lote_producto}</Dato> : null}
             {e.fecha_vencimiento ? <Dato etiqueta="Vence el lote">{formatoFecha(e.fecha_vencimiento)}</Dato> : null}
             {e.responsable ? <Dato etiqueta={REGLAS[e.tipo].etiquetaVeterinario}>{e.responsable}</Dato> : null}
-            {e.costo !== null ? <Dato etiqueta="Costo">{new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 }).format(e.costo)}</Dato> : null}
+            {e.costo !== null ? <Dato etiqueta="Costo">{dinero(e.costo, finca.moneda)}</Dato> : null}
             {e.diagnostico ? <Dato etiqueta={(REGLAS[e.tipo].diagnostico?.etiqueta ?? "Diagnóstico").replace(/[¿?]/g, "")}>{e.diagnostico}</Dato> : null}
             <Dato etiqueta="Animales">{animales.length}</Dato>
           </dl>

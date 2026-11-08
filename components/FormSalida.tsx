@@ -17,6 +17,7 @@ import { ESCENA_MOTIVO_BAJA } from "@/lib/escenas-forms-a-hato";
 import { ESCENA_COBRO } from "@/lib/escenas-costos";
 import { leerNumero } from "@/lib/numeros";
 import type { Baja, MotivoBaja, Tercero } from "@/lib/tipos";
+import { useMoneda } from "@/components/ProveedorMoneda";
 
 const coma = (n: number | null | undefined) => (n == null ? "" : String(n).replace(".", ","));
 
@@ -25,6 +26,7 @@ const coma = (n: number | null | undefined) => (n == null ? "" : String(n).repla
  * aquí: de eso depende el estado del animal y el control del retiro de carne.
  */
 export function FormSalida({ baja, terceros }: { baja: Baja; terceros: Tercero[] }) {
+  const moneda = useMoneda();
   const router = useRouter();
   const toast = useToast();
   const [motivo, setMotivo] = useState<MotivoBaja | "">(baja.motivo ?? "");
@@ -77,7 +79,7 @@ export function FormSalida({ baja, terceros }: { baja: Baja; terceros: Tercero[]
             {(id) => <SelectorTercero id={id} tipo="comprador" terceros={terceros} valor={tercero} onCambio={(v) => setTercero(v)} titulo="¿A quién se lo vendiste?" placeholder="Elegir o agregar" />}
           </Campo>
           {!baja.tercero_id && baja.comprador ? <p className="-mt-3 text-[0.8125rem] text-humo">Antes escribiste: «{baja.comprador}». Elígelo de la lista para que quede ordenado.</p> : null}
-          <Campo etiqueta="Valor de la venta" ayuda="Opcional. En pesos." error={valorInvalido ? "Escribe solo números." : undefined}>
+          <Campo etiqueta="Valor de la venta" ayuda={`Opcional. En ${moneda.codigo}.`} error={valorInvalido ? "Escribe solo números." : undefined}>
             {(id) => <input id={id} value={valor} inputMode="decimal" autoComplete="off" onChange={(e) => setValor(e.target.value)} placeholder="Ej. 450.000" className={CLASE_INPUT} />}
           </Campo>
           {numeroValor && Number.isFinite(numeroValor) ? <CampoIva total={numeroValor} inicial={baja.iva_tarifa} onCambio={setIva} /> : null}

@@ -8,13 +8,14 @@ import { ListaEscalable } from "@/components/ListaEscalable";
 import { crearClienteNavegador } from "@/lib/supabase/client";
 import { formatoFecha } from "@/lib/fechas";
 import { kg } from "@/lib/carne";
-import { pesos } from "@/lib/leche-calidad";
+import { useDinero } from "@/components/ProveedorMoneda";
 import type { ConsumoLote } from "@/lib/tipos";
 
 type ConsumoConProducto = ConsumoLote & { producto: { nombre: string } | null };
 
 /** El alimento que ha comido un lote, del más reciente al más antiguo. */
 export function ListaConsumo({ fincaId, loteId, puedeEditar }: { fincaId: string; loteId: string; puedeEditar: boolean }) {
+  const dinero = useDinero();
   const cargar = useCallback(
     async (desde: number, cantidad: number) => {
       const { data, count, error } = await crearClienteNavegador()
@@ -45,7 +46,7 @@ export function ListaConsumo({ fincaId, loteId, puedeEditar }: { fincaId: string
             </span>
             <span className="block text-sm text-humo">
               {formatoFecha(c.fecha, { day: "numeric", month: "short", year: "numeric" })}
-              {c.costo != null ? ` · ${pesos(c.costo)}` : ""}
+              {c.costo != null ? ` · ${dinero(c.costo)}` : ""}
             </span>
           </div>
           {puedeEditar ? (

@@ -3,7 +3,8 @@ import { puedeVer } from "@/lib/permisos";
 import { DIAS_PARTO_ATRASADO, porSecar as debeSecarse, enUltimoTercio, seguimientoServida, type VentanaDx } from "@/lib/reproduccion";
 import { estadoFamacha } from "@/lib/famacha";
 import { HPG_ALTO, HPG_MUY_ALTO, interpretarHpg } from "@/lib/coprologico";
-import { ETIQUETA_MANTENIMIENTO, estadoCrioscopia, estadoRcs, estadoTemperatura, formatoCrioscopia, formatoMiles, pendientesMantenimiento, pesos, type PendienteEquipo } from "@/lib/leche-calidad";
+import { ETIQUETA_MANTENIMIENTO, estadoCrioscopia, estadoRcs, estadoTemperatura, formatoCrioscopia, formatoMiles, pendientesMantenimiento, type PendienteEquipo } from "@/lib/leche-calidad";
+import { dinero } from "@/lib/moneda";
 import { ETIQUETA_PRUEBA_CORTA, estadoDosis, estadoFechaPrograma, revisionAtrasada } from "@/lib/sanidad";
 import { esBaja, mensajeBaja, type Tendencia } from "@/lib/produccion";
 import { estadoCuarentena, textoRotacion } from "@/lib/corrales";
@@ -969,7 +970,7 @@ export function hrefVenta(origen: string, id: string): string {
 /** Días antes del vencimiento desde los que un pago o un cobro pasa a ámbar. */
 const DIAS_AVISO_DINERO = 7;
 
-export function senalesDinero(compras: CompraPorPagar[], ventas: VentaPorCobrar[], hoy: string): Senal[] {
+export function senalesDinero(compras: CompraPorPagar[], ventas: VentaPorCobrar[], hoy: string, moneda?: string): Senal[] {
   const nivelDe = (vence: string): NivelItem | null => {
     const d = diasHasta(vence, hoy);
     return d < 0 ? "rojo" : d <= DIAS_AVISO_DINERO ? "ambar" : null;
@@ -981,12 +982,12 @@ export function senalesDinero(compras: CompraPorPagar[], ventas: VentaPorCobrar[
   const pagar: ItemSenal[] = [];
   for (const c of compras) {
     const nivel = nivelDe(c.vence);
-    if (nivel) pagar.push({ clave: `pagar-${c.id}`, etiqueta: c.descripcion, detalle: `${pesos(Number(c.monto))} · ${texto(c.vence, "vence")}`.replace("vence hace", "venció hace"), nivel, href: `/hato/gastos/${c.id}/editar`, queHacer: "Paga y marca la compra como pagada.", orden: diasHasta(c.vence, hoy) });
+    if (nivel) pagar.push({ clave: `pagar-${c.id}`, etiqueta: c.descripcion, detalle: `${dinero(Number(c.monto), moneda)} · ${texto(c.vence, "vence")}`.replace("vence hace", "venció hace"), nivel, href: `/hato/gastos/${c.id}/editar`, queHacer: "Paga y marca la compra como pagada.", orden: diasHasta(c.vence, hoy) });
   }
   const cobrar: ItemSenal[] = [];
   for (const v of ventas) {
     const nivel = nivelDe(v.cobro_vence);
-    if (nivel) cobrar.push({ clave: `cobrar-${v.clave}`, etiqueta: `${v.producto}${v.tercero ? ` · ${v.tercero}` : ""}`, detalle: `${pesos(Number(v.valor))} · ${texto(v.cobro_vence, "lo esperabas")}`.replace("lo esperabas en", "lo esperas en").replace("lo esperabas hoy", "lo esperas hoy"), nivel, href: hrefVenta(v.origen, v.origen_id), queHacer: `${v.tercero ? `Cobra a ${v.tercero}` : "Cobra"} y registra el cobro${v.origen === "animal" ? ": en la ficha, en «Cobro», toca «Marcar como cobrada»." : " en la venta."}`, orden: diasHasta(v.cobro_vence, hoy) });
+    if (nivel) cobrar.push({ clave: `cobrar-${v.clave}`, etiqueta: `${v.producto}${v.tercero ? ` · ${v.tercero}` : ""}`, detalle: `${dinero(Number(v.valor), moneda)} · ${texto(v.cobro_vence, "lo esperabas")}`.replace("lo esperabas en", "lo esperas en").replace("lo esperabas hoy", "lo esperas hoy"), nivel, href: hrefVenta(v.origen, v.origen_id), queHacer: `${v.tercero ? `Cobra a ${v.tercero}` : "Cobra"} y registra el cobro${v.origen === "animal" ? ": en la ficha, en «Cobro», toca «Marcar como cobrada»." : " en la venta."}`, orden: diasHasta(v.cobro_vence, hoy) });
   }
   return [
     armarSenal(

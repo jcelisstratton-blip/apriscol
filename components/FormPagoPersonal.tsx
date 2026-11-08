@@ -10,7 +10,7 @@ import { SelectorTarjetas } from "@/components/SelectorTarjetas";
 import { SubirSoporte } from "@/components/SubirSoporte";
 import { crearPago, editarPago } from "@/app/(app)/personal/actions";
 import { ESCENA_PAGO } from "@/lib/escenas-costos";
-import { pesos } from "@/lib/ferias";
+import { useDinero } from "@/components/ProveedorMoneda";
 import { ETIQUETA_FORMA_PAGO, calcularPago, UNIDAD_PAGO } from "@/lib/nomina";
 import { leerNumero } from "@/lib/numeros";
 import { textoPrecio } from "@/lib/productos";
@@ -27,6 +27,7 @@ const textoFactor = (n: number) => n.toLocaleString("es-CO", { maximumFractionDi
  * A quien está por prestación de servicios se le pide el comprobante de pago de su seguridad social (PILA) para registrar el pago como hecho.
  */
 export function FormPagoPersonal({ hoy, personal, factor, pago, solicitud, personaInicial }: { hoy: string; personal: Persona[]; factor: number; pago?: PagoPersonal; solicitud?: string; personaInicial?: string }) {
+  const dinero = useDinero();
   const editando = Boolean(pago);
   const [estado, enviar, pendiente] = useActionState(editando ? editarPago : crearPago, undefined);
   const [, iniciar] = useTransition();
@@ -104,11 +105,11 @@ export function FormPagoPersonal({ hoy, personal, factor, pago, solicitud, perso
           {montos ? (
             <div className="-mt-2 space-y-1 rounded-2xl bg-lana px-4 py-3 text-[0.9375rem]">
               <p>
-                Recibe: <span className="font-display text-lg font-semibold tabular-nums">{pesos(montos.pago)}</span>
+                Recibe: <span className="font-display text-lg font-semibold tabular-nums">{dinero(montos.pago)}</span>
               </p>
               {persona.vinculacion === "laboral" ? (
                 <p className="text-humo">
-                  Con las cargas de ley (×{textoFactor(factorAplicado)}) le cuesta a la finca <span className="font-semibold tabular-nums text-tinta">{pesos(montos.costo)}</span>.
+                  Con las cargas de ley (×{textoFactor(factorAplicado)}) le cuesta a la finca <span className="font-semibold tabular-nums text-tinta">{dinero(montos.costo)}</span>.
                 </p>
               ) : (
                 <p className="text-humo">Por prestación de servicios, le cuesta a la finca lo mismo: la persona paga su propia seguridad social.</p>

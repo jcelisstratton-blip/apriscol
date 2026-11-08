@@ -1,5 +1,6 @@
 import ExcelJS from "exceljs";
-import { COLOR, FMT, escribirEncabezados, escribirTitulo, limpiarNombreArchivo, textoFecha } from "@/lib/excel-estilo";
+import { formatoExcelDinero } from "@/lib/moneda";
+import { COLOR, escribirEncabezados, escribirTitulo, limpiarNombreArchivo, textoFecha } from "@/lib/excel-estilo";
 import type { BaseProyeccion } from "@/lib/proyeccion/base";
 import { correr, equilibrio, rango, sensibilidad, totales, DESCRIPCION_RANGO, type Entrada } from "@/lib/proyeccion/analisis";
 import { FILAS_COMPARACION } from "@/lib/proyeccion/comparacion";
@@ -9,6 +10,8 @@ import { aplicarAjustes, DEFINICION, DEFINICIONES, ETIQUETA_GRUPO_SUPUESTO, ETIQ
 import { columnasAlimento, columnasDinero, columnasHato, etiquetaMes, lineasResumen, type ColumnaMes, type Enfoque, type Formato } from "@/lib/proyeccion/vista";
 
 export type DatosLibroProyeccion = {
+  /** La moneda de la finca; sin ella, pesos colombianos. */
+  moneda?: string;
   finca: string;
   hoy: string;
   generado: Date;
@@ -24,7 +27,7 @@ export type DatosLibroProyeccion = {
   escenarios: EscenarioGuardado[];
 };
 
-const FORMATO_EXCEL: Record<Formato, string> = { n0: "#,##0", n1: "#,##0.0", pesos: FMT.pesos, ton: "#,##0.00" };
+const formatoExcel = (f: Formato, moneda?: string): string => ({ n0: "#,##0", n1: "#,##0.0", pesos: formatoExcelDinero(moneda), ton: "#,##0.00" })[f];
 const UNIDAD: Record<string, string> = { n: "", pct: "%", meses: "meses", kg: "kg", pesos: "$", litros: "litros", kg_ms: "kg de materia seca al día" };
 
 export const nombreArchivoProyeccion = (finca: string, hoy: string) => limpiarNombreArchivo(`${finca} - Proyecciones - ${hoy}.xlsx`);
@@ -63,7 +66,7 @@ export async function construirLibroProyeccion(d: DatosLibroProyeccion): Promise
       d.bloques.forEach((b, i) => {
         const celda = resumen.getCell(fila, i + 2);
         celda.value = Math.round(l.valor(b) * 100) / 100;
-        celda.numFmt = FORMATO_EXCEL[l.formato];
+        celda.numFmt = formatoExcel(l.formato, d.moneda);
       });
       fila += 1;
     }
@@ -91,7 +94,7 @@ export async function construirLibroProyeccion(d: DatosLibroProyeccion): Promise
     columnas.forEach((c, j) => {
       const celda = r.getCell(j + 2);
       celda.value = Math.round(c.col.valor(m) * 100) / 100;
-      celda.numFmt = FORMATO_EXCEL[c.col.formato];
+      celda.numFmt = formatoExcel(c.col.formato, d.moneda);
     });
   });
   meses.getColumn(1).width = 16;
@@ -108,7 +111,7 @@ export async function construirLibroProyeccion(d: DatosLibroProyeccion): Promise
     r.getCell(2).value = def.etiqueta;
     const v = r.getCell(3);
     v.value = d.supuestos[def.clave];
-    v.numFmt = def.unidad === "pesos" ? FMT.pesos : def.decimales > 0 ? `#,##0.${"0".repeat(def.decimales)}` : "#,##0";
+    v.numFmt = def.unidad === "pesos" ? formatoExcelDinero(d.moneda) : def.decimales > 0 ? `#,##0.${"0".repeat(def.decimales)}` : "#,##0";
     r.getCell(4).value = UNIDAD[def.unidad];
     const muestra = origen === "finca" ? d.procedencia[def.clave].muestra : undefined;
     r.getCell(5).value = muestra ? `${ETIQUETA_ORIGEN[origen]} · ${muestra}` : ETIQUETA_ORIGEN[origen];
@@ -129,7 +132,7 @@ export async function construirLibroProyeccion(d: DatosLibroProyeccion): Promise
     cols.forEach((c, j) => {
       const celda = r.getCell(j + 2);
       celda.value = Math.round(f.valor(c.t) * 100) / 100;
-      celda.numFmt = FORMATO_EXCEL[f.formato];
+      celda.numFmt = formatoExcel(f.formato, d.moneda);
     });
   });
   esc.getColumn(1).width = 34;
@@ -154,9 +157,9 @@ export async function construirLibroProyeccion(d: DatosLibroProyeccion): Promise
     const eq = equilibrio(d.entrada, d.supuestos, clave);
     rie.getCell(f, 1).value = DEFINICION[clave].etiqueta;
     rie.getCell(f, 2).value = eq.actual;
-    rie.getCell(f, 2).numFmt = FMT.pesos;
+    rie.getCell(f, 2).numFmt = formatoExcelDinero(d.moneda);
     rie.getCell(f, 3).value = eq.equilibrio ?? "No vende";
-    rie.getCell(f, 3).numFmt = FMT.pesos;
+    rie.getCell(f, 3).numFmt = formatoExcelDinero(d.moneda);
     rie.getCell(f, 4).value = eq.holguraPct === null ? "" : Math.round(eq.holguraPct * 10) / 10;
     f += 1;
   }
@@ -168,9 +171,9 @@ export async function construirLibroProyeccion(d: DatosLibroProyeccion): Promise
   for (const s of sensibilidad(d.entrada, d.supuestos)) {
     rie.getCell(f, 1).value = DEFINICION[s.clave].etiqueta;
     rie.getCell(f, 2).value = Math.round(s.siBaja);
-    rie.getCell(f, 2).numFmt = FMT.pesos;
+    rie.getCell(f, 2).numFmt = formatoExcelDinero(d.moneda);
     rie.getCell(f, 3).value = Math.round(s.siSube);
-    rie.getCell(f, 3).numFmt = FMT.pesos;
+    rie.getCell(f, 3).numFmt = formatoExcelDinero(d.moneda);
     f += 1;
   }
   f += 1;
@@ -181,7 +184,7 @@ export async function construirLibroProyeccion(d: DatosLibroProyeccion): Promise
   for (const c of rango(d.entrada, d.supuestos)) {
     rie.getCell(f, 1).value = c.nombre === "pesimista" ? "Si sale mal" : c.nombre === "optimista" ? "Si sale bien" : "Como lo tienes";
     rie.getCell(f, 2).value = Math.round(c.totales.flujo);
-    rie.getCell(f, 2).numFmt = FMT.pesos;
+    rie.getCell(f, 2).numFmt = formatoExcelDinero(d.moneda);
     rie.getCell(f, 3).value = c.flujoPorAnio.map((v) => Math.round(v).toLocaleString("es-CO")).join(" · ");
     rie.getCell(f, 4).value = DESCRIPCION_RANGO[c.nombre];
     f += 1;

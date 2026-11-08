@@ -14,6 +14,7 @@ import { ESCENA_RESULTADO_FERIA } from "@/lib/escenas-forms-b-ferias";
 import { ETIQUETA_RESULTADO, RESULTADOS } from "@/lib/ferias";
 import { formatoFecha } from "@/lib/fechas";
 import type { ResultadoFeria } from "@/lib/tipos";
+import { useMoneda } from "@/components/ProveedorMoneda";
 
 type Ref = { id: string; numero_arete: string; nombre: string | null };
 type FeriaOpcion = { id: string; nombre: string; fecha_inicio: string };
@@ -49,6 +50,7 @@ export function FormParticipacion({
   /** Si viene, el formulario corrige este premio en lugar de crear uno nuevo. */
   participacion?: ParticipacionEditable;
 }) {
+  const moneda = useMoneda();
   const editando = Boolean(participacion);
   const [estado, enviar, pendiente] = useActionState(editando ? editarParticipacion : crearParticipacion, undefined);
   const [, iniciar] = useTransition();
@@ -90,7 +92,7 @@ export function FormParticipacion({
       <Campo etiqueta="Premio recibido" ayuda="Trofeo, copa, banda, placa… Opcional.">
         {(id) => <input id={id} name="premio_descripcion" defaultValue={participacion?.premio_descripcion ?? ""} maxLength={200} autoComplete="off" className={CLASE_INPUT} />}
       </Campo>
-      <Campo etiqueta="Premio en dinero" ayuda="Opcional, en pesos.">
+      <Campo etiqueta="Premio en dinero" ayuda={`Opcional, en ${moneda.codigo}.`}>
         {(id) => <input id={id} name="premio_en_dinero" defaultValue={participacion?.premio_en_dinero ?? ""} inputMode="numeric" autoComplete="off" className={CLASE_INPUT} placeholder="0" />}
       </Campo>
 
