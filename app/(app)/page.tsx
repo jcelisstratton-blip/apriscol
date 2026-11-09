@@ -19,9 +19,12 @@ import { EnlaceBoton } from "@/components/Boton";
 import { obtenerContexto } from "@/lib/contexto";
 import { crearClienteServidor } from "@/lib/supabase/server";
 import { destinoNovedades, puedeEscribir, puedeVer } from "@/lib/permisos";
-import { diasHasta, formatoFecha, hoyBogota, litros, sumarDias } from "@/lib/fechas";
+import { diasDesde, diasHasta, formatoFecha, hoyBogota, litros, sumarDias } from "@/lib/fechas";
 import { etiquetaAnimal, saludo } from "@/lib/animal";
 import { dinero } from "@/lib/moneda";
+import { AvisoMigracion } from "@/components/AvisoMigracion";
+import { cargarPasosMigracion } from "@/lib/migracion-servidor";
+import { avanceMigracion, siguientePaso } from "@/lib/migracion";
 import { IconoEvento } from "@/components/IconoEvento";
 import { ETIQUETA_EVENTO, estadoDosis, estadoFechaPrograma, nombreEvento } from "@/lib/sanidad";
 import type { CandidatoCeba, CuarentenaAlerta, ProgramaSanitarioResumen, SanidadPendiente, ServicioConParto, TipoEvento, UbicacionVista } from "@/lib/tipos";
@@ -145,6 +148,11 @@ export default async function PaginaHoy({ searchParams }: { searchParams: Promis
   if (destinoNovedad === "no_compra") consultaNovedades = consultaNovedades.neq("tipo", "compra");
   const novedadesNuevas = destinoNovedad && puedeVer(rol, "novedades", finca.plan) ? await consultaNovedades.then((r) => r.count ?? 0, () => 0) : 0;
 
+  // Durante el primer mes de la finca, mientras queden pasos de «Migrar mi finca», Hoy ofrece seguir con el que toca (se puede ocultar).
+  const pasosMigracion = puedeEscribir(rol, "hato", finca.plan) && diasDesde(finca.created_at.slice(0, 10), hoy) <= 30 ? await cargarPasosMigracion(supabase, finca, rol).catch(() => []) : [];
+  const pasoSiguiente = siguientePaso(pasosMigracion);
+  const avanceMig = avanceMigracion(pasosMigracion);
+
   const nombrePila = (perfil?.nombre ?? "").split(" ")[0];
 
   return (
@@ -157,6 +165,8 @@ export default async function PaginaHoy({ searchParams }: { searchParams: Promis
       <div className="mb-4 lg:hidden">
         <FincaSelector fincas={fincas.map((f) => ({ id: f.id, nombre: f.nombre, rol: f.rol, logo_path: f.logo_path }))} activa={finca.id} />
       </div>
+
+      {pasoSiguiente ? <AvisoMigracion fincaId={finca.id} hechos={avanceMig.hechos} total={avanceMig.total} siguiente={{ id: pasoSiguiente.id, accion: pasoSiguiente.accion, titulo: pasoSiguiente.titulo, href: pasoSiguiente.href }} /> : null}
 
       {hato === 0 ? (
         <Tarjeta className="lg:max-w-xl">

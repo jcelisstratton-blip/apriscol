@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, Check, ChevronDown, Droplets, FlaskConical, Layers, Moon, PawPrint, Smartphone, Tags, Users, Warehouse, Hand, Keyboard, Download, Building2, UserPlus } from "lucide-react";
+import { ArrowRight, Check, ChevronDown, Droplets, FlaskConical, Layers, Moon, PawPrint, Smartphone, Tags, Users, Warehouse, Hand, Keyboard, Download, Building2, UserPlus, FileSpreadsheet } from "lucide-react";
 import { CarruselCubre } from "@/components/presentacion/CarruselCubre";
 import { Planes } from "@/components/presentacion/Planes";
 import { PLANES, usd } from "@/lib/planes";
@@ -57,6 +57,7 @@ const PASOS = [
 const PREGUNTAS: { p: string; r: string }[] = [
   { p: "¿Sirve para cabras y para ovejas?", r: "Sí, para las dos: en la misma finca o por separado. Cada una tiene sus parámetros, como la edad de ceba o el máximo de hembras por semental." },
   { p: "¿Se puede usar desde el celular?", r: "Está pensada primero para el celular, con botones grandes y teclado propio para los números. En el computador te da un menú lateral y más espacio." },
+  { p: "¿Puedo traer los datos que ya llevo en Excel?", r: "Sí. Al crear tu finca te ofrecemos «Migrar mi finca»: una guía por etapas (corrales, animales con su genealogía, pesos, ordeños, sanidad, medicamentos y alimento), con una plantilla para cada tabla. Confirmas qué columna es cuál, ves qué va a cambiar antes de guardar y puedes deshacer cada carga. Si prefieres, también invitas a alguien de confianza para que la cargue por ti." },
   { p: "¿Puedo traer mis animales de un libro genealógico?", r: "Sí. Si tus animales están en el libro genealógico, los traes una sola vez al crear tu cuenta, demostrando que son tuyos con el documento del titular y el microchip de uno de ellos." },
   { p: "¿Quién ve la información de mi finca?", r: "Solo quienes tú invites. Los datos están separados por finca, y cada persona ve únicamente lo que le toca según su rol." },
   { p: "¿Puedo invitar al ordeñador, al veterinario y al contador?", r: "Sí. El ordeñador registra la leche y lo que se da de comer, el veterinario maneja sanidad, reproducción, corrales y el inventario de medicamentos, y el contador ve y registra compras, ventas, personal y costos. Cada uno ve en Semáforos solo lo de su rol." },
@@ -126,6 +127,7 @@ export function Presentacion({ modo, formulario }: { modo: "login" | "registro";
             <ul className="space-y-2.5 text-[0.9375rem] sm:text-base">
               {[
                 "Cada animal con su historia: genealogía, endogamia, leche y sanidad",
+                "Trae tu finca desde Excel: corrales, animales, pesos, ordeños, sanidad e inventario",
                 "Semáforos en rojo, ámbar y verde: qué pide atención hoy y qué hacer",
                 "Avisa los periodos de retiro: la leche tratada no llega al tanque",
                 "Corrales con cupo, rotación de potreros y cuarentena",
@@ -250,6 +252,24 @@ export function Presentacion({ modo, formulario }: { modo: "login" | "registro";
               <Paso key={p.n} {...p} />
             ))}
           </ul>
+          <div className="mt-3 rounded-3xl bg-musgo/[0.07] p-4 ring-1 ring-musgo/25 sm:p-5">
+            <div className="flex items-start gap-3">
+              <span className="grid size-10 shrink-0 place-items-center rounded-2xl bg-papel text-musgo ring-1 ring-arena"><FileSpreadsheet className="size-5" strokeWidth={1.75} aria-hidden="true" /></span>
+              <div className="min-w-0">
+                <p className="font-mono text-[0.6875rem] font-semibold uppercase tracking-[0.14em] text-ocre">¿Ya llevas tu finca en Excel?</p>
+                <h3 className="mt-1 font-display text-xl font-semibold leading-tight">Tráela completa con «Migrar mi finca»</h3>
+                <p className="mt-1.5 text-[0.9375rem] text-humo">Una guía por etapas, con una plantilla para cada tabla: confirmas qué columna es cuál, ves qué va a cambiar antes de guardar y puedes deshacer cualquier carga.</p>
+              </div>
+            </div>
+            <ul className="mt-3 grid grid-cols-1 gap-x-4 gap-y-1.5 text-[0.9375rem] min-[480px]:grid-cols-2 lg:grid-cols-3">
+              {["Corrales y potreros", "Animales, con padre, madre, partos y servicios", "Historia de pesos", "Historia de ordeños", "Historia de sanidad", "Medicamentos, vacunas y alimento, con su existencia"].map((t) => (
+                <li key={t} className="flex items-start gap-2">
+                  <Check className="mt-1 size-4 shrink-0 text-musgo" strokeWidth={2.6} aria-hidden="true" />
+                  <span>{t}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
           <div className="mt-3 grid grid-cols-1 gap-3 lg:grid-cols-[1.1fr_0.9fr]">
             <div className="flex items-start gap-4 rounded-3xl bg-papel p-4 ring-1 ring-arena sm:p-5">
               <span className="font-display text-5xl font-semibold leading-none text-ocre">3</span>
