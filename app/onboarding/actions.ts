@@ -49,10 +49,9 @@ export async function crearFinca(_: EstadoFinca, form: FormData): Promise<Estado
 
   // El trigger deja la primera finca como activa; para las siguientes se marca aquí.
   await supabase.from("perfiles").update({ finca_activa_id: data.id }).eq("id", user.id);
-  const { data: perfil } = await supabase.from("perfiles").select("libro_resuelto_en").eq("id", user.id).maybeSingle();
   revalidatePath("/", "layout");
-  // Paso único: traer los animales que ya estén en el registro genealógico (se ofrece solo la primera vez).
-  redirect(perfil?.libro_resuelto_en ? "/" : "/onboarding/animales");
+  // Primero se elige cómo empezar (migrar desde Excel o de cero); «de cero» sigue al paso único de traer los animales del registro genealógico (solo la primera vez).
+  redirect("/onboarding/empezar");
 }
 
 /**
