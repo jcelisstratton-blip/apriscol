@@ -109,6 +109,7 @@ El detalle de cada módulo vive en `docs/modulos/`. Léelo antes de cambiar su c
 - [`docs/modulos/notificaciones.md`](docs/modulos/notificaciones.md) — Avisos por Telegram: un bot de la plataforma, vínculo por código, parámetros por persona que fija el superadministrador, n8n solo despacha; solo `service_role` escribe lo del bot
 - [`docs/modulos/referidos.md`](docs/modulos/referidos.md) — Referidos: Referidos
 - [`docs/modulos/presentacion-planes.md`](docs/modulos/presentacion-planes.md) — Pantalla de entrada, legales y planes: Pantalla de entrada
+- [`docs/modulos/mcp.md`](docs/modulos/mcp.md) — Conexión con IA (MCP): servidor `POST /api/mcp` de solo lectura con token personal (solo la huella en la base), herramientas por rol (`resumen_de_hoy`, `semaforos`, `buscar_animal`, `produccion_de_leche`) que corren como la persona (RLS), sin llave de servicio para los datos
 - [`docs/modulos/tutoriales.md`](docs/modulos/tutoriales.md) — Tutoriales: los videos de la serie del canal de YouTube dentro de la app (Mi finca → Tutoriales), con avance, buscador y reproductor; la lista de videos vive en `lib/tutoriales.ts`
 
 ## Escribir en varias tablas = una sola transacción

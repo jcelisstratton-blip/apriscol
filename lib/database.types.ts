@@ -2834,6 +2834,50 @@ export type Database = {
           },
         ]
       }
+      tokens_ia: {
+        Row: {
+          creado_en: string
+          finca_id: string
+          huella: string
+          id: string
+          nombre: string
+          prefijo: string
+          revocado_en: string | null
+          ultimo_uso: string | null
+          user_id: string
+        }
+        Insert: {
+          creado_en?: string
+          finca_id: string
+          huella: string
+          id?: string
+          nombre: string
+          prefijo: string
+          revocado_en?: string | null
+          ultimo_uso?: string | null
+          user_id: string
+        }
+        Update: {
+          creado_en?: string
+          finca_id?: string
+          huella?: string
+          id?: string
+          nombre?: string
+          prefijo?: string
+          revocado_en?: string | null
+          ultimo_uso?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tokens_ia_miembro_fk"
+            columns: ["finca_id", "user_id"]
+            isOneToOne: false
+            referencedRelation: "finca_miembros"
+            referencedColumns: ["finca_id", "user_id"]
+          },
+        ]
+      }
       inventario_movimientos: {
         Row: {
           importacion_id: string | null

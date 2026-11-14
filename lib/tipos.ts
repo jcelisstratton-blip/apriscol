@@ -1468,6 +1468,19 @@ export type TelegramVinculo = {
   updated_at: string;
 };
 
+/** Una conexión con IA (token personal del MCP): solo se guarda la huella, nunca el token. */
+export type TokenIa = {
+  id: string;
+  finca_id: string;
+  user_id: string;
+  nombre: string;
+  prefijo: string;
+  huella: string;
+  creado_en: string;
+  ultimo_uso: string | null;
+  revocado_en: string | null;
+};
+
 export type NotificacionPreferencias = {
   finca_id: string;
   user_id: string;
@@ -1546,6 +1559,7 @@ export type Database = {
       inventario_alimento_movimientos: Tabla<InventarioAlimentoMovimiento, "finca_id" | "producto_id" | "tipo" | "fecha" | "cantidad">;
       inventario_movimientos: Tabla<InventarioMovimiento, "finca_id" | "producto_vet_id" | "tipo" | "fecha" | "cantidad">;
       telegram_vinculos: Tabla<TelegramVinculo, "finca_id" | "user_id">;
+      tokens_ia: Tabla<TokenIa, "finca_id" | "user_id" | "nombre" | "prefijo" | "huella">;
       notificacion_preferencias: Tabla<NotificacionPreferencias, "finca_id" | "user_id">;
       notificacion_envios: Tabla<NotificacionEnvio, "finca_id" | "user_id" | "tipo" | "clave">;
       eventos_sanitarios: Tabla<EventoSanitario, "finca_id" | "tipo">;
