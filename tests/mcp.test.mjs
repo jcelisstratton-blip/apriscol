@@ -169,25 +169,11 @@ test("herramientas: senalCompacta nunca lleva enlaces internos ni identificadore
   assert.ok(!("id" in c) && !("clave" in c.casos[0]));
 });
 
-import { comandoClaudeCode, configClaudeDesktop, configGenerica, nombreValido, rutaMcp } from "../lib/mcp/conexion.ts";
+import { rutaMcp } from "../lib/mcp/conexion.ts";
 
-test("conexión: las instrucciones llevan la dirección y el código, y el JSON es válido", () => {
-  const t = generarToken();
-  const url = rutaMcp("https://apriscol.shop/");
-  assert.equal(url, "https://apriscol.shop/api/mcp");
-  assert.ok(comandoClaudeCode(url, t).includes(url) && comandoClaudeCode(url, t).includes(`Bearer ${t}`));
-  const desktop = JSON.parse(configClaudeDesktop(url, t));
-  assert.equal(desktop.mcpServers.apriscol.env.APRISCOL_AUTH, `Bearer ${t}`);
-  assert.ok(desktop.mcpServers.apriscol.args.includes(url));
-  assert.ok(!desktop.mcpServers.apriscol.args.some((a) => a.includes(t)), "el código va por variable, no en los argumentos");
-  assert.equal(JSON.parse(configGenerica(url, t)).mcpServers.apriscol.headers.Authorization, `Bearer ${t}`);
-});
-
-test("conexión: el nombre se limpia y se valida", () => {
-  assert.equal(nombreValido("  Claude   en mi  PC "), "Claude en mi PC");
-  assert.equal(nombreValido("   "), null);
-  assert.equal(nombreValido("x".repeat(61)), null);
-  assert.equal(nombreValido("x".repeat(60)), "x".repeat(60));
+test("conexión: la dirección que se pega en Claude sale del sitio, sin barra final", () => {
+  assert.equal(rutaMcp("https://apriscol.shop/"), "https://apriscol.shop/api/mcp");
+  assert.equal(rutaMcp("https://apriscol.shop"), "https://apriscol.shop/api/mcp");
 });
 
 import { credencialDeCabecera } from "../lib/mcp/token.ts";

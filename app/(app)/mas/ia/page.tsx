@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 import { ConectarClaude } from "@/components/ConectarClaude";
-import { ConexionIa } from "@/components/ConexionIa";
 import { Encabezado } from "@/components/Encabezado";
 import { obtenerContexto } from "@/lib/contexto";
 import { SITE_URL } from "@/lib/env";
@@ -12,18 +11,12 @@ import { crearClienteServidor } from "@/lib/supabase/server";
 
 export const metadata: Metadata = { title: "Conexión con IA" };
 
-/**
- * Conexión con IA: la persona deja que su asistente (Claude) consulte su finca, solo para leer. La vía normal es conectar Claude con su inicio de sesión
- * (OAuth); el token personal queda como opción avanzada (Claude Code y otros). Ve y quita sus propios permisos.
- */
+/** Conexión con IA: la persona deja que Claude consulte su finca, solo para leer. Conecta con su inicio de sesión (OAuth) y ve y quita sus propios permisos. */
 export default async function PaginaIa() {
-  const { finca, user } = await obtenerContexto();
+  const { finca } = await obtenerContexto();
   const supabase = await crearClienteServidor();
-  // Nunca se trae la huella: la pantalla no la necesita. Si el servidor OAuth no está activo, la lista de permisos sale vacía.
-  const [{ data }, grants] = await Promise.all([
-    supabase.from("tokens_ia").select("id, nombre, prefijo, creado_en, ultimo_uso").eq("finca_id", finca.id).eq("user_id", user.id).is("revocado_en", null).order("creado_en", { ascending: false }).limit(10),
-    supabase.auth.oauth.listGrants().catch(() => ({ data: null })),
-  ]);
+  // Si el servidor OAuth no está activo, la lista de permisos sale vacía y se ven los pasos.
+  const grants = await supabase.auth.oauth.listGrants().catch(() => ({ data: null }));
 
   return (
     <>
@@ -31,24 +24,13 @@ export default async function PaginaIa() {
         <ChevronLeft className="size-5" strokeWidth={2} /> Más
       </Link>
       <Encabezado titulo="Conexión con IA" subtitulo="Pregúntale a Claude por tu finca" />
-      <div className="space-y-4 lg:max-w-xl">
+      <div className="lg:max-w-xl">
         <ConectarClaude
           finca={finca.nombre}
           url={rutaMcp(SITE_URL)}
           // Las fechas se escriben aquí, en el servidor: si el navegador las formateara, «p. m.» no saldría igual y React tendría que rehacer la pantalla.
           apps={(grants.data ?? []).map((g) => ({ clientId: g.client.id, nombre: g.client.name || "Asistente de IA", desde: fechaHoraBogota(g.granted_at) }))}
         />
-        <details className="rounded-3xl bg-papel ring-1 ring-arena">
-          <summary className="min-h-12 cursor-pointer list-none px-4 py-3.5 text-[0.9375rem] font-semibold">Opciones avanzadas</summary>
-          <div className="space-y-3 px-4 pb-4">
-            <p className="text-sm text-humo">Solo si usas Claude Code u otra herramienta que no deja iniciar sesión: ahí se pega un código personal en lugar de entrar con tu cuenta.</p>
-            <ConexionIa
-              incrustada
-              finca={finca.nombre}
-              conexiones={(data ?? []).map((c) => ({ id: c.id, nombre: c.nombre, prefijo: c.prefijo, creada: fechaHoraBogota(c.creado_en), ultimoUso: c.ultimo_uso ? fechaHoraBogota(c.ultimo_uso) : null }))}
-            />
-          </div>
-        </details>
       </div>
     </>
   );

@@ -1,15 +1,36 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { CheckCircle2 } from "lucide-react";
+import { CheckCircle2, Copy } from "lucide-react";
 import { Aviso } from "@/components/Aviso";
 import { Boton } from "@/components/Boton";
-import { Copiable } from "@/components/ConexionIa";
 import { Tarjeta } from "@/components/Tarjeta";
 import { useToast } from "@/components/Toast";
 import { revocarAppIa } from "@/app/(app)/mas/ia/actions";
 
 type App = { clientId: string; nombre: string; desde: string };
+
+/** Un texto para copiar: se ajusta al ancho (sin desplazamiento lateral) y el botón lo copia entero. */
+function Copiable({ titulo, texto }: { titulo: string; texto: string }) {
+  const toast = useToast();
+  const copiar = async () => {
+    try {
+      await navigator.clipboard.writeText(texto);
+      toast.exito("Copiado");
+    } catch {
+      toast.error("No se pudo copiar. Mantén presionado el texto para copiarlo.");
+    }
+  };
+  return (
+    <div className="space-y-1.5">
+      <p className="text-sm font-semibold">{titulo}</p>
+      <pre className="min-w-0 whitespace-pre-wrap rounded-2xl bg-lana p-3 font-mono text-[0.8125rem] leading-relaxed [overflow-wrap:anywhere]">{texto}</pre>
+      <Boton variante="secundario" onClick={copiar}>
+        <Copy className="size-5" strokeWidth={2} aria-hidden="true" /> Copiar
+      </Boton>
+    </div>
+  );
+}
 
 const PASOS = [
   <>En Claude ve a <strong>Configuración → Conectores</strong> y toca <strong>Agregar conector personalizado</strong>.</>,
