@@ -1,11 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
+import { AyudaModulo } from "@/components/AyudaModulo";
 import { ConectarClaude } from "@/components/ConectarClaude";
 import { Encabezado } from "@/components/Encabezado";
 import { obtenerContexto } from "@/lib/contexto";
 import { SITE_URL } from "@/lib/env";
 import { fechaHoraBogota } from "@/lib/fechas";
+import { AYUDA_IA } from "@/lib/ayuda";
 import { rutaMcp } from "@/lib/mcp/conexion";
 import { crearClienteServidor } from "@/lib/supabase/server";
 
@@ -25,6 +27,7 @@ export default async function PaginaIa() {
       </Link>
       <Encabezado titulo="Conexión con IA" subtitulo="Pregúntale a Claude por tu finca" />
       <div className="lg:max-w-xl">
+        <AyudaModulo ayuda={AYUDA_IA} />
         <ConectarClaude
           finca={finca.nombre}
           url={rutaMcp(SITE_URL)}

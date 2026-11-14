@@ -44,7 +44,7 @@ const PASOS = [
     Ve a la pestaña <strong>Tuyos</strong>, busca <strong>Apriscol</strong> y toca <strong>Conectar</strong>. <span className="text-humo">Si Claude pregunta «¿Terminar de conectar un conector?», toca «Continuar conectando».</span>
   </>,
   <>
-    Se abre el navegador: entra con tu cuenta de Apriscol y toca <strong>Permitir</strong>. Vuelve a Claude: debe decir <strong>Conectado</strong>.
+    Se abre el navegador: entra a Apriscol con el correo de la finca que quieres consultar (si ya tenías la sesión abierta, pasa directo) y toca <strong>Permitir</strong>. Vuelve a Claude: debe decir <strong>Conectado</strong>.
   </>,
 ];
 
@@ -61,7 +61,11 @@ function Pasos({ url }: { url: string }) {
         ))}
       </ol>
       <Copiable titulo="Dirección de Apriscol" texto={url} />
-      <p className="text-sm text-humo">Funciona en Claude en el computador, en la web y en el celular. Si tu Claude es de un equipo, quien lo administra debe agregar conectores personalizados.</p>
+      <ul className="list-disc space-y-1.5 pl-5 text-sm text-humo">
+        <li>La app de Claude y su página web deben tener abierta <strong>la misma cuenta de Claude</strong>; si no, la conexión no termina.</li>
+        <li>Claude ve la cuenta y la finca con la que entraste a Apriscol. Si tienes varias fincas, consulta la que tengas activa.</li>
+        <li>Funciona en Claude en el computador, en la web y en el celular. Si tu Claude es de un equipo, quien lo administra debe agregar conectores personalizados.</li>
+      </ul>
     </div>
   );
 }
