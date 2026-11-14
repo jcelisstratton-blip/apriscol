@@ -4,6 +4,7 @@ import { ChevronLeft } from "lucide-react";
 import { ConexionIa } from "@/components/ConexionIa";
 import { Encabezado } from "@/components/Encabezado";
 import { obtenerContexto } from "@/lib/contexto";
+import { fechaHoraBogota } from "@/lib/fechas";
 import { crearClienteServidor } from "@/lib/supabase/server";
 
 export const metadata: Metadata = { title: "Conexión con IA" };
@@ -22,7 +23,11 @@ export default async function PaginaIa() {
       </Link>
       <Encabezado titulo="Conexión con IA" subtitulo="Pregúntale a tu asistente por tu finca" />
       <div className="lg:max-w-xl">
-        <ConexionIa finca={finca.nombre} conexiones={data ?? []} />
+        <ConexionIa
+          finca={finca.nombre}
+          // Las fechas se escriben aquí, en el servidor: si el navegador las formateara, «p. m.» no saldría igual y React tendría que rehacer la pantalla.
+          conexiones={(data ?? []).map((c) => ({ id: c.id, nombre: c.nombre, prefijo: c.prefijo, creada: fechaHoraBogota(c.creado_en), ultimoUso: c.ultimo_uso ? fechaHoraBogota(c.ultimo_uso) : null }))}
+        />
       </div>
     </>
   );

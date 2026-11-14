@@ -9,9 +9,8 @@ import { Tarjeta } from "@/components/Tarjeta";
 import { useToast } from "@/components/Toast";
 import { crearConexionIa, revocarConexionIa } from "@/app/(app)/mas/ia/actions";
 import { NOMBRE_SUGERIDO, comandoClaudeCode, configClaudeDesktop, configGenerica } from "@/lib/mcp/conexion";
-import { fechaHoraBogota } from "@/lib/fechas";
 
-type Conexion = { id: string; nombre: string; prefijo: string; creado_en: string; ultimo_uso: string | null };
+type Conexion = { id: string; nombre: string; prefijo: string; creada: string; ultimoUso: string | null };
 type Nueva = { token: string; url: string; nombre: string };
 
 /** Una pieza de texto para copiar: se ajusta al ancho (sin desplazamiento lateral) y el botón la copia entera. */
@@ -136,7 +135,7 @@ export function ConexionIa({ finca, conexiones }: { finca: string; conexiones: C
                 <div className="min-w-0">
                   <p className="font-semibold [overflow-wrap:anywhere]">{c.nombre}</p>
                   <p className="text-sm text-humo [overflow-wrap:anywhere]">
-                    Creada el {fechaHoraBogota(c.creado_en)} · {c.ultimo_uso ? `último uso ${fechaHoraBogota(c.ultimo_uso)}` : "sin usar todavía"}
+                    Creada el {c.creada} · {c.ultimoUso ? `último uso ${c.ultimoUso}` : "sin usar todavía"}
                   </p>
                   <p className="font-mono text-xs text-humo">{c.prefijo}…</p>
                 </div>
