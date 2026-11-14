@@ -3,6 +3,12 @@
 Apriscol expone un servidor **MCP** (Model Context Protocol) de **solo lectura** en `POST /api/mcp`: el asistente de una persona (Claude Desktop, Claude Code, Cursor…) consulta
 su finca en lenguaje natural («¿qué cabras tienen retiro esta semana?», «¿cómo va la leche este mes?»). Ningún asistente puede escribir, borrar ni cambiar nada.
 
+## Pantalla «Conexión con IA»
+
+Mi finca → **Conexión con IA** (`/mas/ia`, `components/ConexionIa.tsx`; la entrada vive en `lib/menu.ts`). La persona crea una conexión con un nombre; el código se **muestra una sola vez** (se arma en la acción
+de servidor `crearConexionIa`, con RLS: la base exige que el dueño sea quien llama) junto con lo que hay que pegar en Claude Code, Claude Desktop (puente `mcp-remote`, el encabezado va por variable) y
+Cursor u otros (`lib/mcp/conexion.ts`). La lista muestra solo las suyas (nombre, fecha, último uso, los primeros caracteres) y **nunca trae la huella**; revocar corta el acceso al instante.
+
 ## Cómo se identifica quien consulta
 
 - **Token personal** (`apr_` + 43 caracteres, 256 bits al azar), creado por la persona en Mi finca → Conexión con IA y mostrado **una sola vez**. En la base solo vive su
