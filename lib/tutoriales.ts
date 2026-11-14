@@ -57,6 +57,7 @@ export const TUTORIALES: Tutorial[] = [
   { numero: 24, titulo: "Varias fincas y referidos", resumen: "Maneja varias fincas en una cuenta y gana con tu enlace de referidos.", duracion: "4:29", grupo: "equipo", youtube: null },
   { numero: 25, titulo: "Avisos por Telegram", resumen: "Qué recibe cada persona del equipo por Telegram, y a qué hora.", duracion: "3:46", grupo: "equipo", youtube: null },
   { numero: 26, titulo: "Cuenta, invitación y plan vencido", resumen: "Recupera tu clave, acepta invitaciones y qué hacer si tu plan vence.", duracion: "5:13", grupo: "equipo", youtube: null },
+  { numero: 27, titulo: "Recorrido por el Hato", resumen: "Los filtros, la lista y las tarjetas de trabajo del Hato: el mapa para llegar a cada módulo.", duracion: "3:55", grupo: "empezar", youtube: null },
 ];
 
 const ID_YOUTUBE = /^[A-Za-z0-9_-]{11}$/;
