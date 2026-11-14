@@ -28,7 +28,7 @@ que nunca falla por permisos ni por la base.
 
 ## Pruebas
 
-`tests/tutoriales.test.mjs`: están los 27 (0 al 26) con grupo, duración y miniatura existente; los enlaces son válidos y no se repiten; siguiente y anterior saltan los no disponibles; la búsqueda; lo
+`tests/tutoriales.test.mjs`: están los 28 (0 al 27) con grupo, duración y miniatura existente; los enlaces son válidos y no se repiten; siguiente y anterior saltan los no disponibles; la búsqueda; lo
 «visto» se lee aunque venga manipulado; la entrada del menú y la política de seguridad. `tests/menu.test.mjs` y `tests/reglas.test.mjs` cubren el menú y el `frame-src`.
 
 ## Cómo llegan las personas a los videos
@@ -54,5 +54,5 @@ cuenta como visto cuando la persona lo abre o cuando se carga su reproductor (as
 
 ## Pendiente
 
-- Poner el enlace de YouTube de cada tutorial a medida que se sube (del 9 al 26 están en `null`): con eso se activan solos su tarjeta, su «Siguiente» y su tarjeta en la ayuda del módulo (que hasta entonces dice «Próximamente»).
+- Poner el enlace de YouTube de cada tutorial a medida que se sube (del 9 al 27 están en `null`): con eso se activan solos su tarjeta, su «Siguiente» y su tarjeta en la ayuda del módulo (que hasta entonces dice «Próximamente»).
 - Las ayudas de reportes comparten el tutorial 20 (Reportes y proyecciones); si se publica un video por área, se separan.
