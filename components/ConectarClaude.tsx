@@ -38,7 +38,7 @@ const PASOS = [
     Toca <strong>+ Agregar</strong> (arriba a la derecha) y elige <strong>Agregar conector personalizado</strong>. <span className="text-humo">No uses la pestaña «Descubrir»: ahí solo hay conectores de otras empresas.</span>
   </>,
   <>
-    Ponle de nombre <strong>Apriscol</strong>, pega la dirección de abajo y toca <strong>Continuar</strong>.
+    Ponle de nombre <strong>Apriscol</strong>, pega la dirección de abajo y toca <strong>Continuar</strong>. <span className="text-humo">En la pantalla que sigue no cambies nada (Claude ya marca «Detectado»): toca <strong>Agregar</strong>.</span>
   </>,
   <>
     Ve a la pestaña <strong>Tuyos</strong>, busca <strong>Apriscol</strong> y toca <strong>Conectar</strong>. <span className="text-humo">Si Claude pregunta «¿Terminar de conectar un conector?», toca «Continuar conectando».</span>
