@@ -38,3 +38,13 @@ export async function revocarConexionIa(id: string): Promise<Resultado> {
   revalidatePath("/mas/ia");
   return { ok: true };
 }
+
+/** La persona quita el permiso de un asistente (Claude, por ejemplo): deja de ver su finca al instante. Supabase cierra sus sesiones y anula la renovación. */
+export async function revocarAppIa(clientId: string): Promise<Resultado> {
+  if (typeof clientId !== "string" || !UUID.test(clientId)) return { ok: false, error: "No se encontró esa conexión." };
+  const supabase = await crearClienteServidor();
+  const { error } = await supabase.auth.oauth.revokeGrant({ clientId });
+  if (error) return { ok: false, error: mensajeAmigable(error.message) };
+  revalidatePath("/mas/ia");
+  return { ok: true };
+}

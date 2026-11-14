@@ -4,8 +4,8 @@ import { SUPABASE_KEY, SUPABASE_URL } from "@/lib/env";
 import type { Database } from "@/lib/tipos";
 
 // «/invitacion»: quien recibe el enlace sin tener cuenta debe poder ver a qué lo invitan y crearla (la pantalla pide sesión solo para aceptar).
-// «/api/telegram», «/api/notificaciones» y «/api/mcp» no llevan sesión de navegador: las protege el secreto de cada una (webhook de Telegram, llamada de n8n y token personal de la conexión con IA). «/telegram» es la Mini App del bot: abre la sesión con la firma de Telegram (`/api/telegram/sesion`).
-const PUBLICAS = ["/login", "/registro", "/recuperar", "/auth", "/terminos", "/privacidad", "/api/csp", "/api/telegram", "/api/notificaciones", "/api/mcp", "/telegram", "/invitacion"];
+// «/api/telegram», «/api/notificaciones» y «/api/mcp» no llevan sesión de navegador: las protege el secreto de cada una (webhook de Telegram, llamada de n8n y el acceso de la conexión con IA). «/.well-known» son los documentos públicos con los que Claude descubre cómo pedir permiso. «/telegram» es la Mini App del bot: abre la sesión con la firma de Telegram (`/api/telegram/sesion`).
+const PUBLICAS = ["/login", "/registro", "/recuperar", "/auth", "/terminos", "/privacidad", "/api/csp", "/api/telegram", "/api/notificaciones", "/api/mcp", "/.well-known", "/telegram", "/invitacion"];
 
 /** Refresca la sesión en cada navegación y manda a /login a quien no la tenga. */
 export async function actualizarSesion(request: NextRequest) {
