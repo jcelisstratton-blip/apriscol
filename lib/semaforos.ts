@@ -1,13 +1,13 @@
 import { diasDesde, diasHasta, formatoFecha, sumarDias } from "@/lib/fechas";
 import { puedeVer } from "@/lib/permisos";
-import { DIAS_PARTO_ATRASADO, porSecar as debeSecarse, enUltimoTercio, seguimientoServida, type VentanaDx } from "@/lib/reproduccion";
+import { DIAS_PARTO_ATRASADO, DIAS_REPETIR_DX_DESDE, DIAS_REPETIR_DX_HASTA, DIAS_SECADO_URGENTE, porSecar as debeSecarse, enUltimoTercio, seguimientoServida, type VentanaDx } from "@/lib/reproduccion";
 import { estadoFamacha } from "@/lib/famacha";
 import { HPG_ALTO, HPG_MUY_ALTO, interpretarHpg } from "@/lib/coprologico";
-import { ETIQUETA_MANTENIMIENTO, estadoCrioscopia, estadoRcs, estadoTemperatura, formatoCrioscopia, formatoMiles, pendientesMantenimiento, type PendienteEquipo } from "@/lib/leche-calidad";
+import { CRIOSCOPIA_MAX, CRIOSCOPIA_MIN, DIAS_AVISO_MANTENIMIENTO, ETIQUETA_MANTENIMIENTO, FRIO_MAX, FRIO_MIN, FRIO_TOLERANCIA, RCS_AVISO_FRACCION, estadoCrioscopia, estadoRcs, estadoTemperatura, formatoCrioscopia, formatoMiles, pendientesMantenimiento, type PendienteEquipo } from "@/lib/leche-calidad";
 import { dinero } from "@/lib/moneda";
-import { ETIQUETA_PRUEBA_CORTA, estadoDosis, estadoFechaPrograma, revisionAtrasada } from "@/lib/sanidad";
-import { esBaja, mensajeBaja, type Tendencia } from "@/lib/produccion";
-import { estadoCuarentena, textoRotacion } from "@/lib/corrales";
+import { DIAS_AVISO_DOSIS, ETIQUETA_PRUEBA_CORTA, estadoDosis, estadoFechaPrograma, revisionAtrasada } from "@/lib/sanidad";
+import { BAJA_ALERTA_PCT, BAJA_CRITICA_PCT, esBaja, mensajeBaja, type Tendencia } from "@/lib/produccion";
+import { CUARENTENA_MIN_DIAS, estadoCuarentena, textoRotacion } from "@/lib/corrales";
 import { sugerirDestinos } from "@/lib/sugerencias-corral";
 import { DIAS_AVISO_VENCIMIENTO, estadoStock, estadoVencimiento, rutaBajaLote, rutaConteoTotal, textoStock, type FilaInventario } from "@/lib/inventario";
 import { autonomiaDias, diasTexto, estadoAlimento, textoKg, type FilaAlimento } from "@/lib/inventario-alimento";
@@ -205,7 +205,7 @@ export function senalesDiagnostico(filas: ReproHembra[], hoy: string, ventana: V
         titulo: "Diagnósticos por repetir",
         queHacer: "Repite la prueba de diagnóstico a las que quedaron dudosas y registra el resultado.",
         queSignifica: "Hembras cuyo último diagnóstico fue dudoso y siguen en observación.",
-        regla: "Ámbar: toca repetir la prueba entre 14 y 21 días después del dudoso. Rojo: pasaron más de 21 días.",
+        regla: `Ámbar: toca repetir la prueba entre ${DIAS_REPETIR_DX_DESDE} y ${DIAS_REPETIR_DX_HASTA} días después del dudoso. Rojo: pasaron más de ${DIAS_REPETIR_DX_HASTA} días.`,
         accion: { texto: "Ver Reproducción", href: "/reproduccion" },
       },
       repetir,
@@ -218,7 +218,7 @@ export function senalSecado(filas: ReproHembra[], hoy: string, secadoDiasAntes: 
   for (const f of filas) {
     if (debeSecarse(f, hoy, secadoDiasAntes)) {
       const d = diasHasta(f.fecha_prevista_parto!, hoy);
-      const justo = d <= 7;
+      const justo = d <= DIAS_SECADO_URGENTE;
       items.push({
         clave: `secar-${f.animal_id}`,
         etiqueta: etiqueta(f.animal_id),
@@ -232,7 +232,7 @@ export function senalSecado(filas: ReproHembra[], hoy: string, secadoDiasAntes: 
       items.push({
         clave: `tercio-${f.animal_id}`,
         etiqueta: etiqueta(f.animal_id),
-        detalle: `Día ${diasDesde(f.ultimo_servicio!, hoy)} de gestación · parto previsto el ${corta(f.fecha_prevista_parto!)}${diasHasta(f.fecha_prevista_parto!, hoy) <= 7 ? " (ya casi)" : ""}`,
+        detalle: `Día ${diasDesde(f.ultimo_servicio!, hoy)} de gestación · parto previsto el ${corta(f.fecha_prevista_parto!)}${diasHasta(f.fecha_prevista_parto!, hoy) <= DIAS_SECADO_URGENTE ? " (ya casi)" : ""}`,
         nivel: "ambar",
         href: fichaAnimal(f.animal_id, "reproduccion"),
         queHacer:
@@ -250,7 +250,7 @@ export function senalSecado(filas: ReproHembra[], hoy: string, secadoDiasAntes: 
       titulo: "Secado y último tercio",
       queHacer: "Seca a las que ya deben secarse (deja de ordeñarlas) y refuerza el alimento de las que entraron al último tercio de gestación.",
       queSignifica: "Gestantes en ordeño que ya deben secarse, y gestantes que entraron al último tercio y necesitan más alimento.",
-      regla: `Ámbar: faltan ${secadoDiasAntes} días o menos para parir y sigue en ordeño (secarla), o lleva ${ultimoTercioDia} días de gestación o más (reforzar). Rojo: faltan 7 días o menos y sigue en ordeño.`,
+      regla: `Ámbar: faltan ${secadoDiasAntes} días o menos para parir y sigue en ordeño (secarla), o lleva ${ultimoTercioDia} días de gestación o más (reforzar). Rojo: faltan ${DIAS_SECADO_URGENTE} días o menos y sigue en ordeño.`,
       accion: items.some((i) => i.clave.startsWith("secar-")) ? { texto: "Secar varias a la vez", href: "/leche/secar" } : { texto: "Ver Reproducción", href: "/reproduccion" },
     },
     items,
@@ -427,8 +427,8 @@ export function senalCoprologico(filas: FilaCoprologico[], etiqueta: Etiqueta): 
       area: "sanidad",
       titulo: "Cargas de parásitos altas (coprológico)",
       queHacer: "Consulta con tu veterinario si toca desparasitarlos y con qué producto; después registra la aplicación.",
-      queSignifica: "Animales cuyo último examen coprológico mostró muchos huevos de parásitos y todavía no se desparasitaron desde entonces.",
-      regla: `Ámbar: desde ${HPG_ALTO.toLocaleString("es-CO")} huevos por gramo (HPG) sin desparasitar. Rojo: desde ${HPG_MUY_ALTO.toLocaleString("es-CO")} HPG. Son cortes de referencia: tu veterinario manda.`,
+      queSignifica: "Animales cuyo último examen de heces (coprológico) mostró muchos huevos de parásitos y todavía no se desparasitaron desde entonces.",
+      regla: `Ámbar: desde ${HPG_ALTO.toLocaleString("es-CO")} huevos por gramo de heces (HPG) sin desparasitar. Rojo: desde ${HPG_MUY_ALTO.toLocaleString("es-CO")} HPG. Son cortes de referencia: tu veterinario manda.`,
       accion: { texto: "Ver Sanidad", href: "/sanidad" },
     },
     items,
@@ -459,7 +459,7 @@ export function senalDosis(pendientes: DosisPendiente[], hoy: string): Senal {
       titulo: "Dosis y programas por aplicar",
       queHacer: "Aplica cada dosis pendiente con su producto a los animales que dice la lista, empezando por las vencidas, y registra la aplicación.",
       queSignifica: "Refuerzos de vacunas, desparasitaciones y jornadas sanitarias programadas que vencen pronto o ya vencieron.",
-      regla: "Ámbar: vence hoy o en los próximos 7 días. Rojo: ya venció.",
+      regla: `Ámbar: vence hoy o en los próximos ${DIAS_AVISO_DOSIS} días. Rojo: ya venció.`,
       accion: { texto: "Ver Sanidad", href: "/sanidad" },
     },
     items,
@@ -525,8 +525,8 @@ export function senalFrio(lecturas: LecturaFrio[], hoy: string): Senal {
       titulo: "Cadena de frío",
       queHacer: "Revisa que el tanque esté enfriando bien (termostato y equipo) y vuelve a medir la temperatura. Si sigue fuera de rango, la leche está en riesgo.",
       sigueAqui: "Cuenta las lecturas de los últimos 7 días: arreglar el equipo no las borra. Baja sola cuando las lecturas nuevas quedan en rango y las malas salen de esos 7 días.",
-      queSignifica: "Lecturas de temperatura del tanque de los últimos 7 días fuera del rango seguro (4 a 6 °C).",
-      regla: "Ámbar: hasta 2 °C fuera del rango. Rojo: más de 2 °C fuera, la leche está en riesgo.",
+      queSignifica: `Lecturas de temperatura del tanque de los últimos 7 días fuera del rango seguro (${FRIO_MIN} a ${FRIO_MAX} °C).`,
+      regla: `Ámbar: hasta ${FRIO_TOLERANCIA} °C fuera del rango. Rojo: más de ${FRIO_TOLERANCIA} °C fuera, la leche está en riesgo.`,
       accion: { texto: "Ver Leche", href: "/leche" },
     },
     items,
@@ -570,8 +570,8 @@ export function senalCalidad(a: AnalisisTanque | null, l: LimitesCalidad): Senal
       titulo: "Calidad de la leche",
       queHacer: "Abre el último análisis y mira qué valor falló. Si hay residuos de antibióticos, esa leche no debe ir al tanque.",
       sigueAqui: "Sale cuando un análisis nuevo viene dentro de lo normal; revisar el anterior no cambia el resultado.",
-      queSignifica: "El último análisis del tanque (de los últimos 60 días): células somáticas, crioscopia, residuos de antibióticos, grasa y proteína.",
-      regla: "Rojo: residuos positivos, células sobre el límite o crioscopia con posible agua. Ámbar: células cerca del límite (80 %), crioscopia más fría de lo habitual, o grasa o proteína fuera de rango.",
+      queSignifica: "El último análisis del tanque (de los últimos 60 días): células somáticas, crioscopia (la temperatura a la que se congela la leche: revela si tiene agua añadida), residuos de antibióticos, grasa y proteína.",
+      regla: `Rojo: residuos de antibiótico positivos, células somáticas sobre el límite de tu finca, o crioscopia sobre ${formatoCrioscopia(CRIOSCOPIA_MAX)} (posible agua añadida). Ámbar: células entre el ${Math.round(RCS_AVISO_FRACCION * 100)} % del límite y el límite, crioscopia bajo ${formatoCrioscopia(CRIOSCOPIA_MIN)} (más fría de lo habitual), o grasa o proteína fuera del rango definido para tu finca.`,
       accion: { texto: "Registrar un análisis nuevo", href: "/leche/calidad/nuevo" },
       nota: a ? undefined : "No hay un análisis del tanque en los últimos 60 días.",
     },
@@ -599,8 +599,8 @@ export function senalProduccion(tendencias: Tendencia[], etiqueta: Etiqueta): Se
       titulo: "Producción que baja",
       queHacer: "Revisa a las que bajan, empezando por las de baja fuerte: mastitis, parásitos, alimentación, celo o estrés.",
       sigueAqui: "Sale cuando su producción de los últimos días vuelve cerca de su promedio; revisar al animal no la cambia hasta que se ordeñe de nuevo.",
-      queSignifica: "Hembras en ordeño cuya producción de los últimos días bajó frente a su propio promedio.",
-      regla: "Ámbar: baja notable frente a su promedio. Rojo: baja fuerte, hay que revisarla ya (mastitis, parásitos, alimentación, celo o estrés).",
+      queSignifica: "Hembras en ordeño cuya producción de los últimos 3 días bajó frente a su propio promedio de los 7 días anteriores.",
+      regla: `Ámbar: baja ${BAJA_ALERTA_PCT} % o más frente a su promedio. Rojo: baja ${BAJA_CRITICA_PCT} % o más, hay que revisarla ya (mastitis, parásitos, alimentación, celo o estrés).`,
       accion: { texto: "Ver Leche", href: "/leche" },
     },
     items,
@@ -646,7 +646,7 @@ export function senalCorrales(ubicaciones: UbicacionVista[]): Senal {
       titulo: "Cupo y rotación",
       queHacer: "Pasa animales a otra instalación si el corral pasó su cupo; rota el lote a otro potrero si el potrero ya cumplió sus días de ocupación.",
       queSignifica: "Corrales con más animales que su cupo y potreros que ya pasaron los días de ocupación y deben desocuparse.",
-      regla: "Rojo: el corral pasó su cupo o el potrero pasó los días máximos de ocupación.",
+      regla: "Rojo: el corral pasó su cupo o el potrero pasó los días máximos de ocupación. Esta señal no tiene ámbar: si todo está en regla, no aparece.",
       accion: { texto: "Ver Corrales", href: "/corrales" },
     },
     items,
@@ -753,7 +753,7 @@ export function senalPruebas(filas: FilaPrueba[], hoy: string, etiqueta: Etiquet
       titulo: "Pruebas de laboratorio",
       queHacer: "Con tu veterinario, define qué hacer con cada positivo o sospechoso (aislarlo, repetir la prueba) y registra el resultado.",
       sigueAqui: "Registrar que lo revisaste no la quita: sale con una prueba nueva que dé negativo o cuando el veterinario la descarte.",
-      queSignifica: "Animales cuya última prueba (CAE, brucelosis, paratuberculosis, CMT, cultivo) salió positiva, sospechosa o sin resultado.",
+      queSignifica: "Animales cuya última prueba salió positiva, sospechosa o sin resultado: CAE (artritis-encefalitis caprina), brucelosis, paratuberculosis, CMT (prueba de mastitis) o cultivo de leche.",
       regla: `Rojo: positivo de CAE, brucelosis o paratuberculosis, o un sospechoso que no se repitió en ${DIAS_REPETIR_SOSPECHOSO} días. Ámbar: sospechoso reciente, positivo de CMT o cultivo de los últimos ${DIAS_PRUEBA_TRANSITORIA} días, o sin resultado.`,
       accion: { texto: "Ver Sanidad", href: "/sanidad" },
     },
@@ -776,10 +776,10 @@ export function senalCuarentena(filas: CuarentenaAlerta[], etiqueta: Etiqueta): 
       id: "cuarentena",
       area: "sanidad",
       titulo: "Cuarentena de animales nuevos",
-      queHacer: "Pasa a cuarentena a los que entraron sin pasar por ella, y mantén a los que están en cuarentena hasta que cumplan los 21 días.",
-      sigueAqui: "Si entró sin cuarentena, sale cuando lo pasas a cuarentena; si está en ella, cuando cumple los 21 días.",
+      queHacer: `Pasa a cuarentena a los que entraron sin pasar por ella, y mantén a los que están en cuarentena hasta que cumplan los ${CUARENTENA_MIN_DIAS} días.`,
+      sigueAqui: `Si entró sin cuarentena, sale cuando lo pasas a cuarentena; si está en ella, cuando cumple los ${CUARENTENA_MIN_DIAS} días.`,
       queSignifica: "Animales que llegaron de afuera y no pasaron por cuarentena, o que siguen en ella sin cumplir el mínimo.",
-      regla: "Rojo: el animal entró y no está en cuarentena. Ámbar: está en cuarentena y aún no cumple los 21 días mínimos.",
+      regla: `Rojo: el animal entró y no está en cuarentena. Ámbar: está en cuarentena y aún no cumple los ${CUARENTENA_MIN_DIAS} días mínimos.`,
       accion: { texto: "Ver Corrales", href: "/corrales" },
     },
     items,
@@ -883,7 +883,7 @@ export function senalMantenimiento(filas: MantenimientoOrdeno[], hoy: string): S
       titulo: "Mantenimiento de la sala de ordeño",
       queHacer: "Haz el lavado o la revisión que toca y regístralo, para que la próxima fecha se calcule.",
       queSignifica: "Lavados, revisión de presión y de pulsadores del equipo de ordeño que ya tocan o están por tocar.",
-      regla: "Ámbar: toca en los próximos 7 días. Rojo: ya está atrasada.",
+      regla: `Ámbar: toca en los próximos ${DIAS_AVISO_MANTENIMIENTO} días. Rojo: ya está atrasada.`,
       accion: { texto: "Ver el equipo en Leche", href: "/leche?vista=frio" },
     },
     items,

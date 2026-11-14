@@ -90,6 +90,8 @@ export const TONO_ESTADO: Record<EstadoRepro, "neutro" | "aviso" | "ok" | "musgo
 
 /** Cuántos días pasada la fecha prevista sin parto se marca como atrasada. */
 export const DIAS_PARTO_ATRASADO = 7;
+/** Faltan tantos días o menos para parir y sigue en ordeño: secarla ya es urgente (rojo). */
+export const DIAS_SECADO_URGENTE = 7;
 
 export type PlazoParto = { texto: string; tono: "ok" | "aviso" | "alerta" | "neutro" };
 

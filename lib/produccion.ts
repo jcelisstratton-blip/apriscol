@@ -14,6 +14,13 @@ export type Tendencia = {
 /** Una tendencia que merece atención: la producción de la hembra viene bajando. */
 export type TendenciaBaja = Tendencia & { nivel: "alerta" | "critico"; variacion: number };
 
+/**
+ * Cuánto tiene que bajar la producción de una hembra para avisar (últimos 3 días contra los 7 anteriores). **Espejo** de la función SQL `produccion_tendencia`
+ * (migración 20261012025223): una prueba compara estos números con el SQL para que no se separen.
+ */
+export const BAJA_ALERTA_PCT = 20;
+export const BAJA_CRITICA_PCT = 35;
+
 export const esBaja = (t: Tendencia): t is TendenciaBaja => (t.nivel === "alerta" || t.nivel === "critico") && t.variacion !== null;
 
 export const porcentajeBaja = (variacion: number) => Math.round(Math.abs(variacion) * 100);

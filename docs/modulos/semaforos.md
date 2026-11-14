@@ -28,7 +28,7 @@ Solo lo suyo, además de lo que permita su plan (Ceba pide el módulo Carne; Din
 | Leche | Cadena de frío (7 días) | hasta 2 °C fuera de 4–6 °C | más de 2 °C fuera |
 | Leche | Calidad del tanque (último análisis de 60 días) | células al 80 % del límite, crioscopia fría, grasa o proteína fuera de rango | residuos positivos, células sobre el límite, posible agua |
 | Leche | Mantenimiento de la sala de ordeño | toca en los próximos 7 días | atrasado | Cada caso abre «Registrar» con el tipo, el equipo y el responsable de la vez anterior y la próxima fecha con el mismo intervalo (`/leche/equipo/nuevo?de=<id>`).
-| Leche | Producción que baja | baja notable (`produccion_tendencia`) | baja fuerte |
+| Leche | Producción que baja | baja del 20 % o más (últimos 3 días contra los 7 anteriores, `produccion_tendencia`) | baja del 35 % o más |
 | Ceba | Pesaje atrasado | pasó el plazo de las reglas de ceba | el doble del plazo o nunca pesado |
 | Ceba | Ganancia de peso baja | menos del mínimo de Ajustes → Ceba | menos de la mitad |
 | Dinero | Compras por pagar | vence en los próximos 7 días | ya venció |
@@ -92,3 +92,5 @@ Una señal que depende de una tendencia, de un resultado nuevo o del paso del ti
 **Casos que ahora llevan a donde se resuelven:** cuarentena (sin cuarentena → formulario de mover con el animal elegido; en cuarentena → «déjalo hasta los 21 días»), frío (→ lectura nueva), calidad de la leche (acción «Registrar un análisis nuevo»), mortalidad de crías (→ Reproducción → Partos) y producción que baja (→ tarjeta Lactancia de la ficha).
 
 **Sin textos repetidos:** si varios casos de una señal traen exactamente el mismo «qué hacer», la hoja lo dice **una sola vez** arriba («En cada caso» o «En N de los M casos») y no en cada fila; el caso que difiere conserva el suyo. En «último tercio» el caso dice su parto previsto y, si faltan 7 días o menos, manda a preparar la maternidad en vez de «refuerza su alimentación».
+
+**Las reglas escritas para la persona dicen números, no adjetivos, y salen de las mismas constantes que la lógica.** «Baja notable» o «fuera de rango» no le sirven a un criador: cada regla dice cuánto («baja 20 % o más», «4 a 6 °C», «21 días»). Esos números viven en una sola constante (`FRIO_MIN`/`FRIO_MAX`/`FRIO_TOLERANCIA`, `CUARENTENA_MIN_DIAS`, `DIAS_AVISO_DOSIS`, `DIAS_AVISO_MANTENIMIENTO`, `DIAS_SECADO_URGENTE`, `DIAS_REPETIR_DX_DESDE`/`HASTA`, `RCS_AVISO_FRACCION`, `CRIOSCOPIA_MIN`/`MAX`, `BAJA_ALERTA_PCT`/`BAJA_CRITICA_PCT`) y el texto de `lib/semaforos.ts` los lee de ahí; `tests/semaforos.test.mjs` falla si el texto y la lógica se separan. Los porcentajes de la producción son además un **espejo de la función SQL** `produccion_tendencia`: la prueba lee la migración y exige que coincidan. Las siglas (HPG, CMT, CAE, crioscopia) se explican donde aparecen. Si cambias una regla, cambia su constante y el texto sale solo.
