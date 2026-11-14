@@ -23,7 +23,7 @@ export function origenDe(direccion: string): string | null {
   }
 }
 
-/** La política de contenido: solo lo propio, más lo que la app usa de verdad (Supabase para datos y fotos, `blob:`/`data:` para la vista previa de una foto). */
+/** La política de contenido: solo lo propio, más lo que la app usa de verdad (Supabase para datos y fotos, `blob:`/`data:` para la vista previa de una foto, YouTube en privacidad reforzada para los tutoriales). */
 export function politicaDeContenido(supabaseUrl: string): string {
   const supabase = origenDe(supabaseUrl);
   const ws = supabase ? supabase.replace(/^http/, "ws") : null;
@@ -36,6 +36,8 @@ export function politicaDeContenido(supabaseUrl: string): string {
     `img-src 'self' data: blob:${supabase ? ` ${supabase}` : ""}`,
     "font-src 'self' data:",
     `connect-src 'self'${supabase ? ` ${supabase}` : ""}${ws ? ` ${ws}` : ""}`,
+    // Los tutoriales en video (pantalla «Tutoriales») se incrustan de YouTube en modo de privacidad reforzada: solo ese origen puede ir dentro de un marco.
+    "frame-src https://www.youtube-nocookie.com",
     "manifest-src 'self'",
     "worker-src 'self'",
     "object-src 'none'",

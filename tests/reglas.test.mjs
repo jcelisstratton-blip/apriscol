@@ -104,6 +104,7 @@ test("cabeceras de seguridad: siempre las simples; la política solo en producci
   assert.match(csp.value, /img-src 'self' data: blob: https:\/\/abc\.supabase\.co/);
   assert.match(csp.value, /connect-src 'self' https:\/\/abc\.supabase\.co wss:\/\/abc\.supabase\.co/);
   assert.match(csp.value, /frame-ancestors 'none'/);
+  assert.match(csp.value, /frame-src https:\/\/www\.youtube-nocookie\.com(;|$)/, "los tutoriales se incrustan solo de YouTube en privacidad reforzada");
   assert.match(csp.value, /object-src 'none'/);
   assert.doesNotMatch(csp.value, /unsafe-eval/);
   assert.equal(origenDe("no es una dirección"), null);
