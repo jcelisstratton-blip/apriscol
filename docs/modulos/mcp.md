@@ -16,12 +16,12 @@ entra con su cuenta de Apriscol y toca **Permitir**. Por debajo:
 **Requisito en Supabase (una vez, en el panel):** Authentication → OAuth Server → activar, ruta de autorización `/oauth/consent`, y **permitir el registro dinámico de clientes** (sin eso Claude no puede registrarse). El servidor OAuth de Supabase está en beta.
 La pantalla Mi finca → Conexión con IA (`components/ConectarClaude.tsx`) muestra arriba **«Claude está conectado»** con la fecha del permiso y «Quitar permiso» (`listGrants` / `revokeGrant`: quitar un permiso cierra sus sesiones y anula la renovación); sin permiso, muestra los tres pasos y la dirección. «Conectar otro Claude» vuelve a mostrar los pasos.
 
-## Token personal (opción avanzada)
+## Código personal (reservado, sin pantalla)
 
-Para Claude Code y clientes sin OAuth, Mi finca → Conexión con IA → «Opciones avanzadas» (cerrado por defecto, una línea de explicación, sin repetir la introducción: `incrustada`) (`components/ConexionIa.tsx`): crea una conexión con un nombre; el código se **muestra una sola vez** (acción `crearConexionIa`, con RLS)
-junto con lo que hay que pegar en Claude Code, Claude Desktop (puente `mcp-remote`) y Cursor (`lib/mcp/conexion.ts`). La lista muestra solo las propias y **nunca trae la huella**; revocar corta el acceso al instante.
+Para una automatización (por ejemplo n8n) que no puede iniciar sesión en un navegador, `/api/mcp` también acepta un código personal `apr_…` (`tokens_ia`, solo la huella). **Hoy no hay pantalla para crearlo**: se quitó de la app porque el ganadero no lo necesita ni lo entiende, y las acciones que lo creaban se eliminaron.
+El camino de validación (`autenticarToken`) y la tabla quedan listos por si el equipo lo retoma; mientras no haya códigos activos, el camino no se usa. Si un día se vuelve a ofrecer, es una pantalla solo para propietarios y administradores con los ejemplos de configuración.
 
-## Detalle del token personal
+## Detalle del código personal (reservado)
 
 - **Token personal** (`apr_` + 43 caracteres, 256 bits al azar), creado por la persona en Mi finca → Conexión con IA y mostrado **una sola vez**. En la base solo vive su
   **huella SHA-256** (`tokens_ia.huella`): ni una filtración de la base ni un administrador pueden recuperarlo. Cada token es de **una persona en una finca**
