@@ -39,7 +39,18 @@ export function Copiable({ titulo, texto, mono = true }: { titulo: string; texto
  * Conexión con IA: crear una conexión (el código se muestra una sola vez, con lo que hay que pegar en cada asistente) y ver o revocar las propias.
  * El asistente solo lee, y ve lo mismo que la persona vería en la app con su rol.
  */
-export function ConexionIa({ finca, conexiones }: { finca: string; conexiones: Conexion[] }) {
+/** Dentro de «Opciones avanzadas» no se repite la introducción ni se anidan tarjetas: `incrustada` deja solo lo necesario. */
+function Caja({ incrustada, titulo, children }: { incrustada: boolean; titulo?: string; children: React.ReactNode }) {
+  if (!incrustada) return <Tarjeta titulo={titulo}>{children}</Tarjeta>;
+  return (
+    <div className="space-y-3">
+      {titulo ? <h3 className="text-sm font-bold">{titulo}</h3> : null}
+      {children}
+    </div>
+  );
+}
+
+export function ConexionIa({ finca, conexiones, incrustada = false }: { finca: string; conexiones: Conexion[]; incrustada?: boolean }) {
   const toast = useToast();
   const [creando, setCreando] = useState(false);
   const [nombre, setNombre] = useState(NOMBRE_SUGERIDO);
@@ -63,17 +74,21 @@ export function ConexionIa({ finca, conexiones }: { finca: string; conexiones: C
       const r = await revocarConexionIa(id);
       if (!r.ok) return setError(r.error);
       setRevocando(null);
-      toast.exito("Conexión revocada");
+      toast.exito("Código revocado");
     });
 
   return (
     <div className="space-y-4">
-      <Tarjeta>
+      <Caja incrustada={incrustada}>
         <div className="space-y-3">
-          <p className="text-[0.9375rem]">
-            Conecta tu asistente de IA (por ejemplo Claude) para preguntarle por <strong className="[overflow-wrap:anywhere]">{finca}</strong>: qué hay que atender hoy, cómo va la leche, buscar un animal.
-          </p>
-          <p className="text-sm text-humo">Solo puede leer: no registra ni cambia nada. Ve únicamente lo que tú ves en la app con tu rol, y la puedes revocar cuando quieras.</p>
+          {incrustada ? null : (
+            <>
+              <p className="text-[0.9375rem]">
+                Conecta tu asistente de IA (por ejemplo Claude) para preguntarle por <strong className="[overflow-wrap:anywhere]">{finca}</strong>: qué hay que atender hoy, cómo va la leche, buscar un animal.
+              </p>
+              <p className="text-sm text-humo">Solo puede leer: no registra ni cambia nada. Ve únicamente lo que tú ves en la app con tu rol, y la puedes revocar cuando quieras.</p>
+            </>
+          )}
 
           {nueva ? null : creando ? (
             <div className="space-y-3">
@@ -87,16 +102,16 @@ export function ConexionIa({ finca, conexiones }: { finca: string; conexiones: C
             </div>
           ) : (
             <Boton onClick={() => { setError(null); setCreando(true); }}>
-              <Plug className="size-5" strokeWidth={2} aria-hidden="true" /> Crear conexión
+              <Plug className="size-5" strokeWidth={2} aria-hidden="true" /> Crear código personal
             </Boton>
           )}
         </div>
-      </Tarjeta>
+      </Caja>
 
       {error ? <Aviso tipo="error">{error}</Aviso> : null}
 
       {nueva ? (
-        <Tarjeta titulo={`Conexión «${nueva.nombre}» creada`}>
+        <Caja incrustada={incrustada} titulo={`Código «${nueva.nombre}» creado`}>
           <div className="space-y-4">
             <Aviso tipo="atencion">Copia el código ahora: por seguridad no se vuelve a mostrar. Si lo pierdes, revoca esta conexión y crea otra.</Aviso>
             <Copiable titulo="Tu código" texto={nueva.token} />
@@ -124,11 +139,11 @@ export function ConexionIa({ finca, conexiones }: { finca: string; conexiones: C
               <Check className="size-5" strokeWidth={2} aria-hidden="true" /> Listo, ya lo copié
             </Boton>
           </div>
-        </Tarjeta>
+        </Caja>
       ) : null}
 
       {conexiones.length > 0 ? (
-        <Tarjeta titulo="Tus conexiones">
+        <Caja incrustada={incrustada} titulo="Tus códigos personales">
           <ul className="divide-y divide-arena">
             {conexiones.map((c) => (
               <li key={c.id} className="space-y-2 py-3 first:pt-0 last:pb-0">
@@ -141,7 +156,7 @@ export function ConexionIa({ finca, conexiones }: { finca: string; conexiones: C
                 </div>
                 {revocando === c.id ? (
                   <div className="space-y-3 rounded-2xl bg-lana p-3.5">
-                    <p className="text-[0.9375rem]">Tu asistente dejará de ver tu finca con esta conexión. Puedes crear otra cuando quieras.</p>
+                    <p className="text-[0.9375rem]">Quien use este código dejará de ver tu finca. Puedes crear otro cuando quieras.</p>
                     <div className="grid grid-cols-2 gap-2">
                       <Boton variante="secundario" onClick={() => setRevocando(null)} disabled={pendiente}>Cancelar</Boton>
                       <Boton variante="peligro" onClick={() => revocar(c.id)} pendiente={pendiente} cargando="Revocando…">Revocar</Boton>
@@ -153,7 +168,7 @@ export function ConexionIa({ finca, conexiones }: { finca: string; conexiones: C
               </li>
             ))}
           </ul>
-        </Tarjeta>
+        </Caja>
       ) : null}
     </div>
   );

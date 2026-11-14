@@ -14,11 +14,11 @@ entra con su cuenta de Apriscol y toca **Permitir**. Por debajo:
 4. Claude recibe un JWT de Supabase (con `client_id`) y lo manda en cada consulta. `/api/mcp` lo valida con `getClaims` (llaves públicas), **exige `client_id`** (una sesión normal de la web no sirve) y consulta con ese mismo JWT: la persona, su rol y la RLS de siempre, **sin llave de servicio**. La finca es la **activa** de la persona en la app.
 
 **Requisito en Supabase (una vez, en el panel):** Authentication → OAuth Server → activar, ruta de autorización `/oauth/consent`, y **permitir el registro dinámico de clientes** (sin eso Claude no puede registrarse). El servidor OAuth de Supabase está en beta.
-La persona ve y quita los permisos dados en Mi finca → Conexión con IA (`listGrants` / `revokeGrant`: quitar un permiso cierra sus sesiones y anula la renovación).
+La pantalla Mi finca → Conexión con IA (`components/ConectarClaude.tsx`) muestra arriba **«Claude está conectado»** con la fecha del permiso y «Quitar permiso» (`listGrants` / `revokeGrant`: quitar un permiso cierra sus sesiones y anula la renovación); sin permiso, muestra los tres pasos y la dirección. «Conectar otro Claude» vuelve a mostrar los pasos.
 
 ## Token personal (opción avanzada)
 
-Para Claude Code y clientes sin OAuth, Mi finca → Conexión con IA → «Opciones avanzadas» (`components/ConexionIa.tsx`): crea una conexión con un nombre; el código se **muestra una sola vez** (acción `crearConexionIa`, con RLS)
+Para Claude Code y clientes sin OAuth, Mi finca → Conexión con IA → «Opciones avanzadas» (cerrado por defecto, una línea de explicación, sin repetir la introducción: `incrustada`) (`components/ConexionIa.tsx`): crea una conexión con un nombre; el código se **muestra una sola vez** (acción `crearConexionIa`, con RLS)
 junto con lo que hay que pegar en Claude Code, Claude Desktop (puente `mcp-remote`) y Cursor (`lib/mcp/conexion.ts`). La lista muestra solo las propias y **nunca trae la huella**; revocar corta el acceso al instante.
 
 ## Detalle del token personal

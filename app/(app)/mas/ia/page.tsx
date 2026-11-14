@@ -39,9 +39,11 @@ export default async function PaginaIa() {
           apps={(grants.data ?? []).map((g) => ({ clientId: g.client.id, nombre: g.client.name || "Asistente de IA", desde: fechaHoraBogota(g.granted_at) }))}
         />
         <details className="rounded-3xl bg-papel ring-1 ring-arena">
-          <summary className="min-h-12 cursor-pointer list-none px-4 py-3.5 text-[0.9375rem] font-semibold">Opciones avanzadas: código personal (Claude Code y otros)</summary>
-          <div className="px-4 pb-4">
+          <summary className="min-h-12 cursor-pointer list-none px-4 py-3.5 text-[0.9375rem] font-semibold">Opciones avanzadas</summary>
+          <div className="space-y-3 px-4 pb-4">
+            <p className="text-sm text-humo">Solo si usas Claude Code u otra herramienta que no deja iniciar sesión: ahí se pega un código personal en lugar de entrar con tu cuenta.</p>
             <ConexionIa
+              incrustada
               finca={finca.nombre}
               conexiones={(data ?? []).map((c) => ({ id: c.id, nombre: c.nombre, prefijo: c.prefijo, creada: fechaHoraBogota(c.creado_en), ultimoUso: c.ultimo_uso ? fechaHoraBogota(c.ultimo_uso) : null }))}
             />
