@@ -53,5 +53,5 @@ cuenta como visto cuando la persona lo abre o cuando se carga su reproductor (as
 
 ## Pendiente
 
-- Poner el enlace de YouTube de cada tutorial a medida que se sube (del 8 al 26 están en `null`): con eso se activan solos su tarjeta, su «Siguiente» y su botón en la ayuda del módulo.
+- Poner el enlace de YouTube de cada tutorial a medida que se sube (del 9 al 26 están en `null`): con eso se activan solos su tarjeta, su «Siguiente» y su botón en la ayuda del módulo.
 - Las ayudas de reportes comparten el tutorial 20 (Reportes y proyecciones); si se publica un video por área, se separan.
