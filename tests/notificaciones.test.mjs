@@ -4,7 +4,7 @@ import { escaparHtml, interpretarComando, leerEvento, secretoValido, enviarTeleg
 import { validarParametros, horaCorta } from "../lib/notificaciones/parametros.ts";
 import { createHmac } from "node:crypto";
 import { verificarInitData, rutaDeDestino, rutaInternaSegura, DESTINOS_CLAVE, MAX_EDAD_FIRMA_SEG } from "../lib/notificaciones/miniapp.ts";
-import { armarDetalleArea, armarResumen, datosArea, datosResumen, leerAccion } from "../lib/notificaciones/mensajes.ts";
+import { armarDetalleArea, armarResumen, datosArea, datosResumen, leerAccion, lapso } from "../lib/notificaciones/mensajes.ts";
 
 test("Telegram: comandos, secreto y eventos", () => {
   assert.deepEqual(interpretarComando("/start AB12CD34"), { comando: "start", argumento: "AB12CD34" });
@@ -115,7 +115,7 @@ test("resumen automático: corto, con los totales arriba, lo más urgente (una l
   assert.match(r.texto, /🔴 <b>7<\/b> vencidos o urgentes {3}🟠 <b>5<\/b> pendientes/);
   assert.match(r.texto, /<b>Lo más urgente<\/b>/);
   // Una sola línea por tarea, con el número de casos vencidos; las fechadas dicen cuál lleva más atraso.
-  assert.match(r.texto, /🔴 <b>4<\/b> · Dosis y programas por aplicar <i>\(la más atrasada: hace 324 días\)<\/i>/);
+  assert.match(r.texto, /🔴 <b>4<\/b> · Dosis y programas por aplicar <i>\(la más atrasada: hace 11 meses\)<\/i>/);
   assert.match(r.texto, /🔴 <b>2<\/b> · Cargas de parásitos altas \(coprológico\)/);
   assert.equal((r.texto.match(/Anemia por parásitos/g) ?? []).length, 1);
   // El resumen no lista nombres: eso se ve al tocar el área.
@@ -132,6 +132,22 @@ test("resumen automático: corto, con los totales arriba, lo más urgente (una l
   assert.equal(urgente.ambar, 0);
   assert.doesNotMatch(urgente.texto, /🟠/);
   assert.ok(!JSON.stringify(urgente.botones).includes("leche"));
+});
+
+test("el atraso se dice como lo diría una persona (días, meses o años) y solo si pasa de una semana", () => {
+  assert.deepEqual([1, 13, 59].map(lapso), ["1 día", "13 días", "59 días"]);
+  assert.deepEqual([60, 324, 364].map(lapso), ["2 meses", "11 meses", "12 meses"]);
+  assert.deepEqual([365, 800].map(lapso), ["más de 1 año", "más de 2 años"]);
+  // Menos de una semana: ya dice «vencidas», así que no se repite el atraso y se muestran los nombres.
+  const corto = [senal("dosis", "sanidad", "Dosis y programas por aplicar", [dosisItem("a", "rojo", 5), dosisItem("b", "rojo", 2)])];
+  const resumen = armarResumen({ ...BASE, senales: corto, nivelMinimo: "ambar" });
+  assert.doesNotMatch(resumen.texto, /la más atrasada/);
+  const detalle = armarDetalleArea({ ...BASE, area: "sanidad", senales: corto, nivelMinimo: "ambar" });
+  assert.doesNotMatch(detalle.texto, /la más atrasada/);
+  assert.match(detalle.texto, /Producto a, Producto b/);
+  // Desde una semana sí se dice.
+  const largo = [senal("dosis", "sanidad", "Dosis y programas por aplicar", [dosisItem("a", "rojo", 13), dosisItem("b", "rojo", 2)])];
+  assert.match(armarResumen({ ...BASE, senales: largo, nivelMinimo: "ambar" }).texto, /la más atrasada: hace 13 días/);
 });
 
 test("resumen automático: sin casos todo está en orden; sin https no hay enlaces pero sí botones de área; muchísimas tareas se recortan", () => {
@@ -160,7 +176,7 @@ test("detalle de un área: tareas con sus vencidos y pendientes, nombres como te
   assert.match(r.texto, /Chispa, Milagros/);
   assert.doesNotMatch(r.texto, /<a |https?:\/\//); // ningún enlace en el texto: Telegram no muestra su aviso de dirección
   assert.doesNotMatch(r.texto, /MIR-C0046|LECHE/);
-  assert.match(r.texto, /🔴 <b>4<\/b> vencidas · <i>la más atrasada: hace 324 días<\/i>/);
+  assert.match(r.texto, /🔴 <b>4<\/b> vencidas · <i>la más atrasada: hace 11 meses<\/i>/);
   assert.match(r.texto, /🟠 <b>2<\/b> pendientes · /);
   // Un botón por cada tarea listada, en el mismo orden del texto (con cuántos casos tiene), a SU lista en Semáforos con solo esa área; y al final «Ver toda el área» y volver.
   const app = (ruta) => `https://apriscol.shop/telegram/entrar?f=${FINCA}&d=${encodeURIComponent(ruta)}`;

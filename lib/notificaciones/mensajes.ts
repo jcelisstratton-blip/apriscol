@@ -62,7 +62,18 @@ const nombreCorto = (etiqueta: string) => etiqueta.split(" · ")[0];
 const recortar = (t: string, max: number) => (t.length > max ? `${t.slice(0, max - 1)}…` : t);
 /** Cuántas tareas llevan su propio botón en el detalle de un área (el resto se ve con «Ver toda el área»). */
 const MAX_BOTONES_TAREA = 8;
-const dias = (n: number) => `${n} ${n === 1 ? "día" : "días"}`;
+/**
+ * Cuánto lleva algo de atraso, dicho como lo diría una persona: en días hasta cerca de dos meses, luego en meses y después en años («11 meses», «más de 1 año»).
+ * Un «hace 326 días» se lee como un error aunque sea cierto.
+ */
+export function lapso(n: number): string {
+  if (n < 60) return `${n} ${n === 1 ? "día" : "días"}`;
+  if (n < 365) return `${Math.round(n / 30)} meses`;
+  const anios = Math.floor(n / 365);
+  return anios === 1 ? "más de 1 año" : `más de ${anios} años`;
+}
+/** Desde cuántos días de atraso vale la pena decirlo: con menos, ya dice «vencida» y repetirlo solo ensucia el mensaje. */
+const ATRASO_VISIBLE = 7;
 const esHttps = (urlBase?: string) => Boolean(urlBase?.startsWith("https://"));
 
 /**
@@ -129,7 +140,7 @@ export function armarResumen(e: EntradaResumen): Resumen {
   const lineas = urgentes.slice(0, MAX_URGENTES).map((t) => {
     const items = rojos > 0 ? t.rojos : t.ambar;
     const atraso = rojos > 0 ? masAtrasado(items) : null;
-    return `${rojos > 0 ? "🔴" : "🟠"} <b>${items.length}</b> · ${escaparHtml(t.titulo)}${atraso !== null && items.length > 1 ? ` <i>(la más atrasada: hace ${dias(atraso)})</i>` : ""}`;
+    return `${rojos > 0 ? "🔴" : "🟠"} <b>${items.length}</b> · ${escaparHtml(t.titulo)}${atraso !== null && items.length > 1 && atraso >= ATRASO_VISIBLE ? ` <i>(la más atrasada: hace ${lapso(atraso)})</i>` : ""}`;
   });
   const mas = urgentes.length - lineas.length;
   const titulo = rojos > 0 ? "Lo más urgente" : "Lo pendiente";
@@ -165,7 +176,7 @@ export function armarDetalleArea(e: EntradaResumen & { area: AreaSemaforo }): Re
   };
   const linea = (emoji: string, items: ItemSenal[], sufijo: string) => {
     const atraso = emoji === "🔴" ? masAtrasado(items) : null;
-    const cola = atraso !== null && items.length > 1 ? `<i>la más atrasada: hace ${dias(atraso)}</i>` : nombres(items);
+    const cola = atraso !== null && items.length > 1 && atraso >= ATRASO_VISIBLE ? `<i>la más atrasada: hace ${lapso(atraso)}</i>` : nombres(items);
     // Un solo caso: se dice por qué está ahí y qué hacer, para que se sepa antes de abrir la app. Con varios, el detalle de cada uno está en su lista.
     const uno = items.length === 1 ? items[0] : null;
     const explica = uno ? `\n   ${escaparHtml(uno.detalle)}.${uno.queHacer ? ` <b>Qué hacer:</b> ${escaparHtml(uno.queHacer)}` : ""}` : "";
