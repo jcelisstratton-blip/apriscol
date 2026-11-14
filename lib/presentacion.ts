@@ -28,6 +28,7 @@ export const OMITIDAS: Record<string, string> = {
   "/mas/finca": "Datos básicos de la finca: no convence a nadie de registrarse.",
   "/mas/plan": "Los planes tienen su propia sección.",
   "/mas/tutoriales": "Es ayuda para quien ya tiene cuenta (videos paso a paso): no es una función que convenza de registrarse.",
+  "/mas/ia": "Es una conexión técnica que cada persona crea para su asistente: se presentará cuando se pueda conectar desde Claude.ai sin pasos técnicos.",
   "/mas/telegram": "Los avisos por Telegram están en piloto: se presentan en la página cuando el equipo los active para todas las fincas.",
 };
 
