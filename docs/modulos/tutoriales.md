@@ -40,9 +40,10 @@ otra cosa se ignora, y al cerrar la hoja el `?ver=` se quita de la dirección):
 2. **Aviso en Hoy** (`components/AvisoTutoriales.tsx`): «Nuevo · Aprende Apriscol en video» con el siguiente tutorial que la persona no ha visto (`proximoSinVer`), un botón «Ver ahora» y «Ver todos». Hoy lo
    muestra a las fincas durante su primer mes (`DIAS_AVISO_FINCA_NUEVA`) y, por ser algo nuevo, a **todas** hasta `ANUNCIO_TUTORIALES_HASTA` (`avisoTutorialesVisible`); pasada esa fecha, solo a las nuevas.
    Se puede ocultar (queda en el navegador, por finca) y desaparece solo cuando la persona vio todos los disponibles. En el celular es compacto (un ícono de play); desde `sm` lleva la miniatura.
-3. **«¿Cómo funciona?» de cada módulo** (`AyudaModulo`): cada ayuda de `lib/ayuda.ts` lleva `tutorial: N` y, **si ese video ya está publicado**, la hoja agrega la tarjeta «Míralo en video» con su miniatura.
-   Si todavía no está publicado no se muestra nada: al ponerle su enlace en `lib/tutoriales.ts`, la ayuda lo ofrece sola. Ordeño → 5, Ceba → 14, Empadre → 18, Corrales → 13, Sanidad → 12,
-   Inventario y Alimento → 15, Cargar desde Excel → 7, Compras y Ventas → 9, Costos → 10, Proyecciones y Reportes → 20, Personal → 21.
+3. **«¿Cómo funciona?» de cada módulo** (`AyudaModulo`): cada ayuda de `lib/ayuda.ts` lleva `tutorial: N` y la hoja **siempre** muestra la tarjeta de ese tutorial, para que se sepa que existe.
+   Si su video ya está publicado, la tarjeta dice «Míralo en video» y abre el video; si todavía no, se ve apagada con «Tutorial en video · Próximamente» y no se abre. Al ponerle su enlace en
+   `lib/tutoriales.ts` se activa sola. Ordeño → 5, Ceba → 14, Empadre → 18, Corrales → 13, Sanidad → 12, Inventario y Alimento → 15, Cargar desde Excel → 7, Compras y Ventas → 9, Costos → 10,
+   Proyecciones y Reportes → 20, Personal → 21.
 
 Una ayuda nueva se escribe **con** su `tutorial` (una prueba exige que toda `AYUDA_*` apunte a un tutorial que exista).
 
@@ -53,5 +54,5 @@ cuenta como visto cuando la persona lo abre o cuando se carga su reproductor (as
 
 ## Pendiente
 
-- Poner el enlace de YouTube de cada tutorial a medida que se sube (del 9 al 26 están en `null`): con eso se activan solos su tarjeta, su «Siguiente» y su botón en la ayuda del módulo.
+- Poner el enlace de YouTube de cada tutorial a medida que se sube (del 9 al 26 están en `null`): con eso se activan solos su tarjeta, su «Siguiente» y su tarjeta en la ayuda del módulo (que hasta entonces dice «Próximamente»).
 - Las ayudas de reportes comparten el tutorial 20 (Reportes y proyecciones); si se publica un video por área, se separan.
