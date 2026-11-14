@@ -14,7 +14,7 @@ entra con su cuenta de Apriscol y toca **Permitir**. Por debajo:
 4. Claude recibe un JWT de Supabase (con `client_id`) y lo manda en cada consulta. `/api/mcp` lo valida con `getClaims` (llaves públicas), **exige `client_id`** (una sesión normal de la web no sirve) y consulta con ese mismo JWT: la persona, su rol y la RLS de siempre, **sin llave de servicio**. La finca es la **activa** de la persona en la app.
 
 **Requisito en Supabase (una vez, en el panel):** Authentication → OAuth Server → activar, ruta de autorización `/oauth/consent`, y **permitir el registro dinámico de clientes** (sin eso Claude no puede registrarse). El servidor OAuth de Supabase está en beta.
-La pantalla Mi finca → Conexión con IA (`components/ConectarClaude.tsx`) muestra arriba **«Claude está conectado»** con la fecha del permiso y «Quitar permiso» (`listGrants` / `revokeGrant`: quitar un permiso cierra sus sesiones y anula la renovación); sin permiso, muestra los tres pasos y la dirección. «Conectar otro Claude» vuelve a mostrar los pasos.
+La pantalla Mi finca → Conexión con IA (`components/ConectarClaude.tsx`) muestra arriba **«Claude está conectado»** con la fecha del permiso y «Quitar permiso» (`listGrants` / `revokeGrant`: quitar un permiso cierra sus sesiones y anula la renovación); sin permiso, muestra los cinco pasos (Configuración → Conectores → + Agregar → pestaña **Tuyos** → Conectar → Permitir; avisa que «Descubrir» no es el lugar) y la dirección. «Conectar otro Claude» vuelve a mostrar los pasos.
 
 ## Código personal (reservado, sin pantalla)
 

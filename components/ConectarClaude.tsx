@@ -33,12 +33,22 @@ function Copiable({ titulo, texto }: { titulo: string; texto: string }) {
 }
 
 const PASOS = [
-  <>En Claude ve a <strong>Configuración → Conectores</strong> y toca <strong>Agregar conector personalizado</strong>.</>,
-  <>Ponle de nombre <strong>Apriscol</strong> y pega la dirección de abajo.</>,
-  <>Toca <strong>Conectar</strong>, entra con tu cuenta de Apriscol y toca <strong>Permitir</strong>. Listo.</>,
+  <>En Claude abre <strong>Configuración → Conectores</strong>.</>,
+  <>
+    Toca <strong>+ Agregar</strong> (arriba a la derecha) y elige <strong>Agregar conector personalizado</strong>. <span className="text-humo">No uses la pestaña «Descubrir»: ahí solo hay conectores de otras empresas.</span>
+  </>,
+  <>
+    Ponle de nombre <strong>Apriscol</strong>, pega la dirección de abajo y confirma.
+  </>,
+  <>
+    Ve a la pestaña <strong>Tuyos</strong>, busca <strong>Apriscol</strong> y toca <strong>Conectar</strong>. <span className="text-humo">Si Claude pregunta «¿Terminar de conectar un conector?», toca «Continuar conectando».</span>
+  </>,
+  <>
+    Se abre el navegador: entra con tu cuenta de Apriscol y toca <strong>Permitir</strong>. Vuelve a Claude: debe decir <strong>Conectado</strong>.
+  </>,
 ];
 
-/** Los tres pasos y la dirección: lo que se hace una sola vez, en Claude. */
+/** Los pasos y la dirección: lo que se hace una sola vez, en Claude. */
 function Pasos({ url }: { url: string }) {
   return (
     <div className="space-y-4">
