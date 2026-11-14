@@ -1,7 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
-import { GRUPOS_TUTORIAL, TUTORIALES, anteriorDisponible, buscarTutoriales, disponible, miniatura, siguienteDisponible, urlIncrustada, urlYoutube, vistosDesde } from "../lib/tutoriales.ts";
+import { ANUNCIO_TUTORIALES_HASTA, DIAS_AVISO_FINCA_NUEVA, GRUPOS_TUTORIAL, TUTORIALES, anteriorDisponible, avisoTutorialesVisible, buscarTutoriales, disponible, miniatura, numeroDeEnlace, proximoSinVer, rutaTutorial, siguienteDisponible, urlIncrustada, urlYoutube, vistosDesde } from "../lib/tutoriales.ts";
+import * as ayudas from "../lib/ayuda.ts";
 import { sinTildes } from "../lib/texto.ts";
 
 test("tutoriales: están todos (del 0 al 26), con su grupo, su duración y su miniatura", () => {
@@ -68,4 +69,43 @@ test("tutoriales: la pantalla está en el menú de «Mi finca» y la política d
   const seguridad = readFileSync(new URL("../lib/cabeceras-seguridad.ts", import.meta.url), "utf8");
   assert.match(seguridad, /"frame-src https:\/\/www\.youtube-nocookie\.com"/);
   assert.doesNotMatch(seguridad, /frame-src[^"]*youtube\.com[^-]/);
+});
+
+test("tutoriales: el enlace «?ver=N» solo abre un tutorial que existe", () => {
+  assert.equal(rutaTutorial(5), "/mas/tutoriales?ver=5");
+  assert.equal(numeroDeEnlace("5"), 5);
+  assert.equal(numeroDeEnlace("0"), 0);
+  assert.equal(numeroDeEnlace("26"), 26);
+  assert.equal(numeroDeEnlace(["3", "4"]), 3);
+  for (const malo of [undefined, "", "27", "99", "-1", "5.5", "abc", "5;6", "<script>", "1e1", "000"]) assert.equal(numeroDeEnlace(malo), null, `«${malo}»`);
+});
+
+test("tutoriales: Hoy los ofrece a las fincas nuevas y, por ser algo nuevo, a todas hasta el día del anuncio", () => {
+  assert.equal(avisoTutorialesVisible(0, "2027-06-01"), true);
+  assert.equal(avisoTutorialesVisible(DIAS_AVISO_FINCA_NUEVA, "2027-06-01"), true);
+  assert.equal(avisoTutorialesVisible(DIAS_AVISO_FINCA_NUEVA + 1, "2027-06-01"), false);
+  assert.equal(avisoTutorialesVisible(400, ANUNCIO_TUTORIALES_HASTA), true);
+  assert.equal(avisoTutorialesVisible(400, "2026-12-21"), false);
+});
+
+test("tutoriales: el siguiente por ver es el primero disponible que la persona no ha visto", () => {
+  const disponibles = TUTORIALES.filter(disponible).map((t) => t.numero);
+  assert.equal(proximoSinVer(new Set()).numero, disponibles[0]);
+  assert.equal(proximoSinVer(new Set([disponibles[0], disponibles[1]])).numero, disponibles[2]);
+  assert.equal(proximoSinVer(new Set(disponibles)), null);
+  // Lo que no se puede ver todavía nunca es «el siguiente».
+  assert.equal(proximoSinVer(new Set(disponibles.slice(1))).numero, disponibles[0]);
+});
+
+test("ayudas «¿Cómo funciona?»: cada módulo apunta a un tutorial que existe, y al publicarse el video la ayuda lo ofrece sola", () => {
+  const todas = Object.entries(ayudas).filter(([nombre]) => nombre.startsWith("AYUDA_")).map(([nombre, a]) => [nombre, a]);
+  todas.push(["ayudaSanidad", ayudas.ayudaSanidad({ podologia_inspeccion_dias: 90, pediluvio_dias: 14, pediluvio_dias_lluvia: 7 })]);
+  assert.ok(todas.length >= 13);
+  for (const [nombre, a] of todas) {
+    assert.ok(Number.isInteger(a.tutorial), `${nombre} no apunta a un tutorial`);
+    assert.ok(TUTORIALES.some((t) => t.numero === a.tutorial), `${nombre}: el tutorial ${a.tutorial} no existe`);
+  }
+  assert.equal(ayudas.AYUDA_ORDENO.tutorial, 5);
+  assert.equal(ayudas.AYUDA_CEBA.tutorial, 14);
+  assert.equal(ayudas.AYUDA_CORRALES.tutorial, 13);
 });

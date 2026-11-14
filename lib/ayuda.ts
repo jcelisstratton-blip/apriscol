@@ -5,7 +5,13 @@ import { textoPlazo, type AjustesFinca } from "@/lib/ajustes";
 
 /** Una idea de la hoja «¿Cómo funciona?»: un título corto y una sola frase. */
 export type PuntoAyuda = { titulo: string; texto: string };
-export type Ayuda = { titulo: string; puntos: PuntoAyuda[]; enlace: { href: string; texto: string } };
+export type Ayuda = {
+  titulo: string;
+  puntos: PuntoAyuda[];
+  enlace: { href: string; texto: string };
+  /** El número del tutorial en video de este módulo (`lib/tutoriales.ts`): la hoja ofrece «Míralo en video» cuando ese video ya está disponible. */
+  tutorial?: number;
+};
 
 const meses = (dias: number) => Math.round(dias / 30);
 
@@ -15,6 +21,7 @@ const meses = (dias: number) => Math.round(dias / 30);
  */
 export const AYUDA_CORRALES: Ayuda = {
   titulo: "Corrales y potreros",
+  tutorial: 13,
   puntos: [
     { titulo: "Instalaciones", texto: "Crea tus corrales y potreros y dile a la app cuántos animales caben en cada uno." },
     { titulo: "Cupo", texto: "Si un corral está lleno, la app no deja meter más animales: así se evita el hacinamiento, que causa estrés, peleas y enfermedades." },
@@ -32,6 +39,7 @@ export const AYUDA_CORRALES: Ayuda = {
 /** Cargar animales desde Excel: el tope sale de la misma constante que usa la validación. */
 export const AYUDA_IMPORTAR: Ayuda = {
   titulo: "Cargar animales desde Excel",
+  tutorial: 7,
   puntos: [
     { titulo: "Tu propio archivo", texto: `Sube el Excel que ya tienes, con las columnas que tenga (hasta ${MAX_FILAS_IMPORTAR.toLocaleString("es-CO")} animales por archivo; se guardan de 500 en 500). La app propone a qué dato corresponde cada columna y tú lo confirmas o lo cambias. Si prefieres empezar de cero, descarga la plantilla.` },
     { titulo: "Lo único indispensable", texto: "El número de arete: es lo que identifica a cada animal. El sexo, la especie y lo demás se revisan fila por fila y la app te dice qué corregir." },
@@ -49,6 +57,7 @@ export const AYUDA_IMPORTAR: Ayuda = {
 /** La ayuda de Sanidad: los tiempos de pezuñas y pediluvio son los que definió el propietario en los ajustes de la finca. */
 export const ayudaSanidad = (a: Pick<AjustesFinca, "podologia_inspeccion_dias" | "pediluvio_dias" | "pediluvio_dias_lluvia">): Ayuda => ({
   titulo: "Sanidad del hato",
+  tutorial: 12,
   puntos: [
     { titulo: "Registrar o programar", texto: "Registra una aplicación cuando ya la hiciste o la vas a hacer ahora (un tratamiento del día, una urgencia). Prográmala cuando sea para otro día o para varios animales: cuando llegue, tocas «Aplicar» y queda en el historial de cada uno. No hace falta programar antes de registrar." },
     { titulo: "Próxima dosis", texto: "Si al registrar una aplicación pones una «próxima fecha», ese animal queda con su refuerzo pendiente. Para planear con antelación a varios animales a la vez, usa «Programar una aplicación»." },
@@ -71,6 +80,7 @@ export const ayudaSanidad = (a: Pick<AjustesFinca, "podologia_inspeccion_dias" |
 
 export const AYUDA_EMPADRONAMIENTO: Ayuda = {
   titulo: "Temporada de monta",
+  tutorial: 18,
   puntos: [
     { titulo: "Temporada", texto: "El empadre (también llamado empadronamiento, monta controlada o temporada de servicio) reúne a los sementales y a las hembras que se montan en un periodo, con su inicio y su cierre previsto." },
     { titulo: "Sementales", texto: "Cada semental tiene su número de hembras. Pueden ser tuyos o prestados de otro hato." },
@@ -83,6 +93,7 @@ export const AYUDA_EMPADRONAMIENTO: Ayuda = {
 
 export const AYUDA_CEBA: Ayuda = {
   titulo: "Ceba",
+  tutorial: 14,
   puntos: [
     { titulo: "Candidatos", texto: "La app te sugiere a quién pasar a ceba según las reglas de tu finca; tú decides." },
     { titulo: "Lotes", texto: "Agrupa los animales en engorde en lotes, cada uno con su meta de peso." },
@@ -94,6 +105,7 @@ export const AYUDA_CEBA: Ayuda = {
 
 export const AYUDA_ORDENO: Ayuda = {
   titulo: "Ordeño",
+  tutorial: 5,
   puntos: [
     { titulo: "Registrar", texto: "Anota los litros de cada animal en cada jornada; el total del día se suma solo." },
     { titulo: "Turnos", texto: "Programa qué hembras se ordeñan y en qué turno, para que el registro salga rápido." },
@@ -105,6 +117,7 @@ export const AYUDA_ORDENO: Ayuda = {
 
 export const AYUDA_GASTOS: Ayuda = {
   titulo: "Compras del aprisco",
+  tutorial: 9,
   puntos: [
     { titulo: "Elegir, no escribir", texto: "Escoges qué compraste de la lista de productos de tu finca y a quién; solo escribes la cantidad. El precio de la última vez ya viene puesto." },
     { titulo: "A quién se carga", texto: "A toda la finca, a una especie, a un corral, a un lote o a un animal. Así sabes cuánto cuesta cada animal y cada litro." },
@@ -117,6 +130,7 @@ export const AYUDA_GASTOS: Ayuda = {
 
 export const AYUDA_VENTAS: Ayuda = {
   titulo: "Ventas del aprisco",
+  tutorial: 9,
   puntos: [
     { titulo: "Lo que entra solo", texto: "La leche que despachas con precio y los animales que vendes o sacrificas aparecen aquí sin escribirlos de nuevo." },
     { titulo: "Lo que registras tú", texto: "Carne, queso, abono, lana y demás: eliges el producto y el comprador, escribes la cantidad y el precio de la última vez ya viene puesto." },
@@ -128,6 +142,7 @@ export const AYUDA_VENTAS: Ayuda = {
 
 export const AYUDA_PERSONAL: Ayuda = {
   titulo: "Personal y pagos",
+  tutorial: 21,
   puntos: [
     { titulo: "Cada persona, una vez", texto: "En Equipo agregas a alguien: eliges su perfil y, ahí mismo, su contrato (trabajo o prestación de servicios) y lo que se le paga: salario, jornal o valor por servicio. Quien no usa la app queda «sin acceso»." },
     { titulo: "El pago se calcula solo", texto: "Eliges a la persona y escribes cuántos meses, días o servicios se pagan: el valor viene de su contrato." },
@@ -140,6 +155,7 @@ export const AYUDA_PERSONAL: Ayuda = {
 
 export const AYUDA_COSTOS: Ayuda = {
   titulo: "Cómo leer las cuentas",
+  tutorial: 10,
   puntos: [
     { titulo: "Compras y ventas, separadas", texto: "Compras es lo que pagas; ventas es lo que cobras; la mano de obra se cuenta aparte. El resultado es lo vendido menos todo lo que costó." },
     { titulo: "Fechas", texto: "Todo el resumen y cada reporte usan el periodo que elijas: un año, unos meses o cualquier rango entre dos fechas." },
@@ -153,6 +169,7 @@ export const AYUDA_COSTOS: Ayuda = {
 
 export const AYUDA_PROYECCIONES: Ayuda = {
   titulo: "Cómo funcionan las proyecciones",
+  tutorial: 20,
   puntos: [
     { titulo: "Parte de tu hato de hoy", texto: "Cuenta tus reproductoras, tus sementales y tus crías por edad, y usa las fechas previstas de parto que ya registraste para los primeros meses." },
     { titulo: "De dónde sale cada número", texto: "«De tu finca» es un promedio de tus propios registros (verás de cuántos). «Referencia» es un valor típico mientras tu finca no tiene datos suficientes. «Tu ajuste» es el que cambiaste tú." },
@@ -167,6 +184,7 @@ export const AYUDA_PROYECCIONES: Ayuda = {
 
 export const AYUDA_INVENTARIO: Ayuda = {
   titulo: "Inventario de medicamentos y vacunas",
+  tutorial: 15,
   puntos: [
     { titulo: "Conteo de apertura", texto: "Cada producto empieza con un conteo: cuánto hay hoy en la bodega, por lote y con su vencimiento. Desde esa fecha la app lleva la cuenta sola." },
     { titulo: "Entra y sale solo", texto: "Cada compra con producto veterinario suma (cantidad × lo que trae cada presentación) y cada aplicación resta (dosis × animales × días del tratamiento); en un pediluvio resta lo que se gastó en todo el baño, una sola vez. Si corriges una compra o una aplicación, el inventario se corrige solo." },
@@ -179,6 +197,7 @@ export const AYUDA_INVENTARIO: Ayuda = {
 
 export const AYUDA_ALIMENTO: Ayuda = {
   titulo: "Inventario de alimento",
+  tutorial: 15,
   puntos: [
     { titulo: "Todo en kg", texto: "Lo que compras en bultos o pacas se pasa a kg con lo que pesa cada unidad, y lo que se da de comer se anota en kg (o en bultos, si la app sabe cuánto pesa uno)." },
     { titulo: "Conteo de apertura", texto: "Cada alimento empieza con un conteo: cuánto hay hoy en la bodega. Desde ese día la app suma las compras y resta lo que se dé de comer." },

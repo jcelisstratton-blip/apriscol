@@ -98,3 +98,25 @@ export function vistosDesde(crudo: string): number[] {
     return [];
   }
 }
+
+/** La dirección que abre la pantalla de Tutoriales ya con ese video reproduciéndose (la usan el aviso de Hoy y las ayudas «¿Cómo funciona?»). */
+export const rutaTutorial = (numero: number): string => `/mas/tutoriales?ver=${numero}`;
+
+/** El número que trae el enlace `?ver=N`: solo un tutorial que existe; cualquier otra cosa, `null`. */
+export function numeroDeEnlace(valor: string | string[] | undefined): number | null {
+  const texto = Array.isArray(valor) ? valor[0] : valor;
+  if (!texto || !/^\d{1,2}$/.test(texto)) return null;
+  const n = Number(texto);
+  return TUTORIALES.some((t) => t.numero === n) ? n : null;
+}
+
+/** Los tutoriales se anuncian en Hoy a todas las fincas hasta este día (después, solo a las fincas nuevas). */
+export const ANUNCIO_TUTORIALES_HASTA = "2026-12-20";
+/** Cuántos días desde que se creó la finca Hoy le ofrece los tutoriales. */
+export const DIAS_AVISO_FINCA_NUEVA = 30;
+
+/** ¿Hoy muestra el aviso de tutoriales? A las fincas nuevas durante su primer mes y, por ser algo nuevo, a todas hasta el día del anuncio. */
+export const avisoTutorialesVisible = (diasDeFinca: number, hoy: string): boolean => diasDeFinca <= DIAS_AVISO_FINCA_NUEVA || hoy <= ANUNCIO_TUTORIALES_HASTA;
+
+/** El siguiente tutorial que esta persona todavía no ha visto (entre los que ya se pueden ver), o `null` si los vio todos. */
+export const proximoSinVer = (vistos: ReadonlySet<number>): Tutorial | null => TUTORIALES.find((t) => disponible(t) && !vistos.has(t.numero)) ?? null;

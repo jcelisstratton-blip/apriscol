@@ -31,8 +31,27 @@ que nunca falla por permisos ni por la base.
 `tests/tutoriales.test.mjs`: están los 27 (0 al 26) con grupo, duración y miniatura existente; los enlaces son válidos y no se repiten; siguiente y anterior saltan los no disponibles; la búsqueda; lo
 «visto» se lee aunque venga manipulado; la entrada del menú y la política de seguridad. `tests/menu.test.mjs` y `tests/reglas.test.mjs` cubren el menú y el `frame-src`.
 
+## Cómo llegan las personas a los videos
+
+Tres puertas, y las tres usan el mismo enlace `/mas/tutoriales?ver=N` (`rutaTutorial`), que abre la pantalla con ese video ya reproduciéndose (`numeroDeEnlace` acepta solo un tutorial que existe; cualquier
+otra cosa se ignora, y al cerrar la hoja el `?ver=` se quita de la dirección):
+
+1. **Menú de Mi finca → Tutoriales** (la pantalla completa).
+2. **Aviso en Hoy** (`components/AvisoTutoriales.tsx`): «Nuevo · Aprende Apriscol en video» con el siguiente tutorial que la persona no ha visto (`proximoSinVer`), un botón «Ver ahora» y «Ver todos». Hoy lo
+   muestra a las fincas durante su primer mes (`DIAS_AVISO_FINCA_NUEVA`) y, por ser algo nuevo, a **todas** hasta `ANUNCIO_TUTORIALES_HASTA` (`avisoTutorialesVisible`); pasada esa fecha, solo a las nuevas.
+   Se puede ocultar (queda en el navegador, por finca) y desaparece solo cuando la persona vio todos los disponibles. En el celular es compacto (un ícono de play); desde `sm` lleva la miniatura.
+3. **«¿Cómo funciona?» de cada módulo** (`AyudaModulo`): cada ayuda de `lib/ayuda.ts` lleva `tutorial: N` y, **si ese video ya está publicado**, la hoja agrega la tarjeta «Míralo en video» con su miniatura.
+   Si todavía no está publicado no se muestra nada: al ponerle su enlace en `lib/tutoriales.ts`, la ayuda lo ofrece sola. Ordeño → 5, Ceba → 14, Empadre → 18, Corrales → 13, Sanidad → 12,
+   Inventario y Alimento → 15, Cargar desde Excel → 7, Compras y Ventas → 9, Costos → 10, Proyecciones y Reportes → 20, Personal → 21.
+
+Una ayuda nueva se escribe **con** su `tutorial` (una prueba exige que toda `AYUDA_*` apunte a un tutorial que exista).
+
+## Lo visto
+
+`useTutorialesVistos` (`components/useTutorialesVistos.ts`) guarda en el navegador qué tutoriales abrió la persona y lo comparten la pantalla y el aviso de Hoy (se mantiene al día entre pestañas). Un video
+cuenta como visto cuando la persona lo abre o cuando se carga su reproductor (así también cuenta el que se abre desde un enlace).
+
 ## Pendiente
 
-- Poner el enlace de YouTube de cada tutorial a medida que se sube (del 8 al 26 están en `null`).
-- Botón «¿Cómo funciona?» de cada módulo que lleve directo a su tutorial (hoy abre la ayuda corta).
-- Un aviso en Hoy para quien es nuevo («Aprende Apriscol en 6 minutos»).
+- Poner el enlace de YouTube de cada tutorial a medida que se sube (del 8 al 26 están en `null`): con eso se activan solos su tarjeta, su «Siguiente» y su botón en la ayuda del módulo.
+- Las ayudas de reportes comparten el tutorial 20 (Reportes y proyecciones); si se publica un video por área, se separan.
