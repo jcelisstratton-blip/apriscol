@@ -406,3 +406,58 @@ test("semáforos: los casos que antes no decían cómo resolverse ahora llevan a
   const sinSecar = senalSecado([], HOY, 60, 100, etiqueta);
   assert.equal(sinSecar.accion.href, "/reproduccion");
 });
+
+// ───────────── Los textos de las reglas salen de las mismas constantes que la lógica ─────────────
+import { readFileSync } from "node:fs";
+import { FRIO_MAX, FRIO_MIN, FRIO_TOLERANCIA, estadoTemperatura, formatoCrioscopia, CRIOSCOPIA_MAX, CRIOSCOPIA_MIN, DIAS_AVISO_MANTENIMIENTO, RCS_AVISO_FRACCION, estadoRcs } from "../lib/leche-calidad.ts";
+import { BAJA_ALERTA_PCT, BAJA_CRITICA_PCT } from "../lib/produccion.ts";
+import { CUARENTENA_MIN_DIAS } from "../lib/corrales.ts";
+import { DIAS_REPETIR_DX_DESDE, DIAS_REPETIR_DX_HASTA, DIAS_SECADO_URGENTE } from "../lib/reproduccion.ts";
+import { DIAS_AVISO_DOSIS, estadoDosis, estadoFechaPrograma } from "../lib/sanidad.ts";
+
+test("las reglas escritas para la persona dicen los mismos números que usa la lógica", () => {
+  const frio = senalFrio([], HOY);
+  assert.match(frio.queSignifica, new RegExp(`${FRIO_MIN} a ${FRIO_MAX} °C`));
+  assert.match(frio.regla, new RegExp(`hasta ${FRIO_TOLERANCIA} °C fuera.*más de ${FRIO_TOLERANCIA} °C fuera`));
+  // La lógica respeta la misma tolerancia: justo en el borde es ámbar, un poco más lejos es rojo.
+  assert.equal(estadoTemperatura(FRIO_MAX + FRIO_TOLERANCIA).tono, "aviso");
+  assert.equal(estadoTemperatura(FRIO_MAX + FRIO_TOLERANCIA + 0.1).tono, "alerta");
+
+  const cuarentena = senalCuarentena([], etiqueta);
+  for (const texto of [cuarentena.queHacer, cuarentena.sigueAqui, cuarentena.regla]) assert.match(texto, new RegExp(`${CUARENTENA_MIN_DIAS} días`));
+
+  const dosis = senalDosis([], HOY);
+  assert.match(dosis.regla, new RegExp(`próximos ${DIAS_AVISO_DOSIS} días`));
+  assert.equal(estadoDosis(dia(DIAS_AVISO_DOSIS), HOY).tono, "aviso");
+  assert.equal(estadoDosis(dia(DIAS_AVISO_DOSIS + 1), HOY).tono, "neutro");
+  assert.equal(estadoFechaPrograma(dia(DIAS_AVISO_DOSIS), HOY).tono, "aviso");
+  assert.equal(estadoFechaPrograma(dia(DIAS_AVISO_DOSIS + 1), HOY).tono, "neutro");
+
+  assert.match(senalMantenimiento([], HOY).regla, new RegExp(`próximos ${DIAS_AVISO_MANTENIMIENTO} días`));
+  assert.match(senalSecado([], HOY, { secadoDiasAntes: 21, ultimoTercioDia: 100 }).regla, new RegExp(`faltan ${DIAS_SECADO_URGENTE} días o menos y sigue en ordeño`));
+
+  const calidad = senalCalidad(null, { rcs: 1500, grasaMin: null, grasaMax: null, proteinaMin: null, proteinaMax: null });
+  assert.ok(calidad.regla.includes(formatoCrioscopia(CRIOSCOPIA_MAX)) && calidad.regla.includes(formatoCrioscopia(CRIOSCOPIA_MIN)));
+  assert.match(calidad.regla, new RegExp(`${Math.round(RCS_AVISO_FRACCION * 100)} % del límite`));
+  assert.match(calidad.queSignifica, /crioscopia \(la temperatura a la que se congela la leche/);
+  assert.equal(estadoRcs(1500 * RCS_AVISO_FRACCION + 1, 1500).tono, "aviso");
+});
+
+test("producción que baja: la regla dice cuánto tiene que bajar, y coincide con la función SQL que la calcula", () => {
+  const produccion = senalProduccion([], etiqueta);
+  assert.match(produccion.regla, new RegExp(`baja ${BAJA_ALERTA_PCT} % o más.*baja ${BAJA_CRITICA_PCT} % o más`));
+  assert.doesNotMatch(produccion.regla, /notable|fuerte/);
+  // Espejo del SQL: si alguien cambia los porcentajes en la base, esta prueba obliga a cambiarlos también aquí (y en el texto).
+  const sql = readFileSync(new URL("../supabase/migrations/20261012025223_produccion_tendencia.sql", import.meta.url), "utf8");
+  assert.ok(sql.includes(`<= -${(BAJA_CRITICA_PCT / 100).toFixed(2)} then 'critico'`), "umbral crítico distinto al de la base");
+  assert.ok(sql.includes(`<= -${(BAJA_ALERTA_PCT / 100).toFixed(2)} then 'alerta'`), "umbral de alerta distinto al de la base");
+});
+
+test("repetir un diagnóstico, siglas y corrales: lo que la persona lee está completo", () => {
+  const dx = senalesDiagnostico([], [], HOY, { desde: 30, hasta: 60 }, etiqueta);
+  const repetir = (Array.isArray(dx) ? dx : Object.values(dx)).find((s) => s.id === "repetir");
+  assert.match(repetir.regla, new RegExp(`entre ${DIAS_REPETIR_DX_DESDE} y ${DIAS_REPETIR_DX_HASTA} días`));
+  const pruebas = senalPruebas([], etiqueta, HOY);
+  assert.match(pruebas.queSignifica, /CAE \(artritis-encefalitis caprina\).*CMT \(prueba de mastitis\)/);
+  assert.match(senalCorrales([]).regla, /no tiene ámbar/);
+});

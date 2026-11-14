@@ -6,6 +6,8 @@ export type Tono = "ok" | "aviso" | "alerta" | "neutro";
 /** Temperatura de conservación de la leche cruda: lo ideal es de 4 a 6 °C. */
 export const FRIO_MIN = 4;
 export const FRIO_MAX = 6;
+/** Hasta cuántos °C fuera del rango es «de cuidado» (ámbar); más lejos, la leche está en riesgo (rojo). */
+export const FRIO_TOLERANCIA = 2;
 
 export const MOMENTOS_FRIO: MomentoFrio[] = ["tras_ordeno", "almacenada", "despacho"];
 export const ETIQUETA_MOMENTO_FRIO: Record<MomentoFrio, string> = {
@@ -20,18 +22,21 @@ export type EstadoValor = { tono: Tono; texto: string };
 export function estadoTemperatura(c: number): EstadoValor {
   if (c >= FRIO_MIN && c <= FRIO_MAX) return { tono: "ok", texto: "En rango" };
   const lejos = c > FRIO_MAX ? c - FRIO_MAX : FRIO_MIN - c;
-  if (lejos <= 2) return { tono: "aviso", texto: c > FRIO_MAX ? "Algo caliente" : "Muy fría" };
+  if (lejos <= FRIO_TOLERANCIA) return { tono: "aviso", texto: c > FRIO_MAX ? "Algo caliente" : "Muy fría" };
   return { tono: "alerta", texto: c > FRIO_MAX ? "Demasiado caliente" : "Demasiado fría" };
 }
 
 // ───────────────────────── Recuento de células somáticas ─────────────────────────
+/** Desde qué parte del límite de células somáticas se vigila (ámbar): el 80 %. */
+export const RCS_AVISO_FRACCION = 0.8;
+
 /**
  * Recuento de células somáticas (miles por mililitro) contra el límite de la finca (`finca_ajustes.ccs_limite_miles_ml`). Cada comprador puede exigir
  * otro límite: el propietario lo ajusta. Hasta el 80 % del límite está bien, después se vigila y por encima se avisa.
  */
 export function estadoRcs(miles: number, limite: number): EstadoValor {
   if (miles > limite) return { tono: "alerta", texto: "Sobre el límite" };
-  if (miles > limite * 0.8) return { tono: "aviso", texto: "Cerca del límite" };
+  if (miles > limite * RCS_AVISO_FRACCION) return { tono: "aviso", texto: "Cerca del límite" };
   return { tono: "ok", texto: "Bajo" };
 }
 
@@ -57,6 +62,9 @@ export const ETIQUETA_MANTENIMIENTO: Record<TipoMantenimiento, string> = {
   otro: "Otro",
 };
 
+/** Con cuántos días de anticipación avisa una tarea del equipo de ordeño (lavados, presión, pulsadores). */
+export const DIAS_AVISO_MANTENIMIENTO = 7;
+
 export type PendienteEquipo<T> = { registro: T; dias: number };
 
 /**
@@ -66,7 +74,7 @@ export type PendienteEquipo<T> = { registro: T; dias: number };
 export function pendientesMantenimiento<T extends { tipo: string; equipo: string | null; fecha: string; created_at: string; proxima_fecha: string | null }>(
   filas: T[],
   hoy: string,
-  diasAviso = 7,
+  diasAviso = DIAS_AVISO_MANTENIMIENTO,
 ): PendienteEquipo<T>[] {
   const ultimas = new Map<string, T>();
   for (const f of filas) {

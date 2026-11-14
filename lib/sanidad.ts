@@ -92,11 +92,14 @@ export function textoRetiro(fecha: string, diasLeche: number, diasCarne: number)
 }
 
 /** Estado de una próxima dosis respecto a hoy. */
+/** Con cuántos días de anticipación avisa una dosis o un programa sanitario (ámbar); vencido es rojo. */
+export const DIAS_AVISO_DOSIS = 7;
+
 export function estadoDosis(proxima: string, hoy: string): { dias: number; texto: string; tono: "alerta" | "aviso" | "neutro" } {
   const dias = diasHasta(proxima, hoy);
   if (dias < 0) return { dias, texto: `Vencida hace ${-dias} ${dias === -1 ? "día" : "días"}`, tono: "alerta" };
   if (dias === 0) return { dias, texto: "Es hoy", tono: "aviso" };
-  if (dias <= 7) return { dias, texto: `En ${dias} ${dias === 1 ? "día" : "días"}`, tono: "aviso" };
+  if (dias <= DIAS_AVISO_DOSIS) return { dias, texto: `En ${dias} ${dias === 1 ? "día" : "días"}`, tono: "aviso" };
   return { dias, texto: `En ${dias} días`, tono: "neutro" };
 }
 
@@ -114,7 +117,7 @@ export function estadoFechaPrograma(fecha: string, hoy: string): { dias: number;
   const dias = diasHasta(fecha, hoy);
   if (dias < 0) return { dias, texto: `Vencida hace ${-dias} ${dias === -1 ? "día" : "días"}`, tono: "alerta" };
   if (dias === 0) return { dias, texto: "Es hoy", tono: "aviso" };
-  if (dias <= 7) return { dias, texto: `En ${dias} ${dias === 1 ? "día" : "días"}`, tono: "aviso" };
+  if (dias <= DIAS_AVISO_DOSIS) return { dias, texto: `En ${dias} ${dias === 1 ? "día" : "días"}`, tono: "aviso" };
   return { dias, texto: `En ${dias} días`, tono: "neutro" };
 }
 
