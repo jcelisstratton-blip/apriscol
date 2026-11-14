@@ -22,3 +22,18 @@ export function tokenDeCabecera(cabecera: string | null): string | null {
   const m = /^Bearer\s+(\S+)$/i.exec(cabecera?.trim() ?? "");
   return m && esTokenValido(m[1]) ? m[1] : null;
 }
+
+/** Un JWT de Supabase (el que Claude recibe tras permitir el acceso): tres tramos en base64url separados por puntos. */
+const FORMATO_JWT = /^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/;
+
+export type Credencial = { tipo: "token"; token: string } | { tipo: "oauth"; jwt: string };
+
+/** Lo que llegó en `Authorization: Bearer …`: un token personal (`apr_…`) o el acceso de Claude por OAuth (un JWT). Cualquier otra cosa, `null`. */
+export function credencialDeCabecera(cabecera: string | null): Credencial | null {
+  const m = /^Bearer\s+(\S+)$/i.exec(cabecera?.trim() ?? "");
+  if (!m) return null;
+  const valor: string = m[1];
+  if (FORMATO.test(valor)) return { tipo: "token", token: valor };
+  if (valor.length <= 4096 && FORMATO_JWT.test(valor)) return { tipo: "oauth", jwt: valor };
+  return null;
+}

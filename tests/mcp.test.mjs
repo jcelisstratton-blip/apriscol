@@ -189,3 +189,33 @@ test("conexión: el nombre se limpia y se valida", () => {
   assert.equal(nombreValido("x".repeat(61)), null);
   assert.equal(nombreValido("x".repeat(60)), "x".repeat(60));
 });
+
+import { credencialDeCabecera } from "../lib/mcp/token.ts";
+import { cabeceraNoAutorizado, metadatosRecurso, servidorAutorizacion, urlMetadatosRecurso } from "../lib/mcp/oauth.ts";
+import { idAutorizacionValido } from "../lib/mcp/consentimiento.ts";
+
+test("credencial: distingue el token personal del acceso de Claude (JWT) y rechaza el resto", () => {
+  const t = generarToken();
+  assert.deepEqual(credencialDeCabecera(`Bearer ${t}`), { tipo: "token", token: t });
+  const jwt = "eyJhbGciOiJFUzI1NiJ9.eyJzdWIiOiJ1In0.c2lnbmF0dXJl";
+  assert.deepEqual(credencialDeCabecera(`Bearer ${jwt}`), { tipo: "oauth", jwt });
+  for (const mala of [null, "", jwt, `Basic ${jwt}`, "Bearer abc", "Bearer a.b", "Bearer a.b.c.d", `Bearer ${"a".repeat(5000)}.b.c`, `Bearer ${jwt} extra`]) assert.equal(credencialDeCabecera(mala), null);
+});
+
+test("oauth: el descubrimiento apunta al Auth de Supabase y el 401 trae resource_metadata", () => {
+  const sitio = "https://apriscol.shop/";
+  const supabase = "https://abc.supabase.co/";
+  assert.equal(servidorAutorizacion(supabase), "https://abc.supabase.co/auth/v1");
+  assert.equal(urlMetadatosRecurso(sitio), "https://apriscol.shop/.well-known/oauth-protected-resource/api/mcp");
+  const m = metadatosRecurso(sitio, supabase);
+  assert.equal(m.resource, "https://apriscol.shop/api/mcp");
+  assert.deepEqual(m.authorization_servers, ["https://abc.supabase.co/auth/v1"]);
+  assert.deepEqual(m.bearer_methods_supported, ["header"]);
+  const cab = cabeceraNoAutorizado(sitio);
+  assert.ok(cab.startsWith("Bearer ") && cab.includes(`resource_metadata="${urlMetadatosRecurso(sitio)}"`));
+});
+
+test("consentimiento: solo se aceptan identificadores de solicitud con formato seguro", () => {
+  assert.ok(idAutorizacionValido("a1b2c3d4-e5f6-7890-abcd-ef1234567890"));
+  for (const malo of [undefined, null, "", "corto", "a".repeat(201), "abc def ghi", "../../etc/passwd", "a1b2c3d4;drop", 5]) assert.equal(idAutorizacionValido(malo), false);
+});

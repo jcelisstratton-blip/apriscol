@@ -3,19 +3,31 @@
 Apriscol expone un servidor **MCP** (Model Context Protocol) de **solo lectura** en `POST /api/mcp`: el asistente de una persona (Claude Desktop, Claude Code, Cursor…) consulta
 su finca en lenguaje natural («¿qué cabras tienen retiro esta semana?», «¿cómo va la leche este mes?»). Ningún asistente puede escribir, borrar ni cambiar nada.
 
-## Pantalla «Conexión con IA»
+## Cómo se conecta (la vía fácil: OAuth)
 
-Mi finca → **Conexión con IA** (`/mas/ia`, `components/ConexionIa.tsx`; la entrada vive en `lib/menu.ts`). La persona crea una conexión con un nombre; el código se **muestra una sola vez** (se arma en la acción
-de servidor `crearConexionIa`, con RLS: la base exige que el dueño sea quien llama) junto con lo que hay que pegar en Claude Code, Claude Desktop (puente `mcp-remote`, el encabezado va por variable) y
-Cursor u otros (`lib/mcp/conexion.ts`). La lista muestra solo las suyas (nombre, fecha, último uso, los primeros caracteres) y **nunca trae la huella**; revocar corta el acceso al instante.
+El ganadero no copia códigos ni edita archivos: en Claude (escritorio, web o celular) va a Configuración → Conectores → **Agregar conector personalizado**, pega `https://apriscol.shop/api/mcp`, toca Conectar,
+entra con su cuenta de Apriscol y toca **Permitir**. Por debajo:
 
-## Cómo se identifica quien consulta
+1. Claude llama a `/api/mcp` sin credencial → **401** con `WWW-Authenticate: Bearer … resource_metadata="…/.well-known/oauth-protected-resource/api/mcp"` (`lib/mcp/oauth.ts`).
+2. Ese documento (públicos, `app/.well-known/…`, RFC 9728) dice que quien autoriza es el **servidor OAuth 2.1 de Supabase Auth** (`<proyecto>/auth/v1`); Claude se registra solo (registro dinámico) y manda a la persona a entrar.
+3. Supabase redirige a **`/oauth/consent?authorization_id=…`** (`app/oauth/consent`): pantalla de permiso con qué podrá y qué nunca podrá hacer (`lib/mcp/consentimiento.ts`); quien no ha entrado pasa antes por `/login` y vuelve. `getAuthorizationDetails` / `approveAuthorization` / `denyAuthorization`.
+4. Claude recibe un JWT de Supabase (con `client_id`) y lo manda en cada consulta. `/api/mcp` lo valida con `getClaims` (llaves públicas), **exige `client_id`** (una sesión normal de la web no sirve) y consulta con ese mismo JWT: la persona, su rol y la RLS de siempre, **sin llave de servicio**. La finca es la **activa** de la persona en la app.
+
+**Requisito en Supabase (una vez, en el panel):** Authentication → OAuth Server → activar, ruta de autorización `/oauth/consent`, y **permitir el registro dinámico de clientes** (sin eso Claude no puede registrarse). El servidor OAuth de Supabase está en beta.
+La persona ve y quita los permisos dados en Mi finca → Conexión con IA (`listGrants` / `revokeGrant`: quitar un permiso cierra sus sesiones y anula la renovación).
+
+## Token personal (opción avanzada)
+
+Para Claude Code y clientes sin OAuth, Mi finca → Conexión con IA → «Opciones avanzadas» (`components/ConexionIa.tsx`): crea una conexión con un nombre; el código se **muestra una sola vez** (acción `crearConexionIa`, con RLS)
+junto con lo que hay que pegar en Claude Code, Claude Desktop (puente `mcp-remote`) y Cursor (`lib/mcp/conexion.ts`). La lista muestra solo las propias y **nunca trae la huella**; revocar corta el acceso al instante.
+
+## Detalle del token personal
 
 - **Token personal** (`apr_` + 43 caracteres, 256 bits al azar), creado por la persona en Mi finca → Conexión con IA y mostrado **una sola vez**. En la base solo vive su
   **huella SHA-256** (`tokens_ia.huella`): ni una filtración de la base ni un administrador pueden recuperarlo. Cada token es de **una persona en una finca**
   (llave compuesta a `finca_miembros`: si la sacan de la finca, sus tokens desaparecen) y se puede revocar.
 - Tope de **5 tokens activos** por persona y finca (disparador `tokens_ia_tope`). La persona ve y revoca solo los suyos (RLS); solo puede cambiar `revocado_en`.
-- `/api/mcp` no lleva sesión de navegador (está en `PUBLICAS` de `lib/supabase/proxy.ts`): manda el token, `Authorization: Bearer apr_…`. La finca y el rol **salen del token y de
+- `/api/mcp` y `/.well-known` no llevan sesión de navegador (están en `PUBLICAS` de `lib/supabase/proxy.ts`): manda el token, `Authorization: Bearer apr_…`. La finca y el rol **salen del token y de
   `finca_miembros` en cada consulta** — el asistente nunca elige la finca ni el rol, y un cambio de rol aplica de inmediato.
 - Si el plan de la finca está bloqueado o pendiente (`estado_vigencia_finca`), el token responde 403.
 
@@ -45,5 +57,4 @@ Las reglas no se duplican: los semáforos salen de `cargarSemaforos` y la leche 
 ## Lo que NO hace (decisiones)
 
 - **Sin herramientas de escritura.** Si algún día se agregan, dejan un borrador que la persona confirma (como Stratt), nunca actúan solas.
-- **Sin OAuth todavía:** el token sirve para Claude Desktop, Claude Code y Cursor. Claude.ai web/celular exige OAuth; es una entrega aparte.
 - Nada del libro genealógico ni de documentos de titulares.

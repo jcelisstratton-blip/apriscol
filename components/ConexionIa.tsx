@@ -14,7 +14,7 @@ type Conexion = { id: string; nombre: string; prefijo: string; creada: string; u
 type Nueva = { token: string; url: string; nombre: string };
 
 /** Una pieza de texto para copiar: se ajusta al ancho (sin desplazamiento lateral) y el botón la copia entera. */
-function Copiable({ titulo, texto, mono = true }: { titulo: string; texto: string; mono?: boolean }) {
+export function Copiable({ titulo, texto, mono = true }: { titulo: string; texto: string; mono?: boolean }) {
   const toast = useToast();
   const copiar = async () => {
     try {
