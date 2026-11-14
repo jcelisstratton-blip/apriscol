@@ -1,12 +1,13 @@
 "use client";
 
-import { useCallback, useMemo, useState, useSyncExternalStore } from "react";
+import { useCallback, useMemo, useState } from "react";
 import Image from "next/image";
 import { ArrowLeft, ArrowRight, Check, Clock, ExternalLink, Play, SearchX } from "lucide-react";
 import { Boton } from "@/components/Boton";
 import { CampoBusqueda } from "@/components/CampoBusqueda";
 import { EstadoVacio } from "@/components/EstadoVacio";
 import { Sheet } from "@/components/Sheet";
+import { useTutorialesVistos } from "@/components/useTutorialesVistos";
 import { sinTildes } from "@/lib/texto";
 import {
   GRUPOS_TUTORIAL,
@@ -18,55 +19,30 @@ import {
   siguienteDisponible,
   urlIncrustada,
   urlYoutube,
-  vistosDesde,
   type Tutorial,
 } from "@/lib/tutoriales";
-
-const CLAVE = "apriscol:tutoriales-vistos";
-const EVENTO = "apriscol:tutoriales-vistos";
-
-const suscribir = (avisar: () => void) => {
-  window.addEventListener(EVENTO, avisar);
-  window.addEventListener("storage", avisar);
-  return () => {
-    window.removeEventListener(EVENTO, avisar);
-    window.removeEventListener("storage", avisar);
-  };
-};
-const leerAlmacen = () => {
-  try {
-    return localStorage.getItem(CLAVE) ?? "[]";
-  } catch {
-    return "[]";
-  }
-};
 
 /**
  * Los tutoriales en video, para ver sin salir de la app: un destacado con el avance y el siguiente por ver, buscador, secciones por tema y una hoja que
  * reproduce el video (YouTube en modo de privacidad reforzada). Lo que cada persona ya vio se guarda solo en su navegador.
  */
-export function Tutoriales() {
+export function Tutoriales({ abrirNumero = null }: { /** El tutorial que se abre al entrar (enlace `?ver=N`, desde Hoy o desde una ayuda). */ abrirNumero?: number | null }) {
   const [busqueda, setBusqueda] = useState("");
-  const [abierto, setAbierto] = useState<number | null>(null);
-  // Lo visto vive en el navegador; si no hay almacenamiento (ventana privada), se recuerda solo en esta visita.
-  const guardado = useSyncExternalStore(suscribir, leerAlmacen, () => "[]");
-  const [soloAhora, setSoloAhora] = useState<number[]>([]);
-  const vistos = useMemo(() => new Set([...vistosDesde(guardado), ...soloAhora]), [guardado, soloAhora]);
-
-  const marcarVisto = (numero: number) => {
-    if (vistos.has(numero)) return;
-    setSoloAhora((previo) => [...previo, numero]);
-    try {
-      localStorage.setItem(CLAVE, JSON.stringify([...new Set([...vistosDesde(leerAlmacen()), numero])].sort((a, b) => a - b)));
-      window.dispatchEvent(new Event(EVENTO));
-    } catch {
-      /* sin almacenamiento: queda solo en esta visita */
-    }
-  };
+  const [abierto, setAbierto] = useState<number | null>(() => {
+    const t = abrirNumero === null ? null : TUTORIALES.find((x) => x.numero === abrirNumero);
+    return t && disponible(t) ? t.numero : null;
+  });
+  const { vistos, marcarVisto } = useTutorialesVistos();
   const abrir = (t: Tutorial) => {
     if (!disponible(t)) return;
     marcarVisto(t.numero);
     setAbierto(t.numero);
+  };
+
+  const cerrar = () => {
+    setAbierto(null);
+    // Si se llegó con un enlace «?ver=N», se quita para que al recargar no vuelva a abrirse.
+    if (abrirNumero !== null) window.history.replaceState(null, "", window.location.pathname);
   };
 
   const alBuscar = useCallback((texto: string) => setBusqueda(texto), []);
@@ -113,12 +89,12 @@ export function Tutoriales() {
 
       <Sheet
         abierta={actual !== null}
-        onCerrar={() => setAbierto(null)}
+        onCerrar={cerrar}
         titulo={actual ? `Tutorial ${actual.numero}` : undefined}
         ancho="max-w-3xl"
         pie={actual ? <Navegacion actual={actual} onIr={abrir} /> : undefined}
       >
-        {actual ? <Reproductor t={actual} /> : null}
+        {actual ? <Reproductor t={actual} alCargar={() => marcarVisto(actual.numero)} /> : null}
       </Sheet>
     </div>
   );
@@ -236,7 +212,7 @@ function TarjetaTutorial({ t, visto, onAbrir }: { t: Tutorial; visto: boolean; o
 }
 
 /** El video y lo que se aprende en él. El video se carga solo al abrir la hoja, no antes. */
-function Reproductor({ t }: { t: Tutorial }) {
+function Reproductor({ t, alCargar }: { t: Tutorial; alCargar: () => void }) {
   const src = urlIncrustada(t);
   const enYoutube = urlYoutube(t);
   return (
@@ -249,6 +225,7 @@ function Reproductor({ t }: { t: Tutorial }) {
             title={`Tutorial ${t.numero}: ${t.titulo}`}
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
             allowFullScreen
+            onLoad={alCargar}
             referrerPolicy="strict-origin-when-cross-origin"
             className="absolute inset-0 size-full border-0"
           />

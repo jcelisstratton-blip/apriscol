@@ -45,7 +45,7 @@ export function VistaReporte({
       <Encabezado titulo={def.titulo} subtitulo={`${def.detalle} · ${fincaNombre}`} />
 
       <div className="space-y-4">
-        <AyudaModulo ayuda={{ titulo: def.titulo, puntos: def.ayuda, enlace: { href: "/reportes", texto: "Ver todos los reportes" } }} />
+        <AyudaModulo ayuda={{ titulo: def.titulo, puntos: def.ayuda, enlace: { href: "/reportes", texto: "Ver todos los reportes" }, tutorial: 20 }} />
 
         {filtrosDef.length > 0 ? <FiltrosReporte id={def.id} filtros={filtrosDef} valores={filtros} extra={extra} /> : null}
         {def.periodo ? <FiltroPeriodo ruta={`/reportes/${def.id}`} fijos={fijosPeriodo} filtro={fechas} etiquetaRango={def.periodo.etiqueta} /> : null}

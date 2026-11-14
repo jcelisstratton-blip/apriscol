@@ -23,6 +23,8 @@ import { diasDesde, diasHasta, formatoFecha, hoyBogota, litros, sumarDias } from
 import { etiquetaAnimal, saludo } from "@/lib/animal";
 import { dinero } from "@/lib/moneda";
 import { AvisoMigracion } from "@/components/AvisoMigracion";
+import { AvisoTutoriales } from "@/components/AvisoTutoriales";
+import { avisoTutorialesVisible } from "@/lib/tutoriales";
 import { cargarPasosMigracion } from "@/lib/migracion-servidor";
 import { avanceMigracion, siguientePaso } from "@/lib/migracion";
 import { IconoEvento } from "@/components/IconoEvento";
@@ -167,6 +169,7 @@ export default async function PaginaHoy({ searchParams }: { searchParams: Promis
       </div>
 
       {pasoSiguiente ? <AvisoMigracion fincaId={finca.id} hechos={avanceMig.hechos} total={avanceMig.total} siguiente={{ id: pasoSiguiente.id, accion: pasoSiguiente.accion, titulo: pasoSiguiente.titulo, href: pasoSiguiente.href }} /> : null}
+      {avisoTutorialesVisible(diasDesde(finca.created_at.slice(0, 10), hoy), hoy) ? <AvisoTutoriales fincaId={finca.id} /> : null}
 
       {hato === 0 ? (
         <Tarjeta className="lg:max-w-xl">
