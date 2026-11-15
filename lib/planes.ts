@@ -66,7 +66,7 @@ export const PLANES: Plan[] = [
       "Reportes en Excel: costos y hato, con las fechas que elijas",
       "Proyecciones a 12, 24 o 36 meses: hato, alimento y dinero (carne y leche)",
       "Controles de calidad con constancia (leche y carne)",
-      "Soportes de gastos: facturas en PDF o foto",
+      "Adjunta la factura de cada gasto (PDF o foto) y guárdala junto al registro",
     ],
   },
   {
@@ -114,7 +114,7 @@ export const SERVICIOS_PLAN = {
   reportes: { desde: "profesional", nombre: "Reportes en Excel" },
   costoAnimal: { desde: "profesional", nombre: "Costo por animal, lote y especie" },
   calidad: { desde: "profesional", nombre: "Controles de calidad con constancia" },
-  soportes: { desde: "profesional", nombre: "Soportes de gastos (facturas)" },
+  soportes: { desde: "profesional", nombre: "Adjuntar facturas a los gastos" },
   proyecciones: { desde: "profesional", nombre: "Proyecciones del hato, el alimento y el dinero" },
 } as const satisfies Record<string, { desde: PlanId; nombre: string }>;
 export type ServicioPlan = keyof typeof SERVICIOS_PLAN;

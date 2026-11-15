@@ -39,7 +39,7 @@ es un aprisco pequeño y el plan de entrada tiene que ser muy accesible; como lo
 |---|---|---|---|
 | **Cría** | US$ 10 | US$ 8 | Hato y ficha con foto y genealogía, endogamia, leche (ordeño y calidad), sanidad con periodos de retiro, servicios y partos, traer animales del libro |
 | **Hato** (recomendado) | US$ 18 | US$ 14 | Todo Cría + equipo con roles (ordeñador, veterinario, contador), corrales y potreros, temporada de monta, programas sanitarios con FAMACHA y pediluvio, premios y ferias, simulador de cruzas |
-| **Profesional** | US$ 36 | US$ 29 | Todo Hato + compras, ventas y por cobrar, personal y nómina, carne y ceba, costo por litro, por animal, lote y especie, reportes de costos en Excel por fechas, controles de calidad con constancia, soportes de gastos |
+| **Profesional** | US$ 36 | US$ 29 | Todo Hato + compras, ventas y por cobrar, personal y nómina, carne y ceba, costo por litro, por animal, lote y especie, reportes de costos en Excel por fechas, controles de calidad con constancia, adjuntar la factura de cada gasto (PDF o foto) |
 | **Hacienda** | US$ 72 | US$ 58 | Todo Profesional + soporte prioritario y acompañamiento para cargar la información inicial |
 
 **Precios siempre en dólares enteros.** Anual: 20 % menos. **Cada finca tiene su plan** y paga por separado; desde la **segunda finca** de un propietario, su plan tiene **10 % menos**
@@ -68,7 +68,7 @@ Una finca con equipo, corrales, ceba y gastos se mueve en el rango de Hato. Los 
 - **Equipo con roles:** desde Hato (disparador sobre `invitaciones`; la pantalla de Equipo muestra el candado).
 - **Varias fincas:** sin tope y con cualquier plan: cada una paga el suyo («Agregar otra finca» lleva a crear una finca nueva, que empieza en Cría).
 - **Servicios dentro de un módulo (los cierra el servidor y la pantalla, `lib/planes.ts#SERVICIOS_PLAN`):** reportes y Excel de costos, costo por animal/lote/especie,
-  controles de calidad con constancia y soportes de gastos desde **Profesional**. Quien pida uno sin plan ve `RequierePlan` con el botón de mejorar.
+  controles de calidad con constancia y adjuntar facturas a los gastos (PDF o foto) desde **Profesional**. Quien pida uno sin plan ve `RequierePlan` con el botón de mejorar.
 - **Mejorar mi plan:** `/mas/plan` (menú lateral y «Más», solo propietario y solo si hay un plan superior). Muestra solo planes **hacia adelante** y lo que se suma;
   `solicitar_mejora_plan` guarda la solicitud (una pendiente por finca) y la base vuelve a comprobar que sea un plan superior.
 - **Activar (superadmin):** `/admin/planes` lista las solicitudes pendientes (con el número de finca y el precio que corresponde) y «Activar» llama a
