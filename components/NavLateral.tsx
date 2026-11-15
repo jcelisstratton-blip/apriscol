@@ -2,10 +2,10 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
 import { Zap } from "lucide-react";
 import { FincaSelector } from "@/components/FincaSelector";
 import { HojaAlGrano } from "@/components/HojaAlGrano";
+import { useHojaAlGrano } from "@/components/useHojaAlGrano";
 import { Marca } from "@/components/Marca";
 import { MenuUsuario } from "@/components/MenuUsuario";
 import { destinosMenu, menuFinca, menuPrincipal, type EntradaMenu, type VisibilidadMenu } from "@/lib/menu";
@@ -36,7 +36,7 @@ export function NavLateral({
   esSuperadmin: boolean;
 }) {
   const ruta = usePathname();
-  const [abierta, setAbierta] = useState(false);
+  const { abierta, abrir, cerrar } = useHojaAlGrano(true);
 
   // El trabajo de cada día arriba, agrupado por tipo de cosa; lo de la finca abajo, aparte.
   const grupos = menuPrincipal(visibilidad);
@@ -65,7 +65,7 @@ export function NavLateral({
           </Link>
           <button
             type="button"
-            onClick={() => setAbierta(true)}
+            onClick={abrir}
             className="mt-5 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-full bg-ocre px-4 text-[0.9375rem] font-semibold text-papel shadow-sm transition hover:brightness-95 active:scale-[0.98]"
           >
             <Zap className="size-5" strokeWidth={2.2} /> Al grano
@@ -95,7 +95,7 @@ export function NavLateral({
         </div>
       </aside>
 
-      <HojaAlGrano abierta={abierta} onCerrar={() => setAbierta(false)} rol={rol} plan={plan} />
+      <HojaAlGrano abierta={abierta} onCerrar={cerrar} rol={rol} plan={plan} />
     </>
   );
 }
