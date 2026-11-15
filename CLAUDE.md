@@ -49,6 +49,8 @@ correspondiente en `node_modules/next/dist/docs/` (esta versión cambia APIs: `m
    superadmin supervisa y puede revertir (`admin_revertir_importacion`) desde su propio espacio (`app/(admin)`, `/admin`: resumen global,
    fincas, importaciones), que **no exige tener una finca**: sin fincas, `obtenerContexto` lo manda a `/admin`, no al onboarding. Los volcados de datos reales no se versionan.
 
+12. **Catálogos globales de solo lectura** (`razas`, `parametros_especie`, `divipola_departamentos`, `divipola_municipios`): sin `finca_id`, con RLS activa, una política `select` para `authenticated` y **ningún permiso de escritura** para `anon` ni `authenticated`; se cargan solo por migración. `divipola_*` es el DIVIPOLA oficial del DANE (33 departamentos, 1.122 municipios/áreas/isla, códigos de 2 y 5 dígitos) y es la fuente para traducir los códigos de `libro_genealogico` (`departamento_dane`, `municipio_dane`) a nombres. Dato conocido: `libro_genealogico.municipio_dane = '15331'` (24 filas) no existe en el DIVIPOLA; la llave foránea del municipio quedó `NOT VALID` hasta corregir esas filas con el dato real (`alter table … validate constraint libro_genealogico_municipio_dane_fkey`).
+
 ## Interfaz (móvil primero, referencias de Mobbin)
 
 - Se diseña y se prueba a **360 y 320 px**: `scrollWidth == clientWidth` y ninguna caja con contenido más ancho que ella

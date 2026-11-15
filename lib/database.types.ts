@@ -1239,6 +1239,50 @@ export type Database = {
           },
         ]
       }
+      divipola_departamentos: {
+        Row: {
+          codigo: string
+          nombre: string
+        }
+        Insert: {
+          codigo: string
+          nombre: string
+        }
+        Update: {
+          codigo?: string
+          nombre?: string
+        }
+        Relationships: []
+      }
+      divipola_municipios: {
+        Row: {
+          codigo: string
+          departamento_codigo: string
+          nombre: string
+          tipo: string
+        }
+        Insert: {
+          codigo: string
+          departamento_codigo: string
+          nombre: string
+          tipo: string
+        }
+        Update: {
+          codigo?: string
+          departamento_codigo?: string
+          nombre?: string
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "divipola_municipios_departamento_codigo_fkey"
+            columns: ["departamento_codigo"]
+            isOneToOne: false
+            referencedRelation: "divipola_departamentos"
+            referencedColumns: ["codigo"]
+          },
+        ]
+      }
       empadronamiento_hembras: {
         Row: {
           created_at: string
@@ -3192,6 +3236,20 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "libro_genealogico_departamento_dane_fkey"
+            columns: ["departamento_dane"]
+            isOneToOne: false
+            referencedRelation: "divipola_departamentos"
+            referencedColumns: ["codigo"]
+          },
+          {
+            foreignKeyName: "libro_genealogico_municipio_dane_fkey"
+            columns: ["municipio_dane"]
+            isOneToOne: false
+            referencedRelation: "divipola_municipios"
+            referencedColumns: ["codigo"]
+          },
           {
             foreignKeyName: "libro_genealogico_criador_id_fkey"
             columns: ["criador_id"]
