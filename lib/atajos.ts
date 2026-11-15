@@ -1,9 +1,10 @@
 import {
   Activity, ArrowRightLeft, Baby, Banknote, BarChart3, Beef, CalendarClock, ClipboardCheck, Droplets, FileText, FlaskConical, GitFork, HeartPulse, Download, FileSpreadsheet, Home, KeyRound, Layers, MapPin,
   Microscope, Package, PawPrint, Plus, Rocket, Scale, Shuffle, SlidersHorizontal, Snowflake, Syringe, Trophy, Truck, UserPlus, Users, Wallet, Wrench, Fence, Sheet, type LucideIcon,
-  HardHat, Gift, Inbox, Boxes, Utensils, Wheat,
+  HardHat, Gift, Inbox, Boxes, Utensils, Wheat, FileBarChart2, TrendingUp, Send, Plug, CirclePlay,
 } from "lucide-react";
 import { puedeEscribir, puedeGestionar, puedeVer } from "@/lib/permisos";
+import { visibilidadMenu, type VisibilidadMenu } from "@/lib/menu";
 import { servicioEnPlan, type ServicioPlan } from "@/lib/planes";
 import type { ModuloApp, PlanId, RolFinca } from "@/lib/tipos";
 import { sinTildes } from "@/lib/texto";
@@ -24,6 +25,8 @@ export type Atajo = {
   /** Módulo que debe poder ver (o escribir, si `tipo` es «registrar») el rol y debe incluir el plan. */
   modulo?: ModuloApp;
   servicio?: ServicioPlan;
+  /** Lo ve quien tenga esa entrada en el menú (la misma regla de `visibilidadMenu`): así el atajo nunca contradice al menú. */
+  menu?: keyof VisibilidadMenu;
   /** Solo propietario o administrador. */
   gestion?: boolean;
   propietario?: boolean;
@@ -34,7 +37,7 @@ export type Atajo = {
 /**
  * Todo lo que se puede hacer o abrir en la app desde «Al grano», en un solo lugar. Cada entrada lleva directo a donde corresponde. Lo que es de un
  * solo animal sin elegirlo (servicio, parto, peso, baja…) manda al Hato para escoger el animal y seguir desde su ficha. Una pantalla nueva con
- * menú o con botón de «crear» se agrega aquí.
+ * menú o con botón de «crear» se agrega aquí (`tests/menu.test.mjs` lo exige: toda entrada del menú y toda pantalla de «crear» debe tener su atajo).
  */
 export const ATAJOS: Atajo[] = [
   // Hato
@@ -71,6 +74,7 @@ export const ATAJOS: Atajo[] = [
   { grupo: "Sanidad", tipo: "registrar", titulo: "Vacuna o tratamiento", detalle: "Para uno o varios animales", href: "/hato/sanidad/nuevo", Icono: Syringe, modulo: "sanidad", clave: "vacunar desparasitar aplicar medicamento" },
   { grupo: "Sanidad", tipo: "registrar", titulo: "Programar una aplicación", detalle: "Vacunas, desparasitaciones o podología", href: "/hato/sanidad/programar", Icono: CalendarClock, modulo: "sanidad", clave: "agendar programar podologia pezuñas" },
   { grupo: "Sanidad", tipo: "registrar", titulo: "Evaluación FAMACHA", detalle: "Color de la mucosa, puntaje de 1 a 5", href: "/hato/sanidad/famacha/nueva", Icono: HeartPulse, modulo: "sanidad", clave: "famacha anemia parasitos" },
+  { grupo: "Sanidad", tipo: "registrar", titulo: "Examen coprológico", detalle: "Conteo de huevos de parásitos (HPG) de un animal", href: "/hato/sanidad/coprologico/nuevo", Icono: Microscope, modulo: "sanidad", clave: "hpg huevos parasitos coprologico desparasitar carga parasitaria" },
   { grupo: "Sanidad", tipo: "registrar", titulo: "Prueba diagnóstica", detalle: "Resultado de un examen del hato", href: "/sanidad/pruebas/nueva", Icono: Microscope, modulo: "sanidad", clave: "examen laboratorio brucelosis" },
   { grupo: "Sanidad", tipo: "registrar", titulo: "Producto veterinario", detalle: "Agregar a tu catálogo", href: "/sanidad/productos/nuevo", Icono: Package, modulo: "sanidad", clave: "medicamento vacuna catalogo" },
   { grupo: "Sanidad", tipo: "ir", titulo: "Sanidad", detalle: "Lo aplicado y por atender", href: "/sanidad", Icono: Syringe, modulo: "sanidad" },
@@ -108,6 +112,8 @@ export const ATAJOS: Atajo[] = [
   { grupo: "Costos", tipo: "ir", titulo: "Ventas", detalle: "Lo que vendes, y lo que falta por cobrar", href: "/hato?vista=ventas", Icono: Banknote, modulo: "contabilidad", clave: "ingresos por cobrar leche animales" },
   { grupo: "Costos", tipo: "ir", titulo: "Costos y resultado", detalle: "Compras, mano de obra, ventas y resultado por fechas", href: "/costos", Icono: BarChart3, modulo: "contabilidad" },
   { grupo: "Costos", tipo: "ir", titulo: "Productos y terceros", detalle: "Tus listas de productos, proveedores y compradores", href: "/mas/productos", Icono: Package, modulo: "contabilidad", clave: "catalogo precios proveedores compradores" },
+  { grupo: "Costos", tipo: "ir", titulo: "Reportes", detalle: "Listados del hato y de las cuentas, en pantalla y en Excel", href: "/reportes", Icono: FileBarChart2, menu: "reportes", clave: "listados inventario produccion sanidad excel descargar" },
+  { grupo: "Costos", tipo: "ir", titulo: "Proyecciones", detalle: "Dónde estará tu aprisco en 1, 2 o 3 años", href: "/proyecciones", Icono: TrendingUp, menu: "proyecciones", clave: "futuro simulador escenarios hato alimento dinero" },
   { grupo: "Costos", tipo: "ir", titulo: "Costo por animal", detalle: "Cuánto cuesta cada animal", href: "/costos?vista=animales", Icono: PawPrint, modulo: "contabilidad", servicio: "costoAnimal" },
   { grupo: "Costos", tipo: "ir", titulo: "Reportes en Excel", detalle: "Descarga por las fechas que elijas", href: "/costos?vista=reportes", Icono: Sheet, modulo: "contabilidad", servicio: "reportes", clave: "descargar excel" },
 
@@ -118,14 +124,18 @@ export const ATAJOS: Atajo[] = [
 
   // Cuenta
   { grupo: "Cuenta", tipo: "ir", titulo: "Hoy", detalle: "Lo que toca hacer hoy", href: "/", Icono: Home },
+  { grupo: "Cuenta", tipo: "ir", titulo: "Semáforos", detalle: "Qué pide atención, en rojo, ámbar y verde, y qué hacer", href: "/semaforos", Icono: Activity, menu: "semaforos", clave: "alertas pendientes urgente atender rojo verde" },
   { grupo: "Cuenta", tipo: "registrar", titulo: "Agregar a alguien al equipo", detalle: "Elige su perfil y su contrato: ordeñador, veterinario, jornalero…", href: "/mas/miembros", Icono: UserPlus, gestion: true, servicio: "equipo", clave: "equipo invitacion" },
   { grupo: "Cuenta", tipo: "ir", titulo: "Exportar los datos de la finca", detalle: "Todo en un Excel: animales, leche, sanidad, compras, ventas…", href: "/mas/exportar", Icono: Download, propietario: true, clave: "descargar respaldo copia backup salir cancelar sacar informacion" },
   { grupo: "Cuenta", tipo: "ir", titulo: "Referidos", detalle: "Tu enlace: 5 % del plan de quien refieras durante 6 meses", href: "/mas/referidos", Icono: Gift, clave: "referir invitar enlace comision ganar" },
-  { grupo: "Cuenta", tipo: "ir", titulo: "Equipo y pagos", detalle: "Quién tiene acceso, su contrato y lo que se les paga", href: "/mas/miembros", Icono: Users, gestion: true },
+  { grupo: "Cuenta", tipo: "ir", titulo: "Equipo y pagos", detalle: "Quién tiene acceso, su contrato y lo que se les paga", href: "/mas/miembros", Icono: Users, menu: "equipo" },
   { grupo: "Cuenta", tipo: "ir", titulo: "Datos de la finca", detalle: "Nombre, ubicación y umbral de endogamia", href: "/mas/finca", Icono: MapPin, gestion: true },
   { grupo: "Cuenta", tipo: "ir", titulo: "Ajustes de la finca", detalle: "Tiempos, límites y criterios con los que avisa la finca", href: "/mas/ajustes", Icono: SlidersHorizontal, clave: "umbrales gestacion gdp celulas somaticas pediluvio nomina configuracion" },
   { grupo: "Cuenta", tipo: "ir", titulo: "Mi plan", detalle: "Tu plan y cómo mejorarlo", href: "/mas/plan", Icono: Rocket, propietario: true, clave: "mejorar plan precio" },
-  { grupo: "Cuenta", tipo: "registrar", titulo: "Agregar otra finca", detalle: "Una finca más en tu cuenta", href: "/onboarding", Icono: Plus, propietario: true },
+  { grupo: "Cuenta", tipo: "registrar", titulo: "Agregar otra finca", detalle: "Una finca más en tu cuenta", href: "/onboarding", Icono: Plus, menu: "agregarFinca" },
+  { grupo: "Cuenta", tipo: "ir", titulo: "Telegram", detalle: "Recibe en tu celular lo que toca hoy", href: "/mas/telegram", Icono: Send, clave: "avisos notificaciones bot resumen mensajes conectar" },
+  { grupo: "Cuenta", tipo: "ir", titulo: "Conexión con IA", detalle: "Pregúntale a Claude por tu finca, solo para leer", href: "/mas/ia", Icono: Plug, clave: "claude inteligencia artificial asistente preguntar conectar" },
+  { grupo: "Cuenta", tipo: "ir", titulo: "Tutoriales", detalle: "Videos paso a paso de cada parte de Apriscol", href: "/mas/tutoriales", Icono: CirclePlay, clave: "videos ayuda aprender youtube como funciona" },
   { grupo: "Cuenta", tipo: "ir", titulo: "Cambiar contraseña", detalle: "Tu acceso a Apriscol", href: "/cambiar-clave", Icono: KeyRound, clave: "clave password" },
   { grupo: "Cuenta", tipo: "ir", titulo: "Términos y privacidad", detalle: "Cómo se protegen tus datos", href: "/terminos", Icono: FileText, clave: "legal datos supabase" },
 ];
@@ -135,6 +145,7 @@ export function atajosPara(rol: RolFinca, plan: PlanId): Atajo[] {
   return ATAJOS.filter((a) => {
     if (a.modulo && !(a.tipo === "registrar" ? puedeEscribir(rol, a.modulo, plan) : puedeVer(rol, a.modulo, plan))) return false;
     if (a.servicio && !servicioEnPlan(plan, a.servicio)) return false;
+    if (a.menu && !visibilidadMenu(rol, plan)[a.menu]) return false;
     if (a.gestion && !puedeGestionar(rol)) return false;
     if (a.propietario && rol !== "propietario") return false;
     return true;
