@@ -2,9 +2,9 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
 import { Droplets, Home, MoreHorizontal, PawPrint, Zap } from "lucide-react";
 import { HojaAlGrano } from "@/components/HojaAlGrano";
+import { useHojaAlGrano } from "@/components/useHojaAlGrano";
 import type { PlanId, RolFinca } from "@/lib/tipos";
 
 const TABS = [
@@ -20,7 +20,7 @@ const TABS = [
  */
 export function BottomNav({ rol, plan }: { rol: RolFinca; plan: PlanId }) {
   const ruta = usePathname();
-  const [abierta, setAbierta] = useState(false);
+  const { abierta, abrir, cerrar } = useHojaAlGrano(false);
 
   const activo = (href: string) => (href === "/" ? ruta === "/" : ruta.startsWith(href));
   const izquierda = TABS.slice(0, 2);
@@ -53,7 +53,7 @@ export function BottomNav({ rol, plan }: { rol: RolFinca; plan: PlanId }) {
           <div className="flex flex-1 justify-center">
             <button
               type="button"
-              onClick={() => setAbierta(true)}
+              onClick={abrir}
               aria-label="Al grano"
               className="-mt-6 grid size-14 place-items-center rounded-full bg-ocre text-papel shadow-lg ring-4 ring-lana transition active:scale-95"
             >
@@ -66,7 +66,7 @@ export function BottomNav({ rol, plan }: { rol: RolFinca; plan: PlanId }) {
         </div>
       </nav>
 
-      <HojaAlGrano abierta={abierta} onCerrar={() => setAbierta(false)} rol={rol} plan={plan} />
+      <HojaAlGrano abierta={abierta} onCerrar={cerrar} rol={rol} plan={plan} />
     </>
   );
 }
