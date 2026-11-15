@@ -1,4 +1,4 @@
-import { Activity, Inbox, CalendarCheck, Coins, Crown, Download, FileBarChart2, FileSpreadsheet, GitFork, Gift, Home, Package, Plus, SlidersHorizontal, Sprout, TrendingUp, Trophy, Users, Wallet, Wrench } from "lucide-react";
+import { Activity, Inbox, CalendarCheck, Coins, Crown, Download, FileBarChart2, FileSpreadsheet, GitFork, Gift, Home, Package, Plug, Plus, SlidersHorizontal, Sprout, TrendingUp, Trophy, Users, Wallet, Wrench } from "lucide-react";
 import { escena, ESC, ESCENA_HATO, type EscenaDef } from "@/lib/escenas";
 import { ESCENA_TODOS_INVENTARIO } from "@/lib/escenas-inventario";
 import { menuFinca, menuPrincipal, visibilidadMenu, type EntradaMenu } from "@/lib/menu";
@@ -28,7 +28,6 @@ export const OMITIDAS: Record<string, string> = {
   "/mas/finca": "Datos básicos de la finca: no convence a nadie de registrarse.",
   "/mas/plan": "Los planes tienen su propia sección.",
   "/mas/tutoriales": "Es ayuda para quien ya tiene cuenta (videos paso a paso): no es una función que convenza de registrarse.",
-  "/mas/ia": "Es una conexión técnica que cada persona crea para su asistente: se presentará cuando se pueda conectar desde Claude.ai sin pasos técnicos.",
   "/mas/telegram": "Los avisos por Telegram están en piloto: se presentan en la página cuando el equipo los active para todas las fincas.",
 };
 
@@ -131,6 +130,11 @@ export const CONTENIDO: Record<string, ContenidoOpcion> = {
     escena: ESC.equipo,
     lema: "Cada quien ve lo suyo",
     puntos: ["Invita al ordeñador, al veterinario y al contador", "Cada rol entra solo a lo que le toca", "Tú decides quién entra y quién sale"],
+  },
+  "/mas/ia": {
+    escena: escena(Plug, "arcilla", Activity),
+    lema: "Pregúntale a Claude por tu finca",
+    puntos: ["Conecta tu cuenta de Claude con un clic y pregúntale qué toca hoy", "Solo lee: no registra ni cambia nada, y lo quitas cuando quieras", "Ve lo que tu plan y tu rol permiten"],
   },
   "/mas/referidos": {
     escena: escena(Gift, "ocre", Wallet),
