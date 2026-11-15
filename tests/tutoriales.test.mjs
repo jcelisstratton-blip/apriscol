@@ -24,10 +24,12 @@ test("tutoriales: están todos (del 0 al 29), con su grupo, su duración y su mi
 });
 
 test("tutoriales: los enlaces de YouTube son válidos y no se repiten; sin enlace queda «próximamente»", () => {
+  assert.ok(TUTORIALES.every((t) => t.youtube !== null), "los 30 tutoriales ya tienen su video");
   const ids = TUTORIALES.filter((t) => t.youtube !== null).map((t) => t.youtube);
   for (const id of ids) assert.match(id, /^[A-Za-z0-9_-]{11}$/);
   assert.equal(new Set(ids).size, ids.length, "un mismo video en dos tutoriales");
-  const sin = TUTORIALES.find((t) => t.youtube === null);
+  // Hoy todos tienen su video: «sin enlace» se simula para comprobar que un tutorial nuevo queda apagado.
+  const sin = { ...TUTORIALES[0], youtube: null };
   assert.equal(disponible(sin), false);
   assert.equal(urlIncrustada(sin), null);
   assert.equal(urlYoutube(sin), null);
