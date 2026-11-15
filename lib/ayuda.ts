@@ -215,7 +215,7 @@ export const AYUDA_IA: Ayuda = {
   tutorial: 28,
   puntos: [
     { titulo: "Para qué sirve", texto: "Claude lee tu finca y te contesta con palabras normales: qué hay que atender hoy, cómo va la leche, o dónde está un animal." },
-    { titulo: "Solo lee", texto: "Nunca registra, cambia ni borra nada. Ve únicamente lo que tú ves en la app con tu rol." },
+    { titulo: "Solo lee, según tu plan", texto: "Nunca registra, cambia ni borra nada. Ve lo que tú ves con tu rol y lo que incluye el plan de tu finca: si le pides algo de un plan superior, te lo avisa." },
     { titulo: "Tu cuenta", texto: "Al conectar, Apriscol te pide entrar con tu correo y tu contraseña, y Claude ve esa cuenta. Si tienes varias fincas, consulta la que tengas activa." },
     { titulo: "Misma cuenta de Claude", texto: "La app de Claude y su página web deben tener abierta la misma cuenta de Claude. Si no coinciden, Claude no termina de conectar." },
     { titulo: "Quitar el permiso", texto: "Toca «Quitar permiso» cuando quieras: Claude deja de ver tu finca al instante." },

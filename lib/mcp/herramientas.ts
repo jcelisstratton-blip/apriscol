@@ -5,6 +5,7 @@ import type { Totales } from "@/lib/leche";
 import { variacion } from "@/lib/leche";
 import type { PlanId, RolFinca } from "@/lib/tipos";
 import { ErrorHerramienta, type Herramienta } from "@/lib/mcp/protocolo";
+import { alcanceDelPlan, areasFueraDelPlan, mensajeFueraDelPlan } from "@/lib/mcp/plan";
 
 /** Quién consulta y desde qué finca. Lo arma el servidor con el token y la base: el asistente nunca elige la finca ni el rol. */
 export type ContextoMcp = { fincaNombre: string; rol: RolFinca; plan: PlanId; hoy: string; moneda: string };
@@ -51,7 +52,15 @@ export function herramientasPara(ctx: ContextoMcp, datos: Datos): Herramienta[] 
       ejecutar: async () => {
         const todas = await datos.senales();
         const pendientes = todas.filter((s) => s.nivel !== "verde").sort((a, b) => (a.nivel === b.nivel ? 0 : a.nivel === "rojo" ? -1 : 1));
-        return json({ finca: ctx.fincaNombre, fecha: ctx.hoy, rol: ctx.rol, conteo: contarSenales(todas), pendientes: pendientes.map((s) => senalCompacta(s, 3)) });
+        const fuera = areasFueraDelPlan(ctx.rol, ctx.plan);
+        return json({
+          finca: ctx.fincaNombre,
+          fecha: ctx.hoy,
+          rol: ctx.rol,
+          conteo: contarSenales(todas),
+          pendientes: pendientes.map((s) => senalCompacta(s, 3)),
+          ...(fuera.length > 0 ? { temas_no_incluidos_en_el_plan: alcanceDelPlan(ctx.rol, ctx.plan).temas_no_incluidos, aviso_para_el_asistente: "Si la persona pregunta por esos temas, explícale con amabilidad que su plan no los incluye, desde qué plan están y cómo mejorar (herramienta mi_plan). No inventes datos de ellos." } : {}),
+        });
       },
     });
     lista.push({
@@ -66,7 +75,11 @@ export function herramientasPara(ctx: ContextoMcp, datos: Datos): Herramienta[] 
       }),
       ejecutar: async (a) => {
         const { area, nivel, casos_por_senal: casos } = a as { area?: AreaSemaforo; nivel: "rojo" | "ambar" | "todos"; casos_por_senal: number };
-        if (area && !areas.includes(area)) throw new ErrorHerramienta(`Tu rol no tiene el área «${ETIQUETA_AREA[area]}». Áreas disponibles: ${areas.join(", ")}.`);
+        if (area && !areas.includes(area)) {
+          const fuera = areasFueraDelPlan(ctx.rol, ctx.plan).find((f) => f.area === area);
+          if (fuera) throw new ErrorHerramienta(mensajeFueraDelPlan(fuera, ctx.plan, ctx.rol));
+          throw new ErrorHerramienta(`El rol de esta persona no ve el área «${ETIQUETA_AREA[area]}». Áreas que sí puede consultar: ${areas.map((x) => ETIQUETA_AREA[x]).join(", ")}.`);
+        }
         const filtradas = (await datos.senales()).filter((s) => (!area || s.area === area) && (nivel === "todos" || s.nivel === nivel));
         return json({ finca: ctx.fincaNombre, fecha: ctx.hoy, conteo: contarSenales(filtradas), senales: filtradas.map((s) => senalCompacta(s, casos)) });
       },
@@ -109,6 +122,15 @@ export function herramientasPara(ctx: ContextoMcp, datos: Datos): Herramienta[] 
       },
     });
   }
+
+  lista.push({
+    nombre: "mi_plan",
+    titulo: "Mi plan",
+    descripcion:
+      "Qué temas de la finca puede consultar esta persona según el plan de la finca y su rol, qué temas no están incluidos y desde qué plan están. Úsala cuando la persona pregunte qué incluye su plan, por qué no puede ver algo, o cómo mejorarlo.",
+    entrada: z.object({}),
+    ejecutar: async () => json({ finca: ctx.fincaNombre, rol: ctx.rol, ...alcanceDelPlan(ctx.rol, ctx.plan) }),
+  });
 
   return lista;
 }

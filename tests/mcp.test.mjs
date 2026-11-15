@@ -107,8 +107,8 @@ const datos = {
 const ctx = (rol, plan = "hacienda") => ({ fincaNombre: "Finca Prueba", rol, plan, hoy: "2026-11-14", moneda: "COP" });
 const nombres = (rol, plan) => herramientasPara(ctx(rol, plan), datos).map((h) => h.nombre).sort();
 
-test("herramientas: todos los roles reciben las mismas cuatro, pero cada uno solo ve las áreas de su rol", async () => {
-  const todas = ["buscar_animal", "produccion_de_leche", "resumen_de_hoy", "semaforos"];
+test("herramientas: todos los roles reciben las mismas cinco, pero cada uno solo ve las áreas de su rol", async () => {
+  const todas = ["buscar_animal", "mi_plan", "produccion_de_leche", "resumen_de_hoy", "semaforos"];
   for (const rol of ["propietario", "administrador", "veterinario", "ordenador", "contador"]) assert.deepEqual(nombres(rol), todas, rol);
   const prueba = async (rol, area) => {
     const h = herramientasPara(ctx(rol), datos).find((x) => x.nombre === "semaforos");
@@ -121,6 +121,52 @@ test("herramientas: todos los roles reciben las mismas cuatro, pero cada uno sol
   await assert.doesNotReject(() => prueba("ordenador", "leche"));
   await assert.doesNotReject(() => prueba("contador", "dinero"));
   await assert.doesNotReject(() => prueba("veterinario", "sanidad"));
+});
+
+import { areasFueraDelPlan, alcanceDelPlan } from "../lib/mcp/plan.ts";
+import { areasSemaforo } from "../lib/semaforos.ts";
+
+const TEMAS = { cria: ["reproduccion", "sanidad", "leche"], hato: ["reproduccion", "sanidad", "leche", "corrales", "inventario", "alimento"] };
+TEMAS.profesional = [...TEMAS.hato, "ceba", "dinero"];
+TEMAS.hacienda = TEMAS.profesional;
+
+test("plan: lo que el propietario puede preguntar sigue la escalera Cría → Hato → Profesional → Hacienda", () => {
+  for (const [plan, esperado] of Object.entries(TEMAS)) assert.deepEqual([...areasSemaforo("propietario", plan)].sort(), [...esperado].sort(), plan);
+  for (const plan of Object.keys(TEMAS)) {
+    const n = herramientasPara(ctx("propietario", plan), datos).map((h) => h.nombre);
+    assert.ok(n.includes("buscar_animal") && n.includes("produccion_de_leche") && n.includes("mi_plan"), `${plan}: básicas en todos los planes`);
+  }
+});
+
+test("plan: lo que está fuera del plan se explica (desde qué plan y quién lo mejora), sin inventar", async () => {
+  const cria = areasFueraDelPlan("propietario", "cria");
+  assert.deepEqual(cria.map((f) => [f.area, f.desdePlan]).sort(), [["alimento", "hato"], ["ceba", "profesional"], ["corrales", "hato"], ["dinero", "profesional"], ["inventario", "hato"]]);
+  assert.deepEqual(areasFueraDelPlan("propietario", "profesional"), []);
+  assert.deepEqual(areasFueraDelPlan("propietario", "hacienda"), []);
+
+  const sem = herramientasPara(ctx("propietario", "cria"), datos).find((x) => x.nombre === "semaforos");
+  await assert.rejects(() => sem.ejecutar(sem.entrada.parse({ area: "dinero" })), (e) => e instanceof ErrorHerramienta && /plan Cría/.test(e.message) && /plan Profesional/.test(e.message) && /Mi finca → Plan/.test(e.message) && /no inventes/i.test(e.message));
+  const semAdm = herramientasPara(ctx("administrador", "cria"), datos).find((x) => x.nombre === "semaforos");
+  await assert.rejects(() => semAdm.ejecutar(semAdm.entrada.parse({ area: "corrales" })), (e) => /propietario/.test(e.message) && /plan Hato/.test(e.message));
+  // Un tema que el ROL no ve (no es cuestión de plan) no habla de mejorar el plan.
+  const semOrd = herramientasPara(ctx("ordenador", "hacienda"), datos).find((x) => x.nombre === "semaforos");
+  await assert.rejects(() => semOrd.ejecutar(semOrd.entrada.parse({ area: "dinero" })), (e) => /rol/.test(e.message) && !/mejorar/i.test(e.message));
+});
+
+test("plan: resumen_de_hoy y mi_plan avisan lo que no está incluido y solo cuando hace falta", async () => {
+  const res = async (plan) => JSON.parse(await herramientasPara(ctx("propietario", plan), datos).find((x) => x.nombre === "resumen_de_hoy").ejecutar({}));
+  const c = await res("cria");
+  assert.ok(c.temas_no_incluidos_en_el_plan.some((t) => t.tema === "Dinero" && t.disponible_desde_el_plan === "Profesional"));
+  assert.ok(c.temas_no_incluidos_en_el_plan.some((t) => t.tema === "Corrales" && t.disponible_desde_el_plan === "Hato"));
+  assert.match(c.aviso_para_el_asistente, /mi_plan/);
+  const h = await res("hacienda");
+  assert.equal(h.temas_no_incluidos_en_el_plan, undefined);
+  assert.equal(h.aviso_para_el_asistente, undefined);
+  const mi = JSON.parse(await herramientasPara(ctx("propietario", "hato"), datos).find((x) => x.nombre === "mi_plan").ejecutar({}));
+  assert.equal(mi.plan, "Hato");
+  assert.ok(mi.temas_incluidos.includes("Corrales") && !mi.temas_incluidos.includes("Dinero"));
+  assert.deepEqual(mi.temas_no_incluidos.map((t) => t.tema).sort(), ["Ceba", "Dinero"]);
+  assert.equal(alcanceDelPlan("propietario", "hacienda").como_mejorar, null);
 });
 
 test("herramientas: resumen_de_hoy cuenta por nivel, deja primero lo rojo y recorta los casos", async () => {
