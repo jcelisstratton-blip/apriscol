@@ -101,7 +101,12 @@ export type Finca = {
   nombre: string;
   departamento: string | null;
   municipio: string | null;
-  /** Códigos DIVIPOLA (DANE) de la ubicación: los calcula `divipola_codigos` a partir del nombre. */
+  /** País de la finca (ISO alfa-2, `geo_paises`): de él depende el catálogo de divisiones y cómo se llaman sus niveles. */
+  pais: string;
+  /** Códigos oficiales del primer y segundo nivel (departamento/municipio en CO, provincia/cantón en EC), de `geo_codigos`. */
+  nivel1_codigo: string | null;
+  nivel2_codigo: string | null;
+  /** Los mismos códigos, solo Colombia; se quitarán cuando todo lea `nivel1_codigo` y `nivel2_codigo`. */
   departamento_dane: string | null;
   municipio_dane: string | null;
   vereda: string | null;
@@ -316,7 +321,10 @@ export type Feria = {
   nivel: NivelFeria;
   departamento: string | null;
   municipio: string | null;
-  /** Códigos DIVIPOLA (DANE) de dónde fue la feria. */
+  /** País y códigos oficiales de dónde fue la feria (como en `Finca`). */
+  pais: string;
+  nivel1_codigo: string | null;
+  nivel2_codigo: string | null;
   departamento_dane: string | null;
   municipio_dane: string | null;
   fecha_inicio: string;
@@ -1625,6 +1633,7 @@ export type Database = {
       v_pediluvio_animal: { Row: { animal_id: string; finca_id: string; ultima_fecha: string | null }; Relationships: [] };
     };
     Functions: {
+      geo_codigos: { Args: { p_pais: string; p_nivel1: string; p_nivel2: string }; Returns: { nivel1_codigo: string | null; nivel2_codigo: string | null }[] };
       divipola_codigos: { Args: { p_departamento: string; p_municipio: string }; Returns: { departamento_dane: string | null; municipio_dane: string | null }[] };
       registrar_animal: { Args: { p_finca: string; p_animal: unknown; p_fecha_ultimo_parto?: string | null }; Returns: string };
       registrar_parto: { Args: { p_finca: string; p_parto: unknown; p_crias: unknown }; Returns: unknown };

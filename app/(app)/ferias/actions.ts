@@ -11,7 +11,7 @@ import { mensajeAmigable } from "@/lib/mensaje-amigable";
 import { RESULTADOS, TIPOS_FOTO } from "@/lib/ferias";
 import { leerNumero } from "@/lib/numeros";
 import { opcional } from "@/lib/validacion";
-import { codigosDane } from "@/lib/ubicacion";
+import { codigosUbicacion } from "@/lib/ubicacion";
 
 export type EstadoForm = { error?: string } | undefined;
 
@@ -39,7 +39,7 @@ export async function editarFeria(_: EstadoForm, form: FormData): Promise<Estado
   const d = datos.data;
 
   const supabase = await crearClienteServidor();
-  const codigos = await codigosDane(supabase, d.departamento, d.municipio);
+  const codigos = await codigosUbicacion(supabase, d.departamento, d.municipio, finca.pais);
   const { data, error } = await supabase
     .from("ferias")
     .update({
@@ -134,7 +134,7 @@ export async function crearParticipacion(_: EstadoForm, form: FormData): Promise
   if (feriaId === "nueva") {
     const nueva = esquemaFeria.safeParse(Object.fromEntries(form));
     if (!nueva.success) return { error: nueva.error.issues[0]?.message };
-    const codigos = await codigosDane(supabase, nueva.data.departamento, nueva.data.municipio);
+    const codigos = await codigosUbicacion(supabase, nueva.data.departamento, nueva.data.municipio, finca.pais);
     const { data: creada, error: errFeria } = await supabase.from("ferias").insert({ ...nueva.data, ...codigos, finca_id: finca.id }).select("id").single();
     if (creada) {
       feriaId = creada.id;

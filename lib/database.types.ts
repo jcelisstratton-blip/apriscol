@@ -1932,6 +1932,9 @@ export type Database = {
           id: string
           municipio: string | null
           municipio_dane: string | null
+          nivel1_codigo: string | null
+          nivel2_codigo: string | null
+          pais: string
           nivel: string
           nombre: string
           notas: string | null
@@ -1949,6 +1952,9 @@ export type Database = {
           id?: string
           municipio?: string | null
           municipio_dane?: string | null
+          nivel1_codigo?: string | null
+          nivel2_codigo?: string | null
+          pais?: string
           nivel?: string
           nombre: string
           notas?: string | null
@@ -1966,6 +1972,9 @@ export type Database = {
           id?: string
           municipio?: string | null
           municipio_dane?: string | null
+          nivel1_codigo?: string | null
+          nivel2_codigo?: string | null
+          pais?: string
           nivel?: string
           nombre?: string
           notas?: string | null
@@ -1973,6 +1982,27 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "ferias_nivel1_fkey"
+            columns: ["pais", "nivel1_codigo"]
+            isOneToOne: false
+            referencedRelation: "geo_divisiones"
+            referencedColumns: ["pais", "codigo"]
+          },
+          {
+            foreignKeyName: "ferias_nivel2_fkey"
+            columns: ["pais", "nivel2_codigo"]
+            isOneToOne: false
+            referencedRelation: "geo_divisiones"
+            referencedColumns: ["pais", "codigo"]
+          },
+          {
+            foreignKeyName: "ferias_pais_fkey"
+            columns: ["pais"]
+            isOneToOne: false
+            referencedRelation: "geo_paises"
+            referencedColumns: ["codigo"]
+          },
           {
             foreignKeyName: "ferias_departamento_dane_fkey"
             columns: ["departamento_dane"]
@@ -2341,6 +2371,9 @@ export type Database = {
           longitud: number | null
           municipio: string | null
           municipio_dane: string | null
+          nivel1_codigo: string | null
+          nivel2_codigo: string | null
+          pais: string
           nombre: string
           plan: string
           plan_vence_en: string | null
@@ -2364,6 +2397,9 @@ export type Database = {
           longitud?: number | null
           municipio?: string | null
           municipio_dane?: string | null
+          nivel1_codigo?: string | null
+          nivel2_codigo?: string | null
+          pais?: string
           nombre: string
           plan?: string
           plan_vence_en?: string | null
@@ -2387,6 +2423,9 @@ export type Database = {
           longitud?: number | null
           municipio?: string | null
           municipio_dane?: string | null
+          nivel1_codigo?: string | null
+          nivel2_codigo?: string | null
+          pais?: string
           nombre?: string
           plan?: string
           plan_vence_en?: string | null
@@ -2397,6 +2436,27 @@ export type Database = {
           zona_horaria?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "fincas_nivel1_fkey"
+            columns: ["pais", "nivel1_codigo"]
+            isOneToOne: false
+            referencedRelation: "geo_divisiones"
+            referencedColumns: ["pais", "codigo"]
+          },
+          {
+            foreignKeyName: "fincas_nivel2_fkey"
+            columns: ["pais", "nivel2_codigo"]
+            isOneToOne: false
+            referencedRelation: "geo_divisiones"
+            referencedColumns: ["pais", "codigo"]
+          },
+          {
+            foreignKeyName: "fincas_pais_fkey"
+            columns: ["pais"]
+            isOneToOne: false
+            referencedRelation: "geo_paises"
+            referencedColumns: ["codigo"]
+          },
           {
             foreignKeyName: "fincas_departamento_dane_fkey"
             columns: ["departamento_dane"]
@@ -2412,6 +2472,107 @@ export type Database = {
             referencedColumns: ["codigo"]
           },
         ]
+      }
+      geo_alias: {
+        Row: {
+          alias: string
+          codigo: string
+          pais: string
+        }
+        Insert: {
+          alias: string
+          codigo: string
+          pais: string
+        }
+        Update: {
+          alias?: string
+          codigo?: string
+          pais?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "geo_alias_pais_codigo_fkey"
+            columns: ["pais", "codigo"]
+            isOneToOne: false
+            referencedRelation: "geo_divisiones"
+            referencedColumns: ["pais", "codigo"]
+          },
+        ]
+      }
+      geo_divisiones: {
+        Row: {
+          codigo: string
+          nivel: number
+          nombre: string
+          padre_codigo: string | null
+          pais: string
+          tipo: string | null
+        }
+        Insert: {
+          codigo: string
+          nivel: number
+          nombre: string
+          padre_codigo?: string | null
+          pais: string
+          tipo?: string | null
+        }
+        Update: {
+          codigo?: string
+          nivel?: number
+          nombre?: string
+          padre_codigo?: string | null
+          pais?: string
+          tipo?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "geo_divisiones_pais_fkey"
+            columns: ["pais"]
+            isOneToOne: false
+            referencedRelation: "geo_paises"
+            referencedColumns: ["codigo"]
+          },
+          {
+            foreignKeyName: "geo_divisiones_pais_padre_codigo_fkey"
+            columns: ["pais", "padre_codigo"]
+            isOneToOne: false
+            referencedRelation: "geo_divisiones"
+            referencedColumns: ["pais", "codigo"]
+          },
+        ]
+      }
+      geo_paises: {
+        Row: {
+          activo: boolean
+          codigo: string
+          fuente: string
+          moneda_defecto: string
+          nivel1_nombre: string
+          nivel2_nombre: string
+          nombre: string
+          zona_horaria: string
+        }
+        Insert: {
+          activo?: boolean
+          codigo: string
+          fuente: string
+          moneda_defecto: string
+          nivel1_nombre: string
+          nivel2_nombre: string
+          nombre: string
+          zona_horaria: string
+        }
+        Update: {
+          activo?: boolean
+          codigo?: string
+          fuente?: string
+          moneda_defecto?: string
+          nivel1_nombre?: string
+          nivel2_nombre?: string
+          nombre?: string
+          zona_horaria?: string
+        }
+        Relationships: []
       }
       gastos: {
         Row: {
@@ -6297,6 +6458,8 @@ export type Database = {
       }
     }
     Functions: {
+      geo_codigos: { Args: { p_pais: string; p_nivel1: string; p_nivel2: string }; Returns: { nivel1_codigo: string | null; nivel2_codigo: string | null }[] }
+      geo_normalizar: { Args: { p_texto: string }; Returns: string }
       divipola_codigos: { Args: { p_departamento: string; p_municipio: string }; Returns: { departamento_dane: string | null; municipio_dane: string | null }[] }
       aceptar_invitacion: { Args: { p_token: string }; Returns: string }
       invitar_persona: { Args: { p_finca: string; p_persona: string; p_email: string; p_rol: string }; Returns: string }
