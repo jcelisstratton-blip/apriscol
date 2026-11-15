@@ -1,4 +1,4 @@
-import { Activity, Inbox, CalendarCheck, Coins, Crown, Download, FileBarChart2, FileSpreadsheet, GitFork, Gift, Home, Package, Plug, Plus, SlidersHorizontal, Sprout, TrendingUp, Trophy, Users, Wallet, Wrench } from "lucide-react";
+import { Activity, Inbox, CalendarCheck, Coins, Crown, Download, FileBarChart2, FileSpreadsheet, GitFork, Gift, Home, Package, Plug, Plus, Send, SlidersHorizontal, Sprout, TrendingUp, Trophy, Users, Wallet, Wrench } from "lucide-react";
 import { escena, ESC, ESCENA_HATO, type EscenaDef } from "@/lib/escenas";
 import { ESCENA_TODOS_INVENTARIO } from "@/lib/escenas-inventario";
 import { menuFinca, menuPrincipal, visibilidadMenu, type EntradaMenu } from "@/lib/menu";
@@ -28,7 +28,6 @@ export const OMITIDAS: Record<string, string> = {
   "/mas/finca": "Datos básicos de la finca: no convence a nadie de registrarse.",
   "/mas/plan": "Los planes tienen su propia sección.",
   "/mas/tutoriales": "Es ayuda para quien ya tiene cuenta (videos paso a paso): no es una función que convenza de registrarse.",
-  "/mas/telegram": "Los avisos por Telegram están en piloto: se presentan en la página cuando el equipo los active para todas las fincas.",
 };
 
 export const CONTENIDO: Record<string, ContenidoOpcion> = {
@@ -130,6 +129,11 @@ export const CONTENIDO: Record<string, ContenidoOpcion> = {
     escena: ESC.equipo,
     lema: "Cada quien ve lo suyo",
     puntos: ["Invita al ordeñador, al veterinario y al contador", "Cada rol entra solo a lo que le toca", "Tú decides quién entra y quién sale"],
+  },
+  "/mas/telegram": {
+    escena: escena(Send, "ocre", Activity),
+    lema: "Lo que toca hoy, en tu Telegram",
+    puntos: ["Tu resumen del día a la hora que elijas, según tu rol y tu plan", "Botones que abren el punto exacto en la app, ya con tu sesión", "Escribe /hoy cuando quieras; lo puedes pausar o desconectar"],
   },
   "/mas/ia": {
     escena: escena(Plug, "arcilla", Activity),

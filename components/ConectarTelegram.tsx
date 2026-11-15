@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useTransition } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ExternalLink, Send } from "lucide-react";
 import { Aviso } from "@/components/Aviso";
@@ -16,7 +17,8 @@ const TONO: Record<EstadoVinculo, "neutro" | "ok" | "aviso" | "alerta"> = { pend
  * Conectar el Telegram de la persona: pide un código, abre el bot con el código puesto y espera a que la conexión se confirme (revisa cada pocos segundos
  * mientras el código está vigente). Sin código no hay nada que escribir: la persona solo toca «Abrir Telegram» y luego «Iniciar».
  */
-export function ConectarTelegram({ finca, estado, bot, avisos }: { finca: string; estado: EstadoVinculo; bot: string; avisos: string | null }) {
+/** `gestiona`: el propietario y el administrador fijan los avisos de su equipo, y también los suyos: para ellos «activar» está en Equipo → Avisos por Telegram. */
+export function ConectarTelegram({ finca, estado, bot, avisos, gestiona = false }: { finca: string; estado: EstadoVinculo; bot: string; avisos: string | null; gestiona?: boolean }) {
   const router = useRouter();
   const toast = useToast();
   const [codigo, setCodigo] = useState<{ valor: string; vence: number } | null>(null);
@@ -74,7 +76,16 @@ export function ConectarTelegram({ finca, estado, bot, avisos }: { finca: string
       {estado === "activo" ? (
         <div className="space-y-2">
           <p className="text-[0.9375rem]">Recibes los avisos de esta finca en tu Telegram.</p>
-          <p className="text-[0.9375rem] text-humo">{avisos ?? "El propietario o el administrador de tu finca todavía no te activó los avisos: cuando lo haga, te llegan aquí."}</p>
+          {avisos ? (
+            <p className="text-[0.9375rem] text-humo">{avisos}</p>
+          ) : gestiona ? (
+            <div className="space-y-2">
+              <p className="text-[0.9375rem] text-humo">Ya está conectado, pero todavía no activaste tus avisos: elige la hora y qué quieres recibir.</p>
+              <Link href="/mas/miembros/avisos" className="inline-flex min-h-11 items-center text-[0.9375rem] font-semibold text-musgo underline underline-offset-4">Activar mis avisos</Link>
+            </div>
+          ) : (
+            <p className="text-[0.9375rem] text-humo">El propietario o el administrador de tu finca todavía no te activó los avisos: cuando lo haga, te llegan aquí.</p>
+          )}
           <p className="text-sm text-humo">En el chat con el bot: /hoy para ver tu resumen ahora, /pausar para silenciarlo y /reanudar para volver a recibirlo.</p>
         </div>
       ) : estado === "pausado" ? (
