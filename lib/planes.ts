@@ -33,6 +33,7 @@ export const PLANES: Plan[] = [
       "Sanidad con periodos de retiro",
       "Servicios, gestación y partos",
       "Traer tus animales del libro genealógico",
+      "Pregúntale a Claude por tu finca (solo lectura, según tu plan)",
     ],
   },
   {
