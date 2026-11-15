@@ -113,6 +113,7 @@ El detalle de cada módulo vive en `docs/modulos/`. Léelo antes de cambiar su c
 - [`docs/modulos/presentacion-planes.md`](docs/modulos/presentacion-planes.md) — Pantalla de entrada, legales y planes: Pantalla de entrada
 - [`docs/modulos/al-grano.md`](docs/modulos/al-grano.md) — Al grano: el botón del rayo con buscador de atajos; toda entrada del menú y toda pantalla de «crear» debe tener su atajo (lo exige `tests/menu.test.mjs`); aviso de primera vez en Hoy durante el primer mes de la cuenta
 - [`docs/modulos/mcp.md`](docs/modulos/mcp.md) — Conexión con IA (MCP): servidor `POST /api/mcp` de solo lectura con token personal (solo la huella en la base), herramientas por rol (`resumen_de_hoy`, `semaforos`, `buscar_animal`, `produccion_de_leche`) que corren como la persona (RLS), sin llave de servicio para los datos
+- [`docs/modulos/ubicacion-dane.md`](docs/modulos/ubicacion-dane.md) — Ubicación con código DANE: `fincas` y `ferias` guardan el nombre y los códigos DIVIPOLA de departamento y municipio (`divipola_codigos`, `lib/ubicacion.ts`); la feria siempre pide dónde fue
 - [`docs/modulos/tutoriales.md`](docs/modulos/tutoriales.md) — Tutoriales: los videos de la serie del canal de YouTube dentro de la app (Mi finca → Tutoriales), con avance, buscador y reproductor; la lista de videos vive en `lib/tutoriales.ts`
 
 ## Escribir en varias tablas = una sola transacción

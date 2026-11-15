@@ -1925,11 +1925,13 @@ export type Database = {
           created_at: string
           created_by: string | null
           departamento: string | null
+          departamento_dane: string | null
           fecha_fin: string | null
           fecha_inicio: string
           finca_id: string
           id: string
           municipio: string | null
+          municipio_dane: string | null
           nivel: string
           nombre: string
           notas: string | null
@@ -1940,11 +1942,13 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           departamento?: string | null
+          departamento_dane?: string | null
           fecha_fin?: string | null
           fecha_inicio: string
           finca_id: string
           id?: string
           municipio?: string | null
+          municipio_dane?: string | null
           nivel?: string
           nombre: string
           notas?: string | null
@@ -1955,11 +1959,13 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           departamento?: string | null
+          departamento_dane?: string | null
           fecha_fin?: string | null
           fecha_inicio?: string
           finca_id?: string
           id?: string
           municipio?: string | null
+          municipio_dane?: string | null
           nivel?: string
           nombre?: string
           notas?: string | null
@@ -1967,6 +1973,20 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "ferias_departamento_dane_fkey"
+            columns: ["departamento_dane"]
+            isOneToOne: false
+            referencedRelation: "divipola_departamentos"
+            referencedColumns: ["codigo"]
+          },
+          {
+            foreignKeyName: "ferias_municipio_dane_fkey"
+            columns: ["municipio_dane"]
+            isOneToOne: false
+            referencedRelation: "divipola_municipios"
+            referencedColumns: ["codigo"]
+          },
           {
             foreignKeyName: "ferias_finca_id_fkey"
             columns: ["finca_id"]
@@ -2313,12 +2333,14 @@ export type Database = {
           created_at: string
           created_by: string | null
           departamento: string | null
+          departamento_dane: string | null
           especies: Database["public"]["Enums"]["especie"][]
           id: string
           latitud: number | null
           logo_path: string | null
           longitud: number | null
           municipio: string | null
+          municipio_dane: string | null
           nombre: string
           plan: string
           plan_vence_en: string | null
@@ -2334,12 +2356,14 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           departamento?: string | null
+          departamento_dane?: string | null
           especies?: Database["public"]["Enums"]["especie"][]
           id?: string
           latitud?: number | null
           logo_path?: string | null
           longitud?: number | null
           municipio?: string | null
+          municipio_dane?: string | null
           nombre: string
           plan?: string
           plan_vence_en?: string | null
@@ -2355,12 +2379,14 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           departamento?: string | null
+          departamento_dane?: string | null
           especies?: Database["public"]["Enums"]["especie"][]
           id?: string
           latitud?: number | null
           logo_path?: string | null
           longitud?: number | null
           municipio?: string | null
+          municipio_dane?: string | null
           nombre?: string
           plan?: string
           plan_vence_en?: string | null
@@ -2370,7 +2396,22 @@ export type Database = {
           vereda?: string | null
           zona_horaria?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fincas_departamento_dane_fkey"
+            columns: ["departamento_dane"]
+            isOneToOne: false
+            referencedRelation: "divipola_departamentos"
+            referencedColumns: ["codigo"]
+          },
+          {
+            foreignKeyName: "fincas_municipio_dane_fkey"
+            columns: ["municipio_dane"]
+            isOneToOne: false
+            referencedRelation: "divipola_municipios"
+            referencedColumns: ["codigo"]
+          },
+        ]
       }
       gastos: {
         Row: {
@@ -6256,6 +6297,7 @@ export type Database = {
       }
     }
     Functions: {
+      divipola_codigos: { Args: { p_departamento: string; p_municipio: string }; Returns: { departamento_dane: string | null; municipio_dane: string | null }[] }
       aceptar_invitacion: { Args: { p_token: string }; Returns: string }
       invitar_persona: { Args: { p_finca: string; p_persona: string; p_email: string; p_rol: string }; Returns: string }
       renovar_invitacion: { Args: { p_id: string }; Returns: string }
