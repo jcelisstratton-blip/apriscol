@@ -18,6 +18,7 @@ import {
   miniatura,
   siguienteDisponible,
   urlIncrustada,
+  urlLista,
   urlYoutube,
   type Tutorial,
 } from "@/lib/tutoriales";
@@ -144,6 +145,11 @@ function Destacado({ proximo, total, vistos, onAbrir }: { proximo: Tutorial | nu
             <p className="text-[0.9375rem] opacity-90">Ya conoces Apriscol de principio a fin. Cuando se publiquen más, aparecerán aquí.</p>
           </>
         )}
+        {urlLista() ? (
+          <a href={urlLista() ?? undefined} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center gap-1.5 self-start text-[0.9375rem] font-semibold underline-offset-4 hover:underline">
+            Ver la serie completa en YouTube <ExternalLink className="size-4" strokeWidth={1.75} aria-hidden="true" />
+          </a>
+        ) : null}
         {total > 0 ? (
           <div className="mt-1">
             <div className="h-2 overflow-hidden rounded-full bg-white/20" role="progressbar" aria-valuemin={0} aria-valuemax={total} aria-valuenow={vistos} aria-label="Tutoriales vistos">

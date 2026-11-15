@@ -67,6 +67,12 @@ export const TUTORIALES: Tutorial[] = [
 
 const ID_YOUTUBE = /^[A-Za-z0-9_-]{11}$/;
 
+/** La lista de reproducción del canal con la serie completa, en orden (el identificador que sigue a `list=`). */
+export const LISTA_YOUTUBE = "PLdG_mLMTrkq8";
+const ID_LISTA = /^PL[A-Za-z0-9_-]{8,40}$/;
+/** El enlace de la lista completa, o `null` si el identificador no es válido. */
+export const urlLista = (id: string = LISTA_YOUTUBE): string | null => (ID_LISTA.test(id) ? `https://www.youtube.com/playlist?list=${id}` : null);
+
 /** ¿Ya se puede ver? Solo si tiene un identificador de YouTube válido. */
 export const disponible = (t: Tutorial): boolean => t.youtube !== null && ID_YOUTUBE.test(t.youtube);
 
