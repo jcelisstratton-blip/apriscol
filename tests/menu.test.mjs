@@ -99,7 +99,7 @@ test("novedades: es lo primero del menú; quien las revisa ve «Novedades», el 
   assert.ok(!menuPrincipal(visibilidadMenu("contador", "hato"))[0].entradas.some((e) => e.href === "/novedades"));
 });
 
-import { atajosPara } from "../lib/atajos.ts";
+import { ATAJOS, atajosPara } from "../lib/atajos.ts";
 test("novedades: «Crear una novedad» está en «Al grano» solo para el ordeñador y el veterinario; el administrador y el propietario las atienden, no las crean", () => {
   for (const rol of ["ordenador", "veterinario"]) {
     const a = atajosPara(rol, "hato").find((x) => x.href === "/novedades/nueva");
@@ -109,4 +109,53 @@ test("novedades: «Crear una novedad» está en «Al grano» solo para el ordeñ
   for (const rol of ["administrador", "propietario", "contador"]) assert.ok(!atajosPara(rol, "hato").some((x) => x.href === "/novedades/nueva"), rol);
   // Todos los que las atienden ven «Novedades» en «Al grano».
   for (const rol of ["administrador", "propietario", "veterinario"]) assert.ok(atajosPara(rol, "hato").some((x) => x.href === "/novedades"), rol);
+});
+
+
+const ruta = (href) => href.split("?")[0];
+const ROLES = ["propietario", "administrador", "veterinario", "ordenador", "contador"];
+const PLANES = ["cria", "hato", "profesional", "hacienda"];
+
+test("«Al grano»: toda entrada del menú que ve una persona tiene su atajo (misma pantalla), en cada rol y plan", () => {
+  const faltan = [];
+  for (const rol of ROLES) {
+    for (const plan of PLANES) {
+      const v = visibilidadMenu(rol, plan);
+      const entradas = [...menuPrincipal(v).flatMap((g) => g.entradas), ...menuFinca(v)];
+      const rutas = new Set(atajosPara(rol, plan).map((a) => ruta(a.href)));
+      for (const e of entradas) if (!rutas.has(ruta(e.href))) faltan.push(`${rol}/${plan}: ${e.etiqueta} (${e.href})`);
+    }
+  }
+  assert.deepEqual([...new Set(faltan)], [], "una entrada del menú se agrega también en lib/atajos.ts (Al grano)");
+});
+
+/** Rutas de «crear» que no llevan atajo propio, y por qué: son de un solo animal o de un lote (se entra por su ficha) o solo redirigen a otra pantalla que sí lo tiene. */
+const SIN_ATAJO = [
+  ["/hato/[id]/calidad/nuevo", "de un animal: desde su ficha"],
+  ["/hato/[id]/canal/nuevo", "de un animal: desde su ficha"],
+  ["/hato/[id]/peso/nuevo", "de un animal: «Pesar animales» y su ficha"],
+  ["/hato/[id]/reproduccion/diagnostico/nuevo", "de un animal: «Hembras del hato»"],
+  ["/hato/[id]/reproduccion/parto/nuevo", "de un animal: «Hembras del hato»"],
+  ["/hato/[id]/reproduccion/servicio/nuevo", "de un animal: «Hembras del hato»"],
+  ["/carne/lotes/[id]/consumo/nuevo", "de un lote: desde «Lotes de ceba»"],
+  ["/personal/nueva", "redirige a Equipo (que sí tiene atajo)"],
+  ["/sanidad/nuevo", "redirige a «Vacuna o tratamiento» (que sí tiene atajo)"],
+].map(([r]) => r);
+
+function rutasDeCrear(dir, base = "") {
+  const salida = [];
+  for (const nombre of readdirSync(dir)) {
+    const p = join(dir, nombre);
+    if (!statSync(p).isDirectory()) continue;
+    const segmento = nombre.startsWith("(") ? "" : `/${nombre}`;
+    if (nombre === "nuevo" || nombre === "nueva") salida.push(`${base}${segmento}`);
+    salida.push(...rutasDeCrear(p, `${base}${segmento}`));
+  }
+  return salida;
+}
+
+test("«Al grano»: toda pantalla de «crear» tiene su atajo, salvo las de un solo animal o lote (se entra por su ficha) y las que redirigen", () => {
+  const conAtajo = new Set(ATAJOS.map((a) => ruta(a.href)));
+  const sinAtajo = rutasDeCrear("app/(app)").filter((r) => !conAtajo.has(r) && !SIN_ATAJO.includes(r));
+  assert.deepEqual(sinAtajo, [], "una pantalla nueva con botón de «crear» se agrega en lib/atajos.ts (o se justifica en SIN_ATAJO)");
 });
