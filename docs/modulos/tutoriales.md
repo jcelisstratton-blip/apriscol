@@ -17,7 +17,7 @@ que nunca falla por permisos ni por la base.
 ## Decisiones
 
 - **La lista es una sola:** `lib/tutoriales.ts` (`TUTORIALES`). Un tutorial nuevo se agrega ahí con su número, título, resumen, duración, grupo y miniatura (`public/tutoriales/NN.webp`, NN con dos
-  cifras, 800×450). Cuando el video se sube a YouTube se le pone `youtube` (los 11 caracteres de `youtu.be/<id>`) y queda activo; hasta entonces es `null` («Próximamente»). Un identificador mal escrito
+  cifras, 800×450). Cuando el video se sube a YouTube se le pone `youtube` (los 11 caracteres de `youtu.be/<id>`) y queda activo; hasta entonces es `null` («Próximamente»). Desde noviembre de 2026 los 30 tutoriales (0 al 29) ya están publicados; el Tutorial 1 es la versión nueva, con las secciones de Telegram y Claude. La duración es la que muestra YouTube (se redondea hacia arriba). Un identificador mal escrito
   no se incrusta nunca (`disponible` lo valida).
 - **YouTube en privacidad reforzada:** se incrusta `https://www.youtube-nocookie.com/embed/<id>`. La política de contenido (`lib/cabeceras-seguridad.ts`) permite **solo** ese origen en `frame-src`.
   No se aloja ningún video en la app: no cuesta almacenamiento ni ancho de banda y suma vistas al canal.
