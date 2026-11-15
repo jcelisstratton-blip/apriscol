@@ -205,3 +205,22 @@ test("consentimiento: solo se aceptan identificadores de solicitud con formato s
   assert.ok(idAutorizacionValido("a1b2c3d4-e5f6-7890-abcd-ef1234567890"));
   for (const malo of [undefined, null, "", "corto", "a".repeat(201), "abc def ghi", "../../etc/passwd", "a1b2c3d4;drop", 5]) assert.equal(idAutorizacionValido(malo), false);
 });
+
+import { agruparPermisos } from "../lib/mcp/permisos.ts";
+
+test("permisos: varias veces «Claude» son una sola conexión, con el permiso más reciente, y se quitan juntas", () => {
+  const g = agruparPermisos([
+    { clientId: "a", nombre: "Claude", concedido: "2026-11-14T22:13:09Z" },
+    { clientId: "b", nombre: "Claude ", concedido: "2026-11-14T23:09:00Z" },
+    { clientId: "c", nombre: "claude", concedido: "2026-11-14T22:50:00Z" },
+    { clientId: "d", nombre: "Otro asistente", concedido: "2026-11-15T01:00:00Z" },
+    { clientId: "e", nombre: "", concedido: "2026-11-10T01:00:00Z" },
+  ]);
+  assert.equal(g.length, 3);
+  assert.equal(g[0].nombre, "Otro asistente");
+  const claude = g.find((x) => x.nombre === "Claude");
+  assert.deepEqual(claude.clientIds.sort(), ["a", "b", "c"]);
+  assert.equal(claude.ultimo, "2026-11-14T23:09:00Z");
+  assert.equal(g.find((x) => x.clientIds[0] === "e").nombre, "Asistente de IA");
+  assert.deepEqual(agruparPermisos([]), []);
+});

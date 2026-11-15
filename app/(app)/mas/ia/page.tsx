@@ -9,6 +9,7 @@ import { SITE_URL } from "@/lib/env";
 import { fechaHoraBogota } from "@/lib/fechas";
 import { AYUDA_IA } from "@/lib/ayuda";
 import { rutaMcp } from "@/lib/mcp/conexion";
+import { agruparPermisos } from "@/lib/mcp/permisos";
 import { crearClienteServidor } from "@/lib/supabase/server";
 
 export const metadata: Metadata = { title: "Conexión con IA" };
@@ -32,7 +33,7 @@ export default async function PaginaIa() {
           finca={finca.nombre}
           url={rutaMcp(SITE_URL)}
           // Las fechas se escriben aquí, en el servidor: si el navegador las formateara, «p. m.» no saldría igual y React tendría que rehacer la pantalla.
-          apps={(grants.data ?? []).map((g) => ({ clientId: g.client.id, nombre: g.client.name || "Asistente de IA", desde: fechaHoraBogota(g.granted_at) }))}
+          apps={agruparPermisos((grants.data ?? []).map((g) => ({ clientId: g.client.id, nombre: g.client.name, concedido: g.granted_at }))).map((g) => ({ ids: g.clientIds, nombre: g.nombre, desde: fechaHoraBogota(g.ultimo) }))}
         />
       </div>
     </>
