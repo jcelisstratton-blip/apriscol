@@ -11,6 +11,7 @@ import { mensajeAmigable } from "@/lib/mensaje-amigable";
 import type { RolFinca } from "@/lib/tipos";
 import { esMonedaValida } from "@/lib/moneda";
 import { BUCKET_LOGOS, TIPOS_LOGO, rutaLogoValida } from "@/lib/logo-finca";
+import { codigosDane } from "@/lib/ubicacion";
 
 export type EstadoFinca = { error?: string } | undefined;
 
@@ -40,9 +41,10 @@ export async function crearFinca(_: EstadoFinca, form: FormData): Promise<Estado
   const supabase = await crearClienteServidor();
   const { data: membresias } = await supabase.from("finca_miembros").select("rol").eq("user_id", user.id);
   if (!puedeAgregarFinca((membresias ?? []).map((m) => m.rol as RolFinca))) return { error: "Solo el propietario o un administrador puede agregar otra finca." };
+  const codigos = await codigosDane(supabase, datos.data.departamento, datos.data.municipio);
   const { data, error } = await supabase
     .from("fincas")
-    .insert({ ...datos.data, created_by: user.id })
+    .insert({ ...datos.data, ...codigos, created_by: user.id })
     .select("id")
     .single();
   if (error || !data) return { error: mensajeAmigable(error?.message ?? "") };
@@ -105,9 +107,10 @@ export async function editarFinca(_: EstadoFinca, form: FormData): Promise<Estad
     }
   }
 
+  const codigos = await codigosDane(supabase, d.departamento, d.municipio);
   const { error } = await supabase
     .from("fincas")
-    .update({ nombre: d.nombre, departamento: d.departamento ?? null, municipio: d.municipio ?? null, vereda: d.vereda ?? null, proposito: d.proposito, moneda: d.moneda, especies: d.especies, logo_path: logoNuevo })
+    .update({ nombre: d.nombre, departamento: d.departamento ?? null, municipio: d.municipio ?? null, ...codigos, vereda: d.vereda ?? null, proposito: d.proposito, moneda: d.moneda, especies: d.especies, logo_path: logoNuevo })
     .eq("id", finca.id);
   if (error) return { error: mensajeAmigable(error.message) };
 

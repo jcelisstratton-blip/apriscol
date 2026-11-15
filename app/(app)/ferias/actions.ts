@@ -11,6 +11,7 @@ import { mensajeAmigable } from "@/lib/mensaje-amigable";
 import { RESULTADOS, TIPOS_FOTO } from "@/lib/ferias";
 import { leerNumero } from "@/lib/numeros";
 import { opcional } from "@/lib/validacion";
+import { codigosDane } from "@/lib/ubicacion";
 
 export type EstadoForm = { error?: string } | undefined;
 
@@ -21,8 +22,9 @@ const numero = (s: z.ZodType<number>) => z.preprocess((v) => (typeof v === "stri
 const esquemaFeria = z.object({
   nombre: z.string().trim().min(2, "Escribe el nombre de la feria.").max(160),
   nivel: z.enum(["local", "regional", "nacional", "internacional"]),
-  departamento: opcional(z.string().trim().max(60)),
-  municipio: opcional(z.string().trim().max(80)),
+  // Dónde fue la feria se pide siempre: sirve para saber en qué zona se concursó.
+  departamento: z.preprocess((v) => v ?? "", z.string().trim().min(1, "Elige el departamento de la feria.").max(60)),
+  municipio: z.preprocess((v) => v ?? "", z.string().trim().min(1, "Elige el municipio de la feria.").max(80)),
   fecha_inicio: z.iso.date("Indica la fecha de la feria."),
 });
 
@@ -37,13 +39,15 @@ export async function editarFeria(_: EstadoForm, form: FormData): Promise<Estado
   const d = datos.data;
 
   const supabase = await crearClienteServidor();
+  const codigos = await codigosDane(supabase, d.departamento, d.municipio);
   const { data, error } = await supabase
     .from("ferias")
     .update({
       nombre: d.nombre,
       nivel: d.nivel,
-      departamento: d.departamento ?? null,
-      municipio: d.municipio ?? null,
+      departamento: d.departamento,
+      municipio: d.municipio,
+      ...codigos,
       fecha_inicio: d.fecha_inicio,
     })
     .eq("id", d.feria_id)
@@ -130,7 +134,8 @@ export async function crearParticipacion(_: EstadoForm, form: FormData): Promise
   if (feriaId === "nueva") {
     const nueva = esquemaFeria.safeParse(Object.fromEntries(form));
     if (!nueva.success) return { error: nueva.error.issues[0]?.message };
-    const { data: creada, error: errFeria } = await supabase.from("ferias").insert({ ...nueva.data, finca_id: finca.id }).select("id").single();
+    const codigos = await codigosDane(supabase, nueva.data.departamento, nueva.data.municipio);
+    const { data: creada, error: errFeria } = await supabase.from("ferias").insert({ ...nueva.data, ...codigos, finca_id: finca.id }).select("id").single();
     if (creada) {
       feriaId = creada.id;
     } else if (errFeria?.code === "23505") {

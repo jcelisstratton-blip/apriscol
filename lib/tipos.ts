@@ -101,6 +101,9 @@ export type Finca = {
   nombre: string;
   departamento: string | null;
   municipio: string | null;
+  /** Códigos DIVIPOLA (DANE) de la ubicación: los calcula `divipola_codigos` a partir del nombre. */
+  departamento_dane: string | null;
+  municipio_dane: string | null;
   vereda: string | null;
   latitud: number | null;
   longitud: number | null;
@@ -313,6 +316,9 @@ export type Feria = {
   nivel: NivelFeria;
   departamento: string | null;
   municipio: string | null;
+  /** Códigos DIVIPOLA (DANE) de dónde fue la feria. */
+  departamento_dane: string | null;
+  municipio_dane: string | null;
   fecha_inicio: string;
   fecha_fin: string | null;
   organizador: string | null;
@@ -1619,6 +1625,7 @@ export type Database = {
       v_pediluvio_animal: { Row: { animal_id: string; finca_id: string; ultima_fecha: string | null }; Relationships: [] };
     };
     Functions: {
+      divipola_codigos: { Args: { p_departamento: string; p_municipio: string }; Returns: { departamento_dane: string | null; municipio_dane: string | null }[] };
       registrar_animal: { Args: { p_finca: string; p_animal: unknown; p_fecha_ultimo_parto?: string | null }; Returns: string };
       registrar_parto: { Args: { p_finca: string; p_parto: unknown; p_crias: unknown }; Returns: unknown };
       eliminar_parto: { Args: { p_finca: string; p_parto: string }; Returns: string };

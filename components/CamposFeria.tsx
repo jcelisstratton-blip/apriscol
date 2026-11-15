@@ -45,7 +45,7 @@ export function CamposFeria({ feria }: { feria?: DatosFeria }) {
         )}
       </Campo>
 
-      <CamposUbicacion departamentoInicial={feria?.departamento ?? ""} municipioInicial={feria?.municipio ?? ""} />
+      <CamposUbicacion departamentoInicial={feria?.departamento ?? ""} municipioInicial={feria?.municipio ?? ""} requerido />
 
       <Campo etiqueta="Fecha de la feria">
         {(id) => <input id={id} name="fecha_inicio" type="date" defaultValue={feria?.fecha_inicio} required className={CLASE_INPUT} />}

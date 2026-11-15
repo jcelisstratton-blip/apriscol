@@ -8,16 +8,19 @@ import { municipiosDe } from "@/lib/municipios";
 
 /**
  * Departamento y municipio: el municipio solo ofrece los del departamento elegido, y se vacía si se cambia a un departamento
- * donde ya no existe. Envía `departamento` y `municipio` con el formulario.
+ * donde ya no existe. Envía `departamento` y `municipio` con el formulario. Con `requerido` no ofrece «Sin especificar» (la acción del servidor
+ * también lo exige); sin él, los dos pueden quedar vacíos.
  */
 export function CamposUbicacion({
   departamentoInicial = "",
   municipioInicial = "",
   etiquetaMunicipio = "Municipio",
+  requerido = false,
 }: {
   departamentoInicial?: string;
   municipioInicial?: string;
   etiquetaMunicipio?: string;
+  requerido?: boolean;
 }) {
   const [depto, setDepto] = useState(departamentoInicial);
   const [mpio, setMpio] = useState(municipioInicial);
@@ -42,8 +45,8 @@ export function CamposUbicacion({
             opciones={DEPARTAMENTOS.map((d) => ({ valor: d, etiqueta: d }))}
             onCambio={(v) => cambiarDepartamento(String(v))}
             titulo="Departamento"
-            placeholder="Sin especificar"
-            permitirVacio
+            placeholder={requerido ? "Elige el departamento" : "Sin especificar"}
+            permitirVacio={!requerido}
           />
         )}
       </Campo>
@@ -56,8 +59,8 @@ export function CamposUbicacion({
             opciones={nombres.map((m) => ({ valor: m, etiqueta: m }))}
             onCambio={(v) => setMpio(String(v))}
             titulo={`Municipio de ${depto || "…"}`}
-            placeholder={depto ? "Sin especificar" : "Elige primero el departamento"}
-            permitirVacio
+            placeholder={depto ? (requerido ? "Elige el municipio" : "Sin especificar") : "Elige primero el departamento"}
+            permitirVacio={!requerido}
             deshabilitado={!depto}
           />
         )}
