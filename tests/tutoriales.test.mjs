@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
-import { ANUNCIO_TUTORIALES_HASTA, DIAS_AVISO_FINCA_NUEVA, GRUPOS_TUTORIAL, TUTORIALES, anteriorDisponible, avisoTutorialesVisible, buscarTutoriales, disponible, miniatura, numeroDeEnlace, proximoSinVer, rutaTutorial, siguienteDisponible, urlIncrustada, urlYoutube, vistosDesde } from "../lib/tutoriales.ts";
+import { ANUNCIO_TUTORIALES_HASTA, DIAS_AVISO_FINCA_NUEVA, GRUPOS_TUTORIAL, TUTORIALES, anteriorDisponible, avisoTutorialesVisible, buscarTutoriales, disponible, miniatura, numeroDeEnlace, proximoSinVer, rutaTutorial, siguienteDisponible, urlIncrustada, urlLista, urlYoutube, vistosDesde, LISTA_YOUTUBE } from "../lib/tutoriales.ts";
 import * as ayudas from "../lib/ayuda.ts";
 import { sinTildes } from "../lib/texto.ts";
 
@@ -113,4 +113,11 @@ test("ayudas «¿Cómo funciona?»: cada módulo apunta a un tutorial que existe
   assert.equal(ayudas.AYUDA_ORDENO.tutorial, 5);
   assert.equal(ayudas.AYUDA_CEBA.tutorial, 14);
   assert.equal(ayudas.AYUDA_CORRALES.tutorial, 13);
+});
+
+test("tutoriales: la lista de reproducción del canal tiene un enlace válido y uno dañado no se usa", () => {
+  assert.equal(urlLista(), `https://www.youtube.com/playlist?list=${LISTA_YOUTUBE}`);
+  assert.match(urlLista(), /^https:\/\/www\.youtube\.com\/playlist\?list=PL[A-Za-z0-9_-]+$/);
+  assert.equal(urlLista("abc\"><script>"), null);
+  assert.equal(urlLista(""), null);
 });
