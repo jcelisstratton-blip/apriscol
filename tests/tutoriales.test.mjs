@@ -5,8 +5,8 @@ import { ANUNCIO_TUTORIALES_HASTA, DIAS_AVISO_FINCA_NUEVA, GRUPOS_TUTORIAL, TUTO
 import * as ayudas from "../lib/ayuda.ts";
 import { sinTildes } from "../lib/texto.ts";
 
-test("tutoriales: están todos (del 0 al 28), con su grupo, su duración y su miniatura", () => {
-  assert.deepEqual(TUTORIALES.map((t) => t.numero), Array.from({ length: 29 }, (_, i) => i));
+test("tutoriales: están todos (del 0 al 29), con su grupo, su duración y su miniatura", () => {
+  assert.deepEqual(TUTORIALES.map((t) => t.numero), Array.from({ length: 30 }, (_, i) => i));
   const grupos = new Set(GRUPOS_TUTORIAL.map((g) => g.id));
   for (const t of TUTORIALES) {
     assert.ok(t.titulo.trim().length > 3 && t.resumen.trim().length > 10, `tutorial ${t.numero}: título o resumen vacío`);
@@ -49,8 +49,8 @@ test("tutoriales: siguiente y anterior saltan los que todavía no se pueden ver"
 });
 
 test("tutoriales: la búsqueda no distingue tildes ni mayúsculas, y vacía devuelve todo", () => {
-  assert.equal(buscarTutoriales("", sinTildes).length, 29);
-  assert.equal(buscarTutoriales("   ", sinTildes).length, 29);
+  assert.equal(buscarTutoriales("", sinTildes).length, 30);
+  assert.equal(buscarTutoriales("   ", sinTildes).length, 30);
   assert.ok(buscarTutoriales("ORDENO", sinTildes).some((t) => t.titulo === "Ordeño y leche"));
   assert.ok(buscarTutoriales("excel", sinTildes).length >= 2);
   assert.equal(buscarTutoriales("xyzzy", sinTildes).length, 0);
@@ -78,8 +78,9 @@ test("tutoriales: el enlace «?ver=N» solo abre un tutorial que existe", () => 
   assert.equal(numeroDeEnlace("26"), 26);
   assert.equal(numeroDeEnlace("27"), 27);
   assert.equal(numeroDeEnlace("28"), 28);
+  assert.equal(numeroDeEnlace("29"), 29);
   assert.equal(numeroDeEnlace(["3", "4"]), 3);
-  for (const malo of [undefined, "", "29", "99", "-1", "5.5", "abc", "5;6", "<script>", "1e1", "000"]) assert.equal(numeroDeEnlace(malo), null, `«${malo}»`);
+  for (const malo of [undefined, "", "30", "99", "-1", "5.5", "abc", "5;6", "<script>", "1e1", "000"]) assert.equal(numeroDeEnlace(malo), null, `«${malo}»`);
 });
 
 test("tutoriales: Hoy los ofrece a las fincas nuevas y, por ser algo nuevo, a todas hasta el día del anuncio", () => {

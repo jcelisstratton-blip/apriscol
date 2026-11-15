@@ -29,6 +29,9 @@ export const GRUPOS_TUTORIAL: { id: GrupoTutorial; titulo: string; detalle: stri
   { id: "equipo", titulo: "Equipo y cuenta", detalle: "Tu equipo, tu finca y tu cuenta" },
 ];
 
+/** El tutorial de «Al grano»: su tarjeta de video va al pie de la hoja. */
+export const TUTORIAL_AL_GRANO = 29;
+
 export const TUTORIALES: Tutorial[] = [
   { numero: 0, titulo: "¿Qué es Apriscol? Para qué sirve", resumen: "Qué es Apriscol, a quién ayuda y qué problemas resuelve, explicado sin tecnicismos.", duracion: "5:33", grupo: "empezar", youtube: "chsXttohDQ4" },
   { numero: 1, titulo: "Pantalla de entrada", resumen: "Conoce la pantalla de entrada de Apriscol y todo lo que resuelve para tu aprisco.", duracion: "7:04", grupo: "empezar", youtube: "8enmMPtKgdI" },
@@ -59,6 +62,7 @@ export const TUTORIALES: Tutorial[] = [
   { numero: 26, titulo: "Cuenta, invitación y plan vencido", resumen: "Recupera tu clave, acepta invitaciones y qué hacer si tu plan vence.", duracion: "5:13", grupo: "equipo", youtube: null },
   { numero: 27, titulo: "Recorrido por el Hato", resumen: "Los filtros, la lista y las tarjetas de trabajo del Hato: el mapa para llegar a cada módulo.", duracion: "3:55", grupo: "empezar", youtube: null },
   { numero: 28, titulo: "Conecta Claude con tu finca", resumen: "Conecta Claude a tu cuenta para preguntarle qué atender hoy, cómo va la leche o buscar un animal. Solo lee, y lo quitas cuando quieras.", duracion: "4:00", grupo: "equipo", youtube: null },
+  { numero: 29, titulo: "Encuentra todo con «Al grano»", resumen: "El botón del rayo: escribe lo que quieres hacer y la app te lleva directo, sin buscar en los menús.", duracion: "3:00", grupo: "dia", youtube: null },
 ];
 
 const ID_YOUTUBE = /^[A-Za-z0-9_-]{11}$/;
