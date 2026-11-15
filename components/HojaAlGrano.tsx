@@ -4,7 +4,9 @@ import { useState } from "react";
 import Link from "next/link";
 import { Search, X } from "lucide-react";
 import { Sheet } from "@/components/Sheet";
+import { TarjetaVideo } from "@/components/TarjetaVideo";
 import { atajosPara, coincideAtajo, GRUPOS_ATAJO, type TipoAtajo } from "@/lib/atajos";
+import { TUTORIAL_AL_GRANO, TUTORIALES } from "@/lib/tutoriales";
 import type { PlanId, RolFinca } from "@/lib/tipos";
 
 const FILTROS: { valor: "todo" | TipoAtajo; texto: string }[] = [
@@ -16,6 +18,7 @@ const FILTROS: { valor: "todo" | TipoAtajo; texto: string }[] = [
 function Contenido({ rol, plan, onCerrar }: { rol: RolFinca; plan: PlanId; onCerrar: () => void }) {
   const [texto, setTexto] = useState("");
   const [filtro, setFiltro] = useState<"todo" | TipoAtajo>("todo");
+  const video = TUTORIALES.find((t) => t.numero === TUTORIAL_AL_GRANO) ?? null;
   const visibles = atajosPara(rol, plan).filter((a) => (filtro === "todo" || a.tipo === filtro) && coincideAtajo(a, texto));
 
   return (
@@ -79,6 +82,9 @@ function Contenido({ rol, plan, onCerrar }: { rol: RolFinca; plan: PlanId; onCer
           </section>
         );
       })}
+
+      {/* La entrada al video de «Al grano», como en las demás ayudas, pero al pie: no se abre una hoja sobre otra hoja. */}
+      {video ? <TarjetaVideo t={video} alAbrir={onCerrar} className="mt-6" /> : null}
     </div>
   );
 }

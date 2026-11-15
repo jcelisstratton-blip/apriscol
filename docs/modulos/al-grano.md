@@ -7,7 +7,7 @@ El botón del rayo (⚡): en el celular, el centro de la barra de abajo (`Bottom
 - **Toda entrada del menú que ve una persona tiene su atajo** (la misma pantalla), en cada rol y plan. El atajo sigue la regla de visibilidad del menú con `Atajo.menu` (→ `visibilidadMenu`), para que nunca se contradigan.
 - **Toda pantalla de «crear» (`nuevo` / `nueva`) tiene su atajo**, salvo las de un solo animal o lote (se entra por su ficha) y las que solo redirigen: están listadas con su razón en la prueba (`SIN_ATAJO`).
 - Una pantalla nueva con menú o con botón de «crear» se agrega en `ATAJOS`; si no, la prueba falla.
-- No lleva «¿Cómo funciona?»: es un buscador de atajos, no una vista de trabajo con reglas; una hoja de ayuda sobre otra hoja se siente torpe.
+- No lleva el botón «¿Cómo funciona?»: es un buscador de atajos, no una vista de trabajo con reglas, y una hoja de ayuda sobre otra hoja se siente torpe. **Su video (Tutorial 29)** entra por la misma tarjeta «Míralo en video» de las demás ayudas (`components/TarjetaVideo.tsx`), puesta **al pie de la hoja**: tocarla cierra la hoja y abre el video; mientras no se publique dice «Próximamente».
 
 ## Aviso de primera vez (`components/AvisoAlGrano.tsx`, `lib/al-grano.ts`)
 
