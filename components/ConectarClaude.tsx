@@ -6,9 +6,9 @@ import { Aviso } from "@/components/Aviso";
 import { Boton } from "@/components/Boton";
 import { Tarjeta } from "@/components/Tarjeta";
 import { useToast } from "@/components/Toast";
-import { revocarAppIa } from "@/app/(app)/mas/ia/actions";
+import { revocarAppsIa } from "@/app/(app)/mas/ia/actions";
 
-type App = { clientId: string; nombre: string; desde: string };
+type App = { ids: string[]; nombre: string; desde: string };
 
 /** Un texto para copiar: se ajusta al ancho (sin desplazamiento lateral) y el botón lo copia entero. */
 function Copiable({ titulo, texto }: { titulo: string; texto: string }) {
@@ -80,10 +80,10 @@ export function ConectarClaude({ finca, url, apps }: { finca: string; url: strin
   const [error, setError] = useState<string | null>(null);
   const [pendiente, iniciar] = useTransition();
 
-  const quitar = (id: string) =>
+  const quitar = (clave: string, ids: string[]) =>
     iniciar(async () => {
       setError(null);
-      const r = await revocarAppIa(id);
+      const r = await revocarAppsIa(ids);
       if (!r.ok) return setError(r.error);
       setQuitando(null);
       toast.exito("Permiso quitado");
@@ -111,7 +111,7 @@ export function ConectarClaude({ finca, url, apps }: { finca: string; url: strin
               <CheckCircle2 className="size-6" strokeWidth={1.75} aria-hidden="true" />
             </span>
             <div className="min-w-0">
-              <h2 className="text-base font-bold">{apps.length === 1 ? "Claude está conectado" : "Claude está conectado en varios lugares"}</h2>
+              <h2 className="text-base font-bold">{apps.length === 1 ? `${apps[0].nombre} está conectado` : "Estos asistentes están conectados"}</h2>
               <p className="text-sm text-humo [overflow-wrap:anywhere]">Ya puede consultar {finca}. Solo lee: no cambia nada.</p>
             </div>
           </div>
@@ -121,21 +121,21 @@ export function ConectarClaude({ finca, url, apps }: { finca: string; url: strin
           {error ? <Aviso tipo="error">{error}</Aviso> : null}
           <ul className="divide-y divide-arena">
             {apps.map((a) => (
-              <li key={a.clientId} className="space-y-2 py-3 first:pt-0 last:pb-0">
+              <li key={a.ids.join("-")} className="space-y-2 py-3 first:pt-0 last:pb-0">
                 <div className="min-w-0">
                   <p className="font-semibold [overflow-wrap:anywhere]">{a.nombre}</p>
-                  <p className="text-sm text-humo">Permiso dado el {a.desde}</p>
+                  <p className="text-sm text-humo">Último permiso: {a.desde}</p>
                 </div>
-                {quitando === a.clientId ? (
+                {quitando === a.ids.join("-") ? (
                   <div className="space-y-3 rounded-2xl bg-lana p-3.5">
                     <p className="text-[0.9375rem]">{a.nombre} dejará de ver tu finca. Puedes volver a conectarlo cuando quieras.</p>
                     <div className="grid grid-cols-2 gap-2">
                       <Boton variante="secundario" onClick={() => setQuitando(null)} disabled={pendiente}>Cancelar</Boton>
-                      <Boton variante="peligro" onClick={() => quitar(a.clientId)} pendiente={pendiente} cargando="Quitando…">Quitar permiso</Boton>
+                      <Boton variante="peligro" onClick={() => quitar(a.ids.join("-"), a.ids)} pendiente={pendiente} cargando="Quitando…">Quitar permiso</Boton>
                     </div>
                   </div>
                 ) : (
-                  <Boton variante="secundario" ancho={false} onClick={() => setQuitando(a.clientId)}>Quitar permiso</Boton>
+                  <Boton variante="secundario" ancho={false} onClick={() => setQuitando(a.ids.join("-"))}>Quitar permiso</Boton>
                 )}
               </li>
             ))}
