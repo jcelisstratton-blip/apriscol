@@ -67,7 +67,7 @@ Reglas contra el ruido: una alerta no se repite si no cambió, tope diario por p
 
 ## Pendiente
 
-1. Activar el flujo de n8n y confirmar el primer envío automático (el de las 6:30 a. m. de un día con avisos activos).
+1. ~~Activar el flujo de n8n y confirmar el primer envío automático~~ **Hecho:** el flujo «APRISCOL — Avisos Telegram» está activo y corre cada 15 minutos sin fallos (verificado el 15 nov 2026: 16 envíos correctos y 0 fallidos). Telegram **ya se presenta** en la pantalla de entrada y está en la lista de funciones del plan Cría (todos los planes la comparten; el plan solo cambia qué temas incluye el resumen).
 2. Interruptor global para apagar todos los envíos desde la plataforma, y tope diario de plataforma.
 3. Alertas con dedupe, recordatorios con hora y resumen semanal.
 4. Validar con el veterinario qué es «lo que hay que hacer hoy» para cada rol.

@@ -18,7 +18,7 @@ Movido desde `CLAUDE.md`; sigue siendo ley del repo. Si cambia el proceso, se ac
 
 La sección «Qué resuelve» de la pantalla de entrada se arma desde `lib/menu.ts` (mismos grupos y mismo orden: cada día, Producción y manejo,
 Dinero y análisis, Genealogía, Mi finca) y los textos de cada opción viven en `lib/presentacion.ts` (`CONTENIDO`). Una opción nueva del menú
-sin su texto hace fallar `tests/presentacion.test.mjs`; las que no se describen aparte (`OMITIDAS`) llevan su razón. «Conexión con IA» **ya se presenta** («Pregúntale a Claude por tu finca», para todos los planes); **Telegram sigue omitida** porque está en piloto: se presenta cuando el equipo la active para todas las fincas. «Productos y terceros» va
+sin su texto hace fallar `tests/presentacion.test.mjs`; las que no se describen aparte (`OMITIDAS`) llevan su razón. «Conexión con IA» («Pregúntale a Claude por tu finca») y «Telegram» («Lo que toca hoy, en tu Telegram») **ya se presentan**, para todos los planes; ambas están también en las funciones de Cría. «Productos y terceros» va
 como tarjeta propia dentro de «Dinero y análisis». La etiqueta «Desde <plan>» sale de `lib/planes.ts`, y la cifra de reportes suma los listados
 del hato (`lib/reportes/catalogo.ts`) y los de costos (`lib/costos-reportes.ts`). Proyecciones se presenta siempre como un cálculo con
 supuestos ajustables, nunca como un resultado prometido.
