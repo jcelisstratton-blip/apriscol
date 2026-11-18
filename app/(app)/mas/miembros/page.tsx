@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { Banknote, ChevronLeft, Plus, Send, Users } from "lucide-react";
 import { AvisoGuardado } from "@/components/AvisoGuardado";
 import { AyudaModulo } from "@/components/AyudaModulo";
+import { AYUDA_PANTALLA } from "@/lib/ayuda-pantallas";
 import { clasesBoton } from "@/components/Boton";
 import { Encabezado } from "@/components/Encabezado";
 import { FilaInvitacion } from "@/components/FilaInvitacion";
@@ -116,6 +117,7 @@ export default async function PaginaMiembros({ searchParams }: { searchParams: P
           </div>
         ) : (
           <>
+            <AyudaModulo ayuda={AYUDA_PANTALLA["/mas/miembros"]} />
             {gestiona ? (
               <>
                 <Tarjeta titulo="Personas con acceso">

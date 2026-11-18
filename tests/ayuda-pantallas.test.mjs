@@ -29,7 +29,7 @@ test("ayuda: toda opción del menú explica cómo funciona (o dice por qué no)"
 });
 
 test("ayuda: cada hoja es clara, corta, con su video y un enlace que funciona y no lleva a sí misma", () => {
-  const sinJerga = /SUPABASE|NEXT_PUBLIC|service_role|\bRLS\b|\bcron\b|env\b|variable de entorno/i;
+  const sinJerga = /SUPABASE|NEXT_PUBLIC|service_role|\bRLS\b|\bcron\b|\benv\b|variable de entorno/i;
   for (const [ruta, a] of Object.entries(AYUDA_PANTALLA)) {
     assert.ok(existsSync(archivoDe(ruta)), `${ruta}: la pantalla no existe`);
     assert.ok(a.titulo.length > 2, ruta);

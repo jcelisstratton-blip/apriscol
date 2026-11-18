@@ -205,6 +205,19 @@ export const AYUDA_PANTALLA: Record<string, Ayuda> = {
     enlace: { href: "/semaforos", texto: "Ver cómo se aplican en los semáforos" },
   },
 
+  "/mas/miembros": {
+    titulo: "Equipo y roles",
+    tutorial: 21,
+    puntos: [
+      { titulo: "Para qué sirve", texto: "Aquí manejas a las personas que trabajan contigo: quién entra a la app con su propio usuario, con qué perfil, y a quién le pagas. Los pagos están en la pestaña «Pagos»." },
+      { titulo: "Cada perfil ve lo suyo", texto: "El propietario y el administrador ven y manejan todo. El ordeñador ve la leche y el alimento, el veterinario sanidad y corrales, y el contador las cuentas. Nadie ve lo que no le toca." },
+      { titulo: "Invitar a alguien", texto: "Escribe el correo de la persona y elige su perfil: se crea un enlace de invitación que le mandas. Al abrirlo, la persona entra con su propio usuario. Mientras no la acepte, la invitación queda en «Invitaciones pendientes». Invitar al equipo viene desde el plan Hato." },
+      { titulo: "Avisos por Telegram", texto: "El propietario y el administrador definen qué avisos recibe cada persona y a qué hora, según su perfil." },
+      { titulo: "Contrato y pagos", texto: "Al agregar a alguien puedes dejar su contrato y lo que se le paga. Cada pago que registras se suma al costo de la finca como mano de obra." },
+    ],
+    enlace: { href: "/mas/telegram", texto: "Conectar tu Telegram para recibir los avisos" },
+  },
+
   "/mas/telegram": {
     titulo: "Telegram",
     tutorial: 25,
