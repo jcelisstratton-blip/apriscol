@@ -9,6 +9,8 @@ import { puedeGestionar } from "@/lib/permisos";
 import { TELEGRAM_BOT } from "@/lib/env";
 import { describirAvisos, type EstadoVinculo } from "@/lib/notificaciones/enlace";
 import { crearClienteServidor } from "@/lib/supabase/server";
+import { AyudaModulo } from "@/components/AyudaModulo";
+import { AYUDA_PANTALLA } from "@/lib/ayuda-pantallas";
 
 export const metadata: Metadata = { title: "Telegram" };
 
@@ -29,6 +31,7 @@ export default async function PaginaTelegram() {
         <ChevronLeft className="size-5" strokeWidth={2} /> Más
       </Link>
       <Encabezado titulo="Telegram" subtitulo="Lo que hay que hacer hoy, en tu celular" />
+      <AyudaModulo ayuda={AYUDA_PANTALLA["/mas/telegram"]} />
       <div className="lg:max-w-xl">
         <Tarjeta>
           <ConectarTelegram finca={finca.nombre} estado={estado} bot={TELEGRAM_BOT} avisos={describirAvisos(pref)} gestiona={puedeGestionar(rol)} />

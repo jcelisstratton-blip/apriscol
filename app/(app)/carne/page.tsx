@@ -16,6 +16,8 @@ import { Canales } from "./Canales";
 import { Lotes } from "./Lotes";
 import { Reglas } from "./Reglas";
 import { Resumen } from "./Resumen";
+import { AyudaModulo } from "@/components/AyudaModulo";
+import { AYUDA_PANTALLA } from "@/lib/ayuda-pantallas";
 
 export const metadata: Metadata = { title: "Carne" };
 
@@ -50,6 +52,7 @@ export default async function PaginaCarne({ searchParams }: { searchParams: Prom
         subtitulo={finca.nombre}
         acciones={puedeEditar && vista === "lotes" ? <EnlaceBoton href="/carne/lotes/nuevo" ancho={false}>Nuevo lote</EnlaceBoton> : null}
       />
+      <AyudaModulo ayuda={AYUDA_PANTALLA["/carne"]} />
       <PestanasTarjetas pestanas={armarPestanas("/carne", "resumen", PESTANAS)} actual={vista} />
 
       {vista === "resumen" ? <QueAtender area="ceba" /> : null}

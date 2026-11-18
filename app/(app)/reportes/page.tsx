@@ -16,6 +16,8 @@ import type { FilaInventario } from "@/lib/inventario";
 import type { FilaAlimento } from "@/lib/inventario-alimento";
 import type { ReporteId } from "@/lib/reportes/tipos";
 import { leerTodo } from "@/lib/consultas";
+import { AyudaModulo } from "@/components/AyudaModulo";
+import { AYUDA_PANTALLA } from "@/lib/ayuda-pantallas";
 
 export const metadata: Metadata = { title: "Reportes" };
 
@@ -72,6 +74,7 @@ export default async function PaginaReportes() {
   return (
     <>
       <Encabezado titulo="Reportes" subtitulo={finca.nombre} />
+      <AyudaModulo ayuda={AYUDA_PANTALLA["/reportes"]} />
       <GruposReportes reportes={reportes} datos={datos} conCostos={verCostos} />
     </>
   );

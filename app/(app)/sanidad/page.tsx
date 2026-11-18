@@ -18,6 +18,8 @@ import { TIPOS_EVENTO } from "@/lib/sanidad";
 import type { TipoEvento } from "@/lib/tipos";
 import { QueAtender } from "@/components/QueAtender";
 import { Resumen } from "./Resumen";
+import { AyudaModulo } from "@/components/AyudaModulo";
+import { AYUDA_PANTALLA } from "@/lib/ayuda-pantallas";
 
 export const metadata: Metadata = { title: "Sanidad" };
 
@@ -61,6 +63,7 @@ export default async function PaginaSanidad({
     <>
       <AvisoGuardado activo={sp.guardado === "1"} />
       <Encabezado titulo="Sanidad" subtitulo={finca.nombre} acciones={accion} />
+      <AyudaModulo ayuda={AYUDA_PANTALLA["/sanidad"]} />
       <PestanasTarjetas pestanas={armarPestanas("/sanidad", "resumen", PESTANAS)} actual={vista} />
 
       {conFechas ? (

@@ -13,6 +13,8 @@ import { UmbralEndogamia } from "@/components/UmbralEndogamia";
 import { obtenerContexto } from "@/lib/contexto";
 import { puedeGestionar, puedeVer } from "@/lib/permisos";
 import { crearClienteServidor } from "@/lib/supabase/server";
+import { AyudaModulo } from "@/components/AyudaModulo";
+import { AYUDA_PANTALLA } from "@/lib/ayuda-pantallas";
 
 export const metadata: Metadata = { title: "Endogamia" };
 
@@ -35,6 +37,7 @@ export default async function PaginaEndogamia() {
   return (
     <>
       <Encabezado titulo="Endogamia" subtitulo={finca.nombre} />
+      <AyudaModulo ayuda={AYUDA_PANTALLA["/hato/endogamia"]} />
 
       <div className="space-y-3.5 lg:max-w-3xl">
         <Tarjeta>

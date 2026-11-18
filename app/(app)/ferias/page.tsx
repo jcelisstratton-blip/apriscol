@@ -9,6 +9,8 @@ import { obtenerContexto } from "@/lib/contexto";
 import { crearClienteServidor } from "@/lib/supabase/server";
 import { puedeEscribir, puedeVer } from "@/lib/permisos";
 import { dinero } from "@/lib/moneda";
+import { AyudaModulo } from "@/components/AyudaModulo";
+import { AYUDA_PANTALLA } from "@/lib/ayuda-pantallas";
 
 export const metadata: Metadata = { title: "Premios" };
 
@@ -39,6 +41,7 @@ export default async function PaginaPremios({ searchParams }: { searchParams: Pr
   return (
     <>
       <Encabezado titulo="Premios" subtitulo={finca.nombre} />
+      <AyudaModulo ayuda={AYUDA_PANTALLA["/ferias"]} />
 
       {(totales?.participaciones ?? 0) > 0 ? (
         <section aria-label="Resumen" className="mb-4 rounded-3xl bg-papel p-4 ring-1 ring-arena">

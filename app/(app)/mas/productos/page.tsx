@@ -9,6 +9,8 @@ import { obtenerContexto } from "@/lib/contexto";
 import { obtenerProductos, obtenerTerceros } from "@/lib/catalogos-servidor";
 import { escena } from "@/lib/escenas";
 import { puedeEscribir, puedeVer } from "@/lib/permisos";
+import { AyudaModulo } from "@/components/AyudaModulo";
+import { AYUDA_PANTALLA } from "@/lib/ayuda-pantallas";
 
 export const metadata: Metadata = { title: "Productos y terceros" };
 
@@ -32,6 +34,7 @@ export default async function PaginaProductos({ searchParams }: { searchParams: 
         <ChevronLeft className="size-5" strokeWidth={2} /> Más
       </Link>
       <Encabezado titulo="Productos y terceros" subtitulo={finca.nombre} />
+      <AyudaModulo ayuda={AYUDA_PANTALLA["/mas/productos"]} />
       <PestanasTarjetas
         pestanas={[
           { valor: "compras", etiqueta: "Lo que compras", detalle: `${productos.filter((p) => p.tipo === "compra").length} productos`, href: "/mas/productos", escena: escena(Package, "ambar") },

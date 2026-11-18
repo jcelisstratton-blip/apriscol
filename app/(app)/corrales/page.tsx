@@ -15,6 +15,8 @@ import { puedeEscribir, puedeVer } from "@/lib/permisos";
 import { crearClienteServidor } from "@/lib/supabase/server";
 import type { MotivoMovimiento } from "@/lib/tipos";
 import { Resumen } from "./Resumen";
+import { AyudaModulo } from "@/components/AyudaModulo";
+import { AYUDA_PANTALLA } from "@/lib/ayuda-pantallas";
 
 export const metadata: Metadata = { title: "Corrales" };
 
@@ -57,6 +59,7 @@ export default async function PaginaCorrales({
         subtitulo={finca.nombre}
         acciones={puedeEditar ? <EnlaceBoton href="/hato?vista=corrales" ancho={false}>Ir a Hato</EnlaceBoton> : null}
       />
+      <AyudaModulo ayuda={AYUDA_PANTALLA["/corrales"]} />
       <PestanasTarjetas pestanas={armarPestanas("/corrales", "resumen", PESTANAS)} actual={vista} />
 
       <div className="mb-3">

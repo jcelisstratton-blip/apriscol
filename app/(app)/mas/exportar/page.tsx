@@ -7,6 +7,8 @@ import { Encabezado } from "@/components/Encabezado";
 import { Tarjeta } from "@/components/Tarjeta";
 import { obtenerContexto } from "@/lib/contexto";
 import { DIAS_ENLACE_ARCHIVO } from "@/lib/exportar-finca";
+import { AyudaModulo } from "@/components/AyudaModulo";
+import { AYUDA_PANTALLA } from "@/lib/ayuda-pantallas";
 
 export const metadata: Metadata = { title: "Exportar los datos" };
 
@@ -20,6 +22,7 @@ export default async function PaginaExportar() {
         <ChevronLeft className="size-5" strokeWidth={2} /> Más
       </Link>
       <Encabezado titulo="Exportar los datos" subtitulo={finca.nombre} />
+      <AyudaModulo ayuda={AYUDA_PANTALLA["/mas/exportar"]} />
       <div className="space-y-3.5 lg:max-w-xl">
         <Tarjeta>
           <div className="space-y-3.5">

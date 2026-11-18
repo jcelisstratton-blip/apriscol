@@ -12,6 +12,8 @@ import { Calidad } from "./Calidad";
 import { Despachos } from "./Despachos";
 import { FrioEquipo } from "./FrioEquipo";
 import { Historial } from "./Historial";
+import { AyudaModulo } from "@/components/AyudaModulo";
+import { AYUDA_PANTALLA } from "@/lib/ayuda-pantallas";
 
 export const metadata: Metadata = { title: "Leche" };
 
@@ -53,6 +55,7 @@ export default async function PaginaLeche({
     <>
       <AvisoGuardado activo={sp.guardado === "1"} />
       <Encabezado titulo="Leche" subtitulo={finca.nombre} acciones={accion} />
+      <AyudaModulo ayuda={AYUDA_PANTALLA["/leche"]} />
       <PestanasTarjetas pestanas={armarPestanas("/leche", "produccion", PESTANAS)} actual={vista} />
 
       {vista === "produccion" ? <QueAtender area="leche" /> : null}

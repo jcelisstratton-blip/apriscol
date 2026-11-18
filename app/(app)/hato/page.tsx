@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { AyudaModulo } from "@/components/AyudaModulo";
 import { TarjetasHato } from "@/components/TarjetasHato";
 import { AYUDA_ORDENO } from "@/lib/ayuda";
+import { AYUDA_PANTALLA } from "@/lib/ayuda-pantallas";
 import { AccionesHato } from "@/components/AccionesHato";
 import { Encabezado } from "@/components/Encabezado";
 import { FilaTarjetas, TarjetaOpcion } from "@/components/TarjetaOpcion";
@@ -106,15 +107,18 @@ export default async function PaginaHato({ searchParams }: { searchParams: Promi
           )}
         </div>
       ) : (
-        <Animales
-          fincaId={finca.id}
-          especies={finca.especies}
-          puedeCrear={puedeCrear}
-          puedeTraer={puedeGestionar(rol) && !perfil?.libro_resuelto_en}
-          filtroInicial={esFiltroHato(sp.filtro) ? sp.filtro : "todos"}
-          vistas={vistas}
-          conteos={conteos}
-        />
+        <>
+          <AyudaModulo ayuda={AYUDA_PANTALLA["/hato"]} />
+          <Animales
+            fincaId={finca.id}
+            especies={finca.especies}
+            puedeCrear={puedeCrear}
+            puedeTraer={puedeGestionar(rol) && !perfil?.libro_resuelto_en}
+            filtroInicial={esFiltroHato(sp.filtro) ? sp.filtro : "todos"}
+            vistas={vistas}
+            conteos={conteos}
+          />
+        </>
       )}
     </>
   );

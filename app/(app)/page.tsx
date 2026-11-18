@@ -33,6 +33,8 @@ import { IconoEvento } from "@/components/IconoEvento";
 import { ETIQUETA_EVENTO, estadoDosis, estadoFechaPrograma, nombreEvento } from "@/lib/sanidad";
 import type { CandidatoCeba, CuarentenaAlerta, ProgramaSanitarioResumen, SanidadPendiente, ServicioConParto, TipoEvento, UbicacionVista } from "@/lib/tipos";
 import { leerTodo } from "@/lib/consultas";
+import { AyudaModulo } from "@/components/AyudaModulo";
+import { AYUDA_PANTALLA } from "@/lib/ayuda-pantallas";
 
 export const metadata: Metadata = { title: "Hoy" };
 
@@ -165,6 +167,7 @@ export default async function PaginaHoy({ searchParams }: { searchParams: Promis
         titulo={nombrePila ? `${saludo()}, ${nombrePila}` : saludo()}
         subtitulo={formatoFecha(hoy, { weekday: "long", day: "numeric", month: "long" })}
       />
+      <AyudaModulo ayuda={AYUDA_PANTALLA["/"]} />
       {clave === "cambiada" ? <Aviso tipo="exito" className="mb-3">Tu contraseña quedó actualizada.</Aviso> : null}
       <div className="mb-4 lg:hidden">
         <FincaSelector fincas={fincas.map((f) => ({ id: f.id, nombre: f.nombre, rol: f.rol, logo_path: f.logo_path }))} activa={finca.id} />

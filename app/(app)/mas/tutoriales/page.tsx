@@ -4,6 +4,8 @@ import { ChevronLeft } from "lucide-react";
 import { Encabezado } from "@/components/Encabezado";
 import { Tutoriales } from "@/components/Tutoriales";
 import { numeroDeEnlace } from "@/lib/tutoriales";
+import { AyudaModulo } from "@/components/AyudaModulo";
+import { AYUDA_PANTALLA } from "@/lib/ayuda-pantallas";
 
 export const metadata: Metadata = { title: "Tutoriales" };
 
@@ -19,6 +21,7 @@ export default async function PaginaTutoriales({ searchParams }: { searchParams:
         <ChevronLeft className="size-5" strokeWidth={2} /> Más
       </Link>
       <Encabezado titulo="Tutoriales" subtitulo="Aprende Apriscol paso a paso, en video" />
+      <AyudaModulo ayuda={AYUDA_PANTALLA["/mas/tutoriales"]} />
       <Tutoriales abrirNumero={numeroDeEnlace(ver)} />
     </>
   );
