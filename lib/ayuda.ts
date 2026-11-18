@@ -234,5 +234,19 @@ export const ayudaEsquila = (a: Pick<AjustesFinca, "esquila_cada_meses" | "esqui
     { titulo: "Cuándo toca", texto: `Una oveja de lana se esquila cada ${a.esquila_cada_meses} meses. Te avisamos ${a.esquila_aviso_dias} días antes, en Semáforos, en Hoy y por Telegram. Puedes cambiar estos plazos en Ajustes de la finca.` },
     { titulo: "Si te equivocas", texto: "Corrige la fecha o los kilos. Si te equivocaste de ovejas, anula la esquila y registra la correcta." },
   ],
-  enlace: { href: "/esquila", texto: "Ir a la esquila" },
+  // El enlace no puede apuntar a la misma pantalla donde se abre la ayuda (no haría nada): lleva a donde se cambian los plazos.
+  enlace: { href: "/mas/ajustes", texto: "Cambiar los plazos de la esquila en Ajustes" },
+});
+
+/** La misma ayuda, vista desde la ficha de UNA oveja: habla de esa oveja y lleva a la esquila de toda la finca. */
+export const ayudaEsquilaOveja = (a: Pick<AjustesFinca, "esquila_cada_meses" | "esquila_aviso_dias">): Ayuda => ({
+  titulo: "Esquila de esta oveja",
+  tutorial: 30,
+  puntos: [
+    { titulo: "Lana o pelo", texto: "Solo se esquilan las ovejas de lana. Aquí ves si esta oveja es de lana o de pelo y de dónde sale: de su raza o de lo que tú definiste." },
+    { titulo: "Cambiarlo", texto: "Si no es como su raza, o es criolla o cruce, toca «Cambiar lana o pelo» y dilo en su ficha. Lo que tú pongas manda sobre la raza." },
+    { titulo: "Registrar su esquila", texto: "Toca «Registrar esquila», elige la fecha y, si la pesaste, los kilos de vellón. Si ya la esquilaste antes, registra esa fecha para que Apriscol calcule la próxima." },
+    { titulo: "Cuándo le toca", texto: `Se esquila cada ${a.esquila_cada_meses} meses y te avisamos ${a.esquila_aviso_dias} días antes, en Semáforos, en Hoy y por Telegram. Los plazos se cambian en Ajustes de la finca.` },
+  ],
+  enlace: { href: "/esquila", texto: "Ver la esquila de todas las ovejas" },
 });

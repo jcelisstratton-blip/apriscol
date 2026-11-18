@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { Aviso } from "@/components/Aviso";
+import { AyudaModulo } from "@/components/AyudaModulo";
 import { clasesBoton } from "@/components/Boton";
 import { Tarjeta } from "@/components/Tarjeta";
+import { ayudaEsquilaOveja } from "@/lib/ayuda";
 import { coberturaEfectiva, ETIQUETA_COBERTURA, kilosVellon, plazoEsquila, seEsquila, textoPlazo } from "@/lib/esquila";
 import { formatoFecha } from "@/lib/fechas";
 import { puedeEscribir } from "@/lib/permisos";
@@ -36,6 +38,7 @@ export async function TarjetaEsquila({ c }: { c: CtxFicha }) {
 
   return (
     <Tarjeta titulo="Esquila" id="esquila">
+      <AyudaModulo ayuda={ayudaEsquilaOveja(c.ajustes.general)} />
       <dl className="divide-y divide-arena">
         <Dato etiqueta="Cobertura">
           {ETIQUETA_COBERTURA[cobertura ?? "por_definir"]}
