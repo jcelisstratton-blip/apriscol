@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { leerTodo } from "@/lib/consultas";
-import { coberturaEfectiva, plazoEsquila, type CoberturaEfectiva, type PlazoEsquila } from "@/lib/esquila";
+import { coberturaEfectiva, ESQUILA_AVISO_DIAS, ESQUILA_CADA_MESES, plazoEsquila, type CoberturaEfectiva, type PlazoEsquila } from "@/lib/esquila";
 import type { CoberturaRaza, Database } from "@/lib/tipos";
 
 export type OvejaEsquila = {
@@ -18,7 +18,12 @@ export type OvejaEsquila = {
  * Todas las ovejas activas de la finca con su cobertura (la de la oveja, o la de su raza) y, si son de lana, cuándo les toca la esquila.
  * Lee todas las filas (PostgREST corta cada respuesta en 1000).
  */
-export async function cargarOvejasEsquila(supabase: SupabaseClient<Database>, fincaId: string, hoy: string): Promise<OvejaEsquila[]> {
+export async function cargarOvejasEsquila(
+  supabase: SupabaseClient<Database>,
+  fincaId: string,
+  hoy: string,
+  plazo: { cadaMeses: number; avisoDias: number } = { cadaMeses: ESQUILA_CADA_MESES, avisoDias: ESQUILA_AVISO_DIAS },
+): Promise<OvejaEsquila[]> {
   const [ovinos, razas, esquilas] = await Promise.all([
     leerTodo((d, h) =>
       supabase.from("animales").select("id, numero_arete, nombre, raza_id, cobertura").eq("finca_id", fincaId).eq("especie", "ovino").eq("estado", "activo").is("deleted_at", null).order("id").range(d, h),
@@ -39,7 +44,7 @@ export async function cargarOvejasEsquila(supabase: SupabaseClient<Database>, fi
         numero_arete: a.numero_arete,
         nombre: a.nombre,
         cobertura,
-        plazo: cobertura === "lana" ? plazoEsquila(ultima, hoy) : null,
+        plazo: cobertura === "lana" ? plazoEsquila(ultima, hoy, plazo.cadaMeses, plazo.avisoDias) : null,
         ultima,
         vellonTotalKg: e?.vellon_total_kg ?? null,
       };

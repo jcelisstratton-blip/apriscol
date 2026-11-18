@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useMemo, useState } from "react";
 import { CampoBusqueda } from "@/components/CampoBusqueda";
+import { DefinirCobertura } from "@/components/DefinirCobertura";
 import { Chip, FilaDesplazable } from "@/components/FilaDesplazable";
 import { Insignia } from "@/components/Insignia";
 import { ListaEscalable } from "@/components/ListaEscalable";
@@ -22,7 +23,7 @@ const TEXTO_VACIO: Record<Filtro, string> = {
 const estaPendiente = (o: OvejaEsquila) => o.cobertura === "lana" && o.plazo !== null && o.plazo.estado !== "al_dia";
 
 /** Las ovejas activas con lo que pide cada una: las de lana por su plazo, las de pelo (no se esquilan) y las que falta definir. */
-export function ListaOvejasEsquila({ ovejas }: { ovejas: OvejaEsquila[] }) {
+export function ListaOvejasEsquila({ ovejas, puedeEditar = false }: { ovejas: OvejaEsquila[]; puedeEditar?: boolean }) {
   const cuenta = useMemo(
     () => ({
       pendientes: ovejas.filter(estaPendiente).length,
@@ -64,6 +65,9 @@ export function ListaOvejasEsquila({ ovejas }: { ovejas: OvejaEsquila[] }) {
         ))}
       </FilaDesplazable>
       {ovejas.length > 8 ? <CampoBusqueda onBuscar={setBusqueda} placeholder="Buscar por arete o nombre" /> : null}
+      {filtro === "por_definir" && puedeEditar && filas.length > 0 ? (
+        <DefinirCobertura key={busqueda} ovejas={filas} />
+      ) : (
       <ListaEscalable<OvejaEsquila>
         key={`${filtro}|${busqueda}`}
         cargar={cargar}
@@ -87,6 +91,7 @@ export function ListaOvejasEsquila({ ovejas }: { ovejas: OvejaEsquila[] }) {
           </Link>
         )}
       />
+      )}
     </div>
   );
 }

@@ -125,3 +125,22 @@ export async function anularEsquila(esquilaId: string): Promise<{ ok: true } | {
   revalidatePath("/hato", "layout");
   return { ok: true };
 }
+
+/** Define de una vez si varias ovejas son de lana o de pelo (las criollas y los cruces, que la raza no define). Todo o nada. */
+export async function definirCoberturaEnGrupo(animalIds: string[], cobertura: "lana" | "pelo"): Promise<{ ok: true; n: number } | { ok: false; error: string }> {
+  const { finca, rol } = await obtenerContexto();
+  if (!puedeEscribir(rol, "hato", finca.plan)) return { ok: false, error: "No tienes permiso para cambiar animales en esta finca." };
+  if (cobertura !== "lana" && cobertura !== "pelo") return { ok: false, error: "Elige si son de lana o de pelo." };
+  const ids = [...new Set(animalIds)];
+  if (ids.length === 0) return { ok: false, error: "Elige al menos una oveja." };
+  if (ids.length > TOPE_OVEJAS) return { ok: false, error: `Son demasiadas ovejas a la vez (máximo ${TOPE_OVEJAS}).` };
+  if (!ids.every((i) => z.uuid().safeParse(i).success)) return { ok: false, error: "Hay una oveja que no se reconoce. Recarga la página." };
+
+  const supabase = await crearClienteServidor();
+  const { data, error } = await supabase.rpc("definir_cobertura", { p_finca: finca.id, p_animales: ids, p_cobertura: cobertura });
+  if (error) return { ok: false, error: mensajeAmigable(error.message) };
+
+  revalidatePath("/esquila");
+  revalidatePath("/hato", "layout");
+  return { ok: true, n: data ?? ids.length };
+}

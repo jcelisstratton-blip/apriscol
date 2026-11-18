@@ -108,6 +108,7 @@ test("tutoriales: el siguiente por ver es el primero disponible que la persona n
 test("ayudas «¿Cómo funciona?»: cada módulo apunta a un tutorial que existe, y al publicarse el video la ayuda lo ofrece sola", () => {
   const todas = Object.entries(ayudas).filter(([nombre]) => nombre.startsWith("AYUDA_")).map(([nombre, a]) => [nombre, a]);
   todas.push(["ayudaSanidad", ayudas.ayudaSanidad({ podologia_inspeccion_dias: 90, pediluvio_dias: 14, pediluvio_dias_lluvia: 7 })]);
+  todas.push(["ayudaEsquila", ayudas.ayudaEsquila({ esquila_cada_meses: 12, esquila_aviso_dias: 30 })]);
   assert.ok(todas.length >= 13);
   for (const [nombre, a] of todas) {
     assert.ok(Number.isInteger(a.tutorial), `${nombre} no apunta a un tutorial`);
@@ -116,7 +117,9 @@ test("ayudas «¿Cómo funciona?»: cada módulo apunta a un tutorial que existe
   assert.equal(ayudas.AYUDA_ORDENO.tutorial, 5);
   assert.equal(ayudas.AYUDA_CEBA.tutorial, 14);
   assert.equal(ayudas.AYUDA_CORRALES.tutorial, 13);
-  assert.equal(ayudas.AYUDA_ESQUILA.tutorial, 30);
+  assert.equal(ayudas.ayudaEsquila({ esquila_cada_meses: 12, esquila_aviso_dias: 30 }).tutorial, 30);
+  // Los plazos de la ayuda salen de los Ajustes de la finca.
+  assert.match(JSON.stringify(ayudas.ayudaEsquila({ esquila_cada_meses: 18, esquila_aviso_dias: 45 })), /cada 18 meses.*45 días antes/);
 });
 
 test("tutoriales: la lista de reproducción del canal tiene un enlace válido y uno dañado no se usa", () => {

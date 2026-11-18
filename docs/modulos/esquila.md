@@ -17,9 +17,21 @@ La esquila es el corte de la lana de las ovejas. Solo se esquilan las **ovejas d
 - **Anular** no borra: la esquila queda guardada (`esquilas.anulada_en`) pero deja de contar para los plazos y los kilos. Las esquilas anuladas salen en la exportación. Un animal que se da de baja se marca, no se borra, así que su historial de esquila se conserva.
 - Todo pasa por funciones de la base que comprueban quién llama y que son **todo o nada** (`registrar_esquila`, `actualizar_esquila`, `anular_esquila`; permiso de escritura del módulo `hato`). `registrar_esquila` es **idempotente** por `client_request_id` y rechaza: fecha futura o de hace más de tres años, una oveja de otra finca o dada de baja, una cabra, una oveja de pelo, una «por definir», una fecha anterior al nacimiento, una oveja ya esquilada ese mismo día, pesos fuera de 0,05–25 kg y listas de más de 1000 ovejas.
 
-## Plazos
+## Plazos (Ajustes de la finca)
 
-`lib/esquila.ts` (reglas puras, con pruebas en `tests/esquila.test.mjs`): una oveja de lana se esquila **cada 12 meses** (`ESQUILA_CADA_MESES`) y se avisa **30 días antes** (`ESQUILA_AVISO_DIAS`). Estados: **sin esquila** (nunca registrada: no se inventa una fecha), **al día**, **toca** (a 30 días o menos de la fecha) y **atrasada**. `sumarMeses` no se pasa del fin de mes. La ficha de la oveja y `/esquila` usan las mismas funciones, así que nunca se contradicen.
+El plazo **es un ajuste de cada finca** (grupo «Esquila» de `/mas/ajustes`, solo en fincas con ovejas; solo el propietario lo cambia; «Volver a los valores sugeridos» lo restablece):
+**cada cuántos meses se esquila una oveja de lana** (`finca_ajustes.esquila_cada_meses`, de fábrica **12**, entre 3 y 24) y **con cuántos días de anticipación se avisa** (`esquila_aviso_dias`, de fábrica **30**, entre 7 y 90). Los valores de fábrica viven solo en la base (defaults de columna). El plazo lo definió el equipo de producto, **no un especialista: se valida con un zootecnista** (el clima, la raza y el manejo lo cambian; en Colombia las de lana viven sobre todo en trópico alto).
+
+`lib/esquila.ts` (reglas puras, con pruebas en `tests/esquila.test.mjs`): estados de una oveja de lana según su última esquila — **sin esquila** (nunca registrada: no se inventa una fecha), **al día**, **toca** (a `esquila_aviso_dias` o menos de la fecha) y **atrasada**. `sumarMeses` no se pasa del fin de mes. `/esquila`, la ficha de la oveja y el semáforo usan las mismas funciones, así que nunca se contradicen.
+
+## Avisos: Semáforos, Hoy y Telegram
+
+Área **Esquila** de los semáforos (`senalEsquila` en `lib/semaforos.ts`, datos en `lib/semaforos-servidor.ts`; la ven **propietario y administrador**, y solo si la finca tiene ovejas de lana activas): **rojo** una oveja de lana cuya fecha ya pasó; **ámbar** la que le toca pronto; y **un solo caso ámbar** («N ovejas de lana sin esquila registrada») que junta las que nunca tienen una esquila anotada, para que el aviso exista desde el primer día sin llenar la pantalla de casos. Las de pelo, las «por definir» y las cabras no entran. Sale en Hoy, en `/semaforos`, en `/esquila` («Qué atender hoy · Esquila»), por Telegram (`RUTA_AREA.esquila`) y en la herramienta `semaforos` de la conexión con IA. Si la oveja «sin esquila registrada» ya se esquiló antes, se **registra esa esquila con su fecha** (hasta tres años atrás): en el formulario, el atajo «Sin esquila registrada» elige a todas de una vez.
+
+## En grupo
+
+- **Definir lana o pelo de varias a la vez:** en `/esquila`, filtro «Por definir» (criollas, cruces, sin raza): se eligen y se marcan «Son de lana» o «Son de pelo» (`definir_cobertura`, todo o nada, solo ovejas activas de la finca; `definirCoberturaEnGrupo`).
+- **Registrar la última esquila de muchas:** el formulario ofrece «Las que les toca», «Sin esquila registrada» y «Todas».
 
 ## Datos
 
@@ -29,6 +41,5 @@ La esquila es el corte de la lana de las ovejas. Solo se esquilan las **ovejas d
 
 ## Pendiente (decisiones aparte)
 
-- Aviso de «toca esquilar» en Semáforos, Hoy y Telegram (hoy se ve en `/esquila` y en la ficha).
-- Plazo propio por finca en «Ajustes de la finca» (hoy es 12 meses para todas).
+- Validar con un zootecnista el plazo de fábrica (12 meses y aviso a 30 días) y si conviene un plazo distinto por raza.
 - Cargue por Excel de la cobertura de cada oveja, y la lana como producto de venta y la esquila como costo (hoy se registra el costo en la propia esquila).

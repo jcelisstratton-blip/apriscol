@@ -1668,6 +1668,7 @@ export type Database = {
       };
       actualizar_esquila: { Args: { p_esquila: string; p_fecha: string; p_esquilador: string | null; p_costo: number | null; p_notas: string | null; p_pesos: unknown }; Returns: undefined };
       anular_esquila: { Args: { p_esquila: string }; Returns: undefined };
+      definir_cobertura: { Args: { p_finca: string; p_animales: string[]; p_cobertura: string }; Returns: number };
       registrar_animal: { Args: { p_finca: string; p_animal: unknown; p_fecha_ultimo_parto?: string | null }; Returns: string };
       registrar_parto: { Args: { p_finca: string; p_parto: unknown; p_crias: unknown }; Returns: unknown };
       eliminar_parto: { Args: { p_finca: string; p_parto: string }; Returns: string };

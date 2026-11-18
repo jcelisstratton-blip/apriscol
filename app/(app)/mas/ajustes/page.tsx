@@ -33,7 +33,7 @@ export default async function PaginaAjustes() {
           <Aviso tipo="info">Estos son los criterios de la finca. Solo el propietario puede cambiarlos.</Aviso>
         )}
 
-        {GRUPOS_AJUSTES.map((g) => (
+        {GRUPOS_AJUSTES.filter((g) => !g.soloConEspecie || finca.especies.includes(g.soloConEspecie)).map((g) => (
           <Tarjeta key={g.id} id={g.id} titulo={g.titulo}>
             <p className="mb-3 text-sm text-humo">{g.detalle}</p>
             <FormAjustes key={`${g.id}-${version}`} grupo={g} ajustes={ajustes} especies={finca.especies} rangos={rangos} puedeEditar={puedeEditar} />

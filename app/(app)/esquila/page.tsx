@@ -6,12 +6,14 @@ import { AvisoGuardado } from "@/components/AvisoGuardado";
 import { AyudaModulo } from "@/components/AyudaModulo";
 import { clasesBoton } from "@/components/Boton";
 import { Encabezado } from "@/components/Encabezado";
+import { QueAtender } from "@/components/QueAtender";
 import { EstadoVacio } from "@/components/EstadoVacio";
 import { ListaEsquilas, type EsquilaDeLista } from "@/components/ListaEsquilas";
 import { ListaOvejasEsquila } from "@/components/ListaOvejasEsquila";
 import { obtenerContexto } from "@/lib/contexto";
 import { leerTodo } from "@/lib/consultas";
-import { AYUDA_ESQUILA } from "@/lib/ayuda";
+import { obtenerAjustes } from "@/lib/ajustes-servidor";
+import { ayudaEsquila } from "@/lib/ayuda";
 import { resumirEsquila } from "@/lib/esquila";
 import { cargarOvejasEsquila } from "@/lib/esquila-servidor";
 import { hoyBogota } from "@/lib/fechas";
@@ -27,8 +29,9 @@ export default async function PaginaEsquila({ searchParams }: { searchParams: Pr
   const { guardado } = await searchParams;
 
   const supabase = await crearClienteServidor();
+  const { general: ajustes } = await obtenerAjustes();
   const [ovejas, esquilas, filas] = await Promise.all([
-    cargarOvejasEsquila(supabase, finca.id, hoyBogota()),
+    cargarOvejasEsquila(supabase, finca.id, hoyBogota(), { cadaMeses: ajustes.esquila_cada_meses, avisoDias: ajustes.esquila_aviso_dias }),
     leerTodo((d, h) => supabase.from("esquilas").select("id, fecha, esquilador").eq("finca_id", finca.id).is("anulada_en", null).order("fecha", { ascending: false }).order("id").range(d, h)),
     leerTodo((d, h) => supabase.from("esquila_animales").select("id, esquila_id, peso_vellon_kg").eq("finca_id", finca.id).order("id").range(d, h)),
   ]);
@@ -58,7 +61,8 @@ export default async function PaginaEsquila({ searchParams }: { searchParams: Pr
         subtitulo={finca.nombre}
         acciones={puedeRegistrar ? <Link href="/esquila/nueva" className={clasesBoton("primario", false)}>Registrar esquila</Link> : undefined}
       />
-      <AyudaModulo ayuda={AYUDA_ESQUILA} />
+      <AyudaModulo ayuda={ayudaEsquila(ajustes)} />
+      <QueAtender area="esquila" />
 
       {ovejas.length === 0 ? (
         <EstadoVacio icono={<Scissors strokeWidth={1.5} />} titulo="Todavía no tienes ovejas" descripcion="Cuando registres tus ovejas, aquí verás cuáles son de lana y cuándo toca esquilarlas." />
@@ -77,7 +81,7 @@ export default async function PaginaEsquila({ searchParams }: { searchParams: Pr
 
           <section aria-label="Ovejas" className="space-y-3">
             <h2 className="font-display text-lg font-semibold">Ovejas</h2>
-            <ListaOvejasEsquila ovejas={ovejas} />
+            <ListaOvejasEsquila ovejas={ovejas} puedeEditar={puedeEscribir(rol, "hato", finca.plan)} />
           </section>
 
           <section aria-label="Esquilas hechas" className="space-y-3">

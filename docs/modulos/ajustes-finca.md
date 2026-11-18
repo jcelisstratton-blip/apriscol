@@ -18,6 +18,7 @@ grupo con «Volver a los valores sugeridos»). Cada finca tiene **siempre** su f
   guardados y su grupo lleva una nota («se usarán cuando llegue…»). Al construir el módulo, se quita la nota.
 - **No son ajustables a propósito:** el bloqueo por periodo de retiro (es una salvaguarda sanitaria) y todo lo que fija la ley (recargos, retenciones, SMMLV): eso se
   define con su fuente oficial cuando se construya la nómina.
+- **Esquila** (grupo `esquila`, solo se muestra en fincas con ovejas: `soloConEspecie` en `GRUPOS_AJUSTES`): `esquila_cada_meses` (de fábrica 12, 3 a 24) y `esquila_aviso_dias` (de fábrica 30, 7 a 90); alimentan la ficha de la oveja, `/esquila`, los semáforos y Telegram (ver `esquila.md`).
 - **Dinero e impuestos** (grupo `dinero`): `iva_tarifa_defecto` (opcional, 0 a 100, de fábrica 19) es el IVA que aparece escrito en compras, ventas, despachos de leche y ventas de animales; ver `contabilidad.md`.
 - Conectados hoy: gestación (vistas `v_servicios`, `v_repro_hembras`, `candidatos_ceba`), criterios de la monta, diagnóstico de preñez, último tercio y secado
   (Reproducción), plazos de los semáforos de partos y de hembras vacías sin servicio (`parto_preparar_dias`, `parto_vigilar_dias`, `vacia_aviso_dias`, `vacia_urgente_dias`; migración `20261028010406`, ver `semaforos.md`), ganancia mínima y peso de faena (Carne), límite de células somáticas y rangos de grasa y proteína (Leche), podología y pediluvio (Sanidad).

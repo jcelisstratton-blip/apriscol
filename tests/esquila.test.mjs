@@ -106,3 +106,25 @@ test("menú y «Al grano»: la esquila solo aparece si la finca tiene ovejas (y 
   assert.ok(!rutas(["caprino"]).includes("/esquila") && !rutas(["caprino"]).includes("/esquila/nueva"));
   assert.ok(rutas(["ovino"]).includes("/esquila") && rutas(["ovino"]).includes("/esquila/nueva"));
 });
+
+import { GRUPOS_AJUSTES } from "../lib/ajustes.ts";
+import { RUTA_AREA } from "../lib/notificaciones/mensajes.ts";
+import { ayudaEsquila } from "../lib/ayuda.ts";
+
+test("ajustes: el plazo de la esquila es un grupo propio, solo para fincas con ovejas, con su rango", () => {
+  const g = GRUPOS_AJUSTES.find((x) => x.id === "esquila");
+  assert.ok(g, "falta el grupo «Esquila» en Ajustes");
+  assert.equal(g.soloConEspecie, "ovino");
+  const campos = Object.fromEntries(g.general.map((c) => [c.clave, c]));
+  assert.deepEqual([campos.esquila_cada_meses.min, campos.esquila_cada_meses.max], [3, 24]);
+  assert.deepEqual([campos.esquila_aviso_dias.min, campos.esquila_aviso_dias.max], [7, 90]);
+  // Los demás grupos se ven siempre.
+  assert.ok(GRUPOS_AJUSTES.filter((x) => x.id !== "esquila").every((x) => !x.soloConEspecie));
+});
+
+test("Telegram y semáforos: el área de esquila lleva a /esquila; la ayuda usa los plazos de la finca", () => {
+  assert.equal(RUTA_AREA.esquila, "/esquila");
+  const h = JSON.stringify(ayudaEsquila({ esquila_cada_meses: 8, esquila_aviso_dias: 20 }));
+  assert.match(h, /cada 8 meses/);
+  assert.match(h, /20 días antes/);
+});

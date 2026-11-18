@@ -31,7 +31,7 @@ export async function TarjetaEsquila({ c }: { c: CtxFicha }) {
   if (animal.estado !== "activo" && historial.length === 0) return null;
 
   const origen = animal.cobertura ? "la definiste en su ficha" : raza.data?.nombre ? `por su raza (${raza.data.nombre})` : "sin raza elegida";
-  const plazo = cobertura === "lana" ? plazoEsquila(historial[0]?.fecha ?? null, hoy) : null;
+  const plazo = cobertura === "lana" ? plazoEsquila(historial[0]?.fecha ?? null, hoy, c.ajustes.general.esquila_cada_meses, c.ajustes.general.esquila_aviso_dias) : null;
   const total = historial.reduce((s, h) => s + (h.kg ?? 0), 0);
 
   return (

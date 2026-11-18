@@ -12,7 +12,7 @@ import { ListaEscalable } from "@/components/ListaEscalable";
 import { registrarEsquila } from "@/app/(app)/esquila/actions";
 import { sinTildes } from "@/lib/texto";
 
-export type OvejaElegible = { id: string; numero_arete: string; nombre: string | null; /** «Le toca hoy», «Atrasada 40 días»… */ texto: string; /** Le toca (o nunca se ha esquilado): se puede elegir en grupo. */ pendiente: boolean };
+export type OvejaElegible = { id: string; numero_arete: string; nombre: string | null; /** «Le toca hoy», «Atrasada 40 días»… */ texto: string; /** Le toca (o nunca se ha esquilado): se puede elegir en grupo. */ pendiente: boolean; /** Nunca tiene una esquila registrada. */ sinEsquila: boolean };
 
 /** Registrar una esquila: la fecha, quién esquiló y las ovejas de lana esquiladas, con los kilos de vellón de cada una (opcional). */
 export function FormEsquila({ ovejas, inicial, solicitud, hoy }: { ovejas: OvejaElegible[]; inicial: string[]; solicitud: string; hoy: string }) {
@@ -36,6 +36,7 @@ export function FormEsquila({ ovejas, inicial, solicitud, hoy }: { ovejas: Oveja
       return nuevo;
     });
   const pendientes = ovejas.filter((o) => o.pendiente);
+  const sinEsquila = ovejas.filter((o) => o.sinEsquila);
 
   // Se envía con onSubmit (no con `action`): si hay un error, lo que la persona escribió no se borra.
   const alEnviar = (e: React.FormEvent<HTMLFormElement>) => {
@@ -75,6 +76,11 @@ export function FormEsquila({ ovejas, inicial, solicitud, hoy }: { ovejas: Oveja
               Las que les toca · {pendientes.length}
             </Chip>
           ) : null}
+          {sinEsquila.length > 0 ? (
+            <Chip activo={false} onClick={() => setElegidas((p) => new Set([...p, ...sinEsquila.map((o) => o.id)]))}>
+              Sin esquila registrada · {sinEsquila.length}
+            </Chip>
+          ) : null}
           <Chip activo={false} onClick={() => setElegidas(new Set(ovejas.map((o) => o.id)))}>
             Todas · {ovejas.length}
           </Chip>
@@ -82,6 +88,7 @@ export function FormEsquila({ ovejas, inicial, solicitud, hoy }: { ovejas: Oveja
             Quitar todas
           </Chip>
         </FilaDesplazable>
+        {sinEsquila.length > 0 ? <p className="text-[0.8125rem] text-humo">Si ya esquilaste antes, pon la fecha en que se esquilaron (hasta tres años atrás): así Apriscol calcula cuándo toca la próxima.</p> : null}
         {ovejas.length > 8 ? <CampoBusqueda onBuscar={setBusqueda} placeholder="Buscar por arete o nombre" /> : null}
         <ListaEscalable<OvejaElegible>
           key={busqueda}

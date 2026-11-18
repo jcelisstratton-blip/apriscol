@@ -126,7 +126,7 @@ test("herramientas: todos los roles reciben las mismas cinco, pero cada uno solo
 import { areasFueraDelPlan, alcanceDelPlan } from "../lib/mcp/plan.ts";
 import { areasSemaforo } from "../lib/semaforos.ts";
 
-const TEMAS = { cria: ["reproduccion", "sanidad", "leche"], hato: ["reproduccion", "sanidad", "leche", "corrales", "inventario", "alimento"] };
+const TEMAS = { cria: ["reproduccion", "sanidad", "esquila", "leche"], hato: ["reproduccion", "sanidad", "esquila", "leche", "corrales", "inventario", "alimento"] };
 TEMAS.profesional = [...TEMAS.hato, "ceba", "dinero"];
 TEMAS.hacienda = TEMAS.profesional;
 
