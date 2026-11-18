@@ -107,6 +107,7 @@ test("ayudas «¿Cómo funciona?»: cada módulo apunta a un tutorial que existe
   const todas = Object.entries(ayudas).filter(([nombre]) => nombre.startsWith("AYUDA_")).map(([nombre, a]) => [nombre, a]);
   todas.push(["ayudaSanidad", ayudas.ayudaSanidad({ podologia_inspeccion_dias: 90, pediluvio_dias: 14, pediluvio_dias_lluvia: 7 })]);
   todas.push(["ayudaEsquila", ayudas.ayudaEsquila({ esquila_cada_meses: 12, esquila_aviso_dias: 30 })]);
+  todas.push(["ayudaEsquilaOveja", ayudas.ayudaEsquilaOveja({ esquila_cada_meses: 12, esquila_aviso_dias: 30 })]);
   assert.ok(todas.length >= 13);
   for (const [nombre, a] of todas) {
     assert.ok(Number.isInteger(a.tutorial), `${nombre} no apunta a un tutorial`);
@@ -125,4 +126,16 @@ test("tutoriales: la lista de reproducción del canal tiene un enlace válido y 
   assert.match(urlLista(), /^https:\/\/www\.youtube\.com\/playlist\?list=PL[A-Za-z0-9_-]+$/);
   assert.equal(urlLista("abc\"><script>"), null);
   assert.equal(urlLista(""), null);
+});
+
+test("ayudas «¿Cómo funciona?»: el enlace de abajo nunca lleva a la misma pantalla donde se abre", () => {
+  // Pantalla donde vive cada ayuda: un enlace a sí misma no hace nada y parece «roto».
+  const donde = { ayudaEsquila: "/esquila", ayudaEsquilaOveja: "/hato/[id]", AYUDA_IA: "/mas/ia", AYUDA_IMPORTAR: "/hato/importar", AYUDA_COSTOS: "/costos", AYUDA_PROYECCIONES: "/proyecciones", AYUDA_PERSONAL: "/mas/miembros", AYUDA_INVENTARIO: "/inventario", AYUDA_ALIMENTO: "/inventario" };
+  const plazos = { esquila_cada_meses: 12, esquila_aviso_dias: 30 };
+  for (const [nombre, ruta] of Object.entries(donde)) {
+    const a = typeof ayudas[nombre] === "function" ? ayudas[nombre](plazos) : ayudas[nombre];
+    assert.notEqual(a.enlace.href.split("?")[0], ruta, `${nombre}: su enlace lleva a la misma pantalla`);
+  }
+  assert.equal(ayudas.ayudaEsquilaOveja(plazos).enlace.href, "/esquila");
+  assert.equal(ayudas.ayudaEsquilaOveja(plazos).tutorial, 30);
 });

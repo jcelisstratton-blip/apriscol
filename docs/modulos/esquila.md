@@ -37,7 +37,7 @@ El plazo **es un ajuste de cada finca** (grupo «Esquila» de `/mas/ajustes`, so
 
 - Tablas de la finca `esquilas` y `esquila_animales` (RLS por finca con `crear_politicas_finca(..., 'hato')`, sin permisos para `anon`, FK compuestas `(animal_id, finca_id)`), y la vista `v_esquila_animal` (`security_invoker`: última esquila y kilos de cada oveja, solo esquilas vigentes).
 - La exportación de la finca incluye las hojas «Esquilas» y «Ovejas esquiladas» y la columna «Cobertura (lana o pelo)» de los animales.
-- Tutorial 30 «Esquila de las ovejas» (`lib/tutoriales.ts`): aparece como «Próximamente» hasta que se grabe y se le ponga su `youtube`; la ayuda «¿Cómo funciona?» de la pantalla (`AYUDA_ESQUILA`) ya apunta a él.
+- Tutorial 30 «Esquila de las ovejas» (`lib/tutoriales.ts`): ya está publicado en YouTube. El «¿Cómo funciona?» vive en dos sitios, cada uno con su hoja y su tarjeta «Míralo en video»: la pantalla `/esquila` (`ayudaEsquila`, lleva a Ajustes para cambiar los plazos) y la tarjeta «Esquila» de la ficha de cada oveja (`ayudaEsquilaOveja`, lleva a `/esquila`). El enlace final de una ayuda nunca apunta a la pantalla donde se abre (no haría nada): lo vigila `tests/tutoriales.test.mjs`.
 
 ## Pendiente (decisiones aparte)
 
