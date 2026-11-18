@@ -10,7 +10,7 @@ import { Marca } from "@/components/Marca";
 import { MenuUsuario } from "@/components/MenuUsuario";
 import { destinosMenu, menuFinca, menuPrincipal, type EntradaMenu, type VisibilidadMenu } from "@/lib/menu";
 import { entradaMarcada } from "@/lib/nav";
-import type { PlanId, RolFinca } from "@/lib/tipos";
+import type { Especie, PlanId, RolFinca } from "@/lib/tipos";
 
 /**
  * Menú lateral del computador (desde `lg`). En el celular manda la barra inferior (`BottomNav`) y la lista de «Más»; las dos salen de `lib/menu.ts`,
@@ -23,6 +23,7 @@ export function NavLateral({
   fincaActiva,
   rol,
   plan,
+  especies = [],
   visibilidad,
   esSuperadmin,
 }: {
@@ -32,6 +33,8 @@ export function NavLateral({
   fincaActiva: string;
   rol: RolFinca;
   plan: PlanId;
+  /** Las especies de la finca (para mostrar la esquila solo si tiene ovejas). */
+  especies?: Especie[];
   visibilidad: VisibilidadMenu;
   esSuperadmin: boolean;
 }) {
@@ -95,7 +98,7 @@ export function NavLateral({
         </div>
       </aside>
 
-      <HojaAlGrano abierta={abierta} onCerrar={cerrar} rol={rol} plan={plan} />
+      <HojaAlGrano abierta={abierta} onCerrar={cerrar} rol={rol} plan={plan} especies={especies} />
     </>
   );
 }

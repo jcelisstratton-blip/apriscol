@@ -72,6 +72,7 @@ export default async function PaginaEditarAnimal({ params }: { params: Promise<{
             fecha_compra: animal.fecha_compra,
             vocacion: animal.vocacion,
             uso_macho: animal.uso_macho,
+            cobertura: animal.cobertura === "lana" || animal.cobertura === "pelo" ? animal.cobertura : null,
             padre,
             madre,
             padre_externo: animal.padre_externo,

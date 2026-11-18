@@ -63,6 +63,7 @@ export const TUTORIALES: Tutorial[] = [
   { numero: 27, titulo: "Recorrido por el Hato", resumen: "Los filtros, la lista y las tarjetas de trabajo del Hato: el mapa para llegar a cada módulo.", duracion: "3:55", grupo: "empezar", youtube: "kct_KaubruU" },
   { numero: 28, titulo: "Conecta Claude con tu finca", resumen: "Conecta Claude a tu cuenta para preguntarle qué atender hoy, cómo va la leche o buscar un animal. Solo lee, y lo quitas cuando quieras.", duracion: "4:14", grupo: "equipo", youtube: "AnM3MFMZHWw" },
   { numero: 29, titulo: "Encuentra todo con «Al grano»", resumen: "El botón del rayo: escribe lo que quieres hacer y la app te lleva directo, sin buscar en los menús.", duracion: "2:28", grupo: "dia", youtube: "FuCeC8w3kiE" },
+  { numero: 30, titulo: "Esquila de las ovejas", resumen: "Qué ovejas son de lana y cuáles de pelo, cuándo toca esquilar y cómo registrar la esquila con los kilos de vellón.", duracion: "0:00", grupo: "produccion", youtube: null },
 ];
 
 const ID_YOUTUBE = /^[A-Za-z0-9_-]{11}$/;

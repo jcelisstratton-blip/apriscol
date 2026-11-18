@@ -25,6 +25,7 @@ import { TarjetaPremios } from "./fichas/TarjetaPremios";
 import { TarjetaReproduccion } from "./fichas/TarjetaReproduccion";
 import { TarjetaSalida } from "./fichas/TarjetaSalida";
 import { TarjetaSanidad } from "./fichas/TarjetaSanidad";
+import { TarjetaEsquila } from "./fichas/TarjetaEsquila";
 import { EtapaAnimal } from "./fichas/EtapaAnimal";
 import { TarjetaNovedades } from "./fichas/TarjetaNovedades";
 import { TarjetaUbicacion } from "./fichas/TarjetaUbicacion";
@@ -135,6 +136,7 @@ export default async function FichaAnimal({ params, searchParams }: { params: Pr
         <TarjetaCrecimiento c={c} />
         <TarjetasGenealogia c={c} />
         <TarjetaSanidad c={c} />
+        <TarjetaEsquila c={c} />
         <TarjetaUbicacion c={c} />
         <TarjetaCostos c={c} />
         <TarjetaPremios c={c} />

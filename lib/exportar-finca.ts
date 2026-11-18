@@ -6,7 +6,7 @@ import { limpiarNombreArchivo } from "@/lib/excel-estilo";
  * Excel ni de la base: lo que se puede probar solo vive aquí; `lib/exportar-finca-excel.ts` lo usa para armar el libro.
  */
 
-export type BusquedaId = "animales" | "ubicaciones" | "lotes" | "lotes_ceba" | "terceros" | "productos" | "veterinarios" | "personal" | "ferias" | "empadronamientos" | "eventos" | "programas" | "razas";
+export type BusquedaId = "animales" | "ubicaciones" | "lotes" | "lotes_ceba" | "terceros" | "productos" | "veterinarios" | "personal" | "ferias" | "empadronamientos" | "eventos" | "programas" | "esquilas" | "razas";
 
 export type Hoja = {
   tabla: string;
@@ -50,6 +50,8 @@ export const HOJAS: Hoja[] = [
   { tabla: "pruebas_sanitarias", hoja: "Pruebas sanitarias" },
   { tabla: "evaluaciones_famacha", hoja: "FAMACHA" },
   { tabla: "examenes_coprologicos", hoja: "Coprológicos" },
+  { tabla: "esquilas", hoja: "Esquilas" },
+  { tabla: "esquila_animales", hoja: "Ovejas esquiladas", orden: "esquila_id" },
   { tabla: "inventario_movimientos", hoja: "Inventario de medicamentos" },
   { tabla: "inventario_alimento_movimientos", hoja: "Inventario de alimento (kg)", producto: "productos", ocultar: ["lote_id"] },
   { tabla: "productos_veterinarios", hoja: "Productos veterinarios" },
@@ -88,6 +90,7 @@ export const BUSQUEDA_POR_COLUMNA: Record<string, { busqueda: BusquedaId; etique
   empadronamiento_id: { busqueda: "empadronamientos", etiqueta: "Temporada de monta" },
   evento_id: { busqueda: "eventos", etiqueta: "Tratamiento" },
   programa_id: { busqueda: "programas", etiqueta: "Programa" },
+  esquila_id: { busqueda: "esquilas", etiqueta: "Esquila" },
   raza_id: { busqueda: "razas", etiqueta: "Raza" },
 };
 
@@ -105,6 +108,7 @@ export const ARCHIVO_POR_COLUMNA: Record<string, "fotos-animales" | "premios" | 
 export const DIAS_ENLACE_ARCHIVO = 7;
 
 const ETIQUETAS: Record<string, string> = {
+  esquilador: "Quién esquiló", peso_vellon_kg: "Vellón (kg)", anulada_en: "Anulada el", cobertura: "Cobertura (lana o pelo)",
   fecha: "Fecha", hora: "Hora", tipo: "Tipo", motivo: "Motivo", estado: "Estado", resultado: "Resultado", observaciones: "Observaciones", notas: "Notas", detalle: "Detalle",
   nombre: "Nombre", descripcion: "Descripción", especie: "Especie", sexo: "Sexo", numero_arete: "Número de arete", chip: "Microchip", color: "Color", marcas: "Marcas", rasgos: "Rasgos",
   raza: "Raza", peso_kg: "Peso (kg)", peso_nacer_kg: "Peso al nacer (kg)", peso_adulto_hembra_kg: "Peso adulto de la hembra (kg)", litros: "Litros", jornada: "Jornada",

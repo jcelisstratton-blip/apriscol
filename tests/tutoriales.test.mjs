@@ -5,8 +5,8 @@ import { ANUNCIO_TUTORIALES_HASTA, DIAS_AVISO_FINCA_NUEVA, GRUPOS_TUTORIAL, TUTO
 import * as ayudas from "../lib/ayuda.ts";
 import { sinTildes } from "../lib/texto.ts";
 
-test("tutoriales: están todos (del 0 al 29), con su grupo, su duración y su miniatura", () => {
-  assert.deepEqual(TUTORIALES.map((t) => t.numero), Array.from({ length: 30 }, (_, i) => i));
+test("tutoriales: están todos (del 0 al 30), con su grupo, su duración y su miniatura", () => {
+  assert.deepEqual(TUTORIALES.map((t) => t.numero), Array.from({ length: 31 }, (_, i) => i));
   const grupos = new Set(GRUPOS_TUTORIAL.map((g) => g.id));
   for (const t of TUTORIALES) {
     assert.ok(t.titulo.trim().length > 3 && t.resumen.trim().length > 10, `tutorial ${t.numero}: título o resumen vacío`);
@@ -24,7 +24,9 @@ test("tutoriales: están todos (del 0 al 29), con su grupo, su duración y su mi
 });
 
 test("tutoriales: los enlaces de YouTube son válidos y no se repiten; sin enlace queda «próximamente»", () => {
-  assert.ok(TUTORIALES.every((t) => t.youtube !== null), "los 30 tutoriales ya tienen su video");
+  // Del 0 al 29 ya tienen su video; el 30 (esquila) se graba después y mientras tanto es «Próximamente».
+  assert.ok(TUTORIALES.filter((t) => t.numero <= 29).every((t) => t.youtube !== null), "los tutoriales del 0 al 29 ya tienen su video");
+  assert.equal(TUTORIALES.find((t) => t.numero === 30).youtube, null);
   const ids = TUTORIALES.filter((t) => t.youtube !== null).map((t) => t.youtube);
   for (const id of ids) assert.match(id, /^[A-Za-z0-9_-]{11}$/);
   assert.equal(new Set(ids).size, ids.length, "un mismo video en dos tutoriales");
@@ -51,8 +53,8 @@ test("tutoriales: siguiente y anterior saltan los que todavía no se pueden ver"
 });
 
 test("tutoriales: la búsqueda no distingue tildes ni mayúsculas, y vacía devuelve todo", () => {
-  assert.equal(buscarTutoriales("", sinTildes).length, 30);
-  assert.equal(buscarTutoriales("   ", sinTildes).length, 30);
+  assert.equal(buscarTutoriales("", sinTildes).length, 31);
+  assert.equal(buscarTutoriales("   ", sinTildes).length, 31);
   assert.ok(buscarTutoriales("ORDENO", sinTildes).some((t) => t.titulo === "Ordeño y leche"));
   assert.ok(buscarTutoriales("excel", sinTildes).length >= 2);
   assert.equal(buscarTutoriales("xyzzy", sinTildes).length, 0);
@@ -81,8 +83,9 @@ test("tutoriales: el enlace «?ver=N» solo abre un tutorial que existe", () => 
   assert.equal(numeroDeEnlace("27"), 27);
   assert.equal(numeroDeEnlace("28"), 28);
   assert.equal(numeroDeEnlace("29"), 29);
+  assert.equal(numeroDeEnlace("30"), 30);
   assert.equal(numeroDeEnlace(["3", "4"]), 3);
-  for (const malo of [undefined, "", "30", "99", "-1", "5.5", "abc", "5;6", "<script>", "1e1", "000"]) assert.equal(numeroDeEnlace(malo), null, `«${malo}»`);
+  for (const malo of [undefined, "", "31", "99", "-1", "5.5", "abc", "5;6", "<script>", "1e1", "000"]) assert.equal(numeroDeEnlace(malo), null, `«${malo}»`);
 });
 
 test("tutoriales: Hoy los ofrece a las fincas nuevas y, por ser algo nuevo, a todas hasta el día del anuncio", () => {
@@ -113,6 +116,7 @@ test("ayudas «¿Cómo funciona?»: cada módulo apunta a un tutorial que existe
   assert.equal(ayudas.AYUDA_ORDENO.tutorial, 5);
   assert.equal(ayudas.AYUDA_CEBA.tutorial, 14);
   assert.equal(ayudas.AYUDA_CORRALES.tutorial, 13);
+  assert.equal(ayudas.AYUDA_ESQUILA.tutorial, 30);
 });
 
 test("tutoriales: la lista de reproducción del canal tiene un enlace válido y uno dañado no se usa", () => {

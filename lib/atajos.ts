@@ -1,12 +1,12 @@
 import {
   Activity, ArrowRightLeft, Baby, Banknote, BarChart3, Beef, CalendarClock, ClipboardCheck, Droplets, FileText, FlaskConical, GitFork, HeartPulse, Download, FileSpreadsheet, Home, KeyRound, Layers, MapPin,
   Microscope, Package, PawPrint, Plus, Rocket, Scale, Shuffle, SlidersHorizontal, Snowflake, Syringe, Trophy, Truck, UserPlus, Users, Wallet, Wrench, Fence, Sheet, type LucideIcon,
-  HardHat, Gift, Inbox, Boxes, Utensils, Wheat, FileBarChart2, TrendingUp, Send, Plug, CirclePlay,
+  HardHat, Gift, Inbox, Boxes, Utensils, Wheat, FileBarChart2, TrendingUp, Send, Plug, CirclePlay, Scissors,
 } from "lucide-react";
 import { puedeEscribir, puedeGestionar, puedeVer } from "@/lib/permisos";
 import { visibilidadMenu, type VisibilidadMenu } from "@/lib/menu";
 import { servicioEnPlan, type ServicioPlan } from "@/lib/planes";
-import type { ModuloApp, PlanId, RolFinca } from "@/lib/tipos";
+import type { Especie, ModuloApp, PlanId, RolFinca } from "@/lib/tipos";
 import { sinTildes } from "@/lib/texto";
 
 export type GrupoAtajo = "Hato" | "Leche" | "Reproducción" | "Sanidad" | "Carne" | "Corrales" | "Inventario" | "Costos" | "Premios" | "Cuenta";
@@ -51,6 +51,9 @@ export const ATAJOS: Atajo[] = [
 
   { grupo: "Hato", tipo: "registrar", titulo: "Crear una novedad", detalle: "Avisa qué hay que comprar o aplicar; solo eliges opciones", href: "/novedades/nueva", Icono: Inbox, modulo: "novedades", clave: "novedad aviso reportar vacuna prueba diagnostica animal enfermo" },
   { grupo: "Hato", tipo: "ir", titulo: "Novedades", detalle: "Lo que el equipo ha avisado de los animales", href: "/novedades", Icono: Inbox, modulo: "novedades", clave: "avisos reportes novedad" },
+
+  { grupo: "Hato", tipo: "registrar", titulo: "Registrar esquila", detalle: "Las ovejas de lana que esquilaste y sus kilos de vellón", href: "/esquila/nueva", Icono: Scissors, modulo: "hato", menu: "esquila", clave: "esquilar lana vellon oveja trasquila" },
+  { grupo: "Hato", tipo: "ir", titulo: "Esquila", detalle: "Qué ovejas toca esquilar y cuáles son de pelo", href: "/esquila", Icono: Scissors, menu: "esquila", clave: "esquilar lana vellon pelo oveja trasquila" },
 
   // Leche
   { grupo: "Leche", tipo: "registrar", titulo: "Registrar ordeño", detalle: "Litros por animal, jornada de hoy", href: "/hato?vista=ordeno", Icono: Droplets, modulo: "leche", clave: "litros leche ordeno jornada" },
@@ -141,11 +144,11 @@ export const ATAJOS: Atajo[] = [
 ];
 
 /** Lo que esta persona puede hacer en esta finca: según su rol y según lo que incluye el plan. */
-export function atajosPara(rol: RolFinca, plan: PlanId): Atajo[] {
+export function atajosPara(rol: RolFinca, plan: PlanId, especies: Especie[] = []): Atajo[] {
   return ATAJOS.filter((a) => {
     if (a.modulo && !(a.tipo === "registrar" ? puedeEscribir(rol, a.modulo, plan) : puedeVer(rol, a.modulo, plan))) return false;
     if (a.servicio && !servicioEnPlan(plan, a.servicio)) return false;
-    if (a.menu && !visibilidadMenu(rol, plan)[a.menu]) return false;
+    if (a.menu && !visibilidadMenu(rol, plan, especies)[a.menu]) return false;
     if (a.gestion && !puedeGestionar(rol)) return false;
     if (a.propietario && rol !== "propietario") return false;
     return true;

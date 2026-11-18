@@ -13,8 +13,9 @@ import { SelectorTarjetas } from "@/components/SelectorTarjetas";
 import { crearAnimal, editarAnimal } from "@/app/(app)/hato/actions";
 import { nombreTipo } from "@/lib/animal";
 import { hoyBogota } from "@/lib/fechas";
-import { ESCENA_ESPECIE, ESCENA_ORIGEN_ANIMAL, ESCENA_SEXO, ESCENA_USO_MACHO, ESCENA_VOCACION } from "@/lib/escenas-forms-b-hato";
-import type { Especie, Raza, SexoAnimal, UsoMacho, Vocacion } from "@/lib/tipos";
+import { ESCENA_COBERTURA, ESCENA_ESPECIE, ESCENA_ORIGEN_ANIMAL, ESCENA_SEXO, ESCENA_USO_MACHO, ESCENA_VOCACION } from "@/lib/escenas-forms-b-hato";
+import { coberturaEfectiva, ETIQUETA_COBERTURA } from "@/lib/esquila";
+import type { Cobertura, Especie, Raza, SexoAnimal, UsoMacho, Vocacion } from "@/lib/tipos";
 import { useMoneda } from "@/components/ProveedorMoneda";
 
 type Ref = { id: string; numero_arete: string; nombre: string | null };
@@ -39,6 +40,8 @@ export type AnimalEditable = {
   fecha_compra?: string | null;
   vocacion: Vocacion;
   uso_macho: UsoMacho | null;
+  /** Solo ovejas: la que la persona definió. `null` = la de su raza. */
+  cobertura?: Cobertura | null;
   padre: Ref | null;
   madre: Ref | null;
   padre_externo: string | null;
@@ -89,6 +92,7 @@ export function FormAnimal({
   const [origen, setOrigen] = useState<"nacido_en_finca" | "comprado">(animal?.origen ?? "nacido_en_finca");
   const [vocacion, setVocacion] = useState<Vocacion>(animal?.vocacion ?? propositoFinca);
   const [usoMacho, setUsoMacho] = useState<UsoMacho | "por_definir">(animal?.uso_macho ?? "por_definir");
+  const [cobertura, setCobertura] = useState<Cobertura | "segun_raza">(animal?.cobertura ?? "segun_raza");
   const [padre, setPadre] = useState<Ref | null>(animal?.padre ?? null);
   const [madre, setMadre] = useState<Ref | null>(animal?.madre ?? null);
   const [color, setColor] = useState(animal?.color ?? "");
@@ -108,9 +112,16 @@ export function FormAnimal({
     [razas, especie],
   );
 
+  // Lo que diría la raza elegida (para explicarle a la persona qué significa «según su raza»).
+  const coberturaDeLaRaza = useMemo(() => {
+    const raza = razas.find((r) => r.id === razaId);
+    return coberturaEfectiva("ovino", null, raza?.cobertura ?? null);
+  }, [razas, razaId]);
+
   const cambiarEspecie = (e: Especie) => {
     setEspecie(e);
     setRazaId("");
+    setCobertura("segun_raza");
     setPadre(null);
     setMadre(null);
   };
@@ -220,6 +231,28 @@ export function FormAnimal({
               ))}
             </FilaDesplazable>
           </div>
+
+          {especie === "ovino" ? (
+            <div id="cobertura" className="min-w-0 scroll-mt-24 space-y-2 lg:col-span-2">
+              <span className="block text-sm font-semibold">¿Es de lana o de pelo?</span>
+              <SelectorTarjetas<Cobertura | "segun_raza">
+                nombre="cobertura"
+                valor={cobertura}
+                onCambio={(v) => v && setCobertura(v)}
+                titulo="Lana o pelo"
+                opciones={[
+                  { valor: "segun_raza", etiqueta: "Según su raza", detalle: razaId === "" ? "Elige la raza" : ETIQUETA_COBERTURA[coberturaDeLaRaza ?? "por_definir"], escena: ESCENA_COBERTURA.segun_raza },
+                  { valor: "lana", etiqueta: "De lana", detalle: "Se esquila", escena: ESCENA_COBERTURA.lana },
+                  { valor: "pelo", etiqueta: "De pelo", detalle: "No se esquila", escena: ESCENA_COBERTURA.pelo },
+                ]}
+              />
+              <p className="text-[0.8125rem] text-humo">
+                {cobertura === "segun_raza" && coberturaDeLaRaza === "por_definir"
+                  ? "Esta raza (o una oveja sin raza) puede ser de lana o de pelo: dilo aquí para que Apriscol sepa si hay que esquilarla."
+                  : "Solo las ovejas de lana se esquilan. Si una oveja no es como su raza, elige aquí lo que de verdad es."}
+              </p>
+            </div>
+          ) : null}
 
           <Campo etiqueta="Marcas" ayuda="Opcional. Chapeta, muesca, collar o tatuaje con que lo identificas.">
             {(id) => <input id={id} name="marcas" defaultValue={animal?.marcas ?? ""} maxLength={120} autoComplete="off" enterKeyHint="next" className={CLASE_INPUT} placeholder="Ej. Chapeta 32, muesca oreja derecha" />}
