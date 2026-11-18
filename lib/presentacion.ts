@@ -1,4 +1,4 @@
-import { Activity, Inbox, CalendarCheck, Coins, Crown, Download, FileBarChart2, FileSpreadsheet, GitFork, Gift, Home, Package, Plug, Plus, Send, SlidersHorizontal, Sprout, TrendingUp, Trophy, Users, Wallet, Wrench } from "lucide-react";
+import { Scissors, Activity, Inbox, CalendarCheck, Coins, Crown, Download, FileBarChart2, FileSpreadsheet, GitFork, Gift, Home, Package, Plug, Plus, Send, SlidersHorizontal, Sprout, TrendingUp, Trophy, Users, Wallet, Wrench } from "lucide-react";
 import { escena, ESC, ESCENA_HATO, type EscenaDef } from "@/lib/escenas";
 import { ESCENA_TODOS_INVENTARIO } from "@/lib/escenas-inventario";
 import { menuFinca, menuPrincipal, visibilidadMenu, type EntradaMenu } from "@/lib/menu";
@@ -49,7 +49,7 @@ export const CONTENIDO: Record<string, ContenidoOpcion> = {
   "/semaforos": {
     escena: escena(Activity, "musgo", CalendarCheck),
     lema: "Qué pide atención, por colores",
-    puntos: ["Rojo: actúa hoy; ámbar: programa una acción; verde: en orden", "Partos, sanidad, leche, ceba, corrales, bodega y cuentas, cada persona con lo de su rol", "Cada aviso dice qué hacer y te lleva al animal o al registro donde se resuelve"],
+    puntos: ["Rojo: actúa hoy; ámbar: programa una acción; verde: en orden", "Partos, sanidad, leche, ceba, esquila, corrales, bodega y cuentas, cada persona con lo de su rol", "Cada aviso dice qué hacer y te lleva al animal o al registro donde se resuelve"],
   },
   "/leche": {
     escena: ESCENA_HATO.ordeno,
@@ -66,6 +66,11 @@ export const CONTENIDO: Record<string, ContenidoOpcion> = {
     lema: "Cada animal a su peso",
     puntos: ["Pesos, lotes de ceba y ganancia diaria", "Candidatos a ceba según tus propias reglas", "Rendimiento de la canal"],
     modulo: "carne",
+  },
+  "/esquila": {
+    escena: escena(Scissors, "ambar", CalendarCheck),
+    lema: "Las ovejas de lana, esquiladas a tiempo",
+    puntos: ["Solo se esquilan las de lana: cada raza trae su clase y tú la ajustas, también oveja por oveja", "Registra los kilos de vellón de cada una, de a una o por lote", "Avisa cuándo toca, con el plazo que tú definas en Ajustes"],
   },
   "/sanidad": {
     escena: ESCENA_HATO.sanidad,
@@ -123,7 +128,7 @@ export const CONTENIDO: Record<string, ContenidoOpcion> = {
   "/mas/ajustes": {
     escena: escena(SlidersHorizontal, "grafito", Wrench),
     lema: "Tu aprisco, con tus reglas",
-    puntos: ["Gestación, edad de servicio, ceba, leche y plazos de pezuñas", "Distintos para cabras y para ovejas", "La app avisa con lo que tú definiste, no con números ajenos"],
+    puntos: ["Gestación, edad de servicio, ceba, leche, pezuñas y cada cuánto esquilar", "Distintos para cabras y para ovejas", "La app avisa con lo que tú definiste, no con números ajenos"],
   },
   "/mas/miembros": {
     escena: ESC.equipo,
@@ -176,7 +181,7 @@ const aTarjeta = (e: EntradaMenu): TarjetaFuncion | null => {
 
 /** Todos los grupos de la presentación, en el orden del menú. Se arma con todo visible: es lo que ofrece la app completa. */
 export function gruposDeFunciones(): GrupoFunciones[] {
-  const v = visibilidadMenu("propietario", "hacienda");
+  const v = visibilidadMenu("propietario", "hacienda", ["caprino", "ovino"]);
   const grupos: { id: string; entradas: EntradaMenu[] }[] = [...menuPrincipal(v).map((g) => ({ id: g.id, entradas: g.entradas })), { id: "finca", entradas: menuFinca(v) }];
   return grupos
     .map((g) => ({

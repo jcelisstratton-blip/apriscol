@@ -32,6 +32,7 @@ export const PLANES: Plan[] = [
       "Leche: ordeño por jornada y calidad",
       "Sanidad con periodos de retiro",
       "Servicios, gestación y partos",
+      "Esquila de las ovejas de lana, con aviso de cuándo toca",
       "Traer tus animales del libro genealógico",
       "Avisos diarios por Telegram de lo que toca hoy",
       "Pregúntale a Claude por tu finca (solo lectura, según tu plan)",

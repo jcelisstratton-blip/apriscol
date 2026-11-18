@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Activity, CalendarCheck, ChevronLeft, ChevronRight, Crown, GitFork, Sprout, Trophy } from "lucide-react";
+import { Activity, CalendarCheck, ChevronLeft, ChevronRight, Crown, GitFork, Scissors, Sprout, Trophy } from "lucide-react";
 import { Escena } from "@/components/TarjetaOpcion";
 import { useArrastrarParaDesplazar } from "@/lib/arrastrar-para-desplazar";
 import { escena, ESCENA_HATO, type EscenaDef } from "@/lib/escenas";
@@ -10,6 +10,7 @@ import { ESCENA_TODOS_INVENTARIO } from "@/lib/escenas-inventario";
 const TARJETAS: { titulo: string; detalle: string; escena: EscenaDef }[] = [
   { titulo: "Cabras", detalle: "Lecheras, de carne o de doble propósito.", escena: ESCENA_HATO.caprino },
   { titulo: "Ovejas", detalle: "Con sus propios parámetros de ceba y monta.", escena: ESCENA_HATO.ovino },
+  { titulo: "Esquila", detalle: "Solo las ovejas de lana, con aviso de cuándo toca.", escena: escena(Scissors, "ambar", CalendarCheck) },
   { titulo: "Semáforos", detalle: "Qué pide atención hoy, en rojo, ámbar o verde, y qué hacer.", escena: escena(Activity, "musgo", CalendarCheck) },
   { titulo: "Genealogía y endogamia", detalle: "El parentesco, antes de cruzar.", escena: escena(GitFork, "musgo", Sprout) },
   { titulo: "Leche", detalle: "Del ordeño al tanque, con su calidad.", escena: ESCENA_HATO.ordeno },
