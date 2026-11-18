@@ -33,7 +33,7 @@ export function AyudaModulo({ ayuda }: { ayuda: Ayuda }) {
           ))}
         </ul>
         {video ? <TarjetaVideo t={video} /> : null}
-        <Link href={ayuda.enlace.href} className="mt-3 inline-flex min-h-11 items-center font-semibold text-musgo underline-offset-4 hover:underline">
+        <Link href={ayuda.enlace.href} onClick={() => setAbierta(false)} className="mt-3 inline-flex min-h-11 items-center font-semibold text-musgo underline-offset-4 hover:underline">
           {ayuda.enlace.texto}
         </Link>
       </Sheet>

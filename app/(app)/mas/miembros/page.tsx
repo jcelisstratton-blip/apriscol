@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { Banknote, ChevronLeft, Plus, Send, Users } from "lucide-react";
 import { AvisoGuardado } from "@/components/AvisoGuardado";
 import { AyudaModulo } from "@/components/AyudaModulo";
-import { AYUDA_PANTALLA } from "@/lib/ayuda-pantallas";
+import { AYUDA_PANTALLA, enlaceEquipo } from "@/lib/ayuda-pantallas";
 import { clasesBoton } from "@/components/Boton";
 import { Encabezado } from "@/components/Encabezado";
 import { FilaInvitacion } from "@/components/FilaInvitacion";
@@ -117,7 +117,7 @@ export default async function PaginaMiembros({ searchParams }: { searchParams: P
           </div>
         ) : (
           <>
-            <AyudaModulo ayuda={AYUDA_PANTALLA["/mas/miembros"]} />
+            <AyudaModulo ayuda={{ ...AYUDA_PANTALLA["/mas/miembros"], enlace: enlaceEquipo(rol) }} />
             {gestiona ? (
               <>
                 <Tarjeta titulo="Personas con acceso">
@@ -172,7 +172,7 @@ export default async function PaginaMiembros({ searchParams }: { searchParams: P
             ) : null}
 
             {gestiona ? (
-              <Tarjeta titulo="Agregar a alguien">
+              <Tarjeta titulo="Agregar a alguien" id="agregar">
                 {servicioEnPlan(finca.plan, "equipo") || puedeEditar ? (
                   <FormInvitar hoy={hoy} puedeInvitar={servicioEnPlan(finca.plan, "equipo")} conContrato={puedeEditar} />
                 ) : (

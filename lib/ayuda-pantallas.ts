@@ -215,7 +215,8 @@ export const AYUDA_PANTALLA: Record<string, Ayuda> = {
       { titulo: "Avisos por Telegram", texto: "El propietario y el administrador definen qué avisos recibe cada persona y a qué hora, según su perfil." },
       { titulo: "Contrato y pagos", texto: "Al agregar a alguien puedes dejar su contrato y lo que se le paga. Cada pago que registras se suma al costo de la finca como mano de obra." },
     ],
-    enlace: { href: "/mas/telegram", texto: "Conectar tu Telegram para recibir los avisos" },
+    // El enlace de abajo depende del perfil (ver `enlaceEquipo`): este es el de quien invita.
+    enlace: { href: "/mas/miembros#agregar", texto: "Ir a «Agregar a alguien»" },
   },
 
   "/mas/telegram": {
@@ -276,6 +277,15 @@ export const AYUDA_PANTALLA: Record<string, Ayuda> = {
 export function enlaceNovedades(rol: RolFinca): { href: string; texto: string } {
   if (rol === "ordenador" || rol === "veterinario") return { href: "/novedades/nueva", texto: "Crear una novedad" };
   return AYUDA_PANTALLA["/novedades"].enlace;
+}
+
+/**
+ * El enlace final de la ayuda de Equipo según el perfil: quien invita (propietario, administrador) baja al formulario «Agregar a alguien», en la
+ * misma pantalla; el contador, que no invita, pasa a la pestaña «Pagos», que sí es suya.
+ */
+export function enlaceEquipo(rol: RolFinca): { href: string; texto: string } {
+  if (rol === "contador") return { href: "/mas/miembros?vista=pagos", texto: "Ir a los pagos del personal" };
+  return AYUDA_PANTALLA["/mas/miembros"].enlace;
 }
 
 /** Opciones del menú que no llevan hoja de ayuda propia, y por qué. Lo exige `tests/ayuda-pantallas.test.mjs` (nada se omite en silencio). */

@@ -2,13 +2,13 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 import { destinosMenu, visibilidadMenu } from "../lib/menu.ts";
-import { AYUDA_PANTALLA, SIN_AYUDA_PROPIA, enlaceNovedades } from "../lib/ayuda-pantallas.ts";
+import { AYUDA_PANTALLA, SIN_AYUDA_PROPIA, enlaceEquipo, enlaceNovedades } from "../lib/ayuda-pantallas.ts";
 import { puedeEscribir, puedeVer } from "../lib/permisos.ts";
 import { TUTORIALES } from "../lib/tutoriales.ts";
 import { AYUDA_EMPADRONAMIENTO, AYUDA_ORDENO } from "../lib/ayuda.ts";
 
 const archivoDe = (ruta) => (ruta === "/" ? "app/(app)/page.tsx" : `app/(app)/${ruta.slice(1)}/page.tsx`);
-const rutaBase = (href) => href.split("?")[0];
+const rutaBase = (href) => href.split(/[?#]/)[0];
 const ROLES = ["propietario", "administrador", "veterinario", "ordenador", "contador"];
 
 test("ayuda: toda opción del menú explica cómo funciona (o dice por qué no)", () => {
@@ -41,7 +41,13 @@ test("ayuda: cada hoja es clara, corta, con su video y un enlace que funciona y 
       assert.doesNotMatch(p.titulo + p.texto, sinJerga, `${ruta}: jerga técnica en «${p.titulo}»`);
     }
     assert.ok(a.enlace.href.startsWith("/") && a.enlace.texto.length > 5, `${ruta}: enlace incompleto`);
-    assert.notEqual(rutaBase(a.enlace.href), ruta, `${ruta}: el enlace final lleva a la misma pantalla`);
+    // Llevar a la misma pantalla solo vale si baja a una parte concreta (#ancla) o cambia de pestaña (?vista=): si no, no hace nada.
+    const mismaPantalla = rutaBase(a.enlace.href) === ruta;
+    if (mismaPantalla) {
+      assert.match(a.enlace.href, /#[a-z-]+$|\?vista=/, `${ruta}: el enlace final lleva a la misma pantalla sin ir a una parte concreta`);
+      const ancla = a.enlace.href.match(/#([a-z-]+)$/)?.[1];
+      if (ancla) assert.ok(readFileSync(archivoDe(ruta), "utf8").includes(`id="${ancla}"`), `${ruta}: la pantalla no tiene la parte «${ancla}»`);
+    }
     assert.ok(existsSync(archivoDe(rutaBase(a.enlace.href))), `${ruta}: el enlace ${a.enlace.href} no lleva a una pantalla que exista`);
   }
 });
@@ -59,7 +65,7 @@ test("ayuda: el enlace funciona para TODOS los perfiles que ven la pantalla (no 
   for (const [ruta, a] of Object.entries(AYUDA_PANTALLA)) {
     for (const rol of ROLES) {
       if (!destinosMenu(visibilidadMenu(rol, "hacienda", ["caprino", "ovino"])).includes(ruta)) continue;
-      const enlace = ruta === "/novedades" ? enlaceNovedades(rol) : a.enlace;
+      const enlace = ruta === "/novedades" ? enlaceNovedades(rol) : ruta === "/mas/miembros" ? enlaceEquipo(rol) : a.enlace;
       const base = rutaBase(enlace.href);
       const permiso = PERMISO_DESTINO[base];
       if (permiso) assert.ok(permiso(rol), `${ruta}: el enlace ${base} no le sirve al perfil «${rol}»`);
@@ -81,4 +87,12 @@ test("ayuda: cuando hay un video para la vista del Hato y otro para la pantalla 
   // Reproducción (servicios, diagnósticos y partos) y Empadre (temporadas de monta) tampoco comparten video.
   assert.equal(AYUDA_PANTALLA["/reproduccion"].tutorial, 11);
   assert.equal(AYUDA_EMPADRONAMIENTO.tutorial, 18);
+});
+
+test("ayuda de Equipo: quien invita baja al formulario; el contador va a Pagos; ningún enlace es de Telegram", () => {
+  assert.equal(enlaceEquipo("propietario").href, "/mas/miembros#agregar");
+  assert.equal(enlaceEquipo("administrador").href, "/mas/miembros#agregar");
+  assert.equal(enlaceEquipo("contador").href, "/mas/miembros?vista=pagos");
+  assert.ok(readFileSync(archivoDe("/mas/miembros"), "utf8").includes('id="agregar"'));
+  assert.doesNotMatch(JSON.stringify(AYUDA_PANTALLA["/mas/miembros"].enlace), /telegram/i);
 });
