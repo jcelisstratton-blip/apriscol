@@ -8,7 +8,7 @@ import { obtenerContexto } from "@/lib/contexto";
 import { ETIQUETA_ROL, puedeEscribir, puedeVer, revisaNovedades } from "@/lib/permisos";
 import { ESTADOS_NOVEDAD, type EstadoNovedad } from "@/lib/novedades";
 import { AyudaModulo } from "@/components/AyudaModulo";
-import { AYUDA_PANTALLA } from "@/lib/ayuda-pantallas";
+import { AYUDA_PANTALLA, enlaceNovedades } from "@/lib/ayuda-pantallas";
 
 export const metadata: Metadata = { title: "Novedades" };
 
@@ -27,7 +27,7 @@ export default async function PaginaNovedades({ searchParams }: { searchParams: 
     <>
       <AvisoGuardado activo={sp.enviada === "1"} texto="Novedad enviada" />
       <Encabezado titulo={reviso ? "Novedades" : "Mis novedades"} subtitulo={`${finca.nombre} · ${perfil?.nombre ?? "Tú"} (${ETIQUETA_ROL[rol]})`} acciones={puedeEscribir(rol, "novedades", finca.plan) ? <EnlaceBoton href="/novedades/nueva" ancho={false}>Crear una novedad</EnlaceBoton> : null} />
-      <AyudaModulo ayuda={AYUDA_PANTALLA["/novedades"]} />
+      <AyudaModulo ayuda={{ ...AYUDA_PANTALLA["/novedades"], enlace: enlaceNovedades(rol) }} />
       <ListaNovedades fincaId={finca.id} rol={rol} reviso={reviso} estadoInicial={inicial} usuarioId={user.id} />
     </>
   );

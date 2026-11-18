@@ -1,4 +1,5 @@
 import type { Ayuda } from "@/lib/ayuda";
+import type { RolFinca } from "@/lib/tipos";
 import { DIAS_ENLACE_ARCHIVO } from "@/lib/exportar-finca";
 import { DESCUENTO_ANUAL, DESCUENTO_FINCA_ADICIONAL } from "@/lib/planes";
 
@@ -15,7 +16,7 @@ export const AYUDA_PANTALLA: Record<string, Ayuda> = {
     tutorial: 3,
     puntos: [
       { titulo: "Para qué sirve", texto: "Hoy es tu punto de partida: reúne lo que toca atender en la finca este día, para que no tengas que acordarte ni revisar cuaderno por cuaderno." },
-      { titulo: "Qué ves", texto: "Tarjetas con lo del día: partos que se acercan, dosis por aplicar, animales en periodo de retiro, cuentas vencidas y las novedades nuevas del equipo. Cada una dice qué hacer y te lleva al animal o al registro." },
+      { titulo: "Qué ves", texto: "Tarjetas con lo del día: partos que se acercan, dosis por aplicar, animales en periodo de retiro, cuentas vencidas y, si te toca revisarlas, las novedades nuevas del equipo. Cada una dice qué hacer y te lleva al animal o al registro." },
       { titulo: "Cada quien lo suyo", texto: "Cada persona ve solo lo que le toca según su rol (propietario, administrador, ordeñador, veterinario, contador) y lo que incluye el plan de la finca." },
       { titulo: "Si es tu primer día", texto: "Si aún no tienes animales, Hoy te propone empezar por el hato: registrar uno por uno o traer tu Excel." },
       { titulo: "Sin abrir la app", texto: "Puedes recibir este mismo resumen cada mañana en Telegram, a la hora que elijas." },
@@ -27,13 +28,14 @@ export const AYUDA_PANTALLA: Record<string, Ayuda> = {
     titulo: "Novedades",
     tutorial: 16,
     puntos: [
-      { titulo: "Qué es una novedad", texto: "Un aviso corto entre el equipo. No es un registro: no genera costos, retiros ni historial; solo le cuenta a la persona indicada qué hace falta." },
-      { titulo: "Dos tipos", texto: "«Comprar» avisa que falta algo en la finca y le llega al administrador. «Aplicar dosis» pide una aplicación a un animal y le llega al veterinario. El propietario atiende las dos." },
-      { titulo: "Quién las crea", texto: "El ordeñador y el veterinario las crean eligiendo opciones, casi sin escribir. El administrador y el propietario no las crean: las reciben y las atienden." },
-      { titulo: "Vista y atendida", texto: "Marca «Vista» cuando ya la leíste y «Atendida» cuando hiciste lo que pedía. Cada persona solo marca las que le tocan a su perfil." },
-      { titulo: "Atender de verdad", texto: "La novedad no reemplaza el registro: al atenderla haz la compra en Hato → Compras, o la aplicación en Sanidad. Las nuevas se cuentan en Hoy." },
+      { titulo: "Qué es una novedad", texto: "Un aviso corto de una persona del equipo a quien debe actuar. Por ejemplo: el veterinario ve que se acabó un medicamento y lo reporta, o el ordeñador pide que a una cabra se le aplique una dosis. No es un registro: no genera costos, retiros ni historial." },
+      { titulo: "Dos tipos", texto: "«Comprar» avisa que falta algo en la finca (un medicamento, alimento, un insumo) y le llega al administrador. «Aplicar dosis» pide una aplicación a un animal y le llega al veterinario. El propietario recibe las dos." },
+      { titulo: "Cada perfil reporta lo suyo", texto: "El ordeñador puede avisar que hay que comprar algo o aplicar una dosis. El veterinario avisa lo que hay que comprar. Se elige con opciones, casi sin escribir, y cada novedad queda con el nombre de quien la envió." },
+      { titulo: "Vista y atendida", texto: "Quien las recibe marca «Vista» cuando ya la leyó y «Atendida» cuando hizo lo que pedía. Cada persona solo marca las que le tocan a su perfil." },
+      { titulo: "Atender de verdad", texto: "La novedad no reemplaza el registro: para atender una de «Comprar», registra la compra; para una de «Aplicar dosis», registra la aplicación en Sanidad." },
     ],
-    enlace: { href: "/", texto: "Ir a Hoy, donde llegan las novedades nuevas" },
+    // El enlace de abajo depende del perfil (ver `enlaceNovedades`): este es el de quien recibe las de comprar.
+    enlace: { href: "/hato?vista=gastos", texto: "Registrar una compra" },
   },
 
   "/semaforos": {
@@ -59,7 +61,7 @@ export const AYUDA_PANTALLA: Record<string, Ayuda> = {
       { titulo: "Agregar animales", texto: "Registra uno por uno, o trae tu Excel con el asistente: reconoce tus columnas, te muestra qué va a cambiar y puedes deshacer." },
       { titulo: "Dados de baja", texto: "Cuando un animal se vende, muere o sale, se da de baja: deja de contar en el hato activo, pero su historia se conserva." },
     ],
-    enlace: { href: "/hato/importar", texto: "Traer mis animales desde Excel" },
+    enlace: { href: "/hato/endogamia", texto: "Ver el parentesco de mis animales (endogamia)" },
   },
 
   "/leche": {
@@ -252,6 +254,16 @@ export const AYUDA_PANTALLA: Record<string, Ayuda> = {
     enlace: { href: "/hato/importar", texto: "Cargar datos desde Excel" },
   },
 };
+
+/**
+ * El enlace final de la ayuda de Novedades según el perfil: cada quien va a lo que SÍ puede hacer ahí. Quien reporta (ordeñador, veterinario) va a
+ * crear una novedad; quien atiende las de comprar (administrador, propietario) va a registrar la compra. El veterinario, que también atiende
+ * las de aplicar dosis, tiene además su crear; el enlace de Sanidad lo explica el texto.
+ */
+export function enlaceNovedades(rol: RolFinca): { href: string; texto: string } {
+  if (rol === "ordenador" || rol === "veterinario") return { href: "/novedades/nueva", texto: "Crear una novedad" };
+  return AYUDA_PANTALLA["/novedades"].enlace;
+}
 
 /** Opciones del menú que no llevan hoja de ayuda propia, y por qué. Lo exige `tests/ayuda-pantallas.test.mjs` (nada se omite en silencio). */
 export const SIN_AYUDA_PROPIA: Record<string, string> = {
