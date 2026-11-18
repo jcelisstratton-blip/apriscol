@@ -5,6 +5,7 @@ import { destinosMenu, visibilidadMenu } from "../lib/menu.ts";
 import { AYUDA_PANTALLA, SIN_AYUDA_PROPIA, enlaceNovedades } from "../lib/ayuda-pantallas.ts";
 import { puedeEscribir, puedeVer } from "../lib/permisos.ts";
 import { TUTORIALES } from "../lib/tutoriales.ts";
+import { AYUDA_EMPADRONAMIENTO, AYUDA_ORDENO } from "../lib/ayuda.ts";
 
 const archivoDe = (ruta) => (ruta === "/" ? "app/(app)/page.tsx" : `app/(app)/${ruta.slice(1)}/page.tsx`);
 const rutaBase = (href) => href.split("?")[0];
@@ -70,4 +71,14 @@ test("ayuda: el enlace funciona para TODOS los perfiles que ven la pantalla (no 
   assert.equal(enlaceNovedades("veterinario").href, "/novedades/nueva");
   assert.equal(enlaceNovedades("administrador").href, "/hato?vista=gastos");
   assert.equal(enlaceNovedades("propietario").href, "/hato?vista=gastos");
+});
+
+test("ayuda: cuando hay un video para la vista del Hato y otro para la pantalla del menú, cada una usa el suyo", () => {
+  // Leche: el ordeño (registrar) vive en Hato y tiene su video; la pantalla del menú es calidad, despachos y frío, con el suyo.
+  assert.equal(AYUDA_ORDENO.tutorial, 5);
+  assert.equal(AYUDA_PANTALLA["/leche"].tutorial, 17);
+  assert.match(TUTORIALES.find((t) => t.numero === 17).titulo, /calidad, despachos y frío/i);
+  // Reproducción (servicios, diagnósticos y partos) y Empadre (temporadas de monta) tampoco comparten video.
+  assert.equal(AYUDA_PANTALLA["/reproduccion"].tutorial, 11);
+  assert.equal(AYUDA_EMPADRONAMIENTO.tutorial, 18);
 });

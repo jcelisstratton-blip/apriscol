@@ -65,16 +65,16 @@ export const AYUDA_PANTALLA: Record<string, Ayuda> = {
   },
 
   "/leche": {
-    titulo: "Leche",
-    tutorial: 5,
+    titulo: "Leche de toda la finca",
+    tutorial: 17,
     puntos: [
-      { titulo: "Producción", texto: "Los litros por día y por animal. El ordeño se registra por jornada (mañana, tarde) y la app suma el día y la lactancia." },
-      { titulo: "Calidad", texto: "Grasa, proteína y células somáticas de cada análisis, comparados con los rangos de tu finca. Sirve para detectar problemas a tiempo." },
-      { titulo: "Despachos", texto: "A dónde fue la leche: a qué comprador, cuántos litros y cuánto te deben. Así sabes lo que ya cobraste y lo que falta." },
-      { titulo: "Frío y equipo", texto: "La temperatura del tanque y el estado de tus equipos de ordeño y enfriamiento." },
-      { titulo: "Periodos de retiro", texto: "La leche de un animal en retiro por un tratamiento se marca como descartada y no entra al tanque." },
+      { titulo: "Para qué sirve", texto: "Es la vista de toda la finca: cuánta leche produces y cómo va su calidad, a dónde se despacha y cómo está el frío. El ordeño de cada jornada se anota aparte, en Hato → Ordeño." },
+      { titulo: "Calidad", texto: "Grasa, proteína y células somáticas de cada análisis, comparados con los rangos de tu finca. Sirve para detectar a tiempo un problema de sanidad o de manejo." },
+      { titulo: "Despachos", texto: "A qué comprador fue la leche, cuántos litros y cuánto te deben. Así sabes lo que ya cobraste y lo que falta, con sus controles." },
+      { titulo: "Frío y equipo", texto: "La temperatura del tanque y el estado de tus equipos de ordeño y enfriamiento: la cadena de frío que cuida la calidad hasta que sale la leche." },
+      { titulo: "Producción", texto: "Los litros por día y por animal que sumó lo que registraste en el ordeño. Si falta una jornada, aparece como pendiente." },
     ],
-    enlace: { href: "/hato?vista=ordeno", texto: "Registrar el ordeño de hoy" },
+    enlace: { href: "/hato?vista=ordeno", texto: "Registrar el ordeño de hoy en el Hato" },
   },
 
   "/reproduccion": {
