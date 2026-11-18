@@ -3,10 +3,11 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Check } from "lucide-react";
-import { PLANES, precioMes, usd } from "@/lib/planes";
+import { PLANES, pesos, precioMes, usd } from "@/lib/planes";
 
 /** Los cuatro planes con el cambio mensual / anual. `hrefCrear` lleva a crear la cuenta. */
-export function Planes({ hrefCrear }: { hrefCrear: string }) {
+/** `cambio`: pesos por dólar (TRM del día), si se conoce; con él cada precio lleva su equivalente en pesos colombianos. */
+export function Planes({ hrefCrear, cambio = null }: { hrefCrear: string; cambio?: number | null }) {
   const [anual, setAnual] = useState(false);
   const boton = (activo: boolean) =>
     `inline-flex min-h-11 items-center rounded-full px-4 text-sm font-semibold ring-1 transition ${activo ? "bg-musgo text-sobre-musgo ring-musgo" : "bg-papel text-tinta ring-arena hover:ring-musgo/40"}`;
@@ -37,7 +38,8 @@ export function Planes({ hrefCrear }: { hrefCrear: string }) {
                 {usd(mes)}
                 <span className="font-sans text-sm font-normal text-humo">/ mes</span>
               </p>
-              <p className="mt-1 font-mono text-xs text-humo">{anual ? `Pagando cada año · ${usd(mes * 12)} al año` : "Pagando cada mes"}</p>
+              {cambio ? <p className="mt-1 font-mono text-xs text-humo">≈ {pesos(mes * cambio)} COP / mes</p> : null}
+              <p className="mt-1 font-mono text-xs text-humo">{anual ? `Pagando cada año · ${usd(mes * 12)}${cambio ? ` (≈ ${pesos(mes * 12 * cambio)} COP)` : ""} al año` : "Pagando cada mes"}</p>
 
               <Link
                 href={hrefCrear}
@@ -70,7 +72,8 @@ export function Planes({ hrefCrear }: { hrefCrear: string }) {
           );
         })}
       </ul>
-      <p className="mt-4 text-center text-sm text-humo">Cada finca tiene su propio plan. Desde la segunda finca, tienes 10 % menos en su plan.</p>
+      {cambio ? <p className="mt-4 text-center text-sm text-humo">El valor en pesos es aproximado: se calcula con la TRM del día ({pesos(cambio)} por dólar) y se actualiza cada día.</p> : null}
+      <p className="mt-2 text-center text-sm text-humo">Cada finca tiene su propio plan. Desde la segunda finca, tienes 10 % menos en su plan.</p>
     </div>
   );
 }

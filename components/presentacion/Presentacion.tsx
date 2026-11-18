@@ -70,7 +70,8 @@ const PREGUNTAS: { p: string; r: string }[] = [
  * La pantalla de entrada de Apriscol: una presentación completa (qué resuelve, cómo se empieza, quién ve qué, preguntas) con el formulario de
  * acceso en la tarjeta de arriba. La usan `/login` y `/registro`; cambia el formulario y el texto de la tarjeta.
  */
-export function Presentacion({ modo, formulario }: { modo: "login" | "registro"; formulario: React.ReactNode }) {
+/** `cambio`: pesos por dólar (TRM del día) para mostrar el equivalente en pesos de cada plan. */
+export function Presentacion({ modo, formulario, cambio = null }: { modo: "login" | "registro"; formulario: React.ReactNode; cambio?: number | null }) {
   const esRegistro = modo === "registro";
   const hrefCrear = esRegistro ? "#acceso" : "/registro";
   const cifras: [string, string][] = [
@@ -311,8 +312,8 @@ export function Presentacion({ modo, formulario }: { modo: "login" | "registro";
         </Seccion>
 
         {/* Planes */}
-        <Seccion id="planes" rotulo="Planes" titulo="Elige el que se ajuste al tamaño de tu aprisco" texto="Precios en dólares (US$) por mes. Pagas por los servicios que usas, no por cuántos animales tienes. Todos funcionan en el celular y en el computador, y tus datos siempre son tuyos.">
-          <Planes hrefCrear={hrefCrear} />
+        <Seccion id="planes" rotulo="Planes" titulo="Elige el que se ajuste al tamaño de tu aprisco" texto="Precios en dólares (US$) por mes, con su equivalente aproximado en pesos colombianos. Pagas por los servicios que usas, no por cuántos animales tienes. Todos funcionan en el celular y en el computador, y tus datos siempre son tuyos.">
+          <Planes hrefCrear={hrefCrear} cambio={cambio} />
         </Seccion>
 
         {/* Preguntas */}

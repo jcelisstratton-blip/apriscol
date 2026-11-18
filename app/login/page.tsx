@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { FormAuth } from "@/components/FormAuth";
 import { Presentacion } from "@/components/presentacion/Presentacion";
 import { correoDeInvitacion } from "@/lib/invitacion";
+import { pesosPorDolar } from "@/lib/pago-manual";
 import { destinoSeguro } from "@/lib/redireccion";
 import { iniciarSesion } from "./actions";
 
@@ -13,9 +14,11 @@ export const metadata: Metadata = {
 export default async function PaginaLogin({ searchParams }: { searchParams: Promise<{ next?: string; error?: string; email?: string }> }) {
   const { next, error, email } = await searchParams;
   const destino = next ? destinoSeguro(next) : undefined;
+  const cambio = await pesosPorDolar();
   return (
     <Presentacion
       modo="login"
+      cambio={cambio}
       formulario={
         <FormAuth
           accion={iniciarSesion}
