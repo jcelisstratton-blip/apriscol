@@ -2,7 +2,8 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 import { destinosMenu, visibilidadMenu } from "../lib/menu.ts";
-import { AYUDA_PANTALLA, SIN_AYUDA_PROPIA } from "../lib/ayuda-pantallas.ts";
+import { AYUDA_PANTALLA, SIN_AYUDA_PROPIA, enlaceNovedades } from "../lib/ayuda-pantallas.ts";
+import { puedeEscribir, puedeVer } from "../lib/permisos.ts";
 import { TUTORIALES } from "../lib/tutoriales.ts";
 
 const archivoDe = (ruta) => (ruta === "/" ? "app/(app)/page.tsx" : `app/(app)/${ruta.slice(1)}/page.tsx`);
@@ -42,4 +43,31 @@ test("ayuda: cada hoja es clara, corta, con su video y un enlace que funciona y 
     assert.notEqual(rutaBase(a.enlace.href), ruta, `${ruta}: el enlace final lleva a la misma pantalla`);
     assert.ok(existsSync(archivoDe(rutaBase(a.enlace.href))), `${ruta}: el enlace ${a.enlace.href} no lleva a una pantalla que exista`);
   }
+});
+
+// Lo que hace falta para que el enlace de una ayuda NO acabe rebotando a la pantalla de origen: cada destino con permiso propio lo declara aquí.
+const PERMISO_DESTINO = {
+  "/hato/importar": (rol) => puedeEscribir(rol, "hato", "hacienda"),
+  "/novedades/nueva": (rol) => puedeEscribir(rol, "novedades", "hacienda"),
+  "/mas/exportar": (rol) => rol === "propietario",
+  "/hato/cruza": (rol) => puedeVer(rol, "hato", "hacienda"),
+  "/hato/endogamia": (rol) => puedeVer(rol, "hato", "hacienda"),
+};
+
+test("ayuda: el enlace funciona para TODOS los perfiles que ven la pantalla (no rebota ni queda en blanco)", () => {
+  for (const [ruta, a] of Object.entries(AYUDA_PANTALLA)) {
+    for (const rol of ROLES) {
+      if (!destinosMenu(visibilidadMenu(rol, "hacienda", ["caprino", "ovino"])).includes(ruta)) continue;
+      const enlace = ruta === "/novedades" ? enlaceNovedades(rol) : a.enlace;
+      const base = rutaBase(enlace.href);
+      const permiso = PERMISO_DESTINO[base];
+      if (permiso) assert.ok(permiso(rol), `${ruta}: el enlace ${base} no le sirve al perfil «${rol}»`);
+      assert.ok(existsSync(archivoDe(base)), `${ruta}: ${base} no existe`);
+    }
+  }
+  // Novedades: quien reporta crea; quien recibe las de comprar registra la compra.
+  assert.equal(enlaceNovedades("ordenador").href, "/novedades/nueva");
+  assert.equal(enlaceNovedades("veterinario").href, "/novedades/nueva");
+  assert.equal(enlaceNovedades("administrador").href, "/hato?vista=gastos");
+  assert.equal(enlaceNovedades("propietario").href, "/hato?vista=gastos");
 });
