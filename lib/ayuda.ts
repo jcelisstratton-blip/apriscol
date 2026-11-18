@@ -1,6 +1,5 @@
 import { CUARENTENA_MIN_DIAS, CUARENTENA_RECOMENDADA_DIAS, DIAS_DESCANSO_DEFECTO, DIAS_OCUPACION_DEFECTO } from "@/lib/corrales";
 import { DIAS_EDAD_FAMACHA } from "@/lib/famacha";
-import { ESQUILA_AVISO_DIAS, ESQUILA_CADA_MESES } from "@/lib/esquila";
 import { MAX_FILAS_IMPORTAR } from "@/lib/importar-animales";
 import { textoPlazo, type AjustesFinca } from "@/lib/ajustes";
 
@@ -224,16 +223,16 @@ export const AYUDA_IA: Ayuda = {
   enlace: { href: "/semaforos", texto: "Ver lo que hay que atender hoy" },
 };
 
-/** Esquila de las ovejas. Los plazos salen de `lib/esquila.ts`. */
-export const AYUDA_ESQUILA: Ayuda = {
+/** Esquila de las ovejas. Los plazos salen de los Ajustes de la finca (de fábrica, `finca_ajustes`). */
+export const ayudaEsquila = (a: Pick<AjustesFinca, "esquila_cada_meses" | "esquila_aviso_dias">): Ayuda => ({
   titulo: "Esquila de las ovejas",
   tutorial: 30,
   puntos: [
     { titulo: "Lana o pelo", texto: "Solo se esquilan las ovejas de lana (Merino, Corriedale, Romney Marsh…). Las de pelo (Pelibuey, Katahdin, Blackbelly…) no se esquilan." },
-    { titulo: "Cada oveja", texto: "Cada raza trae su cobertura. Si una oveja no es como su raza, o es criolla o cruce, tú dices en su ficha si es de lana o de pelo." },
-    { titulo: "Registrar", texto: "Elige las ovejas esquiladas y la fecha. Si las pesaste, anota los kilos de vellón de cada una." },
-    { titulo: "Cuándo toca", texto: `Una oveja de lana se esquila cada ${ESQUILA_CADA_MESES} meses. Te avisamos ${ESQUILA_AVISO_DIAS} días antes, aquí y en su ficha.` },
+    { titulo: "Cada oveja", texto: "Cada raza trae su cobertura. Si una oveja no es como su raza, o es criolla o cruce, tú dices en su ficha si es de lana o de pelo; en «Por definir» puedes hacerlo con varias a la vez." },
+    { titulo: "Registrar", texto: "Elige las ovejas esquiladas y la fecha. Si las pesaste, anota los kilos de vellón de cada una. Si ya esquilaste antes, registra esa fecha para que Apriscol calcule cuándo toca la próxima." },
+    { titulo: "Cuándo toca", texto: `Una oveja de lana se esquila cada ${a.esquila_cada_meses} meses. Te avisamos ${a.esquila_aviso_dias} días antes, en Semáforos, en Hoy y por Telegram. Puedes cambiar estos plazos en Ajustes de la finca.` },
     { titulo: "Si te equivocas", texto: "Corrige la fecha o los kilos. Si te equivocaste de ovejas, anula la esquila y registra la correcta." },
   ],
   enlace: { href: "/esquila", texto: "Ir a la esquila" },
-};
+});

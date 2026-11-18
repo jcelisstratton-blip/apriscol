@@ -4,6 +4,7 @@ import type { AjustesCompletos } from "@/lib/ajustes";
 import { etiquetaAnimal } from "@/lib/animal";
 import { enTramos, leerTodo } from "@/lib/consultas";
 import { aplicaFamacha } from "@/lib/famacha";
+import { coberturaEfectiva } from "@/lib/esquila";
 import { diasDesde, sumarDias } from "@/lib/fechas";
 import { nombreEvento, plazosRevisionPezuna } from "@/lib/sanidad";
 import type { FilaInventario } from "@/lib/inventario";
@@ -23,6 +24,7 @@ import {
   senalRetiro,
   senalSecado,
   senalAbortos,
+  senalEsquila,
   senalCuarentena,
   senalMantenimiento,
   senalPezunas,
@@ -41,6 +43,7 @@ import {
   type AnimalEnCeba,
   type CompraPorPagar,
   type EventoVacuna,
+  type FilaEsquila,
   type FilaPrueba,
   type VentaPorCobrar,
   type LecturaFrio,
@@ -86,7 +89,7 @@ export async function cargarSemaforos({
 
   // Nombres de los animales: una sola lectura liviana (arete, nombre, estado) y todo lo demás las consulta.
   const animales = await leerTodo((d, h) =>
-    supabase.from("animales").select("id, numero_arete, nombre, estado, fecha_nacimiento, especie, sexo, uso_macho, lote_ceba_id").eq("finca_id", fincaId).is("deleted_at", null).order("id").range(d, h),
+    supabase.from("animales").select("id, numero_arete, nombre, estado, fecha_nacimiento, especie, sexo, uso_macho, lote_ceba_id, cobertura, raza_id").eq("finca_id", fincaId).is("deleted_at", null).order("id").range(d, h),
   );
   const porId = new Map((animales.data ?? []).map((a) => [a.id, a]));
   const etiqueta = (id: string) => {
@@ -133,6 +136,23 @@ export async function cargarSemaforos({
       senalAbortos((abortosDB.data ?? []) as AbortoReciente[], hoy, etiqueta),
       senalMortalidadCrias(crias.length, muertes, hoy),
     );
+  }
+
+  // Esquila: solo si la finca tiene ovejas activas. Las de pelo, las «por definir» y las cabras no entran.
+  if (areas.has("esquila")) {
+    const ovejas = (animales.data ?? []).filter((a) => a.especie === "ovino" && a.estado === "activo");
+    if (ovejas.length > 0) {
+      const [razas, ultimas] = await Promise.all([
+        supabase.from("razas").select("id, cobertura").eq("especie", "ovino"),
+        leerTodo((d, h) => supabase.from("v_esquila_animal").select("animal_id, ultima_fecha").eq("finca_id", fincaId).order("animal_id").range(d, h)),
+      ]);
+      const deRaza = new Map((razas.data ?? []).map((r) => [r.id, r.cobertura as "lana" | "pelo" | "variable" | null]));
+      const ultimaDe = new Map(ultimas.data.map((u) => [u.animal_id, u.ultima_fecha]));
+      const deLana: FilaEsquila[] = ovejas
+        .filter((a) => coberturaEfectiva("ovino", a.cobertura as "lana" | "pelo" | null, a.raza_id ? (deRaza.get(a.raza_id) ?? null) : null) === "lana")
+        .map((a) => ({ animal_id: a.id, ultima: ultimaDe.get(a.id) ?? null }));
+      if (deLana.length > 0) senales.push(senalEsquila(deLana, hoy, g.esquila_cada_meses, g.esquila_aviso_dias, etiqueta));
+    }
   }
 
   if (areas.has("sanidad")) {

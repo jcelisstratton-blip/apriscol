@@ -25,6 +25,7 @@ Solo lo suyo, además de lo que permita su plan (Ceba pide el módulo Carne; Din
 | Sanidad | Cuarentena de animales nuevos | en cuarentena sin cumplir los 21 días | entró y no pasó por cuarentena |
 | Sanidad | Pezuñas y pediluvio | pasó el plazo de Ajustes (solo animales de 3 meses o más) | más de 14 días de atraso o sin registro |
 | Sanidad | Vacunas anuales | faltan 30 días o menos para repetir la campaña de rabia o de clostridiosis | vencida o sin ninguna campaña; se reconoce por el nombre del producto y solo se evalúa si la finca definió el plazo en Ajustes → Sanidad |
+| Esquila | Ovejas de lana (solo propietario y administrador, solo con ovejas) | faltan `esquila_aviso_dias` (30) o menos para su fecha (cada `esquila_cada_meses`, 12, desde la última esquila), o la oveja no tiene ninguna esquila registrada (un solo caso junto) | ya pasó su fecha |
 | Leche | Cadena de frío (7 días) | hasta 2 °C fuera de 4–6 °C | más de 2 °C fuera |
 | Leche | Calidad del tanque (último análisis de 60 días) | células al 80 % del límite, crioscopia fría, grasa o proteína fuera de rango | residuos positivos, células sobre el límite, posible agua |
 | Leche | Mantenimiento de la sala de ordeño | toca en los próximos 7 días | atrasado | Cada caso abre «Registrar» con el tipo, el equipo y el responsable de la vez anterior y la próxima fecha con el mismo intervalo (`/leche/equipo/nuevo?de=<id>`).

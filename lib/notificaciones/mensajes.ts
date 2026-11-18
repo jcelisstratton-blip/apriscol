@@ -18,6 +18,7 @@ export type Resumen = {
 export const RUTA_AREA: Record<AreaSemaforo, string> = {
   reproduccion: "/reproduccion",
   sanidad: "/sanidad",
+  esquila: "/esquila",
   leche: "/leche",
   ceba: "/carne",
   corrales: "/corrales",

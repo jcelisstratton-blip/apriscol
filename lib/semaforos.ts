@@ -1,3 +1,4 @@
+import { plazoEsquila } from "@/lib/esquila";
 import { diasDesde, diasHasta, formatoFecha, sumarDias } from "@/lib/fechas";
 import { puedeVer } from "@/lib/permisos";
 import { DIAS_PARTO_ATRASADO, DIAS_REPETIR_DX_DESDE, DIAS_REPETIR_DX_HASTA, DIAS_SECADO_URGENTE, porSecar as debeSecarse, enUltimoTercio, seguimientoServida, type VentanaDx } from "@/lib/reproduccion";
@@ -19,17 +20,17 @@ import type { CuarentenaAlerta, MantenimientoOrdeno, ModuloApp, PlanId, ReproHem
  * Aquí viven las reglas (puras, con prueba); `lib/semaforos-servidor.ts` trae los datos y `components/Semaforos.tsx` los dibuja.
  */
 
-export type AreaSemaforo = "reproduccion" | "sanidad" | "leche" | "ceba" | "corrales" | "inventario" | "alimento" | "dinero";
-export const ETIQUETA_AREA: Record<AreaSemaforo, string> = { reproduccion: "Reproducción", sanidad: "Sanidad", leche: "Leche", ceba: "Ceba", corrales: "Corrales", inventario: "Inventario", alimento: "Alimento", dinero: "Dinero" };
-const MODULO_DE_AREA: Record<AreaSemaforo, ModuloApp> = { reproduccion: "reproduccion", sanidad: "sanidad", leche: "leche", ceba: "carne", corrales: "corrales", inventario: "inventario", alimento: "nutricion", dinero: "contabilidad" };
+export type AreaSemaforo = "reproduccion" | "sanidad" | "esquila" | "leche" | "ceba" | "corrales" | "inventario" | "alimento" | "dinero";
+export const ETIQUETA_AREA: Record<AreaSemaforo, string> = { reproduccion: "Reproducción", sanidad: "Sanidad", esquila: "Esquila", leche: "Leche", ceba: "Ceba", corrales: "Corrales", inventario: "Inventario", alimento: "Alimento", dinero: "Dinero" };
+const MODULO_DE_AREA: Record<AreaSemaforo, ModuloApp> = { reproduccion: "reproduccion", sanidad: "sanidad", esquila: "hato", leche: "leche", ceba: "carne", corrales: "corrales", inventario: "inventario", alimento: "nutricion", dinero: "contabilidad" };
 
 /**
  * Qué áreas ve cada rol: solo lo suyo. El veterinario, reproducción y sanidad; el ordeñador, leche; el contador, dinero; el propietario y el administrador, todo.
  * (Si luego se le abren más áreas a un rol, se cambia aquí y nada más.) Además deben estar en su plan.
  */
 const AREAS_DEL_ROL: Record<RolFinca, AreaSemaforo[]> = {
-  propietario: ["reproduccion", "sanidad", "leche", "ceba", "corrales", "inventario", "alimento", "dinero"],
-  administrador: ["reproduccion", "sanidad", "leche", "ceba", "corrales", "inventario", "alimento", "dinero"],
+  propietario: ["reproduccion", "sanidad", "esquila", "leche", "ceba", "corrales", "inventario", "alimento", "dinero"],
+  administrador: ["reproduccion", "sanidad", "esquila", "leche", "ceba", "corrales", "inventario", "alimento", "dinero"],
   veterinario: ["reproduccion", "sanidad", "inventario"],
   ordenador: ["leche", "alimento"],
   contador: ["dinero"],
@@ -1015,4 +1016,63 @@ export function senalesDinero(compras: CompraPorPagar[], ventas: VentaPorCobrar[
       cobrar,
     ),
   ];
+}
+
+// ───────────────────────── Esquila ─────────────────────────
+/** Una oveja de lana activa y la fecha de su última esquila registrada (`null` = nunca se ha registrado una). */
+export type FilaEsquila = { animal_id: string; ultima: string | null };
+
+/**
+ * Ovejas de lana a las que les toca la esquila. Rojo: ya pasó su fecha. Ámbar: faltan `avisoDias` o menos. Las que nunca tienen una esquila registrada no
+ * se pueden calcular: se juntan en UN solo caso ámbar (no uno por oveja) que pide registrar la última esquila. Las de pelo y las cabras no entran.
+ */
+export function senalEsquila(filas: FilaEsquila[], hoy: string, cadaMeses: number, avisoDias: number, etiqueta: Etiqueta): Senal {
+  const items: ItemSenal[] = [];
+  let sinRegistro = 0;
+  for (const f of filas) {
+    const p = plazoEsquila(f.ultima, hoy, cadaMeses, avisoDias);
+    if (p.estado === "sin_esquila") {
+      sinRegistro++;
+      continue;
+    }
+    if (p.estado === "al_dia" || p.dias === null || p.proxima === null) continue;
+    const atrasada = p.estado === "atrasada";
+    items.push({
+      clave: `esquila-${f.animal_id}`,
+      etiqueta: etiqueta(f.animal_id),
+      detalle: atrasada
+        ? `Se pasó su esquila hace ${dias(Math.abs(p.dias))} (le tocaba el ${corta(p.proxima)})`
+        : p.dias === 0
+          ? "Le toca esquilar hoy"
+          : `Le toca esquilar el ${corta(p.proxima)} (en ${dias(p.dias)})`,
+      nivel: atrasada ? "rojo" : "ambar",
+      href: fichaAnimal(f.animal_id, "esquila"),
+      queHacer: "Esquílala y registra la esquila con su fecha (y los kilos de vellón, si la pesas).",
+      atrasoDias: atrasada ? Math.abs(p.dias) : 0,
+      orden: p.dias,
+    });
+  }
+  if (sinRegistro > 0) {
+    items.push({
+      clave: "esquila-sin-registro",
+      etiqueta: `${sinRegistro} ${sinRegistro === 1 ? "oveja de lana" : "ovejas de lana"} sin esquila registrada`,
+      detalle: "Sin una esquila anotada no sabemos cuándo les toca",
+      nivel: "ambar",
+      href: "/esquila",
+      queHacer: "Si ya las esquilaste antes, registra esa esquila con su fecha; si no, esquílalas y regístralo.",
+      orden: 100_000,
+    });
+  }
+  return armarSenal(
+    {
+      id: "esquila",
+      area: "esquila",
+      titulo: "Esquila de las ovejas de lana",
+      queHacer: "Esquila a las que les toca y registra la esquila con su fecha. Si ya esquilaste antes, registra esa fecha para que el aviso sea exacto.",
+      queSignifica: "Ovejas de lana a las que ya les toca la esquila, o que se pasaron de su fecha, según el plazo que definiste en Ajustes de la finca.",
+      regla: `Ámbar: faltan ${dias(avisoDias)} o menos para su esquila (cada ${cadaMeses} meses desde la última), o la oveja no tiene ninguna esquila registrada. Rojo: ya pasó su fecha. Las ovejas de pelo no se esquilan y no entran.`,
+      accion: { texto: "Ir a la esquila", href: "/esquila" },
+    },
+    items,
+  );
 }

@@ -6,6 +6,7 @@ import { ChevronLeft } from "lucide-react";
 import { Aviso } from "@/components/Aviso";
 import { Encabezado } from "@/components/Encabezado";
 import { FormEsquila, type OvejaElegible } from "@/components/FormEsquila";
+import { obtenerAjustes } from "@/lib/ajustes-servidor";
 import { obtenerContexto } from "@/lib/contexto";
 import { textoPlazo } from "@/lib/esquila";
 import { cargarOvejasEsquila } from "@/lib/esquila-servidor";
@@ -23,7 +24,8 @@ export default async function PaginaNuevaEsquila({ searchParams }: { searchParam
 
   const supabase = await crearClienteServidor();
   const hoy = hoyBogota();
-  const todas = await cargarOvejasEsquila(supabase, finca.id, hoy);
+  const { general: ajustes } = await obtenerAjustes();
+  const todas = await cargarOvejasEsquila(supabase, finca.id, hoy, { cadaMeses: ajustes.esquila_cada_meses, avisoDias: ajustes.esquila_aviso_dias });
   const elegibles: OvejaElegible[] = todas
     .filter((o) => o.cobertura === "lana" && o.plazo)
     .map((o) => ({
@@ -32,6 +34,7 @@ export default async function PaginaNuevaEsquila({ searchParams }: { searchParam
       nombre: o.nombre,
       texto: textoPlazo(o.plazo!),
       pendiente: o.plazo!.estado !== "al_dia",
+      sinEsquila: o.plazo!.estado === "sin_esquila",
     }));
   const sinDefinir = todas.filter((o) => o.cobertura === "por_definir").length;
 

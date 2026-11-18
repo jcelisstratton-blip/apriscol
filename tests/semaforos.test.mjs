@@ -15,8 +15,8 @@ const hembra = (id, extra) => ({ animal_id: id, estado: "gestante", ultimo_servi
 test("semáforos: cada rol ve solo su área (el veterinario, reproducción y sanidad) y el contador ninguna", () => {
   assert.deepEqual(areasSemaforo("veterinario", "profesional"), ["reproduccion", "sanidad", "inventario"]);
   assert.deepEqual(areasSemaforo("ordenador", "profesional"), ["leche", "alimento"]);
-  assert.deepEqual(areasSemaforo("propietario", "profesional"), ["reproduccion", "sanidad", "leche", "ceba", "corrales", "inventario", "alimento", "dinero"]);
-  assert.deepEqual(areasSemaforo("administrador", "profesional"), ["reproduccion", "sanidad", "leche", "ceba", "corrales", "inventario", "alimento", "dinero"]);
+  assert.deepEqual(areasSemaforo("propietario", "profesional"), ["reproduccion", "sanidad", "esquila", "leche", "ceba", "corrales", "inventario", "alimento", "dinero"]);
+  assert.deepEqual(areasSemaforo("administrador", "profesional"), ["reproduccion", "sanidad", "esquila", "leche", "ceba", "corrales", "inventario", "alimento", "dinero"]);
   assert.deepEqual(areasSemaforo("contador", "profesional"), ["dinero"]);
   // El plan manda: sin carne ni contabilidad (plan Cría) no hay ceba ni dinero.
   assert.ok(!areasSemaforo("propietario", "cria").includes("ceba") && !areasSemaforo("propietario", "cria").includes("dinero"));
@@ -460,4 +460,51 @@ test("repetir un diagnóstico, siglas y corrales: lo que la persona lee está co
   const pruebas = senalPruebas([], etiqueta, HOY);
   assert.match(pruebas.queSignifica, /CAE \(artritis-encefalitis caprina\).*CMT \(prueba de mastitis\)/);
   assert.match(senalCorrales([]).regla, /no tiene ámbar/);
+});
+
+// ───────────────────────── Esquila ─────────────────────────
+import { senalEsquila } from "../lib/semaforos.ts";
+
+test("semáforo de esquila: rojo si se pasó su fecha, ámbar si le toca pronto, nada si está al día, y un solo caso para las que nunca se han esquilado", () => {
+  const filas = [
+    { animal_id: "atrasada", ultima: "2025-09-01" }, // próxima 2026-09-01 → atrasada hace 56 días
+    { animal_id: "toca", ultima: "2025-11-30" }, // próxima 2026-11-30 → toca en 34 días con aviso de 40
+    { animal_id: "aldia", ultima: "2026-08-01" }, // próxima 2027-08-01
+    { animal_id: "nunca1", ultima: null },
+    { animal_id: "nunca2", ultima: null },
+  ];
+  const s = senalEsquila(filas, HOY, 12, 40, etiqueta);
+  assert.equal(s.id, "esquila");
+  assert.equal(s.area, "esquila");
+  assert.equal(s.nivel, "rojo");
+  assert.deepEqual(s.items.map((i) => [i.clave, i.nivel]), [["esquila-atrasada", "rojo"], ["esquila-toca", "ambar"], ["esquila-sin-registro", "ambar"]]);
+  const atrasada = s.items[0];
+  assert.match(atrasada.detalle, /Se pasó su esquila hace \d+ días/);
+  assert.equal(atrasada.atrasoDias > 0, true);
+  assert.equal(atrasada.href, "/hato/atrasada#esquila");
+  assert.match(s.items[1].detalle, /Le toca esquilar el .* \(en 3\d días\)/);
+  assert.match(s.items[2].etiqueta, /^2 ovejas de lana sin esquila registrada$/);
+  assert.equal(s.items[2].href, "/esquila");
+  assert.match(s.regla, /cada 12 meses/);
+  assert.ok(s.queHacer.length > 20 && s.queSignifica.length > 20);
+});
+
+test("semáforo de esquila: en orden si todas están al día, con el singular bien puesto y respetando el plazo y el aviso de la finca", () => {
+  assert.equal(senalEsquila([{ animal_id: "a", ultima: "2026-09-01" }], HOY, 12, 30, etiqueta).nivel, "verde");
+  assert.equal(senalEsquila([], HOY, 12, 30, etiqueta).nivel, "verde");
+  assert.match(senalEsquila([{ animal_id: "a", ultima: null }], HOY, 12, 30, etiqueta).items[0].etiqueta, /^1 oveja de lana sin esquila registrada$/);
+  // Plazo de seis meses: esquilada el 2026-04-01 → próxima 2026-10-01 → ya pasó; el 2026-05-01 → próxima 2026-11-01 → le toca (faltan 5 días).
+  assert.equal(senalEsquila([{ animal_id: "a", ultima: "2026-04-01" }], HOY, 6, 30, etiqueta).nivel, "rojo");
+  assert.equal(senalEsquila([{ animal_id: "a", ultima: "2026-05-01" }], HOY, 6, 30, etiqueta).nivel, "ambar");
+  // Más anticipación: con 90 días de aviso, una esquila que toca en 80 días ya es ámbar; con 30, todavía no.
+  const fila = [{ animal_id: "a", ultima: "2026-01-15" }]; // próxima 2027-01-15, faltan 80 días
+  assert.equal(senalEsquila(fila, HOY, 12, 30, etiqueta).nivel, "verde");
+  assert.equal(senalEsquila(fila, HOY, 12, 90, etiqueta).nivel, "ambar");
+  // «Le toca hoy».
+  assert.match(senalEsquila([{ animal_id: "a", ultima: "2025-10-27" }], HOY, 12, 30, etiqueta).items[0].detalle, /Le toca esquilar hoy/);
+});
+
+test("semáforo de esquila: solo la ven el propietario y el administrador (el veterinario, el ordeñador y el contador no)", () => {
+  for (const rol of ["propietario", "administrador"]) assert.ok(areasSemaforo(rol, "cria").includes("esquila"), rol);
+  for (const rol of ["veterinario", "ordenador", "contador"]) assert.ok(!areasSemaforo(rol, "profesional").includes("esquila"), rol);
 });

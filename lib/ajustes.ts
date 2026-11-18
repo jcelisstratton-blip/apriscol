@@ -7,7 +7,7 @@ import type { Especie } from "@/lib/tipos";
  * valida cada ajuste; el formulario, la acción de guardado y la lectura salen de ella para que no se desincronicen.
  */
 
-export type GrupoAjustes = "reproduccion" | "ceba" | "leche" | "sanidad" | "nutricion" | "crecimiento" | "personal" | "dinero";
+export type GrupoAjustes = "reproduccion" | "ceba" | "leche" | "sanidad" | "esquila" | "nutricion" | "crecimiento" | "personal" | "dinero";
 
 /** Ajustes generales de la finca (una fila). */
 export type AjustesFinca = {
@@ -33,6 +33,9 @@ export type AjustesFinca = {
   pediluvio_dias_lluvia: number;
   meses_lluvia: number[];
   podologia_inspeccion_dias: number;
+  /** Cada cuántos meses se esquila una oveja de lana y con cuántos días de anticipación se avisa. */
+  esquila_cada_meses: number;
+  esquila_aviso_dias: number;
   vacuna_rabia_dias: number | null;
   vacuna_clostridiosis_dias: number | null;
   ms_mantenimiento_pct: number;
@@ -94,6 +97,8 @@ export type GrupoDefinicion = {
   nota?: string;
   general: CampoAjuste<ClaveGeneral>[];
   especie: CampoAjuste<ClaveEspecie>[];
+  /** Si está, el grupo solo se muestra en fincas que tengan esa especie (la esquila, solo con ovejas). */
+  soloConEspecie?: Especie;
 };
 
 export const GRUPOS_AJUSTES: GrupoDefinicion[] = [
@@ -160,6 +165,17 @@ export const GRUPOS_AJUSTES: GrupoDefinicion[] = [
       { clave: "vacuna_clostridiosis_dias", etiqueta: "Vacuna contra clostridiosis: cada", unidad: "días", ayuda: "Déjalo vacío si no quieres aviso.", min: 30, max: 1095, decimales: 0, opcional: true },
     ],
     especie: [],
+  },
+  {
+    id: "esquila",
+    titulo: "Esquila",
+    detalle: "Cada cuánto se esquilan las ovejas de lana y con cuánta anticipación te avisamos. Las ovejas de pelo no se esquilan.",
+    general: [
+      { clave: "esquila_cada_meses", etiqueta: "Esquila de las ovejas de lana: cada", unidad: "meses", ayuda: "Lo habitual es una vez al año. Ajústalo a tu raza, a tu clima y a lo que te diga tu zootecnista.", min: 3, max: 24, decimales: 0 },
+      { clave: "esquila_aviso_dias", etiqueta: "Avisar que toca esquilar con", unidad: "días de anticipación", ayuda: "Desde ese día la oveja aparece en ámbar en Semáforos; si pasa la fecha, en rojo.", min: 7, max: 90, decimales: 0 },
+    ],
+    especie: [],
+    soloConEspecie: "ovino",
   },
   {
     id: "nutricion",

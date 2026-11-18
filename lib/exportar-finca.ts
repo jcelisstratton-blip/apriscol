@@ -108,7 +108,7 @@ export const ARCHIVO_POR_COLUMNA: Record<string, "fotos-animales" | "premios" | 
 export const DIAS_ENLACE_ARCHIVO = 7;
 
 const ETIQUETAS: Record<string, string> = {
-  esquilador: "Quién esquiló", peso_vellon_kg: "Vellón (kg)", anulada_en: "Anulada el", cobertura: "Cobertura (lana o pelo)",
+  esquilador: "Quién esquiló", esquila_cada_meses: "Esquila de lana: cada (meses)", esquila_aviso_dias: "Esquila: avisar con (días)", peso_vellon_kg: "Vellón (kg)", anulada_en: "Anulada el", cobertura: "Cobertura (lana o pelo)",
   fecha: "Fecha", hora: "Hora", tipo: "Tipo", motivo: "Motivo", estado: "Estado", resultado: "Resultado", observaciones: "Observaciones", notas: "Notas", detalle: "Detalle",
   nombre: "Nombre", descripcion: "Descripción", especie: "Especie", sexo: "Sexo", numero_arete: "Número de arete", chip: "Microchip", color: "Color", marcas: "Marcas", rasgos: "Rasgos",
   raza: "Raza", peso_kg: "Peso (kg)", peso_nacer_kg: "Peso al nacer (kg)", peso_adulto_hembra_kg: "Peso adulto de la hembra (kg)", litros: "Litros", jornada: "Jornada",

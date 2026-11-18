@@ -2149,6 +2149,8 @@ export type Database = {
           ms_produccion_min_pct: number
           parto_preparar_dias: number
           parto_vigilar_dias: number
+          esquila_aviso_dias: number
+          esquila_cada_meses: number
           pediluvio_dias: number
           pediluvio_dias_lluvia: number
           podologia_inspeccion_dias: number
@@ -2184,6 +2186,8 @@ export type Database = {
           ms_produccion_min_pct?: number
           parto_preparar_dias?: number
           parto_vigilar_dias?: number
+          esquila_aviso_dias?: number
+          esquila_cada_meses?: number
           pediluvio_dias?: number
           pediluvio_dias_lluvia?: number
           podologia_inspeccion_dias?: number
@@ -2219,6 +2223,8 @@ export type Database = {
           ms_produccion_min_pct?: number
           parto_preparar_dias?: number
           parto_vigilar_dias?: number
+          esquila_aviso_dias?: number
+          esquila_cada_meses?: number
           pediluvio_dias?: number
           pediluvio_dias_lluvia?: number
           podologia_inspeccion_dias?: number
@@ -7392,6 +7398,10 @@ export type Database = {
         Returns: undefined
       }
       anular_esquila: { Args: { p_esquila: string }; Returns: undefined }
+      definir_cobertura: {
+        Args: { p_animales: string[]; p_cobertura: string; p_finca: string }
+        Returns: number
+      }
       registrar_esquila: {
         Args: {
           p_animales: Json
