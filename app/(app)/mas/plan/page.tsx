@@ -15,6 +15,8 @@ import { nombrePlan, pesos, planesSuperiores, planPorId, precioMes, usd } from "
 import { numeroDeFinca } from "@/lib/planes-servidor";
 import { crearClienteServidor } from "@/lib/supabase/server";
 import type { PlanId } from "@/lib/tipos";
+import { AyudaModulo } from "@/components/AyudaModulo";
+import { AYUDA_PANTALLA } from "@/lib/ayuda-pantallas";
 
 export const metadata: Metadata = { title: "Mejorar mi plan" };
 
@@ -47,6 +49,7 @@ export default async function PaginaPlan() {
         <ChevronLeft className="size-5" strokeWidth={2} /> Más
       </Link>
       <Encabezado titulo="Plan de esta finca" subtitulo={finca.nombre} />
+      <AyudaModulo ayuda={AYUDA_PANTALLA["/mas/plan"]} />
 
       <div className="space-y-3.5">
         <Tarjeta titulo="Tu plan">

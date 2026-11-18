@@ -9,6 +9,8 @@ import { obtenerContexto } from "@/lib/contexto";
 import { obtenerAjustes, obtenerRangosGestacion } from "@/lib/ajustes-servidor";
 import { GRUPOS_AJUSTES, textoNumero } from "@/lib/ajustes";
 import { puedeVer } from "@/lib/permisos";
+import { AyudaModulo } from "@/components/AyudaModulo";
+import { AYUDA_PANTALLA } from "@/lib/ayuda-pantallas";
 
 export const metadata: Metadata = { title: "Ajustes de la finca" };
 
@@ -26,6 +28,7 @@ export default async function PaginaAjustes() {
         <ChevronLeft className="size-5" strokeWidth={2} /> Más
       </Link>
       <Encabezado titulo="Ajustes de la finca" subtitulo={finca.nombre} />
+      <AyudaModulo ayuda={AYUDA_PANTALLA["/mas/ajustes"]} />
       <div className="space-y-3.5 lg:max-w-xl">
         {puedeEditar ? (
           <Aviso tipo="info">Aquí defines los tiempos, límites y criterios con los que la finca avisa y calcula. Vienen con valores sugeridos y los puedes ajustar a tu raza y a tu manejo.</Aviso>

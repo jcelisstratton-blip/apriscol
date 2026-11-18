@@ -11,6 +11,8 @@ import { formatoFecha, hoyBogota } from "@/lib/fechas";
 import { ETIQUETA_AREA, areasSemaforo, contarSenales, type AreaSemaforo } from "@/lib/semaforos";
 import { cargarSemaforos } from "@/lib/semaforos-servidor";
 import { crearClienteServidor } from "@/lib/supabase/server";
+import { AyudaModulo } from "@/components/AyudaModulo";
+import { AYUDA_PANTALLA } from "@/lib/ayuda-pantallas";
 
 export const metadata: Metadata = { title: "Semáforos" };
 
@@ -40,6 +42,7 @@ export default async function PaginaSemaforos({ searchParams }: { searchParams: 
         </Link>
       ) : null}
       <Encabezado titulo={area ? ETIQUETA_AREA[area] : "Semáforos"} subtitulo={formatoFecha(hoy, { weekday: "long", day: "numeric", month: "long" })} />
+      <AyudaModulo ayuda={AYUDA_PANTALLA["/semaforos"]} />
       <div className="mb-4 flex flex-wrap gap-2">
         <Insignia tono="alerta">{c.rojo} {c.rojo === 1 ? "señal en rojo" : "señales en rojo"}</Insignia>
         <Insignia tono="aviso">{c.ambar} {c.ambar === 1 ? "señal en ámbar" : "señales en ámbar"}</Insignia>

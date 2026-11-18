@@ -8,6 +8,8 @@ import { obtenerContexto } from "@/lib/contexto";
 import { puedeGestionar } from "@/lib/permisos";
 import { crearClienteServidor } from "@/lib/supabase/server";
 import type { Especie } from "@/lib/tipos";
+import { AyudaModulo } from "@/components/AyudaModulo";
+import { AYUDA_PANTALLA } from "@/lib/ayuda-pantallas";
 
 export const metadata: Metadata = { title: "Datos de la finca" };
 
@@ -29,6 +31,7 @@ export default async function PaginaEditarFinca() {
         <ChevronLeft className="size-5" strokeWidth={2} /> Más
       </Link>
       <Encabezado titulo="Datos de la finca" subtitulo={finca.nombre} />
+      <AyudaModulo ayuda={AYUDA_PANTALLA["/mas/finca"]} />
       <div className="lg:max-w-xl">
         <FormFinca
           finca={{ id: finca.id, nombre: finca.nombre, departamento: finca.departamento, municipio: finca.municipio, vereda: finca.vereda, proposito: finca.proposito, moneda: finca.moneda, especies: finca.especies, logo_path: finca.logo_path }}

@@ -12,6 +12,8 @@ import { puedeEscribir, puedeVer } from "@/lib/permisos";
 import { Resumen } from "./Resumen";
 import { ResumenEmpadronamientos, type EstadoFiltroEmp } from "./ResumenEmpadronamientos";
 import { esPeriodoEmp } from "@/lib/empadronamiento";
+import { AyudaModulo } from "@/components/AyudaModulo";
+import { AYUDA_PANTALLA } from "@/lib/ayuda-pantallas";
 
 export const metadata: Metadata = { title: "Reproducción" };
 
@@ -38,6 +40,7 @@ export default async function PaginaReproduccion({ searchParams }: { searchParam
     <>
       <AvisoGuardado activo={sp.guardado === "1"} />
       <Encabezado titulo="Reproducción" subtitulo={finca.nombre} />
+      <AyudaModulo ayuda={AYUDA_PANTALLA["/reproduccion"]} />
       <PestanasTarjetas pestanas={armarPestanas("/reproduccion", "resumen", PESTANAS)} actual={vista} />
 
       {vista === "resumen" ? <QueAtender area="reproduccion" /> : null}
