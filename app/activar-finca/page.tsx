@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { ActivarFincaVista } from "@/components/ActivarFincaVista";
 import { obtenerContexto } from "@/lib/contexto";
-import { datosNequi, pesos, pesosPorDolar } from "@/lib/pago-manual";
-import { planPorId, precioMes, usd } from "@/lib/planes";
+import { datosNequi, pesosPorDolar } from "@/lib/pago-manual";
+import { pesos, planPorId, precioMes, usd } from "@/lib/planes";
 import { numeroDeFinca } from "@/lib/planes-servidor";
 import { crearClienteServidor } from "@/lib/supabase/server";
 
@@ -19,7 +19,7 @@ export default async function PaginaActivarFinca() {
   const plan = planPorId(finca.plan);
   const mes = precioMes(plan, false, numero);
   const mesAnual = precioMes(plan, true, numero);
-  const cambio = pesosPorDolar();
+  const cambio = await pesosPorDolar();
   const { data: pendiente } = await supabase.from("solicitudes_plan").select("periodo").eq("finca_id", finca.id).eq("estado", "pendiente").maybeSingle();
 
   return (

@@ -91,6 +91,8 @@ export function precioMes(p: Plan, anual: boolean, numeroFinca = 1): number {
 }
 
 /** «US$ 8», «US$ 6,40»: sin centavos cuando el valor es entero. */
+/** «$ 37.800» (punto de miles, sin decimales): el valor en pesos que se paga por Nequi. */
+export const pesos = (n: number) => `$ ${Math.round(n).toLocaleString("es-CO")}`;
 export const usd = (n: number) => `US$ ${Number.isInteger(n) ? n : n.toFixed(2).replace(".", ",")}`;
 
 const PLAN_POR_ID = Object.fromEntries(PLANES.map((p) => [p.id, p])) as Record<PlanId, Plan>;

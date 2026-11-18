@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { PlanVencidoVista } from "@/components/PlanVencidoVista";
 import { obtenerContexto } from "@/lib/contexto";
-import { planPorId, precioMes, usd } from "@/lib/planes";
+import { datosNequi, pesosPorDolar } from "@/lib/pago-manual";
+import { pesos, planPorId, precioMes, usd } from "@/lib/planes";
 import { numeroDeFinca } from "@/lib/planes-servidor";
 import { crearClienteServidor } from "@/lib/supabase/server";
 
@@ -10,7 +11,7 @@ export const metadata: Metadata = { title: "Plan vencido" };
 
 /** Fuera del grupo (app): no pasa por el bloqueo del layout. Con el plan al día no hay nada que mostrar aquí. */
 export default async function PaginaPlanVencido() {
-  const { finca, fincas, rol, vigencia: estado } = await obtenerContexto();
+  const { user, finca, fincas, rol, vigencia: estado } = await obtenerContexto();
   if (estado === "pendiente") redirect("/activar-finca");
   if (estado === "vigente" || !finca.plan_vence_en) redirect("/");
 
@@ -19,6 +20,7 @@ export default async function PaginaPlanVencido() {
   const plan = planPorId(finca.plan);
   const mes = precioMes(plan, false, numero);
   const mesAnual = precioMes(plan, true, numero);
+  const cambio = await pesosPorDolar();
   const { data: pendiente } = await supabase.from("solicitudes_plan").select("periodo").eq("finca_id", finca.id).eq("estado", "pendiente").maybeSingle();
 
   return (
@@ -31,6 +33,10 @@ export default async function PaginaPlanVencido() {
         esPropietario: rol === "propietario",
         precioMes: `${usd(mes)} al mes`,
         precioAnio: `${usd(mesAnual * 12)} al año (${usd(mesAnual)} al mes)`,
+        pesosMes: cambio ? pesos(mes * cambio) : null,
+        pesosAnio: cambio ? pesos(mesAnual * 12 * cambio) : null,
+        nequi: datosNequi(),
+        referencia: `${finca.nombre} · ${user.email ?? ""}`.trim(),
         pendiente: pendiente?.periodo === "anual" ? "anual" : pendiente?.periodo === "mensual" ? "mensual" : null,
         fincas: fincas.map((f) => ({ id: f.id, nombre: f.nombre, rol: f.rol, logo_path: f.logo_path })),
         fincaActiva: finca.id,
