@@ -32,6 +32,8 @@ const esquema = z.object({
   origen: z.enum(["nacido_en_finca", "comprado"]),
   vocacion: z.enum(["leche", "carne", "doble"]),
   uso_macho: opcional(z.enum(["reproductor", "carne", "por_definir"])),
+  /** Solo ovejas: lana o pelo. Vacío = la de su raza. */
+  cobertura: opcional(z.enum(["lana", "pelo", "segun_raza"])),
   chip: opcional(z.string().trim().max(40, "El microchip es muy largo.")),
   color: opcional(z.string().trim().max(60, "El color es muy largo.")),
   marcas: opcional(z.string().trim().max(120, "Las marcas son muy largas.")),
@@ -96,7 +98,7 @@ export async function crearAnimal(_: EstadoAnimal, form: FormData): Promise<Esta
   const supabase = await crearClienteServidor();
   const { data: id, error } = await supabase.rpc("registrar_animal", {
     p_finca: finca.id,
-    p_animal: { ...animal, uso_macho: usoMacho },
+    p_animal: { ...animal, uso_macho: usoMacho, cobertura: animal.especie === "ovino" && (animal.cobertura === "lana" || animal.cobertura === "pelo") ? animal.cobertura : null },
     p_fecha_ultimo_parto: fecha_ultimo_parto ?? null,
   });
   if (error || !id) return { error: mensajeAmigable(error?.message ?? "No se pudo registrar el animal.") };
@@ -189,6 +191,7 @@ export async function editarAnimal(_: EstadoAnimal, form: FormData): Promise<Est
       fecha_compra: d.origen === "comprado" ? (d.fecha_compra ?? null) : null,
       vocacion: d.sexo === "macho" ? "carne" : d.vocacion,
       uso_macho: d.sexo === "macho" && d.uso_macho && d.uso_macho !== "por_definir" ? d.uso_macho : null,
+      cobertura: d.especie === "ovino" && (d.cobertura === "lana" || d.cobertura === "pelo") ? d.cobertura : null,
       padre_id: d.padre_id ?? null,
       madre_id: d.madre_id ?? null,
       padre_externo: d.padre_externo ?? null,

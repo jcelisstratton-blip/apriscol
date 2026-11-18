@@ -51,6 +51,8 @@ export type Animal = {
   vocacion: Vocacion;
   /** Solo machos: para qué es. `null` = por definir. */
   uso_macho: UsoMacho | null;
+  /** Solo ovejas: «lana» o «pelo». `null` = la de su raza (ver `lib/esquila.ts`). */
+  cobertura: Cobertura | null;
   /** Turnos en que se ordeña. `null` = sin programar (todos); lista vacía = no se ordeña por ahora. */
   turnos_ordeno: string[] | null;
   estado: string;
@@ -191,7 +193,29 @@ export type Invitacion = {
   created_at: string;
 };
 
-export type Raza = { id: number; especie: Especie; nombre: string; aptitud: Vocacion | null };
+/** Lo que cubre a una oveja: las de lana se esquilan; las de pelo, no. */
+export type Cobertura = "lana" | "pelo";
+/** La de una raza ovina; «variable» = puede ser de lana o de pelo (se define en cada oveja). Las razas de cabras no la llevan. */
+export type CoberturaRaza = Cobertura | "variable";
+export type Raza = { id: number; especie: Especie; nombre: string; aptitud: Vocacion | null; cobertura: CoberturaRaza | null };
+
+/** Una esquila: un evento de la finca con las ovejas esquiladas. Anulada = mal registrada, ya no cuenta. */
+export type Esquila = {
+  id: string;
+  finca_id: string;
+  fecha: string;
+  esquilador: string | null;
+  costo: number | null;
+  notas: string | null;
+  anulada_en: string | null;
+  client_request_id: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+};
+/** Lo que lleva cada oveja esquilada en total (vista `v_esquila_animal`). */
+export type EsquilaDeAnimal = { finca_id: string | null; animal_id: string | null; ultima_fecha: string | null; esquilas: number | null; vellon_total_kg: number | null };
+export type EsquilaAnimal = { id: string; finca_id: string; esquila_id: string; animal_id: string; peso_vellon_kg: number | null; created_at: string; updated_at: string };
 
 export type Ordeno = {
   id: string;
@@ -1565,6 +1589,8 @@ export type Database = {
       diagnosticos_gestacion: Tabla<DiagnosticoGestacion, "finca_id" | "hembra_id" | "resultado">;
       crias: Tabla<Cria, "finca_id" | "parto_id">;
       ferias: Tabla<Feria, "finca_id" | "nombre" | "fecha_inicio">;
+      esquilas: Tabla<Esquila, "finca_id" | "fecha">;
+      esquila_animales: Tabla<EsquilaAnimal, "finca_id" | "esquila_id" | "animal_id">;
       participaciones_feria: Tabla<Participacion, "finca_id" | "feria_id" | "animal_id" | "categoria">;
       libro_genealogico: Tabla<LibroAnimal, "numero_registro" | "chip" | "nombre" | "especie" | "sexo">;
       solicitudes_reclamo: Tabla<SolicitudReclamo, "finca_id" | "titular_id">;
@@ -1615,6 +1641,7 @@ export type Database = {
       v_peso_animal: { Row: PesoAnimal; Relationships: [] };
       v_servicios: { Row: ServicioConParto; Relationships: [] };
       v_palmares_animal: { Row: PalmaresAnimal; Relationships: [] };
+      v_esquila_animal: { Row: EsquilaDeAnimal; Relationships: [] };
       v_palmares_finca: { Row: PalmaresFinca; Relationships: [] };
       v_eventos_sanitarios: { Row: EventoResumen; Relationships: [] };
       v_eventos_animal: { Row: EventoDeAnimal; Relationships: [] };
@@ -1635,6 +1662,12 @@ export type Database = {
     Functions: {
       geo_codigos: { Args: { p_pais: string; p_nivel1: string; p_nivel2: string }; Returns: { nivel1_codigo: string | null; nivel2_codigo: string | null }[] };
       divipola_codigos: { Args: { p_departamento: string; p_municipio: string }; Returns: { departamento_dane: string | null; municipio_dane: string | null }[] };
+      registrar_esquila: {
+        Args: { p_finca: string; p_fecha: string; p_animales: unknown; p_esquilador: string | null; p_costo: number | null; p_notas: string | null; p_client_request_id: string | null };
+        Returns: string;
+      };
+      actualizar_esquila: { Args: { p_esquila: string; p_fecha: string; p_esquilador: string | null; p_costo: number | null; p_notas: string | null; p_pesos: unknown }; Returns: undefined };
+      anular_esquila: { Args: { p_esquila: string }; Returns: undefined };
       registrar_animal: { Args: { p_finca: string; p_animal: unknown; p_fecha_ultimo_parto?: string | null }; Returns: string };
       registrar_parto: { Args: { p_finca: string; p_parto: unknown; p_crias: unknown }; Returns: unknown };
       eliminar_parto: { Args: { p_finca: string; p_parto: string }; Returns: string };

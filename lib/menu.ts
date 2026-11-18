@@ -1,8 +1,8 @@
-import { CirclePlay, Inbox, Plug, Activity, Baby, Beef, Boxes, Download, Droplets, Fence, FileBarChart2, Gift, GitFork, Home, MapPin, Package, PawPrint, Plus, Rocket, Send, SlidersHorizontal, Syringe, TrendingUp, Trophy, Users, Wallet, type LucideIcon } from "lucide-react";
+import { CirclePlay, Inbox, Plug, Activity, Baby, Beef, Boxes, Download, Droplets, Fence, FileBarChart2, Gift, GitFork, Home, MapPin, Package, PawPrint, Plus, Rocket, Send, SlidersHorizontal, Syringe, TrendingUp, Trophy, Users, Wallet, Scissors, type LucideIcon } from "lucide-react";
 import { puedeGestionar, puedeVer, revisaNovedades } from "@/lib/permisos";
 import { reportesVisibles } from "@/lib/reportes/catalogo";
 import { areasSemaforo } from "@/lib/semaforos";
-import type { PlanId, RolFinca } from "@/lib/tipos";
+import type { Especie, PlanId, RolFinca } from "@/lib/tipos";
 
 /**
  * El menú de la app, definido una sola vez: lo dibujan el menú lateral del computador (`NavLateral`) y la lista de «Más» del celular
@@ -25,6 +25,8 @@ export type VisibilidadMenu = {
   carne: boolean;
   sanidad: boolean;
   corrales: boolean;
+  /** Esquila de ovejas: solo si la finca tiene ovejas (una finca solo de cabras no la ve). */
+  esquila: boolean;
   /** Inventario de la bodega: medicamentos y vacunas (propietario, administrador y veterinario) y alimento (propietario, administrador y ordeñador). */
   inventario: boolean;
   costos: boolean;
@@ -42,7 +44,7 @@ export type VisibilidadMenu = {
   planMejorable: boolean;
 };
 
-export function visibilidadMenu(rol: RolFinca, plan: PlanId): VisibilidadMenu {
+export function visibilidadMenu(rol: RolFinca, plan: PlanId, especies: Especie[] = []): VisibilidadMenu {
   const ve = (m: Parameters<typeof puedeVer>[1]) => puedeVer(rol, m, plan);
   return {
     novedades: ve("novedades"),
@@ -53,6 +55,7 @@ export function visibilidadMenu(rol: RolFinca, plan: PlanId): VisibilidadMenu {
     carne: ve("carne"),
     sanidad: ve("sanidad"),
     corrales: ve("corrales"),
+    esquila: especies.includes("ovino") && ve("hato"),
     inventario: ve("inventario") || ve("nutricion"),
     costos: ve("contabilidad"),
     reportes: reportesVisibles(ve, puedeGestionar(rol)).length > 0 || ve("contabilidad"),
@@ -88,6 +91,7 @@ export function menuPrincipal(v: VisibilidadMenu): GrupoMenu[] {
         ...(v.repro ? [{ href: "/reproduccion", etiqueta: "Reproducción", Icono: Baby }] : []),
         ...(v.carne ? [{ href: "/carne", etiqueta: "Carne", Icono: Beef }] : []),
         ...(v.sanidad ? [{ href: "/sanidad", etiqueta: "Sanidad", Icono: Syringe }] : []),
+        ...(v.esquila ? [{ href: "/esquila", etiqueta: "Esquila", Icono: Scissors }] : []),
         ...(v.corrales ? [{ href: "/corrales", etiqueta: "Corrales", Icono: Fence }] : []),
         ...(v.inventario ? [{ href: "/inventario", etiqueta: "Inventario", Icono: Boxes }] : []),
       ],

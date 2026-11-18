@@ -122,6 +122,7 @@ export type Database = {
           ceba_pospuesto_hasta: string | null
           chip: string | null
           client_request_id: string | null
+          cobertura: string | null
           color: string | null
           created_at: string
           created_by: string | null
@@ -164,6 +165,7 @@ export type Database = {
           ceba_pospuesto_hasta?: string | null
           chip?: string | null
           client_request_id?: string | null
+          cobertura?: string | null
           color?: string | null
           created_at?: string
           created_by?: string | null
@@ -206,6 +208,7 @@ export type Database = {
           ceba_pospuesto_hasta?: string | null
           chip?: string | null
           client_request_id?: string | null
+          cobertura?: string | null
           color?: string | null
           created_at?: string
           created_by?: string | null
@@ -1649,6 +1652,108 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      esquila_animales: {
+        Row: {
+          animal_id: string
+          created_at: string
+          esquila_id: string
+          finca_id: string
+          id: string
+          peso_vellon_kg: number | null
+          updated_at: string
+        }
+        Insert: {
+          animal_id: string
+          created_at?: string
+          esquila_id: string
+          finca_id: string
+          id?: string
+          peso_vellon_kg?: number | null
+          updated_at?: string
+        }
+        Update: {
+          animal_id?: string
+          created_at?: string
+          esquila_id?: string
+          finca_id?: string
+          id?: string
+          peso_vellon_kg?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "esquila_animales_animal_fk"
+            columns: ["animal_id", "finca_id"]
+            isOneToOne: false
+            referencedRelation: "animales"
+            referencedColumns: ["id", "finca_id"]
+          },
+          {
+            foreignKeyName: "esquila_animales_esquila_fk"
+            columns: ["esquila_id", "finca_id"]
+            isOneToOne: false
+            referencedRelation: "esquilas"
+            referencedColumns: ["id", "finca_id"]
+          },
+          {
+            foreignKeyName: "esquila_animales_finca_id_fkey"
+            columns: ["finca_id"]
+            isOneToOne: false
+            referencedRelation: "fincas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      esquilas: {
+        Row: {
+          anulada_en: string | null
+          client_request_id: string | null
+          costo: number | null
+          created_at: string
+          created_by: string | null
+          esquilador: string | null
+          fecha: string
+          finca_id: string
+          id: string
+          notas: string | null
+          updated_at: string
+        }
+        Insert: {
+          anulada_en?: string | null
+          client_request_id?: string | null
+          costo?: number | null
+          created_at?: string
+          created_by?: string | null
+          esquilador?: string | null
+          fecha: string
+          finca_id: string
+          id?: string
+          notas?: string | null
+          updated_at?: string
+        }
+        Update: {
+          anulada_en?: string | null
+          client_request_id?: string | null
+          costo?: number | null
+          created_at?: string
+          created_by?: string | null
+          esquilador?: string | null
+          fecha?: string
+          finca_id?: string
+          id?: string
+          notas?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "esquilas_finca_id_fkey"
+            columns: ["finca_id"]
+            isOneToOne: false
+            referencedRelation: "fincas"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       evaluaciones_famacha: {
         Row: {
@@ -4870,18 +4975,21 @@ export type Database = {
       razas: {
         Row: {
           aptitud: Database["public"]["Enums"]["vocacion_animal"] | null
+          cobertura: string | null
           especie: Database["public"]["Enums"]["especie"]
           id: number
           nombre: string
         }
         Insert: {
           aptitud?: Database["public"]["Enums"]["vocacion_animal"] | null
+          cobertura?: string | null
           especie: Database["public"]["Enums"]["especie"]
           id?: never
           nombre: string
         }
         Update: {
           aptitud?: Database["public"]["Enums"]["vocacion_animal"] | null
+          cobertura?: string | null
           especie?: Database["public"]["Enums"]["especie"]
           id?: never
           nombre?: string
@@ -5916,6 +6024,31 @@ export type Database = {
           },
           {
             foreignKeyName: "lactancias_finca_id_fkey"
+            columns: ["finca_id"]
+            isOneToOne: false
+            referencedRelation: "fincas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v_esquila_animal: {
+        Row: {
+          animal_id: string | null
+          esquilas: number | null
+          finca_id: string | null
+          ultima_fecha: string | null
+          vellon_total_kg: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "esquila_animales_animal_fk"
+            columns: ["animal_id", "finca_id"]
+            isOneToOne: false
+            referencedRelation: "animales"
+            referencedColumns: ["id", "finca_id"]
+          },
+          {
+            foreignKeyName: "esquila_animales_finca_id_fkey"
             columns: ["finca_id"]
             isOneToOne: false
             referencedRelation: "fincas"
@@ -7246,6 +7379,30 @@ export type Database = {
           porcentaje: number
           registrado_en: string
         }[]
+      }
+      actualizar_esquila: {
+        Args: {
+          p_costo: number
+          p_esquila: string
+          p_esquilador: string
+          p_fecha: string
+          p_notas: string
+          p_pesos: Json
+        }
+        Returns: undefined
+      }
+      anular_esquila: { Args: { p_esquila: string }; Returns: undefined }
+      registrar_esquila: {
+        Args: {
+          p_animales: Json
+          p_client_request_id: string
+          p_costo: number
+          p_esquilador: string
+          p_fecha: string
+          p_finca: string
+          p_notas: string
+        }
+        Returns: string
       }
       mover_animales: {
         Args: {

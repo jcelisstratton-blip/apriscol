@@ -29,7 +29,7 @@ que nunca falla por permisos ni por la base.
 
 ## Pruebas
 
-`tests/tutoriales.test.mjs`: están los 30 (0 al 29) con grupo, duración y miniatura existente; los enlaces son válidos y no se repiten; siguiente y anterior saltan los no disponibles; la búsqueda; lo
+`tests/tutoriales.test.mjs`: están los 31 (0 al 30) con grupo, duración y miniatura existente; los enlaces son válidos y no se repiten; siguiente y anterior saltan los no disponibles; la búsqueda; lo
 «visto» se lee aunque venga manipulado; la entrada del menú y la política de seguridad. `tests/menu.test.mjs` y `tests/reglas.test.mjs` cubren el menú y el `frame-src`.
 
 ## Cómo llegan las personas a los videos

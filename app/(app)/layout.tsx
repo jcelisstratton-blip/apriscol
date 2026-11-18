@@ -28,7 +28,8 @@ export default async function LayoutApp({ children }: { children: React.ReactNod
         fincaActiva={finca.id}
         rol={rol}
         plan={finca.plan}
-        visibilidad={visibilidadMenu(rol, finca.plan)}
+        especies={finca.especies}
+        visibilidad={visibilidadMenu(rol, finca.plan, finca.especies)}
         esSuperadmin={esSuperadmin}
       />
       <div className="lg:pl-64">
@@ -38,7 +39,7 @@ export default async function LayoutApp({ children }: { children: React.ReactNod
           {children}
         </main>
       </div>
-      <BottomNav rol={rol} plan={finca.plan} />
+      <BottomNav rol={rol} plan={finca.plan} especies={finca.especies} />
     </ProveedorMoneda>
   );
 }

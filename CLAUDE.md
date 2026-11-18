@@ -100,6 +100,7 @@ El detalle de cada módulo vive en `docs/modulos/`. Léelo antes de cambiar su c
 - [`docs/modulos/ajustes-finca.md`](docs/modulos/ajustes-finca.md) — Ajustes de la finca: Ajustes de la finca
 - [`docs/modulos/importar-exportar.md`](docs/modulos/importar-exportar.md) — Cargue y exportación de datos: Cargue masivo de animales (el Excel de la persona, con asistente de columnas, modos para los que ya existen y «Deshacer»); Cargue de historia (pesajes, ordeños y sanidad); Corrales, medicamentos y alimento por Excel; qué tablas necesita una finca; Migrar mi finca (la guía por etapas del proceso completo); Exportar los datos de la finca
 - [`docs/modulos/vigencia-plan.md`](docs/modulos/vigencia-plan.md) — Vigencia del plan: Vigencia del plan
+- [`docs/modulos/esquila.md`](docs/modulos/esquila.md) — Esquila de ovejas: solo se esquilan las de lana; cobertura lana / pelo / por definir (la de la oveja manda sobre la de su raza; se calcula, no se guarda); `/esquila` solo en fincas con ovejas; registrar, corregir y anular (todo o nada, sin borrar); plazo de 12 meses y aviso a 30 días en `lib/esquila.ts`
 - [`docs/modulos/reproduccion.md`](docs/modulos/reproduccion.md) — Reproducción: Empadre
 - [`docs/modulos/sanidad-corrales.md`](docs/modulos/sanidad-corrales.md) — Sanidad y corrales: Sanidad; Corrales, instalaciones y rotación
 - [`docs/modulos/contabilidad.md`](docs/modulos/contabilidad.md) — Compras, ventas, costos y nómina: Compras, ventas y costos

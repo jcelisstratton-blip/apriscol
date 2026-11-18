@@ -1,4 +1,4 @@
-import { Beef, Cloud, Crown, CircleHelp, House, Layers, Mars, Milk, Mountain, ShoppingCart, Sprout, Venus, Wheat } from "lucide-react";
+import { Beef, Cloud, Crown, CircleHelp, Feather, House, Layers, Mars, Milk, Mountain, Scissors, ShoppingCart, Sprout, Venus, Wheat } from "lucide-react";
 import { ESC, escena, type EscenaDef } from "@/lib/escenas";
 import type { Especie, SexoAnimal, Vocacion } from "@/lib/tipos";
 
@@ -32,4 +32,11 @@ export const ESCENA_USO_MACHO: Record<"reproductor" | "carne" | "por_definir", E
   reproductor: escena(Crown, "ambar", Mars),
   carne: escena(Beef, "arcilla"),
   por_definir: escena(CircleHelp, "grafito"),
+};
+
+/** Si una oveja es de lana (se esquila) o de pelo (no se esquila); `segun_raza` no es un valor de la base: es «la de su raza». */
+export const ESCENA_COBERTURA: Record<"segun_raza" | "lana" | "pelo", EscenaDef> = {
+  segun_raza: escena(CircleHelp, "grafito"),
+  lana: escena(Cloud, "ambar", Scissors),
+  pelo: escena(Feather, "oliva"),
 };

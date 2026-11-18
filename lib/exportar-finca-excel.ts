@@ -72,6 +72,7 @@ const FUENTES: Record<BusquedaId, { tabla: string; global?: boolean; etiqueta: (
   ferias: { tabla: "ferias", etiqueta: (f) => texto(f.nombre) },
   empadronamientos: { tabla: "empadronamientos", etiqueta: (f) => texto(f.nombre) },
   eventos: { tabla: "eventos_sanitarios", etiqueta: (f) => `${texto(f.fecha).split("-").reverse().join("/")} · ${humanizarOpcion(texto(f.tipo))}` },
+  esquilas: { tabla: "esquilas", etiqueta: (f) => `${texto(f.fecha).split("-").reverse().join("/")}${f.esquilador ? ` · ${texto(f.esquilador)}` : ""}` },
   programas: { tabla: "programas_sanitarios", etiqueta: (f) => `${texto(f.fecha_programada).split("-").reverse().join("/")} · ${humanizarOpcion(texto(f.tipo))}` },
   razas: { tabla: "razas", global: true, etiqueta: (f) => texto(f.nombre) },
 };

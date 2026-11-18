@@ -7,7 +7,7 @@ import { Sheet } from "@/components/Sheet";
 import { TarjetaVideo } from "@/components/TarjetaVideo";
 import { atajosPara, coincideAtajo, GRUPOS_ATAJO, type TipoAtajo } from "@/lib/atajos";
 import { TUTORIAL_AL_GRANO, TUTORIALES } from "@/lib/tutoriales";
-import type { PlanId, RolFinca } from "@/lib/tipos";
+import type { Especie, PlanId, RolFinca } from "@/lib/tipos";
 
 const FILTROS: { valor: "todo" | TipoAtajo; texto: string }[] = [
   { valor: "todo", texto: "Todo" },
@@ -15,11 +15,11 @@ const FILTROS: { valor: "todo" | TipoAtajo; texto: string }[] = [
   { valor: "ir", texto: "Abrir" },
 ];
 
-function Contenido({ rol, plan, onCerrar }: { rol: RolFinca; plan: PlanId; onCerrar: () => void }) {
+function Contenido({ rol, plan, especies, onCerrar }: { rol: RolFinca; plan: PlanId; especies: Especie[]; onCerrar: () => void }) {
   const [texto, setTexto] = useState("");
   const [filtro, setFiltro] = useState<"todo" | TipoAtajo>("todo");
   const video = TUTORIALES.find((t) => t.numero === TUTORIAL_AL_GRANO) ?? null;
-  const visibles = atajosPara(rol, plan).filter((a) => (filtro === "todo" || a.tipo === filtro) && coincideAtajo(a, texto));
+  const visibles = atajosPara(rol, plan, especies).filter((a) => (filtro === "todo" || a.tipo === filtro) && coincideAtajo(a, texto));
 
   return (
     <div className="space-y-3">
@@ -90,10 +90,10 @@ function Contenido({ rol, plan, onCerrar }: { rol: RolFinca; plan: PlanId; onCer
 }
 
 /** «Al grano»: un solo toque a lo que haya que hacer o abrir en la app, con buscador. Lo comparten la barra inferior y el menú lateral. */
-export function HojaAlGrano({ abierta, onCerrar, rol, plan }: { abierta: boolean; onCerrar: () => void; rol: RolFinca; plan: PlanId }) {
+export function HojaAlGrano({ abierta, onCerrar, rol, plan, especies = [] }: { abierta: boolean; onCerrar: () => void; rol: RolFinca; plan: PlanId; especies?: Especie[] }) {
   return (
     <Sheet abierta={abierta} onCerrar={onCerrar} titulo="Al grano: ¿qué necesitas?" ancho="max-w-md sm:max-w-2xl">
-      <Contenido rol={rol} plan={plan} onCerrar={onCerrar} />
+      <Contenido rol={rol} plan={plan} especies={especies} onCerrar={onCerrar} />
     </Sheet>
   );
 }

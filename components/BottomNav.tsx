@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { Droplets, Home, MoreHorizontal, PawPrint, Zap } from "lucide-react";
 import { HojaAlGrano } from "@/components/HojaAlGrano";
 import { useHojaAlGrano } from "@/components/useHojaAlGrano";
-import type { PlanId, RolFinca } from "@/lib/tipos";
+import type { Especie, PlanId, RolFinca } from "@/lib/tipos";
 
 const TABS = [
   { href: "/", etiqueta: "Hoy", Icono: Home },
@@ -18,7 +18,7 @@ const TABS = [
  * Barra inferior de 4 pestañas con un botón central de acción rápida (patrón Mobbin: Attio, ClickUp, Jobber).
  * Respeta el área segura del teléfono. Desde pantallas anchas (lg) se oculta: ahí manda el menú lateral (`NavLateral`).
  */
-export function BottomNav({ rol, plan }: { rol: RolFinca; plan: PlanId }) {
+export function BottomNav({ rol, plan, especies = [] }: { rol: RolFinca; plan: PlanId; especies?: Especie[] }) {
   const ruta = usePathname();
   const { abierta, abrir, cerrar } = useHojaAlGrano(false);
 
@@ -66,7 +66,7 @@ export function BottomNav({ rol, plan }: { rol: RolFinca; plan: PlanId }) {
         </div>
       </nav>
 
-      <HojaAlGrano abierta={abierta} onCerrar={cerrar} rol={rol} plan={plan} />
+      <HojaAlGrano abierta={abierta} onCerrar={cerrar} rol={rol} plan={plan} especies={especies} />
     </>
   );
 }
