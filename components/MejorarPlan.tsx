@@ -5,7 +5,7 @@ import { Check } from "lucide-react";
 import { Aviso } from "@/components/Aviso";
 import { Boton } from "@/components/Boton";
 import { solicitarMejora, type ResultadoMejora } from "@/app/(app)/mas/plan/actions";
-import { DESCUENTO_FINCA_ADICIONAL, nombrePlan, PLANES, planesSuperiores, precioMes, rangoPlan, usd } from "@/lib/planes";
+import { DESCUENTO_FINCA_ADICIONAL, nombrePlan, PLANES, pesos, planesSuperiores, precioMes, rangoPlan, usd } from "@/lib/planes";
 import type { PlanId } from "@/lib/tipos";
 
 /** Lo que suma un plan frente al actual: los servicios de los planes intermedios y del propio plan. */
@@ -14,7 +14,8 @@ function loQueSumas(actual: PlanId, destino: PlanId): string[] {
 }
 
 /** Los planes a los que se puede pasar (solo hacia adelante) con el cambio mensual / anual y el botón para pedir la mejora. */
-export function MejorarPlan({ actual, numeroFinca = 1 }: { actual: PlanId; numeroFinca?: number }) {
+/** `cambio`: pesos por dólar (TRM del día), si se conoce; con él se muestra el valor aproximado en pesos que se paga por Nequi. */
+export function MejorarPlan({ actual, numeroFinca = 1, cambio = null }: { actual: PlanId; numeroFinca?: number; cambio?: number | null }) {
   const [anual, setAnual] = useState(false);
   const [pendiente, iniciar] = useTransition();
   const [eligiendo, setEligiendo] = useState<PlanId | null>(null);
@@ -68,6 +69,7 @@ export function MejorarPlan({ actual, numeroFinca = 1 }: { actual: PlanId; numer
                 <span className="font-sans text-sm font-normal text-humo">/ mes</span>
               </p>
               <p className="mt-1 font-mono text-xs text-humo">{anual ? `Pagando cada año · ${usd(mes * 12)} al año` : "Pagando cada mes"}</p>
+              {cambio ? <p className="mt-0.5 font-mono text-xs text-humo">≈ {pesos((anual ? mes * 12 : mes) * cambio)} COP {anual ? "al año" : "al mes"}</p> : null}
 
               <p className="mt-4 text-sm font-semibold">Con este plan sumas:</p>
               <ul className="mt-2 space-y-2">

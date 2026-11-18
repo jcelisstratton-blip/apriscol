@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Download } from "lucide-react";
+import { Download, Smartphone } from "lucide-react";
 import { Aviso } from "@/components/Aviso";
 import { FincaSelector } from "@/components/FincaSelector";
 import { Marca } from "@/components/Marca";
@@ -7,6 +7,7 @@ import { SolicitarRenovacion } from "@/components/SolicitarRenovacion";
 import { Tarjeta } from "@/components/Tarjeta";
 import { formatoFecha } from "@/lib/fechas";
 import { cerrarSesion } from "@/app/login/actions";
+import type { DatosNequi } from "@/lib/pago-manual";
 import { DIAS_GRACIA, ultimoDiaDeGracia, type EstadoPlan } from "@/lib/vigencia";
 import type { RolFinca } from "@/lib/tipos";
 
@@ -19,12 +20,23 @@ export type DatosPlanVencido = {
   /** «US$ 10 al mes» y «US$ 96 al año (US$ 8 al mes)», ya con el descuento de la finca. */
   precioMes: string;
   precioAnio: string;
+  /** Equivalentes aproximados en pesos, si se conoce el cambio. */
+  pesosMes: string | null;
+  pesosAnio: string | null;
+  /** A dónde se paga (Nequi) y el mensaje que se escribe al pagar para que el equipo reconozca el pago. */
+  nequi: DatosNequi | null;
+  referencia: string;
   pendiente: "mensual" | "anual" | null;
   fincas: { id: string; nombre: string; rol: RolFinca; logo_path?: string | null }[];
   fincaActiva: string;
 };
 
 const LARGA = { day: "numeric", month: "long", year: "numeric" } as const;
+
+const MENSAJE_ENVIADA = {
+  mensual: "Avisamos al equipo que pagaste el mes. Activamos tu plan apenas se confirme el pago.",
+  anual: "Avisamos al equipo que pagaste el año. Activamos tu plan apenas se confirme el pago.",
+};
 
 /**
  * Lo único que se ve con el plan vencido y la semana de gracia agotada: por qué, cuánto cuesta renovar y la descarga de los datos (todas las veces que
@@ -59,11 +71,39 @@ export function PlanVencidoVista({ datos, solicitar }: { datos: DatosPlanVencido
         {datos.esPropietario ? (
           <>
             <Tarjeta titulo="Renovar tu plan">
-              <div className="space-y-3">
+              <div className="space-y-1.5">
                 <p className="text-[0.9375rem]">
-                  <span className="font-semibold">{datos.planNombre}</span> · {datos.precioMes}. Pagando el año sale más barato: {datos.precioAnio}.
+                  <span className="font-semibold">{datos.planNombre}</span> · {datos.precioMes}
+                  {datos.pesosMes ? <span className="text-humo"> (≈ {datos.pesosMes} COP)</span> : null}
                 </p>
-                <SolicitarRenovacion textoMes="Renovar un mes" textoAnio="Renovar un año" pendiente={datos.pendiente} solicitar={solicitar} />
+                <p className="text-[0.9375rem]">
+                  Pagando el año sale más barato: {datos.precioAnio}
+                  {datos.pesosAnio ? <span className="text-humo"> (≈ {datos.pesosAnio} COP)</span> : null}.
+                </p>
+              </div>
+            </Tarjeta>
+            <Tarjeta titulo="Paga por Nequi">
+              {datos.nequi ? (
+                <div className="space-y-3">
+                  <div className="flex items-start gap-3">
+                    <Smartphone className="mt-0.5 size-5 shrink-0 text-musgo" strokeWidth={1.75} aria-hidden="true" />
+                    <div className="min-w-0">
+                      <p className="font-display text-2xl font-semibold tracking-tight [overflow-wrap:anywhere]">{datos.nequi.numero}</p>
+                      <p className="text-sm text-humo [overflow-wrap:anywhere]">A nombre de {datos.nequi.titular}</p>
+                    </div>
+                  </div>
+                  <p className="text-[0.9375rem]">
+                    En el mensaje del pago escribe <span className="font-semibold [overflow-wrap:anywhere]">{datos.referencia}</span> para reconocerlo más rápido.
+                  </p>
+                </div>
+              ) : (
+                <p className="text-[0.9375rem]">El equipo de Apriscol te comparte los datos de pago por Nequi. Si ya los tienes, paga y avísanos abajo.</p>
+              )}
+            </Tarjeta>
+            <Tarjeta titulo="¿Ya pagaste?">
+              <div className="space-y-3">
+                <p className="text-[0.9375rem]">Cuéntanos qué pagaste y el equipo activa tu plan apenas lo confirme.</p>
+                <SolicitarRenovacion textoMes="Ya pagué el mes" textoAnio="Ya pagué el año" pendiente={datos.pendiente} solicitar={solicitar} mensajeEnviada={MENSAJE_ENVIADA} />
               </div>
             </Tarjeta>
             <Tarjeta titulo="Tus datos">

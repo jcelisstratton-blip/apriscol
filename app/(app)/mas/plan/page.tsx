@@ -10,8 +10,8 @@ import { PagoNequi } from "@/components/PagoNequi";
 import { Tarjeta } from "@/components/Tarjeta";
 import { obtenerContexto } from "@/lib/contexto";
 import { formatoFecha } from "@/lib/fechas";
-import { datosNequi, pesos, pesosPorDolar } from "@/lib/pago-manual";
-import { nombrePlan, planPorId, planesSuperiores, precioMes, usd } from "@/lib/planes";
+import { datosNequi, pesosPorDolar } from "@/lib/pago-manual";
+import { nombrePlan, pesos, planesSuperiores, planPorId, precioMes, usd } from "@/lib/planes";
 import { numeroDeFinca } from "@/lib/planes-servidor";
 import { crearClienteServidor } from "@/lib/supabase/server";
 import type { PlanId } from "@/lib/tipos";
@@ -37,7 +37,7 @@ export default async function PaginaPlan() {
   // Lo que hay que pagar por la solicitud pendiente, con el descuento de la finca y, si se conoce el cambio, en pesos.
   const anualPend = pendiente?.periodo === "anual";
   const mesPend = pendiente ? precioMes(planPorId(pendiente.plan_nuevo as PlanId), anualPend, numeroFinca) : 0;
-  const cambio = pesosPorDolar();
+  const cambio = await pesosPorDolar();
   const totalPend = anualPend ? mesPend * 12 : mesPend;
   const montoPendiente = { texto: `${usd(totalPend)} ${anualPend ? "al año" : "al mes"}`, pesos: cambio ? pesos(totalPend * cambio) : null };
 
@@ -93,7 +93,7 @@ export default async function PaginaPlan() {
                 <Aviso tipo="info">Enviada el {formatoFecha(pendiente.created_at.slice(0, 10), { day: "numeric", month: "short" })}. Si quieres otro plan, elígelo abajo y reemplaza esa solicitud.</Aviso>
               </>
             ) : null}
-            <MejorarPlan actual={finca.plan} numeroFinca={numeroFinca} />
+            <MejorarPlan actual={finca.plan} numeroFinca={numeroFinca} cambio={cambio} />
           </>
         )}
       </div>
