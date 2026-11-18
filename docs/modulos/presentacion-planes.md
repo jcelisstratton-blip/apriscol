@@ -23,4 +23,6 @@ como tarjeta propia dentro de «Dinero y análisis». La etiqueta «Desde <plan>
 del hato (`lib/reportes/catalogo.ts`) y los de costos (`lib/costos-reportes.ts`). Proyecciones se presenta siempre como un cálculo con
 supuestos ajustables, nunca como un resultado prometido.
 
+**Opciones que dependen de la especie** (Esquila, solo ovejas): la presentación se arma con `visibilidadMenu("propietario", "hacienda", ["caprino", "ovino"])` — si se armara sin especies, Esquila no aparecería en la entrada. Esquila ya se presenta («Las ovejas de lana, esquiladas a tiempo», Tutorial 30) y está en las funciones del plan Cría.
+
 **Qué más de la entrada sigue al menú (revisado el 3 nov 2026):** la cifra de «secciones en el menú» se cuenta desde `gruposDeFunciones()` (no se escribe a mano); el carrusel «Cubre todo esto» incluye Semáforos e Inventario de bodega; los puntos de la portada, «Quién ve qué» y las preguntas frecuentes mencionan semáforos, medicamentos y alimento. Un módulo nuevo se agrega en esos cuatro sitios, no solo en `CONTENIDO`.

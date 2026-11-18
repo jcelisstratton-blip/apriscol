@@ -22,3 +22,8 @@ test("presentación: la etiqueta de plan sale del plan real", () => {
   assert.equal(etiquetaDePlan(CONTENIDO["/leche"]), null);
   assert.match(etiquetaDePlan(CONTENIDO["/proyecciones"]), /^Desde /);
 });
+
+test("presentación: la esquila aparece en Producción y manejo aunque el menú dependa de la especie", () => {
+  const prod = gruposDeFunciones().find((x) => x.id === "produccion");
+  assert.ok(prod.tarjetas.some((t) => t.href === "/esquila"), "Esquila debe estar en la presentación");
+});

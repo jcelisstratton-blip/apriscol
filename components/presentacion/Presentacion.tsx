@@ -55,7 +55,7 @@ const PASOS = [
 ];
 
 const PREGUNTAS: { p: string; r: string }[] = [
-  { p: "¿Sirve para cabras y para ovejas?", r: "Sí, para las dos: en la misma finca o por separado. Cada una tiene sus parámetros, como la edad de ceba o el máximo de hembras por semental." },
+  { p: "¿Sirve para cabras y para ovejas?", r: "Sí, para las dos: en la misma finca o por separado. Cada una tiene sus parámetros, como la edad de ceba o el máximo de hembras por semental. En Colombia hay ovejas de lana y de pelo: la app esquila solo las de lana y te avisa cuándo toca." },
   { p: "¿Se puede usar desde el celular?", r: "Está pensada primero para el celular, con botones grandes y teclado propio para los números. En el computador te da un menú lateral y más espacio." },
   { p: "¿Puedo traer los datos que ya llevo en Excel?", r: "Sí. Al crear tu finca te ofrecemos «Migrar mi finca»: una guía por etapas (corrales, animales con su genealogía, pesos, ordeños, sanidad, medicamentos y alimento), con una plantilla para cada tabla. Confirmas qué columna es cuál, ves qué va a cambiar antes de guardar y puedes deshacer cada carga. Si prefieres, también invitas a alguien de confianza para que la cargue por ti." },
   { p: "¿Puedo traer mis animales de un libro genealógico?", r: "Sí. Si tus animales están en el libro genealógico, los traes una sola vez al crear tu cuenta, demostrando que son tuyos con el documento del titular y el microchip de uno de ellos." },
