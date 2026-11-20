@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="es-CO">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#f5f0e6" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#14120e" media="(prefers-color-scheme: dark)">
+<title>Sin señal · Apriscol</title>
+<!-- La sirve public/sw.js cuando una navegación falla por la red. Todo va dentro del archivo (sin fuentes ni estilos de afuera):
+     cuando se muestra no hay conexión. El logo sale de la caché del service worker. -->
+<style>
+  :root { --lana:#f5f0e6; --papel:#fffdf8; --arena:#e6dec9; --tinta:#1f1b16; --humo:#6b6457; --musgo:#2f5a45; --sobre-musgo:#fffdf8; --ocre:#c97b1e; }
+  @media (prefers-color-scheme: dark) {
+    :root { --lana:#14120e; --papel:#1d1a15; --arena:#2f2a21; --tinta:#f1ebdd; --humo:#a39b8b; --musgo:#7fbf9b; --sobre-musgo:#11251b; --ocre:#e0963a; }
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; min-height: 100%; background: var(--lana); color: var(--tinta); }
+  body {
+    min-height: 100dvh; display: flex; align-items: center; justify-content: center; text-align: center;
+    padding: max(24px, env(safe-area-inset-top)) max(20px, env(safe-area-inset-right)) max(24px, env(safe-area-inset-bottom)) max(20px, env(safe-area-inset-left));
+    font: 16px/1.5 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    overflow-wrap: anywhere; -webkit-text-size-adjust: 100%;
+  }
+  main { width: 100%; max-width: 360px; }
+  .logo { display: block; width: 88px; height: 88px; margin: 0 auto 20px; border-radius: 50%; animation: pulso 1.8s ease-in-out infinite; }
+  @keyframes pulso { 0%, 100% { opacity: .55 } 50% { opacity: 1 } }
+  h1 { font-family: ui-serif, Georgia, "Times New Roman", serif; font-size: 26px; font-weight: 600; letter-spacing: -.01em; margin: 0 0 8px; }
+  p { color: var(--humo); margin: 0 0 8px; }
+  button {
+    width: 100%; min-height: 48px; margin-top: 20px; padding: 12px 20px; border: 0; border-radius: 14px; cursor: pointer;
+    background: var(--musgo); color: var(--sobre-musgo); font: inherit; font-weight: 600; touch-action: manipulation;
+  }
+  button:focus-visible { outline: 2px solid var(--ocre); outline-offset: 2px; }
+  button:disabled { opacity: .7; cursor: default; }
+  .estado { font-size: 14px; color: var(--humo); margin-top: 14px; min-height: 21px; }
+  @media (prefers-reduced-motion: reduce) { .logo { animation: none } }
+</style>
+</head>
+<body>
+<main>
+  <img class="logo" src="/logo.webp" alt="" width="88" height="88" aria-hidden="true">
+  <h1>Sin señal</h1>
+  <p>No pudimos llegar a Apriscol. Suele ser la señal del celular o el Wi‑Fi; la aplicación está bien.</p>
+  <p>Lo que ya registraste quedó guardado. Cuando vuelva la señal, sigues donde ibas.</p>
+  <button id="reintentar" type="button">Reintentar</button>
+  <div class="estado" id="estado" role="status" aria-live="polite">Lo intentamos de nuevo solos cada pocos segundos.</div>
+</main>
+<script>
+  // Vuelve sola: pregunta por la misma dirección (HEAD no pasa por el service worker) y, si responde, recarga.
+  var boton = document.getElementById("reintentar"), estado = document.getElementById("estado"), probando = false;
+  var ESPERA = "Lo intentamos de nuevo solos cada pocos segundos.";
+  function intentar(manual) {
+    if (probando) return;
+    if (!manual && navigator.onLine === false) return;
+    probando = true;
+    if (manual) { estado.textContent = "Probando la conexión…"; boton.disabled = true; }
+    var corte = typeof AbortController === "function" ? new AbortController() : null;
+    var reloj = setTimeout(function () { if (corte) corte.abort(); }, 8000);
+    fetch(location.href, { method: "HEAD", cache: "no-store", signal: corte ? corte.signal : undefined })
+      .then(function () { location.reload(); })
+      .catch(function () {
+        estado.textContent = manual ? "Todavía sin señal. Prueba moverte a donde suele entrar o con otro Wi‑Fi." : ESPERA;
+      })
+      .then(function () { clearTimeout(reloj); probando = false; boton.disabled = false; });
+  }
+  boton.addEventListener("click", function () { intentar(true); });
+  window.addEventListener("online", function () { intentar(false); });
+  setInterval(function () { intentar(false); }, 5000);
+</script>
+</body>
+</html>

@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Figtree, Fraunces } from "next/font/google";
 import { ProveedorToasts } from "@/components/Toast";
+import { RegistrarSW } from "@/components/RegistrarSW";
 import "./globals.css";
 
 const figtree = Figtree({ variable: "--font-figtree", subsets: ["latin"], display: "swap" });
@@ -29,6 +30,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="es-CO" className={`${figtree.variable} ${fraunces.variable} h-full antialiased`}>
       <body className="min-h-full">
         <ProveedorToasts>{children}</ProveedorToasts>
+        <RegistrarSW />
       </body>
     </html>
   );

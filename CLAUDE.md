@@ -117,6 +117,7 @@ El detalle de cada módulo vive en `docs/modulos/`. Léelo antes de cambiar su c
 - [`docs/modulos/mcp.md`](docs/modulos/mcp.md) — Conexión con IA (MCP): servidor `POST /api/mcp` de solo lectura con token personal (solo la huella en la base), herramientas por rol (`resumen_de_hoy`, `semaforos`, `buscar_animal`, `produccion_de_leche`) que corren como la persona (RLS), sin llave de servicio para los datos
 - [`docs/modulos/ubicacion-dane.md`](docs/modulos/ubicacion-dane.md) — Ubicación por país: `fincas` y `ferias` guardan país, nombre y códigos oficiales de departamento/provincia y municipio/cantón (`geo_codigos`, `lib/ubicacion.ts`); cómo sumar un país; la feria siempre pide dónde fue
 - [`docs/modulos/tutoriales.md`](docs/modulos/tutoriales.md) — Tutoriales: los videos de la serie del canal de YouTube dentro de la app (Mi finca → Tutoriales), con avance, buscador y reproductor; la lista de videos vive en `lib/tutoriales.ts`
+- [`docs/modulos/sin-senal.md`](docs/modulos/sin-senal.md) — Modo sin señal: paso 1, `public/sw.js` (solo navegaciones; si la red falla muestra `public/offline.html`, con marca y reintento automático) registrado por `RegistrarSW` solo en producción; no guarda en caché ninguna pantalla, dato ni sesión; `sw.js` y `offline.html` fuera del `matcher` de `proxy.ts`
 
 ## Escribir en varias tablas = una sola transacción
 
