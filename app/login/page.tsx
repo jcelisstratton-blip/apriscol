@@ -5,17 +5,20 @@ import { correoDeInvitacion } from "@/lib/invitacion";
 import { pesosPorDolar } from "@/lib/pago-manual";
 import { destinoSeguro } from "@/lib/redireccion";
 import { iniciarSesion } from "./actions";
+import { LimpiarCampo } from "@/components/LimpiarCampo";
 
 export const metadata: Metadata = {
   title: "Entrar",
   description: "Apriscol: hato, genealogía, leche, sanidad, partos, corrales, carne, inventario y costos de cabras y ovejas, con semáforos de lo que toca hoy, desde el celular.",
 };
 
-export default async function PaginaLogin({ searchParams }: { searchParams: Promise<{ next?: string; error?: string; email?: string }> }) {
-  const { next, error, email } = await searchParams;
+export default async function PaginaLogin({ searchParams }: { searchParams: Promise<{ next?: string; error?: string; email?: string; salio?: string }> }) {
+  const { next, error, email, salio } = await searchParams;
   const destino = next ? destinoSeguro(next) : undefined;
   const cambio = await pesosPorDolar();
   return (
+    <>
+    {salio ? <LimpiarCampo /> : null}
     <Presentacion
       modo="login"
       cambio={cambio}
@@ -29,5 +32,6 @@ export default async function PaginaLogin({ searchParams }: { searchParams: Prom
         />
       }
     />
+    </>
   );
 }
