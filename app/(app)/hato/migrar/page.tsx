@@ -5,6 +5,10 @@ import { ArrowRight, ChevronLeft } from "lucide-react";
 import { Encabezado } from "@/components/Encabezado";
 import { HistorialImportaciones } from "@/components/HistorialImportaciones";
 import { GuiaMigracion } from "@/components/GuiaMigracion";
+import { LlevarPlantillas } from "@/components/LlevarPlantillas";
+import { AyudaModulo } from "@/components/AyudaModulo";
+import { AYUDA_MIGRAR } from "@/lib/ayuda";
+import { plantillasDisponibles } from "@/lib/plantillas-campo";
 import { Tarjeta } from "@/components/Tarjeta";
 import { clasesBoton } from "@/components/Boton";
 import type { CargueVista } from "@/lib/cargues";
@@ -35,8 +39,11 @@ export default async function PaginaMigrar() {
         <ChevronLeft className="size-5" strokeWidth={2} /> Hato
       </Link>
       <Encabezado titulo="Migrar mi finca" subtitulo={finca.nombre} />
-      <div className="space-y-6 lg:max-w-3xl">
+      <AyudaModulo ayuda={AYUDA_MIGRAR} />
+      <div className="mt-3 space-y-6 lg:max-w-3xl">
         <GuiaMigracion pasos={pasos} />
+
+        <LlevarPlantillas cantidad={plantillasDisponibles(rol, finca.plan).length} />
 
         <Tarjeta titulo="¿Prefieres que lo cargue otra persona?">
           <div className="space-y-2.5">

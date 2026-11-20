@@ -54,6 +54,19 @@ export const AYUDA_IMPORTAR: Ayuda = {
   enlace: { href: "/hato", texto: "Volver al hato" },
 };
 
+/** «Migrar mi finca»: el recorrido de los cargues y «Llevar las plantillas al campo» (modo sin señal, `docs/modulos/sin-senal.md`). */
+export const AYUDA_MIGRAR: Ayuda = {
+  titulo: "Migrar mi finca",
+  tutorial: 7,
+  puntos: [
+    { titulo: "Paso a paso", texto: "Los cargues van en orden: corrales, animales, su historia de pesos, ordeños y sanidad, y la bodega. El paso que sigue se resalta y cada uno dice cuánto ya cargaste." },
+    { titulo: "Con tus propios Excel", texto: "Cada cargue acepta tu archivo con las columnas que tenga: la app propone a qué dato va cada una, revisa fila por fila y no guarda nada mientras haya errores." },
+    { titulo: "Llevar las plantillas al campo", texto: "Descarga en un solo archivo todas las plantillas que puedes llenar, con las listas de tu finca y una guía. Llénalas donde no entra la señal y cárgalas aquí cuando vuelvas." },
+    { titulo: "Sin miedo a equivocarte", texto: "Cada cargue queda en «Cargues anteriores» y el propietario o un administrador puede deshacerlo mientras nadie haya usado esos datos." },
+  ],
+  enlace: { href: "/hato/importar", texto: "Cargar animales desde Excel" },
+};
+
 /** La ayuda de Sanidad: los tiempos de pezuñas y pediluvio son los que definió el propietario en los ajustes de la finca. */
 export const ayudaSanidad = (a: Pick<AjustesFinca, "podologia_inspeccion_dias" | "pediluvio_dias" | "pediluvio_dias_lluvia">): Ayuda => ({
   titulo: "Sanidad del hato",

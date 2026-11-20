@@ -1,7 +1,7 @@
 import {
   Activity, ArrowRightLeft, Baby, Banknote, BarChart3, Beef, CalendarClock, ClipboardCheck, Droplets, FileText, FlaskConical, GitFork, HeartPulse, Download, FileSpreadsheet, Home, KeyRound, Layers, MapPin,
   Microscope, Package, PawPrint, Plus, Rocket, Scale, Shuffle, SlidersHorizontal, Snowflake, Syringe, Trophy, Truck, UserPlus, Users, Wallet, Wrench, Fence, Sheet, type LucideIcon,
-  HardHat, Gift, Inbox, Boxes, Utensils, Wheat, FileBarChart2, TrendingUp, Send, Plug, CirclePlay, Scissors,
+  HardHat, Gift, Inbox, Boxes, Utensils, Wheat, FileBarChart2, TrendingUp, Send, Plug, CirclePlay, Scissors, FileArchive,
 } from "lucide-react";
 import { puedeEscribir, puedeGestionar, puedeVer } from "@/lib/permisos";
 import { visibilidadMenu, type VisibilidadMenu } from "@/lib/menu";
@@ -44,6 +44,7 @@ export const ATAJOS: Atajo[] = [
   { grupo: "Hato", tipo: "registrar", titulo: "Animal nuevo", detalle: "Cabra, cabro, oveja o carnero", href: "/hato/nuevo", Icono: PawPrint, modulo: "hato", clave: "registrar cabra oveja arete" },
   { grupo: "Hato", tipo: "registrar", titulo: "Cargar animales desde Excel", detalle: "Muchos animales a la vez, con su genealogía", href: "/hato/importar", Icono: FileSpreadsheet, modulo: "hato", clave: "importar masivo plantilla excel subir cargar archivo xlsx" },
   { grupo: "Hato", tipo: "registrar", titulo: "Migrar mi finca", detalle: "Los pasos para traer animales, pesos y ordeños desde tus Excel", href: "/hato/migrar", Icono: FileSpreadsheet, modulo: "hato", clave: "migrar migracion traer finca excel historia pesos ordenos importar" },
+  { grupo: "Hato", tipo: "registrar", titulo: "Llevar las plantillas al campo", detalle: "Todas tus plantillas de Excel en un archivo, para llenarlas sin señal", href: "/hato/migrar#plantillas-campo", Icono: FileArchive, modulo: "hato", clave: "sin senal sin conexion offline potrero campo descargar plantillas zip comprimido excel llenar" },
   { grupo: "Hato", tipo: "ir", titulo: "Mi hato", detalle: "Todos los animales y sus filtros", href: "/hato", Icono: PawPrint, modulo: "hato", clave: "animales lista buscar arete" },
   { grupo: "Hato", tipo: "ir", titulo: "Hembras del hato", detalle: "Elige una y registra servicio, diagnóstico o parto", href: "/hato?filtro=hembras", Icono: Baby, modulo: "reproduccion", clave: "parto servicio monta diagnostico gestacion cria" },
   { grupo: "Hato", tipo: "ir", titulo: "Endogamia", detalle: "Parentesco de todo el hato", href: "/hato/endogamia", Icono: GitFork, modulo: "hato", clave: "genealogia parentesco consanguinidad" },
