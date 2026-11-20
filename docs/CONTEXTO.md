@@ -295,7 +295,7 @@ Sistema `TarjetaOpcion` / `FilaTarjetas` / `PestanasTarjetas` / `SelectorTarjeta
 - **Reproducción / partos:** hecha (ver sección 8e).
 - **Corrales:** hecha (ver 8b-ter). Falta probar con sesión real las acciones de mover y corregir. **FAMACHA y pediluvio:** hechos por animal (8b-quater).
 - **Pesos / GDP**, nutrición y ambiente (ITH) (módulos previstos en `modulo_app`). Contabilidad: hecha como Costos y gastos (8b-quinquies).
-- **Modo sin conexión** para el ordeño en el campo. Paso 1 hecho (service worker y página «Sin señal», ver `docs/modulos/sin-senal.md`); falta capturar sin señal.
+- **Modo sin conexión** para el ordeño en el campo. Hecho en tres pasos (página «Sin señal», plantillas al campo y registrar ordeño y pesos sin señal en `/campo`), ver `docs/modulos/sin-senal.md`.
 - Verificar con sesión real: subida de fotos, limpieza de fotos huérfanas.
 
 **Ideas surgidas en la conversación (no pedidas aún)**

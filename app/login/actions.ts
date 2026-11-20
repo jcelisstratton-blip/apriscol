@@ -59,7 +59,8 @@ export async function registrarse(_: EstadoAuth, form: FormData): Promise<Estado
 export async function cerrarSesion() {
   const supabase = await crearClienteServidor();
   await supabase.auth.signOut();
-  redirect("/login");
+  // «salio»: la pantalla de entrada borra del aparato la copia de la finca del registro sin señal (`LimpiarCampo`).
+  redirect("/login?salio=1");
 }
 
 const esquemaRecuperar = z.object({

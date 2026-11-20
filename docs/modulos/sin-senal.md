@@ -41,8 +41,66 @@ de su finca y un «Léeme primero». Se descarga **con** señal, se llena **sin*
 los cargues de siempre, que revisan cada fila y se pueden deshacer. No guarda nada en el service worker: el archivo queda en el dispositivo como
 cualquier descarga. Detalle y reglas en `docs/modulos/importar-exportar.md` («Llevar las plantillas al campo»).
 
+## Paso 3 — Registrar la jornada sin señal: ordeño y pesos (hecho, 20 nov 2026)
+
+Anotar el ordeño y los pesos **dentro de la app** sin señal, también cuando la app se abre ya sin conexión en el corral. Lo anotado queda
+en el celular y se envía solo al volver la señal, sin duplicar ni pisar nada.
+
+### Cómo funciona
+
+1. **Copia de la finca** (`GET /api/campo/referencia`, `leerReferenciaCampo` en `lib/campo-servidor.ts`). Cada vez que el panel se abre con
+   señal, `MotorCampo` (en `app/(app)/layout.tsx`) la pide si falta, tiene más de 15 min o es de otra persona o finca, y la guarda en IndexedDB
+   (`apriscol-campo`, tienda `referencia`). Lleva **solo lo indispensable**: hembras con lactancia abierta (arete, nombre, turnos y hasta qué día
+   están en retiro de leche) y, si la persona pesa, los animales activos (arete, nombre, si están en ceba y su último peso). Quien no registra
+   pesos no se lleva la lista del hato. Las listas salen de las mismas funciones que las pantallas con señal: `hembrasEnLeche`
+   (`lib/ordeno-servidor.ts`, también de la captura de leche) y `leerCeba` (`lib/ceba-servidor.ts`, también de Hato → Ceba).
+2. **Pantalla `/campo`** («Registrar sin señal», `app/campo/page.tsx` + `components/campo/`). Es **estática e igual para todos** (fuera del
+   layout del panel, `force-static`, no lee la sesión): por eso el service worker puede guardarla. Ordeño (jornada, hoy o ayer, hoja con el
+   teclado propio y salto a la siguiente, aviso de retiro), Pesar (los de ceba primero, todo el hato con el buscador, último peso para comparar) y
+   «Guardado» (por enviar, pendientes con error y enviados). Muestra lo anotado **en este celular** (sin señal no se sabe lo de los demás).
+   Funciona igual con señal: guarda en el celular y envía enseguida.
+3. **Service worker** (`public/sw.js`, caché `apriscol-offline-v2`): `MotorCampo` le pide `preparar-campo` y guarda `/campo` con sus archivos de
+   `/_next/static` (solo con sesión: una redirección al login no se guarda). Al abrir `/campo`: red primero con 4 s de tiempo límite; sin red,
+   con la señal colgada o con el servidor caído, la copia guardada. La página «Sin señal» ofrece «Registrar ordeño y pesos sin señal» si el
+   aparato ya la tiene lista. **Ninguna otra pantalla ni dato pasa por el service worker.**
+4. **Bandeja del celular** (IndexedDB, tienda `registros`; `lib/offline/campo-db.ts`). Cada registro: tipo, finca, persona, animal, fecha,
+   jornada, litros o peso, estado (`pendiente` · `enviando` · `error` · `enviado`) y su identificador (`client_request_id`). Corregir antes de
+   enviar reutiliza el mismo registro. Lo enviado se muestra 3 días y se borra.
+5. **Envío** (`lib/offline/campo-envio.ts`, gancho `useBandejaCampo`): de a uno, en una sola pestaña (Web Locks), al abrir la app, al volver
+   la señal (`online`), al volver a la pestaña y cada 30 s mientras haya algo. **En iPhone y en Android solo con la app abierta** (no hay envío en
+   segundo plano). Cada petición tiene 15 s de tiempo límite. `POST /api/campo/enviar` exige sesión, que venga de la propia app y que la
+   persona pueda registrar eso **en la finca del registro** (no en la activa: pudo cambiar de finca), con el plan al día.
+6. **Nada se duplica ni se pisa** (`guardarOrdenoCampo`, `guardarPesoCampo`). Reenviar el mismo registro responde «ya estaba». Si ya había
+   otro dato de ese animal en esa jornada (ordeño) o ese día (peso), **no se toca**: el del celular pasa a «Pendientes con error» con lo que
+   había, para que la persona decida. Dos envíos a la vez se resuelven por las restricciones únicas de la base. No hizo falta migración.
+7. **Errores.** Sin red o servidor caído: queda pendiente y se reintenta solo. Sesión vencida: queda pendiente y la pantalla pide entrar de
+   nuevo. Rechazo (animal que salió del hato, un macho en ordeño, permiso o plan que cambió, dato que ya existía): «Pendientes con error», con
+   el motivo, «Reintentar» o «Descartar» (con confirmación). La etiqueta flotante del panel («N sin enviar» / «N con error») lleva a la bandeja.
+8. **Respaldo en las pantallas con señal.** Si la señal se cae a mitad de la captura de leche (`CapturaLeche`) o de la pesada de Ceba
+   (`CebaPesar`), lo escrito se guarda en la misma bandeja (mismo identificador) con «Guardado en el celular. Se enviará al volver la señal.» y
+   la fila queda «Por enviar».
+9. **Cuentas y privacidad.** Solo se envía lo de la persona con la sesión abierta; lo de otra cuenta en el mismo aparato solo se cuenta. Al
+   cerrar sesión (`/login?salio=1` → `LimpiarCampo`) se borra la copia de la finca; lo pendiente se conserva (es trabajo de alguien).
+
+### Entradas
+
+«Al grano» (Registrar sin señal), mantener presionado el ícono de la app instalada (atajo del manifiesto), los enlaces de la captura de leche
+y de Ceba, la página «Sin señal» y la etiqueta flotante. La ayuda «¿Cómo funciona?» es `AYUDA_CAMPO` (`lib/ayuda.ts`, tutorial 5).
+
+### Límites conocidos
+
+- Hay que haber abierto Apriscol con señal al menos una vez en ese aparato (y con la sesión abierta) para que `/campo` y la copia queden listas.
+- Sin envío en segundo plano: si se cierra la app, lo pendiente espera a la próxima vez que se abra.
+- En iPhone, Safari puede borrar lo guardado de un sitio que no se usa en días si la app no está en la pantalla de inicio: conviene instalarla.
+- Sin señal no se ven los registros de otras personas ni los avisos de producción baja: eso sigue en la captura de leche con señal.
+- Lo ya enviado no se corrige desde `/campo` (se hace con señal en la captura de leche o en la ficha del animal).
+
+### Para probar
+
+`tests/campo.test.mjs` (reglas, el servidor con una base falsa: idempotencia, conflictos, carreras, rechazos y la copia por rol) y
+`tests/sin-senal.test.mjs` (el service worker con `/campo`). En el navegador: `npm run build && npm start`, abrir el panel con sesión, cortar
+la red **y** apagar el servidor, abrir `/campo`, anotar, volver a encender y ver que se envía. Auditoría de celular a 360 y 320 px.
+
 ## Pasos siguientes (por definir)
 
-- Capturar sin señal dentro de la app (ordeño primero): bandeja local en IndexedDB y envío al volver la señal, idempotente por `client_request_id`
-  (las funciones SQL ya lo son). Los datos nunca en el service worker.
-- Dejar lista sin conexión la pantalla de captura (estática, igual para todos) con sus archivos de `/_next/static`.
+- Otros registros del campo sin señal (sanidad, partos) con el mismo motor, si hace falta.

@@ -33,6 +33,9 @@
   }
   button:focus-visible { outline: 2px solid var(--ocre); outline-offset: 2px; }
   button:disabled { opacity: .7; cursor: default; }
+  .campo { display: none; width: 100%; min-height: 48px; margin-top: 10px; padding: 12px 20px; border-radius: 14px; align-items: center; justify-content: center;
+           border: 1px solid var(--arena); background: var(--papel); color: var(--tinta); font-weight: 600; text-decoration: none; }
+  .campo:focus-visible { outline: 2px solid var(--ocre); outline-offset: 2px; }
   .estado { font-size: 14px; color: var(--humo); margin-top: 14px; min-height: 21px; }
   @media (prefers-reduced-motion: reduce) { .logo { animation: none } }
 </style>
@@ -44,6 +47,8 @@
   <p>No pudimos llegar a Apriscol. Suele ser la señal del celular o el Wi‑Fi; la aplicación está bien.</p>
   <p>Lo que ya registraste quedó guardado. Cuando vuelva la señal, sigues donde ibas.</p>
   <button id="reintentar" type="button">Reintentar</button>
+  <!-- Solo aparece si este aparato ya dejó lista la pantalla de registro sin señal (la prepara el service worker con conexión). -->
+  <a id="campo" class="campo" href="/campo">Registrar ordeño y pesos sin señal</a>
   <div class="estado" id="estado" role="status" aria-live="polite">Lo intentamos de nuevo solos cada pocos segundos.</div>
 </main>
 <script>
@@ -63,6 +68,9 @@
         estado.textContent = manual ? "Todavía sin señal. Prueba moverte a donde suele entrar o con otro Wi‑Fi." : ESPERA;
       })
       .then(function () { clearTimeout(reloj); probando = false; boton.disabled = false; });
+  }
+  if (window.caches) {
+    caches.match("/campo").then(function (r) { if (r) document.getElementById("campo").style.display = "flex"; }).catch(function () {});
   }
   boton.addEventListener("click", function () { intentar(true); });
   window.addEventListener("online", function () { intentar(false); });

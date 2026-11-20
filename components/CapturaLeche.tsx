@@ -17,6 +17,8 @@ import { Sheet } from "@/components/Sheet";
 import { Teclado } from "@/components/Teclado";
 import { useToast } from "@/components/Toast";
 import { guardarOrdeno, sacarDelOrdeno } from "@/app/(app)/leche/actions";
+import { esFallaDeRed, guardarEnCelular, usuarioDelCelular } from "@/lib/offline/campo-envio";
+import { MENSAJE_GUARDADO_LOCAL } from "@/lib/campo";
 import { crearClienteNavegador } from "@/lib/supabase/client";
 import { litros as fmt, sumarDias } from "@/lib/fechas";
 import { ETIQUETA_NIVEL_BAJA, FRACCION_MUY_BAJA, porcentajeBaja, type TendenciaBaja } from "@/lib/produccion";
@@ -25,7 +27,8 @@ import { turnosDe } from "@/lib/ordeno";
 import type { Jornada } from "@/lib/tipos";
 
 type AnimalLeche = { id: string; numero_arete: string; nombre: string | null; /** Turnos programados; `null` = sin programar (todos). */ turnos?: string[] | null };
-type Registro = { litros: number; descartada: boolean };
+/** `local`: guardado en el celular porque se cayó la señal; se envía solo. */
+type Registro = { litros: number; descartada: boolean; local?: boolean };
 type JornadaSimple = Exclude<Jornada, "unico">;
 /** Hembras cuya producción viene bajando (solo las que tienen alerta). */
 export type TendenciasLeche = Record<string, Pick<TendenciaBaja, "nivel" | "variacion"> & { base: number; recientes: number }>;
@@ -150,23 +153,37 @@ export function CapturaLeche({
     if (!activo || valor === null) return;
     const actual = activo;
     iniciar(async () => {
-      const r = await guardarOrdeno({
-        animalId: actual.id,
-        fecha,
-        jornada,
-        litros: valor,
-        descartar: descartar || enRetiro,
-        solicitud: crypto.randomUUID(),
-      });
+      const solicitud = crypto.randomUUID();
+      const descartada = descartar || enRetiro;
+      let r: Awaited<ReturnType<typeof guardarOrdeno>>;
+      try {
+        r = await guardarOrdeno({ animalId: actual.id, fecha, jornada, litros: valor, descartar: descartada, solicitud });
+      } catch (e) {
+        // Se cayó la señal a mitad de la jornada: queda en el celular (mismo identificador) y se envía solo al volver.
+        if (!esFallaDeRed(e)) return setError("No se pudo guardar. Inténtalo de nuevo.");
+        const quien = await usuarioDelCelular(fincaId);
+        if (!quien) return setError("Sin señal. Abre «Registrar sin señal» para anotar en el celular.");
+        await guardarEnCelular({ id: solicitud, tipo: "ordeno", usuarioId: quien, fincaId, animalId: actual.id, etiqueta: etiquetaAnimal(actual), fecha, jornada, litros: valor, descartar: descartada });
+        toast.exito(MENSAJE_GUARDADO_LOCAL);
+        const nuevos = { ...registros, [actual.id]: { litros: valor, descartada, local: true } };
+        setRegistros(nuevos);
+        return seguir(actual, nuevos, false);
+      }
       if (!r.ok) return setError(r.error);
       const nuevos = { ...registros, [actual.id]: { litros: r.litros, descartada: r.descartada } };
       setRegistros(nuevos);
+      seguir(actual, nuevos, true, r.litros);
+    });
+  };
+
+  /** Pasa a la siguiente hembra sin registro (o cierra la hoja si era la última). */
+  const seguir = (actual: AnimalLeche, nuevos: Record<string, Registro>, avisar: boolean, litrosGuardados?: number) => {
       // Con una búsqueda activa, «siguiente» se queda dentro de lo que la persona está viendo.
       const orden = animales.filter(coincide);
       const siguiente = orden.find((a) => a.id !== actual.id && !nuevos[a.id] && orden.indexOf(a) > orden.indexOf(actual)) ??
         orden.find((a) => a.id !== actual.id && !nuevos[a.id]);
       if (siguiente) {
-        toast.exito(`${etiquetaAnimal(actual)}: ${fmt(r.litros)} L`);
+        if (avisar && litrosGuardados !== undefined) toast.exito(`${etiquetaAnimal(actual)}: ${fmt(litrosGuardados)} L`);
         setActivo(siguiente);
         setTexto("");
         setDescartar(false);
@@ -175,7 +192,6 @@ export function CapturaLeche({
         setActivo(null);
         toast.exito("Jornada completa. ¡Buen ordeño!");
       }
-    });
   };
 
   const sacar = () => {
@@ -310,7 +326,7 @@ export function CapturaLeche({
                 {r ? (
                   <span className="shrink-0 text-right">
                     <span className="block text-lg font-bold tabular-nums">{fmt(r.litros)} L</span>
-                    {r.descartada ? <Insignia tono="aviso">Descartada</Insignia> : null}
+                    {r.local ? <Insignia tono="aviso">Por enviar</Insignia> : r.descartada ? <Insignia tono="aviso">Descartada</Insignia> : null}
                   </span>
                 ) : (
                   <ChevronRight className="size-5 shrink-0 text-humo" strokeWidth={1.75} aria-hidden="true" />

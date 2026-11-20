@@ -67,6 +67,20 @@ export const AYUDA_MIGRAR: Ayuda = {
   enlace: { href: "/hato/importar", texto: "Cargar animales desde Excel" },
 };
 
+/** «Registrar sin señal» (`/campo`, modo sin señal paso 3): ordeño y pesos guardados en el celular y enviados solos al volver la señal. */
+export const AYUDA_CAMPO: Ayuda = {
+  titulo: "Registrar sin señal",
+  tutorial: 5,
+  puntos: [
+    { titulo: "Prepárala con señal", texto: "Abre Apriscol con señal al menos una vez en este celular: así guarda la lista de tus hembras en ordeño y de tus animales para pesar." },
+    { titulo: "Anota donde estés", texto: "Sin señal, abre esta pantalla (también sale en la página «Sin señal») y anota el ordeño de cada hembra o el peso de cada animal. Queda guardado en el celular." },
+    { titulo: "Se envía solo", texto: "Cuando vuelve la señal se envía sin que hagas nada, con la app abierta. En iPhone se envía al abrir la app, no en segundo plano." },
+    { titulo: "Nada se duplica ni se pisa", texto: "Si ya había un dato de ese animal en esa jornada o ese día, no se cambia: el tuyo queda en «Pendientes con error» para que decidas." },
+    { titulo: "Si algo no entra", texto: "Un animal que ya salió del hato o un permiso que cambió dejan el registro en «Pendientes con error», con el motivo, para reintentar o descartar." },
+  ],
+  enlace: { href: "/leche", texto: "Ver la producción de leche" },
+};
+
 /** La ayuda de Sanidad: los tiempos de pezuñas y pediluvio son los que definió el propietario en los ajustes de la finca. */
 export const ayudaSanidad = (a: Pick<AjustesFinca, "podologia_inspeccion_dias" | "pediluvio_dias" | "pediluvio_dias_lluvia">): Ayuda => ({
   titulo: "Sanidad del hato",
@@ -112,6 +126,7 @@ export const AYUDA_CEBA: Ayuda = {
     { titulo: "Lotes", texto: "Agrupa los animales en engorde en lotes, cada uno con su meta de peso." },
     { titulo: "Pesos", texto: "Pésalos seguido: la app calcula la ganancia por día y cuánto falta para la meta." },
     { titulo: "Salida", texto: "Al sacrificar o vender un animal, registra su salida y su canal: así queda el rendimiento." },
+    { titulo: "Sin señal", texto: "Si la señal se cae mientras pesas, el peso queda en el celular y se envía solo al volver. Donde no entra la señal, usa «Pesar sin señal»." },
   ],
   enlace: { href: "/carne", texto: "Ver el resumen de carne" },
 };
@@ -124,6 +139,7 @@ export const AYUDA_ORDENO: Ayuda = {
     { titulo: "Turnos", texto: "Programa qué hembras se ordeñan y en qué turno, para que el registro salga rápido." },
     { titulo: "Retiro", texto: "Si un animal está en retiro por un tratamiento, su leche se marca como descartada y no entra al tanque." },
     { titulo: "Calidad", texto: "Guarda los análisis de la leche (grasa, proteína, células) de un animal o del tanque." },
+    { titulo: "Sin señal", texto: "Si la señal se cae mientras anotas, lo escrito queda en el celular y se envía solo al volver. En el corral sin señal, usa «Registrar sin señal»." },
   ],
   enlace: { href: "/leche", texto: "Ver la producción de la finca" },
 };

@@ -1,7 +1,7 @@
 import {
   Activity, ArrowRightLeft, Baby, Banknote, BarChart3, Beef, CalendarClock, ClipboardCheck, Droplets, FileText, FlaskConical, GitFork, HeartPulse, Download, FileSpreadsheet, Home, KeyRound, Layers, MapPin,
   Microscope, Package, PawPrint, Plus, Rocket, Scale, Shuffle, SlidersHorizontal, Snowflake, Syringe, Trophy, Truck, UserPlus, Users, Wallet, Wrench, Fence, Sheet, type LucideIcon,
-  HardHat, Gift, Inbox, Boxes, Utensils, Wheat, FileBarChart2, TrendingUp, Send, Plug, CirclePlay, Scissors, FileArchive,
+  HardHat, Gift, Inbox, Boxes, Utensils, Wheat, FileBarChart2, TrendingUp, Send, Plug, CirclePlay, Scissors, FileArchive, WifiOff,
 } from "lucide-react";
 import { puedeEscribir, puedeGestionar, puedeVer } from "@/lib/permisos";
 import { visibilidadMenu, type VisibilidadMenu } from "@/lib/menu";
@@ -58,6 +58,7 @@ export const ATAJOS: Atajo[] = [
 
   // Leche
   { grupo: "Leche", tipo: "registrar", titulo: "Registrar ordeño", detalle: "Litros por animal, jornada de hoy", href: "/hato?vista=ordeno", Icono: Droplets, modulo: "leche", clave: "litros leche ordeno jornada" },
+  { grupo: "Leche", tipo: "registrar", titulo: "Registrar sin señal", detalle: "Ordeño y pesos en el celular; se envían solos al volver la señal", href: "/campo", Icono: WifiOff, modulo: "leche", clave: "sin senal sin conexion offline potrero corral campo ordeno pesar peso guardar celular" },
   { grupo: "Leche", tipo: "registrar", titulo: "Análisis de calidad", detalle: "Grasa, proteína y células somáticas", href: "/leche/calidad/nuevo", Icono: FlaskConical, modulo: "leche", clave: "laboratorio grasa proteina" },
   { grupo: "Leche", tipo: "registrar", titulo: "Despacho de leche", detalle: "A dónde fue la leche y a qué precio", href: "/leche/despachos/nuevo", Icono: Truck, modulo: "leche", clave: "venta queseria comprador" },
   { grupo: "Leche", tipo: "registrar", titulo: "Medir el frío del tanque", detalle: "Temperatura del tanque", href: "/leche/frio/nuevo", Icono: Snowflake, modulo: "leche", clave: "temperatura tanque" },

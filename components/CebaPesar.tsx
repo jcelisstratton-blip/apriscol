@@ -15,6 +15,8 @@ import { textoAnimales } from "@/lib/hato";
 import { ListaPorTramos } from "@/components/ListaPorTramos";
 import { useToast } from "@/components/Toast";
 import { guardarPeso } from "@/app/(app)/carne/actions";
+import { esFallaDeRed, guardarEnCelular, usuarioDelCelular } from "@/lib/offline/campo-envio";
+import { MENSAJE_GUARDADO_LOCAL, redondearPeso } from "@/lib/campo";
 import { formatoFecha } from "@/lib/fechas";
 import { gdp, kg } from "@/lib/carne";
 import { leerNumero } from "@/lib/numeros";
@@ -40,7 +42,7 @@ const MIN_PARA_BUSCAR = 8;
  * Hato → Ceba: los animales en engorde con su último peso. Se escribe el peso de cada uno y se guarda al instante (un peso por animal y día;
  * volver a guardarlo el mismo día lo corrige). Arriba, el día del pesaje y el filtro por lote.
  */
-export function CebaPesar({ animales, lotes, hoy, puedeEditar, gdpMinimo }: { animales: AnimalCeba[]; lotes: { id: string; nombre: string }[]; hoy: string; puedeEditar: boolean; gdpMinimo: number }) {
+export function CebaPesar({ animales, lotes, hoy, puedeEditar, gdpMinimo, fincaId }: { animales: AnimalCeba[]; lotes: { id: string; nombre: string }[]; hoy: string; puedeEditar: boolean; gdpMinimo: number; /** Para guardar en el celular si se cae la señal. */ fincaId?: string }) {
   const toast = useToast();
   const [fecha, setFecha] = useState(hoy);
   const [lote, setLote] = useState<string>("todos");
@@ -48,6 +50,8 @@ export function CebaPesar({ animales, lotes, hoy, puedeEditar, gdpMinimo }: { an
   const [texto, setTexto] = useState<Record<string, string>>({});
   const [guardados, setGuardados] = useState<Record<string, number>>({});
   const [ocupado, setOcupado] = useState<string | null>(null);
+  /** Pesos guardados en el celular porque se cayó la señal (se envían solos). */
+  const [locales, setLocales] = useState<Set<string>>(() => new Set());
   const [, iniciar] = useTransition();
   const alBuscar = useCallback((t: string) => setBusqueda(t), []);
 
@@ -56,7 +60,22 @@ export function CebaPesar({ animales, lotes, hoy, puedeEditar, gdpMinimo }: { an
     if (peso === null) return toast.error("Escribe el peso en kilos.");
     setOcupado(a.id);
     iniciar(async () => {
-      const r = await guardarPeso({ animalId: a.id, fecha, peso });
+      let r: Awaited<ReturnType<typeof guardarPeso>>;
+      try {
+        r = await guardarPeso({ animalId: a.id, fecha, peso });
+      } catch (e) {
+        // Se cayó la señal en plena pesada: queda en el celular y se envía solo al volver.
+        setOcupado(null);
+        if (!esFallaDeRed(e)) return toast.error("No se pudo guardar. Inténtalo de nuevo.");
+        const quien = fincaId ? await usuarioDelCelular(fincaId) : null;
+        if (!quien || !fincaId) return toast.error("Sin señal. Abre «Registrar sin señal» para anotar en el celular.");
+        const valor = redondearPeso(peso);
+        await guardarEnCelular({ id: crypto.randomUUID(), tipo: "peso", usuarioId: quien, fincaId, animalId: a.id, etiqueta: a.etiqueta, fecha, peso: valor });
+        setGuardados((g) => ({ ...g, [a.id]: valor }));
+        setLocales((l) => new Set(l).add(a.id));
+        setTexto((t) => ({ ...t, [a.id]: "" }));
+        return toast.exito(MENSAJE_GUARDADO_LOCAL);
+      }
       setOcupado(null);
       if (!r.ok) return toast.error(r.error);
       setGuardados((g) => ({ ...g, [a.id]: r.peso }));
@@ -151,9 +170,15 @@ export function CebaPesar({ animales, lotes, hoy, puedeEditar, gdpMinimo }: { an
                     {a.etiqueta}
                   </Link>
                   {guardados[a.id] !== undefined ? (
-                    <span className="inline-flex shrink-0 items-center gap-1 text-sm font-semibold text-ok">
-                      <Check className="size-4" strokeWidth={2.4} aria-hidden="true" /> {kg(guardados[a.id])}
-                    </span>
+                    locales.has(a.id) ? (
+                      <span className="inline-flex shrink-0 items-center gap-1.5 text-sm font-semibold">
+                        {kg(guardados[a.id])} <Insignia tono="aviso">Por enviar</Insignia>
+                      </span>
+                    ) : (
+                      <span className="inline-flex shrink-0 items-center gap-1 text-sm font-semibold text-ok">
+                        <Check className="size-4" strokeWidth={2.4} aria-hidden="true" /> {kg(guardados[a.id])}
+                      </span>
+                    )
                   ) : null}
                 </div>
                 <p className="text-sm text-humo [overflow-wrap:anywhere]">
