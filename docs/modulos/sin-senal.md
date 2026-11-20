@@ -101,6 +101,29 @@ y de Ceba, la página «Sin señal» y la etiqueta flotante. La ayuda «¿Cómo 
 `tests/sin-senal.test.mjs` (el service worker con `/campo`). En el navegador: `npm run build && npm start`, abrir el panel con sesión, cortar
 la red **y** apagar el servidor, abrir `/campo`, anotar, volver a encender y ver que se envía. Auditoría de celular a 360 y 320 px.
 
+### Monta y diagnóstico de gestación sin señal (20 nov 2026)
+
+La misma pantalla `/campo` suma **Monta** y **Diagnóstico** para quien registra reproducción (propietario, administrador, veterinario):
+
+- **Monta** (`components/campo/MontaCampo.tsx`): se elige el reproductor una vez (del hato, de la misma especie que la hembra, o «De otra
+  finca» con su nombre) y se toca cada hembra que montó, hoy o ayer. Se guarda como **servicio por monta natural**, igual que desde la ficha.
+  Avisa (sin bloquear) si según la copia está gestante o tiene un servicio de hace menos de 21 días (repetición de celo).
+- **Diagnóstico** (`components/campo/DiagnosticoCampo.tsx`): las servidas que esperan diagnóstico salen primero. Ecografía (días de gestación con
+  el teclado propio, fetos, latido) o palpación (indicador y condición corporal), con **las mismas reglas que la ficha**: `reglasDiagnostico`
+  (`lib/diagnostico-reglas.ts`, que ahora usa también `leerDiagnostico`). «Otro método» sigue siendo con señal (pide escribir la prueba).
+  El servicio al que se cuelga lo elige el servidor al enviar (`servicioVigente`), como con señal; una monta anotada antes en el celular abre
+  el ciclo porque se envía primero.
+- **La temporada de empadre se arma y se cierra con señal**: asignar hembras exige revisar en el momento la endogamia de cada pareja, el cupo de
+  cada semental y que la hembra esté libre. Desde Hato → Empadre hay un enlace a «Anotar montas y diagnósticos sin señal».
+- **Servidor** (`guardarMontaCampo`, `guardarDiagnosticoCampo`): reenviar responde «ya estaba». Si otra persona ya registró un servicio de esa
+  hembra ese día, o un diagnóstico de ese servicio ese día, no se agrega otro: el del celular pasa a «Pendientes con error». Rechaza lo que la
+  ficha rechaza (macho, hembra que salió, reproductor de otra especie o que no es macho, monta antes de nacer, sin servicio vigente, ciclo ya
+  cerrado en «vacía», reglas del método).
+- **Copia de la finca, versión 2**: suma `hembras` (activas, con su estado reproductivo de `v_repro_hembras`) y `machos`, solo si la persona
+  registra reproducción. Una copia de la versión 1 sigue sirviendo para ordeño y pesos hasta la próxima apertura con señal.
+- **Migración** `20261120190017_diagnosticos_client_request_id` (solo agrega): `diagnosticos_gestacion.client_request_id` con índice único por
+  finca, como ya tenían `servicios`, `ordenos` y `pesajes`.
+
 ## Pasos siguientes (por definir)
 
-- Otros registros del campo sin señal (sanidad, partos) con el mismo motor, si hace falta.
+- Otros registros del campo sin señal (sanidad, partos) con el mismo motor, si hace falta. Los partos son más delicados: crean las crías como animales.

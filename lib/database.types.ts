@@ -1131,6 +1131,7 @@ export type Database = {
         Row: {
           created_at: string
           condicion_corporal: number | null
+          client_request_id: string | null
           created_by: string | null
           dias_gestacion: number | null
           fecha: string
@@ -1152,6 +1153,7 @@ export type Database = {
         Insert: {
           created_at?: string
           condicion_corporal?: number | null
+          client_request_id?: string | null
           created_by?: string | null
           dias_gestacion?: number | null
           fecha?: string
@@ -1172,6 +1174,7 @@ export type Database = {
         Update: {
           created_at?: string
           condicion_corporal?: number | null
+          client_request_id?: string | null
           created_by?: string | null
           dias_gestacion?: number | null
           fecha?: string

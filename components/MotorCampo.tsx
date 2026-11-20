@@ -15,7 +15,7 @@ import { useBandejaCampo } from "@/lib/offline/useBandejaCampo";
 export function MotorCampo({ usuarioId, fincaId }: { usuarioId: string; fincaId: string }) {
   const toast = useToast();
   const { resumen, referencia, enLinea } = useBandejaCampo({ usuarioId, fincaId }, toast);
-  const puedeAlgo = Boolean(referencia && (referencia.puede.leche || referencia.puede.pesos));
+  const puedeAlgo = Boolean(referencia && (referencia.puede.leche || referencia.puede.pesos || referencia.puede.reproduccion));
 
   useEffect(() => {
     if (puedeAlgo && enLinea) prepararPantallaSinSenal();

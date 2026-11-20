@@ -8,10 +8,10 @@ import { obtenerContexto } from "@/lib/contexto";
 import { puedeEscribir, puedeGestionar } from "@/lib/permisos";
 import { mensajeAmigable } from "@/lib/mensaje-amigable";
 import { CAUSAS_ABORTO, INDICADORES_PALPACION, MAX_CRIAS, METODOS_DIAGNOSTICO, RESULTADOS_DIAGNOSTICO, TECNICAS_INSEMINACION, TIPOS_PARTO, TIPOS_SERVICIO, TIPOS_TRANSFERENCIA, VIABILIDADES } from "@/lib/reproduccion";
-import { diasHasta } from "@/lib/fechas";
 import { datosPorTipoParto } from "@/lib/parto-reglas";
 import { MENSAJE_SIN_SERVICIO, MENSAJE_YA_VACIA, servicioVigente } from "@/lib/servicio-vigente";
-import type { DiagnosticoGestacion } from "@/lib/tipos";
+import type { IndicadorPalpacion, MetodoDiagnostico, ResultadoDiagnostico, ViabilidadFetal } from "@/lib/tipos";
+import { reglasDiagnostico } from "@/lib/diagnostico-reglas";
 import { leerNumero } from "@/lib/numeros";
 import { decimal, opcional, texto } from "@/lib/validacion";
 import { esRepetido, noFutura } from "@/lib/validacion";
@@ -201,38 +201,12 @@ async function leerDiagnostico(form: FormData, fincaId: string, supabase: Client
     servicioId = v.servicio.id;
     servicioFecha = v.servicio.fecha;
   }
-  if (servicioFecha && d.fecha < servicioFecha) return { error: "El diagnóstico no puede ser anterior al servicio." } as const;
-
-  const sinEco = { dias_gestacion: null, num_fetos: null, viabilidad_fetal: null };
-  const sinPalpacion = { indicador_palpacion: null, condicion_corporal: null };
-  const sinPrueba = { prueba_nombre: null, prueba_resultado: null };
-  let propios: Pick<DiagnosticoGestacion, "dias_gestacion" | "num_fetos" | "viabilidad_fetal" | "indicador_palpacion" | "condicion_corporal" | "prueba_nombre" | "prueba_resultado">;
-
-  if (d.metodo === "ecografia") {
-    // Una hembra vacía no tiene nada que estimar: la ecografía solo guarda sus datos si se vio algo.
-    if (d.resultado === "vacia") propios = { ...sinEco, ...sinPalpacion, ...sinPrueba };
-    else {
-      if (d.resultado === "gestante") {
-        if (d.dias_gestacion == null) return { error: "Indica los días de gestación que calculó el ecografista." } as const;
-        if (d.num_fetos == null) return { error: "Elige cuántos fetos se ven." } as const;
-        if (!d.viabilidad_fetal) return { error: "Indica si el feto tiene latido." } as const;
-        if (d.viabilidad_fetal === "sin_actividad") return { error: "Sin actividad fetal no se confirma una gestación: elige «Dudoso» para repetir la ecografía o «Vacía»." } as const;
-      }
-      if (d.dias_gestacion != null && servicioFecha && d.dias_gestacion > diasHasta(d.fecha, servicioFecha) + 10) {
-        return { error: `La ecografía calcula ${d.dias_gestacion} días de gestación, pero el servicio fue hace ${diasHasta(d.fecha, servicioFecha)} días.` } as const;
-      }
-      propios = { dias_gestacion: d.dias_gestacion ?? null, num_fetos: d.num_fetos ?? null, viabilidad_fetal: (d.viabilidad_fetal ?? null) as never, ...sinPalpacion, ...sinPrueba };
-    }
-  } else if (d.metodo === "palpacion") {
-    if (!d.indicador_palpacion) return { error: "Elige el indicador de la palpación." } as const;
-    if (d.indicador_palpacion === "retorno_celo" && d.resultado === "gestante") return { error: "Si volvió a celo no quedó gestante: elige «Vacía» o «Dudoso»." } as const;
-    if (d.resultado === "vacia" && d.condicion_corporal == null) return { error: "Indica la condición corporal: sirve para decidir si la hembra vuelve al lote de reproducción." } as const;
-    propios = { ...sinEco, indicador_palpacion: d.indicador_palpacion as never, condicion_corporal: d.condicion_corporal ?? null, ...sinPrueba };
-  } else {
-    if (!d.prueba_nombre) return { error: "Escribe el nombre de la prueba o del kit que se usó." } as const;
-    if (!d.prueba_resultado) return { error: "Escribe el resultado de la prueba o su valor de referencia." } as const;
-    propios = { ...sinEco, ...sinPalpacion, prueba_nombre: d.prueba_nombre, prueba_resultado: d.prueba_resultado };
-  }
+  const reglas = reglasDiagnostico(
+    { ...d, metodo: d.metodo as MetodoDiagnostico, resultado: d.resultado as ResultadoDiagnostico, viabilidad_fetal: (d.viabilidad_fetal ?? null) as ViabilidadFetal | null, indicador_palpacion: (d.indicador_palpacion ?? null) as IndicadorPalpacion | null },
+    servicioFecha,
+  );
+  if ("error" in reglas) return { error: reglas.error } as const;
+  const propios = reglas.propios;
 
   return {
     d,

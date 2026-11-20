@@ -1,13 +1,20 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
-import type { Database, PlanId, RolFinca } from "@/lib/tipos";
+import type { Database, EstadoRepro, PlanId, RolFinca } from "@/lib/tipos";
 import { leerTodo } from "@/lib/consultas";
 import { leerCeba } from "@/lib/ceba-servidor";
 import { hembrasEnLeche } from "@/lib/ordeno-servidor";
 import { mensajeAmigable } from "@/lib/mensaje-amigable";
 import { puedeEscribir } from "@/lib/permisos";
 import { litros as fmtLitros } from "@/lib/fechas";
-import { errorFecha, errorLitros, errorPeso, redondearPeso, type AnimalPesar, type EnvioCampo, type HembraCampo, type ReferenciaCampo, type RespuestaEnvio } from "@/lib/campo";
+import {
+  CONDICIONES, MAX_DIAS_GESTACION, errorFecha, errorLitros, errorPeso, redondearPeso,
+  type AnimalPesar, type EnvioCampo, type HembraCampo, type HembraRepro, type MachoCampo, type ReferenciaCampo, type RespuestaEnvio,
+} from "@/lib/campo";
+import { reglasDiagnostico } from "@/lib/diagnostico-reglas";
+import { MENSAJE_SIN_SERVICIO, MENSAJE_YA_VACIA, servicioVigente } from "@/lib/servicio-vigente";
+import { ETIQUETA_RESULTADO } from "@/lib/reproduccion";
+import { formatoFecha } from "@/lib/fechas";
 
 /**
  * El servidor del registro sin señal: la copia mínima de la finca para el celular y el guardado de lo que llega desde la bandeja del celular.
@@ -18,8 +25,8 @@ import { errorFecha, errorLitros, errorPeso, redondearPeso, type AnimalPesar, ty
 type Cliente = SupabaseClient<Database>;
 
 /** Qué puede registrar sin señal cada rol en su plan: los mismos módulos que la captura de leche y la pesada con señal. */
-export function permisosCampo(rol: RolFinca, plan: PlanId): { leche: boolean; pesos: boolean } {
-  return { leche: puedeEscribir(rol, "leche", plan), pesos: puedeEscribir(rol, "carne", plan) };
+export function permisosCampo(rol: RolFinca, plan: PlanId): ReferenciaCampo["puede"] {
+  return { leche: puedeEscribir(rol, "leche", plan), pesos: puedeEscribir(rol, "carne", plan), reproduccion: puedeEscribir(rol, "reproduccion", plan) };
 }
 
 /** La copia de la finca que se guarda en el celular: solo lo indispensable para capturar (aretes, nombres, turnos, retiro y último peso). */
@@ -31,11 +38,14 @@ export async function leerReferenciaCampo(
 ): Promise<ReferenciaCampo> {
   const puede = permisosCampo(ctx.rol, ctx.finca.plan);
   const fincaId = ctx.finca.id;
-  const [leche, ceba, todos] = await Promise.all([
+  const [leche, ceba, todos, repro] = await Promise.all([
     puede.leche ? hembrasEnLeche(supabase, fincaId) : null,
     puede.pesos ? leerCeba(supabase, fincaId, hoy) : null,
-    puede.pesos
-      ? leerTodo((d, h) => supabase.from("animales").select("id, numero_arete, nombre").eq("finca_id", fincaId).eq("estado", "activo").is("deleted_at", null).order("id").range(d, h))
+    puede.pesos || puede.reproduccion
+      ? leerTodo((d, h) => supabase.from("animales").select("id, numero_arete, nombre, sexo, especie, fecha_nacimiento").eq("finca_id", fincaId).eq("estado", "activo").is("deleted_at", null).order("id").range(d, h))
+      : null,
+    puede.reproduccion
+      ? leerTodo((d, h) => supabase.from("v_repro_hembras").select("animal_id, estado, ultimo_servicio").eq("finca_id", fincaId).order("animal_id").range(d, h))
       : null,
   ]);
 
@@ -47,7 +57,8 @@ export async function leerReferenciaCampo(
     retiroLecheHasta: leche?.retiros[a.id] ?? null,
   }));
 
-  const pesar: AnimalPesar[] = (todos?.data ?? [])
+  const activos = todos?.data ?? [];
+  const pesar: AnimalPesar[] = (puede.pesos ? activos : [])
     .map((a) => {
       const c = ceba?.datos.get(a.id);
       return {
@@ -61,7 +72,22 @@ export async function leerReferenciaCampo(
     })
     .sort((a, b) => Number(b.ceba) - Number(a.ceba) || a.arete.localeCompare(b.arete, "es", { numeric: true }));
 
-  return { version: 1, generadaEn: ahora.toISOString(), hoy, usuario: { id: ctx.usuarioId }, finca: { id: fincaId, nombre: ctx.finca.nombre }, puede, ordeno, pesar };
+  const porArete = (a: { arete: string }, b: { arete: string }) => a.arete.localeCompare(b.arete, "es", { numeric: true });
+  const estadoDe = new Map((repro?.data ?? []).map((r) => [r.animal_id, r]));
+  const hembras: HembraRepro[] = puede.reproduccion
+    ? activos
+        .filter((a) => a.sexo === "hembra")
+        .map((a) => {
+          const r = estadoDe.get(a.id);
+          return { id: a.id, arete: a.numero_arete, nombre: a.nombre, especie: a.especie, nacimiento: a.fecha_nacimiento ?? null, estado: (r?.estado ?? "sin_datos") as EstadoRepro, ultimoServicio: r?.ultimo_servicio ?? null };
+        })
+        .sort(porArete)
+    : [];
+  const machos: MachoCampo[] = puede.reproduccion
+    ? activos.filter((a) => a.sexo === "macho").map((a) => ({ id: a.id, arete: a.numero_arete, nombre: a.nombre, especie: a.especie })).sort(porArete)
+    : [];
+
+  return { version: 2, generadaEn: ahora.toISOString(), hoy, usuario: { id: ctx.usuarioId }, finca: { id: fincaId, nombre: ctx.finca.nombre }, puede, ordeno, pesar, hembras, machos };
 }
 
 // ───────────── Lo que llega del celular ─────────────
@@ -71,6 +97,21 @@ const fecha = z.iso.date();
 export const esquemaEnvio = z.discriminatedUnion("tipo", [
   z.object({ tipo: z.literal("ordeno"), id: uuid, fincaId: uuid, animalId: uuid, fecha, jornada: z.enum(["manana", "tarde", "noche"]), litros: z.number(), descartar: z.boolean() }),
   z.object({ tipo: z.literal("peso"), id: uuid, fincaId: uuid, animalId: uuid, fecha, peso: z.number() }),
+  z.object({ tipo: z.literal("monta"), id: uuid, fincaId: uuid, animalId: uuid, fecha, machoId: uuid.nullable(), machoExterno: z.string().trim().max(80).nullable() }),
+  z.object({
+    tipo: z.literal("diagnostico"),
+    id: uuid,
+    fincaId: uuid,
+    animalId: uuid,
+    fecha,
+    metodo: z.enum(["ecografia", "palpacion"]),
+    resultado: z.enum(["gestante", "vacia", "dudoso"]),
+    diasGestacion: z.number().int().min(1).max(MAX_DIAS_GESTACION).nullish(),
+    numFetos: z.number().int().min(1).max(4).nullish(),
+    viabilidad: z.enum(["latido", "sin_actividad"]).nullish(),
+    indicador: z.enum(["ausencia_celo", "retorno_celo", "llenado_uterino", "revision_manual"]).nullish(),
+    condicion: z.number().refine((n) => CONDICIONES.includes(n)).nullish(),
+  }),
 ]);
 
 const rechazo = (error: string): RespuestaEnvio => ({ ok: false, codigo: "rechazado", error });
@@ -146,5 +187,98 @@ export async function guardarPesoCampo(supabase: Cliente, e: Extract<EnvioCampo,
     if (ahora.data) return decidir(ahora.data);
     return { ok: true, estado: "ya_estaba" };
   }
+  return rechazo(mensajeAmigable(error.message));
+}
+
+/** La hembra sigue en el hato, es hembra y es de esa finca. */
+type HembraActiva = { numero_arete: string; especie: string; fecha_nacimiento: string | null };
+async function hembraActivaCampo(supabase: Cliente, fincaId: string, id: string): Promise<{ error: string } | { hembra: HembraActiva }> {
+  const { data } = await supabase.from("animales").select("id, numero_arete, sexo, estado, especie, fecha_nacimiento").eq("finca_id", fincaId).eq("id", id).is("deleted_at", null).maybeSingle();
+  if (!data) return { error: "Esa hembra ya no está en esta finca." };
+  if (data.sexo !== "hembra") return { error: `${data.numero_arete} es macho: esto se registra sobre una hembra.` };
+  if (data.estado !== "activo") return { error: `${data.numero_arete} ya salió del hato: no se guardó.` };
+  return { hembra: { numero_arete: data.numero_arete, especie: data.especie, fecha_nacimiento: data.fecha_nacimiento ?? null } };
+}
+
+/**
+ * Guarda una monta natural hecha sin señal: hembra, reproductor (del hato o de otra finca) y fecha, con las mismas reglas de la ficha. Reenviar
+ * no duplica; si ya había otro servicio de esa hembra ese día (otra persona u otro aparato), no se agrega otro.
+ */
+export async function guardarMontaCampo(supabase: Cliente, e: Extract<EnvioCampo, { tipo: "monta" }>, hoy: string): Promise<RespuestaEnvio> {
+  const problema = errorFecha(e.fecha, hoy);
+  if (problema) return rechazo(problema);
+  const externo = e.machoExterno?.trim() || null;
+  if (!e.machoId && !externo) return rechazo("Elige el reproductor que hizo la monta.");
+  if (e.machoId && externo) return rechazo("Elige un reproductor de tu hato o escribe el de otra finca, no los dos.");
+  const h = await hembraActivaCampo(supabase, e.fincaId, e.animalId);
+  if ("error" in h) return rechazo(h.error);
+  const hembra = h.hembra;
+  if (hembra.fecha_nacimiento && e.fecha <= hembra.fecha_nacimiento) return rechazo("El servicio debe ser posterior al nacimiento de la hembra.");
+  if (e.machoId) {
+    const { data: m } = await supabase.from("animales").select("id, numero_arete, sexo, especie").eq("finca_id", e.fincaId).eq("id", e.machoId).is("deleted_at", null).maybeSingle();
+    if (!m || m.sexo !== "macho") return rechazo("El reproductor debe ser un macho de tu hato.");
+    if (m.especie !== hembra.especie) return rechazo("El reproductor debe ser de la misma especie que la hembra.");
+  }
+
+  const mismos = await supabase.from("servicios").select("client_request_id, tipo").eq("finca_id", e.fincaId).eq("hembra_id", e.animalId).eq("fecha", e.fecha);
+  const filas = (mismos.data ?? []) as { client_request_id: string | null }[];
+  if (filas.some((f) => f.client_request_id === e.id)) return { ok: true, estado: "ya_estaba" };
+  if (filas.length > 0) return conflicto(`${hembra.numero_arete} ya tenía un servicio registrado ese día por otra persona o desde otro aparato. No se agregó otro: revísalo en su ficha.`);
+
+  const { error } = await supabase.from("servicios").insert({ finca_id: e.fincaId, hembra_id: e.animalId, fecha: e.fecha, tipo: "monta_natural", macho_id: e.machoId, macho_externo: e.machoId ? null : externo, client_request_id: e.id });
+  if (!error) return { ok: true, estado: "guardado" };
+  if (esDuplicado(error)) return { ok: true, estado: "ya_estaba" };
+  return rechazo(mensajeAmigable(error.message));
+}
+
+/**
+ * Guarda un diagnóstico de gestación hecho sin señal (ecografía o palpación). El servicio al que cuelga lo elige el servidor, como en la ficha, y
+ * las reglas son las mismas (`reglasDiagnostico`). Reenviar no duplica; si ya había otro diagnóstico de ese servicio ese día, no se agrega otro.
+ */
+export async function guardarDiagnosticoCampo(supabase: Cliente, e: Extract<EnvioCampo, { tipo: "diagnostico" }>, hoy: string): Promise<RespuestaEnvio> {
+  const problema = errorFecha(e.fecha, hoy);
+  if (problema) return rechazo(problema);
+  // Un reenvío de algo que ya llegó: antes de cualquier otra regla (el diagnóstico pudo cambiar el estado de la hembra).
+  const ya = await supabase.from("diagnosticos_gestacion").select("id").eq("finca_id", e.fincaId).eq("client_request_id", e.id).maybeSingle();
+  if (ya.data) return { ok: true, estado: "ya_estaba" };
+  const h = await hembraActivaCampo(supabase, e.fincaId, e.animalId);
+  if ("error" in h) return rechazo(h.error);
+  const v = await servicioVigente(supabase, e.fincaId, e.animalId);
+  if (!v.servicio) return rechazo(`${h.hembra.numero_arete}: ${v.razon === "ya_vacia" ? MENSAJE_YA_VACIA : MENSAJE_SIN_SERVICIO}`);
+
+  const reglas = reglasDiagnostico(
+    {
+      fecha: e.fecha,
+      metodo: e.metodo,
+      resultado: e.resultado,
+      dias_gestacion: e.diasGestacion ?? null,
+      num_fetos: e.numFetos ?? null,
+      viabilidad_fetal: e.viabilidad ?? null,
+      indicador_palpacion: e.indicador ?? null,
+      condicion_corporal: e.condicion ?? null,
+    },
+    v.servicio.fecha,
+  );
+  if ("error" in reglas) return rechazo(`${h.hembra.numero_arete}: ${reglas.error}`);
+
+  const mismos = await supabase.from("diagnosticos_gestacion").select("resultado, client_request_id").eq("finca_id", e.fincaId).eq("servicio_id", v.servicio.id).eq("fecha", e.fecha);
+  const otro = ((mismos.data ?? []) as { resultado: string; client_request_id: string | null }[]).find((f) => f.client_request_id !== e.id);
+  if (otro) {
+    const que = ETIQUETA_RESULTADO[otro.resultado as keyof typeof ETIQUETA_RESULTADO] ?? otro.resultado;
+    return conflicto(`${h.hembra.numero_arete} ya tenía un diagnóstico el ${formatoFecha(e.fecha, { day: "numeric", month: "short" })} (${que}), hecho por otra persona o desde otro aparato. No se agregó otro: revísalo en su ficha.`);
+  }
+
+  const { error } = await supabase.from("diagnosticos_gestacion").insert({
+    finca_id: e.fincaId,
+    hembra_id: e.animalId,
+    servicio_id: v.servicio.id,
+    fecha: e.fecha,
+    metodo: e.metodo,
+    resultado: e.resultado,
+    ...reglas.propios,
+    client_request_id: e.id,
+  });
+  if (!error) return { ok: true, estado: "guardado" };
+  if (esDuplicado(error)) return { ok: true, estado: "ya_estaba" };
   return rechazo(mensajeAmigable(error.message));
 }
