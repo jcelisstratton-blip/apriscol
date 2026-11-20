@@ -2,6 +2,7 @@ import Link from "next/link";
 import { AyudaModulo } from "@/components/AyudaModulo";
 import type { Especie } from "@/lib/tipos";
 import { AYUDA_EMPADRONAMIENTO } from "@/lib/ayuda";
+import { EnlaceSinSenal } from "@/components/EnlaceSinSenal";
 import { CalendarRange, Plus } from "lucide-react";
 import { AsignarHembrasEmp } from "@/components/AsignarHembrasEmp";
 import { clasesBoton } from "@/components/Boton";
@@ -80,7 +81,10 @@ export async function Monta({
 
   return (
     <div className="space-y-4">
-      <AyudaModulo ayuda={AYUDA_EMPADRONAMIENTO} />
+      <div className="flex flex-wrap items-center gap-x-5">
+        <AyudaModulo ayuda={AYUDA_EMPADRONAMIENTO} />
+        <EnlaceSinSenal texto="Anotar montas y diagnósticos sin señal" />
+      </div>
 
       {lotes.length === 0 ? (
         <EstadoVacio

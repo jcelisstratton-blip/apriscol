@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, CloudOff, CloudUpload, Scale, Wifi, WifiOff } from "lucide-react";
+import { ArrowLeft, CloudOff, CloudUpload, Heart, Scale, Stethoscope, Wifi, WifiOff } from "lucide-react";
 import { Aviso } from "@/components/Aviso";
 import { AyudaModulo } from "@/components/AyudaModulo";
 import { Cargando } from "@/components/Cargando";
@@ -13,6 +13,8 @@ import { useToast } from "@/components/Toast";
 import { OrdenoCampo } from "@/components/campo/OrdenoCampo";
 import { PesarCampo } from "@/components/campo/PesarCampo";
 import { BandejaCampo } from "@/components/campo/BandejaCampo";
+import { MontaCampo } from "@/components/campo/MontaCampo";
+import { DiagnosticoCampo } from "@/components/campo/DiagnosticoCampo";
 import { AYUDA_CAMPO } from "@/lib/ayuda";
 import { ESC, escena } from "@/lib/escenas";
 import { textoAnimales } from "@/lib/hato";
@@ -20,10 +22,12 @@ import { fechaHoraBogota, hoyBogota } from "@/lib/fechas";
 import { horaBogota, jornadaDeHora, RUTA_CAMPO } from "@/lib/campo";
 import { useBandejaCampo } from "@/lib/offline/useBandejaCampo";
 
-type Vista = "ordeno" | "pesar" | "bandeja";
+type Vista = "ordeno" | "pesar" | "monta" | "diagnostico" | "bandeja";
 
 const ESCENA_PESAR = escena(Scale, "arcilla");
 const ESCENA_BANDEJA = escena(CloudUpload, "grafito");
+const ESCENA_MONTA = escena(Heart, "ocre");
+const ESCENA_DIAGNOSTICO = escena(Stethoscope, "musgo");
 
 /**
  * «Registrar sin señal» (`/campo`): una página igual para todas las personas que el service worker deja lista para abrir sin conexión. Todo
@@ -45,7 +49,9 @@ export function PantallaCampo() {
     return () => clearTimeout(t);
   }, []);
 
-  const elegida: Vista = vista ?? (referencia && !referencia.puede.leche && referencia.puede.pesos ? "pesar" : "ordeno");
+  // Sin elegir: lo primero que la persona puede registrar.
+  const primera: Vista = !referencia ? "ordeno" : referencia.puede.leche ? "ordeno" : referencia.puede.pesos ? "pesar" : referencia.puede.reproduccion ? "monta" : "bandeja";
+  const elegida: Vista = vista ?? primera;
 
   return (
     <main className="mx-auto w-full max-w-md px-4 pb-[calc(2.5rem+env(safe-area-inset-bottom))] pt-[calc(1rem+env(safe-area-inset-top))] lg:max-w-3xl">
@@ -87,8 +93,8 @@ export function PantallaCampo() {
           >
             <Link href="/" className={clasesBoton("primario", true)}>Ir a Apriscol</Link>
           </EstadoVacio>
-        ) : !referencia.puede.leche && !referencia.puede.pesos ? (
-          <EstadoVacio icono={<CloudOff strokeWidth={1.5} />} titulo="Tu rol no registra ordeños ni pesos" descripcion="Si necesitas hacerlo, pídele al propietario de la finca que cambie tu rol en Equipo." />
+        ) : !referencia.puede.leche && !referencia.puede.pesos && !referencia.puede.reproduccion ? (
+          <EstadoVacio icono={<CloudOff strokeWidth={1.5} />} titulo="Tu rol no registra en el campo" descripcion="Si necesitas hacerlo, pídele al propietario de la finca que cambie tu rol en Equipo." />
         ) : (
           <>
             {sesionVencida ? (
@@ -105,6 +111,12 @@ export function PantallaCampo() {
               {referencia.puede.pesos ? (
                 <TarjetaOpcion escena={ESCENA_PESAR} titulo="Pesar" dato={textoAnimales(referencia.pesar.length)} activo={elegida === "pesar"} onClick={() => setVista("pesar")} />
               ) : null}
+              {referencia.puede.reproduccion ? (
+                <TarjetaOpcion escena={ESCENA_MONTA} titulo="Monta" dato={`${referencia.hembras.length} hembras`} activo={elegida === "monta"} onClick={() => setVista("monta")} />
+              ) : null}
+              {referencia.puede.reproduccion ? (
+                <TarjetaOpcion escena={ESCENA_DIAGNOSTICO} titulo="Diagnóstico" dato={`${referencia.hembras.filter((h) => h.estado === "servida").length} servidas`} activo={elegida === "diagnostico"} onClick={() => setVista("diagnostico")} />
+              ) : null}
               <TarjetaOpcion
                 escena={ESCENA_BANDEJA}
                 titulo="Guardado"
@@ -119,6 +131,10 @@ export function PantallaCampo() {
             <div id="bandeja" className="scroll-mt-4">
               {elegida === "ordeno" && usuarioId ? (
                 <OrdenoCampo referencia={referencia} registros={registros} usuarioId={usuarioId} hoy={hoy} jornadaInicial={jornadaInicial} enLinea={enLinea} alGuardar={() => void enviarAhora()} />
+              ) : elegida === "monta" && usuarioId ? (
+                <MontaCampo referencia={referencia} registros={registros} usuarioId={usuarioId} hoy={hoy} enLinea={enLinea} alGuardar={() => void enviarAhora()} />
+              ) : elegida === "diagnostico" && usuarioId ? (
+                <DiagnosticoCampo referencia={referencia} registros={registros} usuarioId={usuarioId} hoy={hoy} enLinea={enLinea} alGuardar={() => void enviarAhora()} />
               ) : elegida === "pesar" && usuarioId ? (
                 <PesarCampo referencia={referencia} registros={registros} usuarioId={usuarioId} hoy={hoy} enLinea={enLinea} alGuardar={() => void enviarAhora()} />
               ) : usuarioId ? (

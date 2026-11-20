@@ -4,8 +4,10 @@ import { existsSync, readFileSync } from "node:fs";
 import {
   aplicarTecla, coincideBusqueda, enRetiroLeche, enviadosViejos, envioDe, errorFecha, errorLitros, errorPeso, hembrasDelTurno, jornadaDeHora, numeroDeTexto, porEnviar,
   redondearPeso, referenciaValida, referenciaVencida, registrosDe, resultadoEnvio, resumenBandeja, MAX_LITROS, MAX_PESO, RUTA_CAMPO,
+  hembrasParaDiagnostico, machosPara, nombreMachoExterno,
 } from "../lib/campo.ts";
-import { esquemaEnvio, guardarOrdenoCampo, guardarPesoCampo, leerReferenciaCampo, permisosCampo } from "../lib/campo-servidor.ts";
+import { esquemaEnvio, guardarDiagnosticoCampo, guardarMontaCampo, guardarOrdenoCampo, guardarPesoCampo, leerReferenciaCampo, permisosCampo } from "../lib/campo-servidor.ts";
+import { reglasDiagnostico } from "../lib/diagnostico-reglas.ts";
 import { ATAJOS } from "../lib/atajos.ts";
 import { AYUDA_CAMPO } from "../lib/ayuda.ts";
 import { TUTORIALES } from "../lib/tutoriales.ts";
@@ -107,19 +109,22 @@ test("campo: qué hacer con cada respuesta del servidor", () => {
   assert.deepEqual(resultadoEnvio(403, "texto"), { estado: "error", error: "No se pudo guardar este registro." });
 });
 
-test("campo: la copia de la finca se descarta si es vieja o está dañada", () => {
-  const ref = { version: 1, generadaEn: "2026-11-20T10:00:00Z", hoy: HOY, usuario: { id: U }, finca: { id: FINCA, nombre: "La Esperanza" }, puede: { leche: true, pesos: true }, ordeno: [], pesar: [] };
-  assert.equal(referenciaValida(ref), ref);
-  for (const malo of [null, "x", { ...ref, version: 2 }, { ...ref, ordeno: null }, { ...ref, usuario: {} }]) assert.equal(referenciaValida(malo), null);
+test("campo: la copia de la finca se descarta si es vieja o está dañada; la de la versión anterior sigue sirviendo sin reproducción", () => {
+  const ref = { version: 2, generadaEn: "2026-11-20T10:00:00Z", hoy: HOY, usuario: { id: U }, finca: { id: FINCA, nombre: "La Esperanza" }, puede: { leche: true, pesos: true, reproduccion: true }, ordeno: [], pesar: [], hembras: [], machos: [] };
+  assert.deepEqual(referenciaValida(ref), ref);
+  for (const malo of [null, "x", { ...ref, version: 3 }, { ...ref, ordeno: null }, { ...ref, usuario: {} }, { ...ref, hembras: undefined }]) assert.equal(referenciaValida(malo), null);
+  const vieja = { version: 1, generadaEn: ref.generadaEn, hoy: HOY, usuario: { id: U }, finca: ref.finca, puede: { leche: true, pesos: false }, ordeno: [], pesar: [] };
+  assert.deepEqual(referenciaValida(vieja), { ...vieja, version: 2, puede: { leche: true, pesos: false, reproduccion: false }, hembras: [], machos: [] });
   assert.equal(referenciaVencida(ref, new Date("2026-11-20T10:10:00Z")), false);
   assert.equal(referenciaVencida(ref, new Date("2026-11-20T10:16:00Z")), true);
   assert.equal(referenciaVencida(null, new Date()), true);
 });
 
 test("campo: permisos por rol (los mismos módulos que con señal)", () => {
-  assert.deepEqual(permisosCampo("propietario", "hacienda"), { leche: true, pesos: true });
-  assert.deepEqual(permisosCampo("ordenador", "hacienda"), { leche: true, pesos: false });
-  assert.deepEqual(permisosCampo("contador", "hacienda"), { leche: false, pesos: false });
+  assert.deepEqual(permisosCampo("propietario", "hacienda"), { leche: true, pesos: true, reproduccion: true });
+  assert.deepEqual(permisosCampo("ordenador", "hacienda"), { leche: true, pesos: false, reproduccion: false });
+  assert.deepEqual(permisosCampo("veterinario", "hacienda"), { leche: false, pesos: false, reproduccion: true });
+  assert.deepEqual(permisosCampo("contador", "hacienda"), { leche: false, pesos: false, reproduccion: false });
 });
 
 // ───────────────────────── Servidor con una base falsa ─────────────────────────
@@ -132,6 +137,8 @@ function baseFalsa(tablas, rpcs = {}, { antesDeInsertar } = {}) {
   const unicas = {
     ordenos: [["animal_id", "fecha", "jornada"], ["finca_id", "client_request_id"]],
     pesajes: [["animal_id", "fecha"], ["finca_id", "client_request_id"]],
+    servicios: [["finca_id", "client_request_id"]],
+    diagnosticos_gestacion: [["finca_id", "client_request_id"]],
   };
   const consulta = (tabla) => {
     const filtros = [];
@@ -166,11 +173,13 @@ function baseFalsa(tablas, rpcs = {}, { antesDeInsertar } = {}) {
   return { from: consulta, rpc: async (nombre) => ({ data: rpcs[nombre] ?? [], error: null }), tablas };
 }
 
+const OVEJO = "77777777-7777-4777-8777-777777777777";
 const animales = () => [
-  { id: A1, finca_id: FINCA, numero_arete: "101", nombre: "Lucía", sexo: "hembra", estado: "activo", deleted_at: null, turnos_ordeno: null, uso_macho: null },
-  { id: A2, finca_id: FINCA, numero_arete: "102", nombre: null, sexo: "hembra", estado: "activo", deleted_at: null, turnos_ordeno: ["manana"], uso_macho: null },
-  { id: MACHO, finca_id: FINCA, numero_arete: "200", nombre: "Toro", sexo: "macho", estado: "activo", deleted_at: null, turnos_ordeno: null, uso_macho: "carne", lote_ceba_id: null },
-  { id: VENDIDA, finca_id: FINCA, numero_arete: "300", nombre: null, sexo: "hembra", estado: "vendido", deleted_at: null, turnos_ordeno: null, uso_macho: null },
+  { id: A1, finca_id: FINCA, numero_arete: "101", nombre: "Lucía", sexo: "hembra", especie: "caprino", fecha_nacimiento: "2026-01-10", estado: "activo", deleted_at: null, turnos_ordeno: null, uso_macho: null },
+  { id: A2, finca_id: FINCA, numero_arete: "102", nombre: null, sexo: "hembra", especie: "caprino", fecha_nacimiento: null, estado: "activo", deleted_at: null, turnos_ordeno: ["manana"], uso_macho: null },
+  { id: MACHO, finca_id: FINCA, numero_arete: "200", nombre: "Toro", sexo: "macho", especie: "caprino", fecha_nacimiento: "2022-05-01", estado: "activo", deleted_at: null, turnos_ordeno: null, uso_macho: "carne", lote_ceba_id: null },
+  { id: VENDIDA, finca_id: FINCA, numero_arete: "300", nombre: null, sexo: "hembra", especie: "caprino", fecha_nacimiento: null, estado: "vendido", deleted_at: null, turnos_ordeno: null, uso_macho: null },
+  { id: OVEJO, finca_id: FINCA, numero_arete: "400", nombre: "Carnero", sexo: "macho", especie: "ovino", fecha_nacimiento: null, estado: "activo", deleted_at: null, turnos_ordeno: null, uso_macho: "reproductor", lote_ceba_id: null },
 ];
 const ordeno = (extra = {}) => ({ tipo: "ordeno", id: uuid(10), fincaId: FINCA, animalId: A1, fecha: HOY, jornada: "manana", litros: 1.4, descartar: false, ...extra });
 const peso = (extra = {}) => ({ tipo: "peso", id: uuid(20), fincaId: FINCA, animalId: MACHO, fecha: HOY, peso: 32.46, ...extra });
@@ -253,7 +262,8 @@ test("servidor: la copia de la finca lleva solo lo indispensable, según lo que 
     animales_en_retiro: [{ animal_id: A2, retiro_leche_hasta: "2026-11-22", retiro_carne_hasta: null }],
     ceba_animales: [{ animal_id: A1, lote_id: null, n_pesajes: 2, fecha_ultimo: "2026-11-01", peso_ultimo: 41.2 }],
   };
-  const db = baseFalsa({ animales: animales(), lactancias, lotes_ceba: [] }, rpcs);
+  const v_repro_hembras = [{ finca_id: FINCA, animal_id: A1, estado: "servida", ultimo_servicio: "2026-10-01" }, { finca_id: FINCA, animal_id: A2, estado: "vacia", ultimo_servicio: null }];
+  const db = baseFalsa({ animales: animales(), lactancias, lotes_ceba: [], v_repro_hembras }, rpcs);
   const ctx = (rol) => ({ usuarioId: U, finca: { id: FINCA, nombre: "La Esperanza", plan: "hacienda" }, rol });
   const ref = await leerReferenciaCampo(db, ctx("propietario"), HOY, new Date("2026-11-20T15:00:00Z"));
   assert.equal(ref.generadaEn, "2026-11-20T15:00:00.000Z");
@@ -263,14 +273,148 @@ test("servidor: la copia de la finca lleva solo lo indispensable, según lo que 
     { id: A1, arete: "101", nombre: "Lucía", turnos: null, retiroLecheHasta: null },
     { id: A2, arete: "102", nombre: null, turnos: ["manana"], retiroLecheHasta: "2026-11-22" },
   ], "solo hembras activas con lactancia abierta");
-  assert.deepEqual(ref.pesar.map((a) => [a.arete, a.ceba]), [["101", true], ["200", true], ["102", false]], "los de ceba primero; ningún animal que ya salió");
+  assert.deepEqual(ref.pesar.map((a) => [a.arete, a.ceba]), [["101", true], ["200", true], ["102", false], ["400", false]], "los de ceba primero; ningún animal que ya salió");
+  assert.deepEqual(ref.hembras, [
+    { id: A1, arete: "101", nombre: "Lucía", especie: "caprino", nacimiento: "2026-01-10", estado: "servida", ultimoServicio: "2026-10-01" },
+    { id: A2, arete: "102", nombre: null, especie: "caprino", nacimiento: null, estado: "vacia", ultimoServicio: null },
+  ], "solo hembras activas, con su estado reproductivo");
+  assert.deepEqual(ref.machos.map((m) => [m.arete, m.especie]), [["200", "caprino"], ["400", "ovino"]]);
   assert.equal(ref.pesar[0].ultimoPeso, 41.2);
   assert.deepEqual(Object.keys(ref.ordeno[0]).sort(), ["arete", "id", "nombre", "retiroLecheHasta", "turnos"], "nada más que lo indispensable");
 
   const ordenador = await leerReferenciaCampo(db, ctx("ordenador"), HOY);
-  assert.deepEqual(ordenador.puede, { leche: true, pesos: false });
+  assert.deepEqual(ordenador.puede, { leche: true, pesos: false, reproduccion: false });
   assert.equal(ordenador.ordeno.length, 2);
   assert.deepEqual(ordenador.pesar, [], "quien no pesa no se lleva la lista del hato");
+  assert.deepEqual([ordenador.hembras, ordenador.machos], [[], []], "quien no registra reproducción no se lleva hembras ni reproductores");
+  const vet = await leerReferenciaCampo(db, ctx("veterinario"), HOY);
+  assert.deepEqual(vet.puede, { leche: false, pesos: false, reproduccion: true });
+  assert.deepEqual([vet.ordeno, vet.pesar], [[], []]);
+  assert.equal(vet.hembras.length, 2);
+});
+
+// ───────────────────────── Monta y diagnóstico ─────────────────────────
+
+test("reproducción: ayudas puras de la monta y el diagnóstico", () => {
+  assert.equal(nombreMachoExterno("  Toro   del  vecino "), "Toro del vecino");
+  assert.equal(nombreMachoExterno("   "), null);
+  assert.equal(nombreMachoExterno("x".repeat(100)).length, 80);
+  const machos = [{ id: "m1", arete: "1", nombre: null, especie: "caprino" }, { id: "m2", arete: "2", nombre: null, especie: "ovino" }];
+  assert.deepEqual(machosPara(machos, "ovino").map((m) => m.id), ["m2"]);
+  const h = (id, arete, estado) => ({ id, arete, nombre: null, especie: "caprino", nacimiento: null, estado, ultimoServicio: null });
+  assert.deepEqual(hembrasParaDiagnostico([h("a", "3", "vacia"), h("b", "2", "servida"), h("c", "1", "gestante"), h("d", "10", "servida")]).map((x) => x.id), ["b", "d", "c", "a"], "las servidas primero, luego por arete");
+  const monta = registro({ tipo: "monta", jornada: undefined, litros: undefined, machoId: MACHO, machoExterno: null, machoEtiqueta: "200 · Toro" });
+  assert.deepEqual(envioDe(monta), { tipo: "monta", id: uuid(1), fincaId: FINCA, animalId: A1, fecha: HOY, machoId: MACHO, machoExterno: null });
+  const dx = registro({ tipo: "diagnostico", jornada: undefined, litros: undefined, diagnostico: { metodo: "palpacion", resultado: "vacia", indicador: "retorno_celo", condicion: 2.5 } });
+  assert.deepEqual(envioDe(dx), { tipo: "diagnostico", id: uuid(1), fincaId: FINCA, animalId: A1, fecha: HOY, metodo: "palpacion", resultado: "vacia", indicador: "retorno_celo", condicion: 2.5 });
+});
+
+test("reproducción: las reglas del diagnóstico son las de la ficha (una sola definición)", () => {
+  const ok = (d, s = "2026-10-01") => "propios" in reglasDiagnostico({ fecha: HOY, ...d }, s);
+  const err = (d, s = "2026-10-01") => reglasDiagnostico({ fecha: HOY, ...d }, s).error;
+  assert.ok(ok({ metodo: "ecografia", resultado: "vacia" }));
+  assert.deepEqual(reglasDiagnostico({ fecha: HOY, metodo: "ecografia", resultado: "vacia", dias_gestacion: 40 }, "2026-10-01").propios.dias_gestacion, null, "una vacía no guarda datos de ecografía");
+  assert.match(err({ metodo: "ecografia", resultado: "gestante" }), /días de gestación/);
+  assert.match(err({ metodo: "ecografia", resultado: "gestante", dias_gestacion: 40, num_fetos: 1, viabilidad_fetal: "sin_actividad" }), /Sin actividad/);
+  assert.ok(ok({ metodo: "ecografia", resultado: "gestante", dias_gestacion: 45, num_fetos: 2, viabilidad_fetal: "latido" }));
+  assert.match(err({ metodo: "ecografia", resultado: "gestante", dias_gestacion: 90, num_fetos: 1, viabilidad_fetal: "latido" }), /hace 50 días/);
+  assert.match(err({ metodo: "palpacion", resultado: "gestante" }), /indicador/);
+  assert.match(err({ metodo: "palpacion", resultado: "gestante", indicador_palpacion: "retorno_celo" }), /volvió a celo/);
+  assert.match(err({ metodo: "palpacion", resultado: "vacia", indicador_palpacion: "retorno_celo" }), /condición corporal/);
+  assert.ok(ok({ metodo: "palpacion", resultado: "vacia", indicador_palpacion: "retorno_celo", condicion_corporal: 2.5 }));
+  assert.match(err({ metodo: "palpacion", resultado: "dudoso", indicador_palpacion: "llenado_uterino" }, "2026-11-21"), /anterior al servicio/);
+  assert.match(err({ metodo: "otro", resultado: "gestante" }), /prueba/);
+  assert.match(leer("app/(app)/reproduccion/actions.ts"), /reglasDiagnostico\(/, "la ficha usa las mismas reglas");
+});
+
+const monta = (extra = {}) => ({ tipo: "monta", id: uuid(30), fincaId: FINCA, animalId: A1, fecha: HOY, machoId: MACHO, machoExterno: null, ...extra });
+
+test("servidor: una monta se guarda como servicio por monta natural; reenviarla no duplica", async () => {
+  const db = baseFalsa({ animales: animales(), servicios: [] });
+  assert.deepEqual(await guardarMontaCampo(db, monta(), HOY), { ok: true, estado: "guardado" });
+  assert.deepEqual(await guardarMontaCampo(db, monta(), HOY), { ok: true, estado: "ya_estaba" });
+  assert.equal(db.tablas.servicios.length, 1);
+  assert.deepEqual(
+    (({ tipo, macho_id, macho_externo, hembra_id, client_request_id }) => ({ tipo, macho_id, macho_externo, hembra_id, client_request_id }))(db.tablas.servicios[0]),
+    { tipo: "monta_natural", macho_id: MACHO, macho_externo: null, hembra_id: A1, client_request_id: uuid(30) },
+  );
+  assert.deepEqual(await guardarMontaCampo(db, monta({ id: uuid(31), animalId: A2, machoId: null, machoExterno: "Toro del vecino" }), HOY), { ok: true, estado: "guardado" });
+  assert.equal(db.tablas.servicios[1].macho_externo, "Toro del vecino");
+});
+
+test("servidor: no agrega una segunda monta si otra persona ya registró un servicio de esa hembra ese día", async () => {
+  const db = baseFalsa({ animales: animales(), servicios: [{ finca_id: FINCA, hembra_id: A1, fecha: HOY, tipo: "inseminacion", client_request_id: null }] });
+  const r = await guardarMontaCampo(db, monta(), HOY);
+  assert.equal(r.codigo, "conflicto");
+  assert.match(r.error, /101 ya tenía un servicio registrado ese día/);
+  assert.equal(db.tablas.servicios.length, 1);
+});
+
+test("servidor: rechaza la monta sin reproductor, con dos, de otra especie, sobre un macho, una vendida o antes de nacer", async () => {
+  const db = baseFalsa({ animales: animales(), servicios: [] });
+  assert.match((await guardarMontaCampo(db, monta({ machoId: null }), HOY)).error, /Elige el reproductor/);
+  assert.match((await guardarMontaCampo(db, monta({ machoExterno: "Otro" }), HOY)).error, /no los dos/);
+  assert.match((await guardarMontaCampo(db, monta({ machoId: OVEJO }), HOY)).error, /misma especie/);
+  assert.match((await guardarMontaCampo(db, monta({ machoId: A2 }), HOY)).error, /macho de tu hato/);
+  assert.match((await guardarMontaCampo(db, monta({ animalId: MACHO }), HOY)).error, /200 es macho/);
+  assert.match((await guardarMontaCampo(db, monta({ animalId: VENDIDA }), HOY)).error, /300 ya salió del hato/);
+  assert.match((await guardarMontaCampo(db, monta({ fecha: "2026-01-10" }), HOY)).error, /posterior al nacimiento/);
+  assert.equal(db.tablas.servicios.length, 0);
+});
+
+const SERV = "88888888-8888-4888-8888-888888888888";
+const diagnostico = (extra = {}) => ({ tipo: "diagnostico", id: uuid(40), fincaId: FINCA, animalId: A1, fecha: HOY, metodo: "palpacion", resultado: "gestante", indicador: "ausencia_celo", condicion: null, ...extra });
+const conServicio = (extra = {}) => ({
+  animales: animales(),
+  servicios: [{ id: SERV, finca_id: FINCA, hembra_id: A1, fecha: "2026-10-01", tipo: "monta_natural", client_request_id: null }],
+  partos: [],
+  diagnosticos_gestacion: [],
+  ...extra,
+});
+
+test("servidor: un diagnóstico se cuelga del servicio vigente (lo elige el servidor) y reenviarlo no duplica", async () => {
+  const db = baseFalsa(conServicio());
+  assert.deepEqual(await guardarDiagnosticoCampo(db, diagnostico(), HOY), { ok: true, estado: "guardado" });
+  const fila = db.tablas.diagnosticos_gestacion[0];
+  assert.equal(fila.servicio_id, SERV);
+  assert.equal(fila.indicador_palpacion, "ausencia_celo");
+  assert.equal(fila.dias_gestacion, null, "la palpación no guarda datos de ecografía");
+  assert.equal(fila.client_request_id, uuid(40));
+  assert.deepEqual(await guardarDiagnosticoCampo(db, diagnostico(), HOY), { ok: true, estado: "ya_estaba" });
+  assert.equal(db.tablas.diagnosticos_gestacion.length, 1);
+});
+
+test("servidor: no agrega un segundo diagnóstico del mismo servicio ese día", async () => {
+  const db = baseFalsa(conServicio({ diagnosticos_gestacion: [{ finca_id: FINCA, hembra_id: A1, servicio_id: SERV, fecha: HOY, resultado: "dudoso", client_request_id: null }] }));
+  const r = await guardarDiagnosticoCampo(db, diagnostico(), HOY);
+  assert.equal(r.codigo, "conflicto");
+  assert.match(r.error, /101 ya tenía un diagnóstico el 20 de nov.*Dudoso/);
+  assert.equal(db.tablas.diagnosticos_gestacion.length, 1);
+});
+
+test("servidor: rechaza el diagnóstico sin servicio vigente, con un ciclo ya cerrado en «vacía» o que rompe las reglas", async () => {
+  const sin = baseFalsa(conServicio({ servicios: [] }));
+  assert.match((await guardarDiagnosticoCampo(sin, diagnostico(), HOY)).error, /101: .*no tiene un servicio activo/);
+  const parida = baseFalsa(conServicio({ partos: [{ finca_id: FINCA, madre_id: A1, fecha: "2026-11-01" }] }));
+  assert.match((await guardarDiagnosticoCampo(parida, diagnostico(), HOY)).error, /no tiene un servicio activo/, "un parto después del servicio cierra el ciclo");
+  const vacia = baseFalsa(conServicio({ diagnosticos_gestacion: [{ finca_id: FINCA, hembra_id: A1, servicio_id: SERV, fecha: "2026-11-10", resultado: "vacia", client_request_id: null }] }));
+  assert.match((await guardarDiagnosticoCampo(vacia, diagnostico(), HOY)).error, /fue «Vacía»/);
+  const db = baseFalsa(conServicio());
+  assert.match((await guardarDiagnosticoCampo(db, diagnostico({ indicador: "retorno_celo" }), HOY)).error, /101: Si volvió a celo/);
+  assert.match((await guardarDiagnosticoCampo(db, diagnostico({ animalId: VENDIDA }), HOY)).error, /300 ya salió del hato/);
+  assert.equal(db.tablas.diagnosticos_gestacion.length, 0);
+});
+
+test("servidor: lo que llega de monta y diagnóstico se valida antes de tocar la base", () => {
+  assert.ok(esquemaEnvio.safeParse(monta()).success);
+  assert.ok(esquemaEnvio.safeParse(monta({ machoId: null, machoExterno: "Toro" })).success);
+  assert.ok(!esquemaEnvio.safeParse(monta({ machoExterno: "x".repeat(81) })).success);
+  assert.ok(esquemaEnvio.safeParse(diagnostico()).success);
+  assert.ok(esquemaEnvio.safeParse(diagnostico({ metodo: "ecografia", diasGestacion: 45, numFetos: 2, viabilidad: "latido", indicador: null })).success);
+  assert.ok(!esquemaEnvio.safeParse(diagnostico({ metodo: "otro" })).success, "«otro método» sigue siendo con señal (pide la prueba escrita)");
+  assert.ok(!esquemaEnvio.safeParse(diagnostico({ condicion: 2.3 })).success, "condición corporal por medios puntos");
+  assert.ok(!esquemaEnvio.safeParse(diagnostico({ diasGestacion: 0 })).success);
+  assert.ok(!esquemaEnvio.safeParse(diagnostico({ numFetos: 5 })).success);
 });
 
 // ───────────────────────── Conexiones ─────────────────────────
@@ -292,9 +436,11 @@ test("campo: la pantalla, las rutas, el respaldo con señal, la ayuda y los ataj
   assert.match(leer("app/login/page.tsx"), /salio \? <LimpiarCampo \/>/);
   assert.match(leer("public/offline.html"), /href="\/campo"/);
   assert.match(leer("app/manifest.ts"), /url: "\/campo"/);
-  const atajo = ATAJOS.find((a) => a.href === "/campo");
+  const atajo = ATAJOS.find((a) => a.href === "/campo" && a.modulo === "leche");
   assert.ok(atajo, "«Registrar sin señal» está en «Al grano»");
-  assert.equal(atajo.modulo, "leche");
+  assert.ok(ATAJOS.some((a) => a.href === "/campo" && a.modulo === "reproduccion"), "y el de monta y diagnóstico, para quien registra reproducción (veterinario)");
+  assert.match(leer("app/(app)/hato/Monta.tsx"), /<EnlaceSinSenal /, "el empadre lleva a registrar sin señal");
+  assert.match(leer("supabase/migrations/20261120190017_diagnosticos_client_request_id.sql"), /add column if not exists client_request_id uuid[\s\S]*diagnosticos_client_req_uk/);
   assert.ok(TUTORIALES.some((t) => t.numero === AYUDA_CAMPO.tutorial && t.youtube), "el tutorial de la ayuda existe");
   assert.notEqual(AYUDA_CAMPO.enlace.href, "/campo");
   assert.ok(existsSync(new URL(`../app/(app)${AYUDA_CAMPO.enlace.href}/page.tsx`, import.meta.url)));

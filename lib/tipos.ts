@@ -1351,6 +1351,8 @@ export type DiagnosticoGestacion = {
   /** Quién hizo el diagnóstico (el veterinario de la finca o quien lo hizo). */
   responsable: string | null;
   observaciones: string | null;
+  /** Identificador del envío (registro sin señal): reenviar el mismo diagnóstico no lo duplica. */
+  client_request_id: string | null;
   created_by: string | null;
   created_at: string;
   updated_at: string;

@@ -1,5 +1,6 @@
 import { sumarDias } from "@/lib/fechas";
 import { turnosDe, type Turno } from "@/lib/ordeno";
+import type { EstadoRepro, IndicadorPalpacion, MetodoDiagnostico, ResultadoDiagnostico, ViabilidadFetal } from "@/lib/tipos";
 
 /**
  * Registrar sin señal (modo sin señal, paso 3): reglas puras que usan la pantalla `/campo`, la captura de leche, la pesada de ceba, el motor de
@@ -46,16 +47,47 @@ export type AnimalPesar = {
   ultimaFecha: string | null;
 };
 
+/** Una hembra para la monta o el diagnóstico: su estado reproductivo de cuando se guardó la copia. */
+export type HembraRepro = {
+  id: string;
+  arete: string;
+  nombre: string | null;
+  especie: string;
+  nacimiento: string | null;
+  estado: EstadoRepro;
+  /** Último servicio (monta, inseminación…) del ciclo, si lo hay. */
+  ultimoServicio: string | null;
+};
+
+/** Un reproductor del hato para la monta. */
+export type MachoCampo = { id: string; arete: string; nombre: string | null; especie: string };
+
 /** Lo mínimo de la finca para registrar sin señal. Se guarda en el celular de quien abre la app con señal. */
 export type ReferenciaCampo = {
-  version: 1;
+  version: 2;
   generadaEn: string;
   hoy: string;
   usuario: { id: string };
   finca: { id: string; nombre: string };
-  puede: { leche: boolean; pesos: boolean };
+  puede: { leche: boolean; pesos: boolean; reproduccion: boolean };
   ordeno: HembraCampo[];
   pesar: AnimalPesar[];
+  /** Hembras activas y reproductores (solo si la persona registra reproducción). */
+  hembras: HembraRepro[];
+  machos: MachoCampo[];
+};
+
+export type TipoRegistroCampo = "ordeno" | "peso" | "monta" | "diagnostico";
+
+/** Lo que se anota en un diagnóstico de gestación sin señal (ecografía o palpación). */
+export type DiagnosticoCampo = {
+  metodo: Exclude<MetodoDiagnostico, "otro">;
+  resultado: ResultadoDiagnostico;
+  diasGestacion?: number | null;
+  numFetos?: number | null;
+  viabilidad?: ViabilidadFetal | null;
+  indicador?: IndicadorPalpacion | null;
+  condicion?: number | null;
 };
 
 export type EstadoRegistro = "pendiente" | "enviando" | "error" | "enviado";
@@ -63,7 +95,7 @@ export type EstadoRegistro = "pendiente" | "enviando" | "error" | "enviado";
 /** Un registro hecho en el celular. Su `id` es el identificador del envío (`client_request_id`): reenviarlo nunca duplica. */
 export type RegistroCampo = {
   id: string;
-  tipo: "ordeno" | "peso";
+  tipo: TipoRegistroCampo;
   usuarioId: string;
   fincaId: string;
   animalId: string;
@@ -74,6 +106,12 @@ export type RegistroCampo = {
   litros?: number;
   descartar?: boolean;
   peso?: number;
+  /** Monta: el reproductor del hato o el nombre del de otra finca, y cómo se muestra. */
+  machoId?: string | null;
+  machoExterno?: string | null;
+  machoEtiqueta?: string;
+  /** Diagnóstico de gestación. */
+  diagnostico?: DiagnosticoCampo;
   creadoEn: string;
   estado: EstadoRegistro;
   /** Por qué el servidor no lo aceptó (en palabras de persona). */
@@ -85,11 +123,16 @@ export type RegistroCampo = {
 /** Lo que viaja al servidor (sin lo que solo sirve en el celular). */
 export type EnvioCampo =
   | { tipo: "ordeno"; id: string; fincaId: string; animalId: string; fecha: string; jornada: JornadaCampo; litros: number; descartar: boolean }
-  | { tipo: "peso"; id: string; fincaId: string; animalId: string; fecha: string; peso: number };
+  | { tipo: "peso"; id: string; fincaId: string; animalId: string; fecha: string; peso: number }
+  | { tipo: "monta"; id: string; fincaId: string; animalId: string; fecha: string; machoId: string | null; machoExterno: string | null }
+  | ({ tipo: "diagnostico"; id: string; fincaId: string; animalId: string; fecha: string } & DiagnosticoCampo);
 
 export function envioDe(r: RegistroCampo): EnvioCampo {
-  if (r.tipo === "ordeno") return { tipo: "ordeno", id: r.id, fincaId: r.fincaId, animalId: r.animalId, fecha: r.fecha, jornada: r.jornada!, litros: r.litros!, descartar: Boolean(r.descartar) };
-  return { tipo: "peso", id: r.id, fincaId: r.fincaId, animalId: r.animalId, fecha: r.fecha, peso: r.peso! };
+  const base = { id: r.id, fincaId: r.fincaId, animalId: r.animalId, fecha: r.fecha };
+  if (r.tipo === "ordeno") return { tipo: "ordeno", ...base, jornada: r.jornada!, litros: r.litros!, descartar: Boolean(r.descartar) };
+  if (r.tipo === "monta") return { tipo: "monta", ...base, machoId: r.machoId ?? null, machoExterno: r.machoExterno ?? null };
+  if (r.tipo === "diagnostico") return { tipo: "diagnostico", ...base, ...r.diagnostico! };
+  return { tipo: "peso", ...base, peso: r.peso! };
 }
 
 // ───────────── Validación (la misma en el celular y en el servidor) ─────────────
@@ -166,7 +209,7 @@ export function coincideBusqueda(a: { arete: string; nombre: string | null }, te
 // ───────────── La bandeja del celular ─────────────
 
 /** El último registro de cada animal en esa fecha y jornada (o fecha, para el peso): es lo que se muestra en la lista. */
-export function registrosDe(registros: RegistroCampo[], filtro: { tipo: "ordeno" | "peso"; fincaId: string; usuarioId: string; fecha: string; jornada?: JornadaCampo }): Map<string, RegistroCampo> {
+export function registrosDe(registros: RegistroCampo[], filtro: { tipo: TipoRegistroCampo; fincaId: string; usuarioId: string; fecha: string; jornada?: JornadaCampo }): Map<string, RegistroCampo> {
   const salida = new Map<string, RegistroCampo>();
   const orden = [...registros].sort((a, b) => a.creadoEn.localeCompare(b.creadoEn));
   for (const r of orden) {
@@ -226,11 +269,41 @@ export function referenciaVencida(ref: Pick<ReferenciaCampo, "generadaEn"> | nul
   return ahora.getTime() - Date.parse(ref.generadaEn) > MINUTOS_REFERENCIA * 60_000;
 }
 
-/** Lee una copia guardada y la descarta si no tiene la forma esperada (versión vieja, datos dañados). */
+/**
+ * Lee una copia guardada y la descarta si está dañada. Una copia de la versión 1 (antes de la monta y el diagnóstico) sigue sirviendo para el
+ * ordeño y los pesos: se completa sin reproducción hasta que la app se abra con señal y traiga la nueva.
+ */
 export function referenciaValida(valor: unknown): ReferenciaCampo | null {
   if (typeof valor !== "object" || valor === null) return null;
-  const r = valor as Partial<ReferenciaCampo>;
-  if (r.version !== 1 || typeof r.generadaEn !== "string" || typeof r.hoy !== "string") return null;
+  const r = valor as Omit<Partial<ReferenciaCampo>, "version" | "puede"> & { version?: number; puede?: Partial<ReferenciaCampo["puede"]> };
+  if ((r.version !== 1 && r.version !== 2) || typeof r.generadaEn !== "string" || typeof r.hoy !== "string") return null;
   if (!r.usuario?.id || !r.finca?.id || !Array.isArray(r.ordeno) || !Array.isArray(r.pesar) || !r.puede) return null;
-  return r as ReferenciaCampo;
+  if (r.version === 2 && (!Array.isArray(r.hembras) || !Array.isArray(r.machos))) return null;
+  const puede = { leche: Boolean(r.puede.leche), pesos: Boolean(r.puede.pesos), reproduccion: r.version === 2 && Boolean(r.puede.reproduccion) };
+  return { ...(r as ReferenciaCampo), version: 2, puede, hembras: r.hembras ?? [], machos: r.machos ?? [] };
+}
+
+// ───────────── Monta y diagnóstico ─────────────
+
+/** Condición corporal por medios puntos (escala 1 a 5). */
+export const CONDICIONES = [1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5];
+export const MAX_DIAS_GESTACION = 200;
+
+/** Cómo se muestra el reproductor de una monta. */
+export const etiquetaMacho = (m: { arete: string; nombre: string | null }) => etiquetaCampo(m);
+
+/** Los reproductores de la misma especie que la hembra (el servidor lo vuelve a exigir). */
+export function machosPara(machos: MachoCampo[], especie: string): MachoCampo[] {
+  return machos.filter((m) => m.especie === especie);
+}
+
+/** El nombre de un macho de otra finca: sin espacios de sobra y hasta 80 letras (como en la ficha). */
+export function nombreMachoExterno(texto: string): string | null {
+  const t = texto.replace(/\s+/g, " ").trim();
+  return t ? t.slice(0, 80) : null;
+}
+
+/** Hembras para diagnosticar: primero las servidas (esperan diagnóstico), luego el resto. */
+export function hembrasParaDiagnostico(hembras: HembraRepro[]): HembraRepro[] {
+  return [...hembras].sort((a, b) => Number(b.estado === "servida") - Number(a.estado === "servida") || a.arete.localeCompare(b.arete, "es", { numeric: true }));
 }

@@ -10,6 +10,7 @@ import { InsigniaCampo } from "@/components/campo/EstadoCampo";
 import { kg } from "@/lib/carne";
 import { formatoFecha, litros as fmt } from "@/lib/fechas";
 import type { RegistroCampo } from "@/lib/campo";
+import { ETIQUETA_METODO, ETIQUETA_RESULTADO } from "@/lib/reproduccion";
 import { actualizarRegistro, borrarRegistros } from "@/lib/offline/campo-db";
 
 const JORNADA: Record<string, string> = { manana: "mañana", tarde: "tarde", noche: "noche" };
@@ -18,7 +19,13 @@ function Detalle({ r }: { r: RegistroCampo }) {
   const dia = formatoFecha(r.fecha, { day: "numeric", month: "short" });
   return (
     <span className="block text-sm text-humo [overflow-wrap:anywhere]">
-      {r.tipo === "ordeno" ? `Ordeño · ${dia}, ${JORNADA[r.jornada ?? ""] ?? ""} · ${fmt(r.litros ?? 0)} L${r.descartar ? " (descartada)" : ""}` : `Peso · ${dia} · ${kg(r.peso ?? 0)}`}
+      {r.tipo === "ordeno"
+        ? `Ordeño · ${dia}, ${JORNADA[r.jornada ?? ""] ?? ""} · ${fmt(r.litros ?? 0)} L${r.descartar ? " (descartada)" : ""}`
+        : r.tipo === "monta"
+          ? `Monta · ${dia} · con ${r.machoEtiqueta ?? "reproductor"}`
+          : r.tipo === "diagnostico" && r.diagnostico
+            ? `Diagnóstico · ${dia} · ${ETIQUETA_METODO[r.diagnostico.metodo]}: ${ETIQUETA_RESULTADO[r.diagnostico.resultado]}`
+            : `Peso · ${dia} · ${kg(r.peso ?? 0)}`}
     </span>
   );
 }
