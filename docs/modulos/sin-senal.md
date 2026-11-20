@@ -15,6 +15,7 @@ cómo funciona lo demás de la app.
 - **`public/offline.html`**: página autónoma (sin fuentes ni estilos de afuera: cuando se muestra no hay red) con el logo, los colores lana y
   musgo (claro y oscuro), «Reintentar» y **reintento automático** cada 5 s y al volver la conexión (`online`): pregunta por la misma dirección con
   `HEAD` (no pasa por el service worker) y, si responde, recarga. Cada intento tiene tiempo límite de 8 s.
+- **Cabeceras** (`cabecerasModoSinSenal` en `lib/cabeceras-seguridad.ts`, aplicadas en `next.config.ts`): `sw.js` con `Cache-Control: no-cache, no-store, must-revalidate` (un service worker viejo pegado en una caché dejaría a la persona sin correcciones) y `Service-Worker-Allowed: /`; `offline.html` con `no-cache`. La política de contenido ya permite todo lo que usan (`worker-src 'self'`, solo recursos propios); un recurso externo en `offline.html` la rompería.
 - **`sw.js` y `offline.html` se sirven sin sesión**: están excluidos del `matcher` de `proxy.ts` (si no, el filtro de entrada los mandaría a `/login`).
 - **Versión de la caché:** `CACHE = "apriscol-offline-vN"`. Si cambia la lista de lo que se guarda, se sube N; al activarse, el service worker
   borra las cachés `apriscol-*` anteriores.

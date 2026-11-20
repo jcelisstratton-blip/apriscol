@@ -115,3 +115,19 @@ test("sin señal: offline.html no depende de nada de afuera y el layout registra
   assert.match(layout, /<RegistrarSW \/>/);
   assert.match(leer("components/RegistrarSW.tsx"), /register\("\/sw\.js"/);
 });
+
+test("sin señal: cabeceras — sw.js nunca en caché HTTP y la política de contenido permite el service worker y la página sin conexión", async () => {
+  const { cabecerasModoSinSenal, politicaDeContenido } = await import("../lib/cabeceras-seguridad.ts");
+  const por = Object.fromEntries(cabecerasModoSinSenal().map((r) => [r.source, Object.fromEntries(r.headers.map((h) => [h.key, h.value]))]));
+  assert.match(por["/sw.js"]["Cache-Control"], /no-store/);
+  assert.equal(por["/sw.js"]["Service-Worker-Allowed"], "/");
+  assert.match(por["/offline.html"]["Cache-Control"], /no-cache/);
+  assert.match(leer("next.config.ts"), /\.\.\.cabecerasModoSinSenal\(\)/);
+  const csp = Object.fromEntries(politicaDeContenido("https://abc.supabase.co").split("; ").map((d) => [d.split(" ")[0], d]));
+  assert.match(csp["worker-src"], /'self'/);
+  // Lo que usa offline.html (script y estilo en línea, imagen propia, HEAD a la misma dirección) cabe en la política aunque bloquee de verdad.
+  assert.match(csp["script-src"], /'unsafe-inline'/);
+  assert.match(csp["style-src"], /'unsafe-inline'/);
+  assert.match(csp["img-src"], /'self'/);
+  assert.match(csp["connect-src"], /'self'/);
+});

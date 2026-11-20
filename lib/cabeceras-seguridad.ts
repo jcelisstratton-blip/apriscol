@@ -69,6 +69,27 @@ export function cabecerasDeSeguridad(supabaseUrl: string, produccion: boolean): 
 }
 
 /**
+ * Cabeceras propias del modo sin señal (`public/sw.js` y `public/offline.html`, ver `docs/modulos/sin-senal.md`).
+ * - `sw.js` nunca se guarda en la caché HTTP (ni del navegador ni de un intermediario): un service worker viejo pegado dejaría a la
+ *   persona sin las correcciones hasta que la caché venciera. `Service-Worker-Allowed: /` fija que su alcance es toda la app.
+ * - `offline.html` se revalida siempre: la copia que importa es la que el service worker guarda al instalarse.
+ * La política de contenido de arriba ya cubre el modo sin señal: `worker-src 'self'` (el service worker), y la página sin conexión solo
+ * usa lo propio (logo, estilos y script en línea, `HEAD` a la misma dirección). Un recurso externo en `offline.html` rompería esa regla.
+ */
+export function cabecerasModoSinSenal(): { source: string; headers: Cabecera[] }[] {
+  return [
+    {
+      source: "/sw.js",
+      headers: [
+        { key: "Cache-Control", value: "no-cache, no-store, must-revalidate" },
+        { key: "Service-Worker-Allowed", value: "/" },
+      ],
+    },
+    { source: "/offline.html", headers: [{ key: "Cache-Control", value: "no-cache" }] },
+  ];
+}
+
+/**
  * Convierte el reporte de una violación (formato `application/csp-report`) en una línea JSON para los registros.
  * Solo lleva lo que ayuda a ubicar el problema: nunca la dirección completa (puede traer un token en la ruta ni parámetros).
  */
