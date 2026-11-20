@@ -34,8 +34,15 @@ de las herramientas del navegador no siempre alcanza las peticiones del service 
 Al volver a encender el servidor, la página recarga sola en menos de 5 s. Auditoría de celular a 360 y 320 px. Pruebas: `tests/sin-senal.test.mjs`
 (carga `sw.js` en un entorno de service worker de mentira: qué guarda, qué deja pasar, qué responde sin red; y el `matcher`).
 
+## Paso 2 — «Llevar las plantillas al campo» (hecho, 20 nov 2026)
+
+En «Migrar mi finca» (y desde «Al grano»), un solo archivo comprimido con todas las plantillas de cargue que la persona puede usar, las listas
+de su finca y un «Léeme primero». Se descarga **con** señal, se llena **sin** ella (Excel en el computador o en el celular) y se carga al volver con
+los cargues de siempre, que revisan cada fila y se pueden deshacer. No guarda nada en el service worker: el archivo queda en el dispositivo como
+cualquier descarga. Detalle y reglas en `docs/modulos/importar-exportar.md` («Llevar las plantillas al campo»).
+
 ## Pasos siguientes (por definir)
 
-- Capturar sin señal lo del campo (ordeño primero): bandeja local en IndexedDB y envío al volver la señal, idempotente por `client_request_id`
+- Capturar sin señal dentro de la app (ordeño primero): bandeja local en IndexedDB y envío al volver la señal, idempotente por `client_request_id`
   (las funciones SQL ya lo son). Los datos nunca en el service worker.
 - Dejar lista sin conexión la pantalla de captura (estática, igual para todos) con sus archivos de `/_next/static`.
