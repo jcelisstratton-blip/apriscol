@@ -1,7 +1,7 @@
 import {
   Activity, ArrowRightLeft, Baby, Banknote, BarChart3, Beef, CalendarClock, ClipboardCheck, Droplets, FileText, FlaskConical, GitFork, HeartPulse, Download, FileSpreadsheet, Home, KeyRound, Layers, MapPin,
   Microscope, Package, PawPrint, Plus, Rocket, Scale, Shuffle, SlidersHorizontal, Snowflake, Syringe, Trophy, Truck, UserPlus, Users, Wallet, Wrench, Fence, Sheet, type LucideIcon,
-  HardHat, Gift, Inbox, Boxes, Utensils, Wheat, FileBarChart2, TrendingUp, Send, Plug, CirclePlay, Scissors, FileArchive, WifiOff,
+  HardHat, Gift, Inbox, Boxes, Utensils, Wheat, FileBarChart2, TrendingUp, Send, Plug, CirclePlay, Scissors, FileArchive, WifiOff, Smartphone,
 } from "lucide-react";
 import { puedeEscribir, puedeGestionar, puedeVer } from "@/lib/permisos";
 import { visibilidadMenu, type VisibilidadMenu } from "@/lib/menu";
@@ -152,6 +152,7 @@ export const ATAJOS: Atajo[] = [
   { grupo: "Cuenta", tipo: "ir", titulo: "Telegram", detalle: "Recibe en tu celular lo que toca hoy", href: "/mas/telegram", Icono: Send, clave: "avisos notificaciones bot resumen mensajes conectar" },
   { grupo: "Cuenta", tipo: "ir", titulo: "Conexión con IA", detalle: "Pregúntale a Claude por tu finca, solo para leer", href: "/mas/ia", Icono: Plug, clave: "claude inteligencia artificial asistente preguntar conectar" },
   { grupo: "Cuenta", tipo: "ir", titulo: "Tutoriales", detalle: "Videos paso a paso de cada parte de Apriscol", href: "/mas/tutoriales", Icono: CirclePlay, clave: "videos ayuda aprender youtube como funciona" },
+  { grupo: "Cuenta", tipo: "ir", titulo: "Instalar la app", detalle: "En la pantalla de inicio del celular o del computador", href: "/mas/instalar", Icono: Smartphone, clave: "instalar app aplicacion icono pantalla de inicio agregar a inicio celular iphone android descargar" },
   { grupo: "Cuenta", tipo: "ir", titulo: "Cambiar contraseña", detalle: "Tu acceso a Apriscol", href: "/cambiar-clave", Icono: KeyRound, clave: "clave password" },
   { grupo: "Cuenta", tipo: "ir", titulo: "Términos y privacidad", detalle: "Cómo se protegen tus datos", href: "/terminos", Icono: FileText, clave: "legal datos supabase" },
 ];
