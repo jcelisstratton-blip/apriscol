@@ -320,7 +320,8 @@ La misma pantalla `/campo` suma **Monta** y **Diagnóstico** para quien registra
 - **Mi finca → Instalar la app** (`/mas/instalar`, `InstalarApp`), para todos los roles: dice cómo se detectó el aparato («Este aparato: Celular
   Android · Abierta en Chrome · todavía no instalada aquí»), ofrece «Instalar Apriscol» cuando el navegador lo permite, avisa si se abrió dentro de
   otra app (WhatsApp, Instagram, Gmail…: desde ahí no se puede instalar), da los pasos de iPhone, Android y computador (los de este aparato primero) y
-  permite volver a mostrar el aviso de Hoy si se ocultó. Atajo en Al grano y ayuda en `AYUDA_PANTALLA["/mas/instalar"]`.
+  permite volver a mostrar el aviso de Hoy si se ocultó. Si ya está instalada (se abrió desde el ícono), solo dice eso: los pasos quedan bajo «¿Otro celular
+  o computador?», sin marcar ninguno como «Este aparato» (dentro de la app instalada no hay menú del navegador). Atajo en Al grano y ayuda en `AYUDA_PANTALLA["/mas/instalar"]`.
 - **Dos fallas corregidas del aviso**: (1) un celular que pide el «sitio de escritorio» (Chrome lo hace solo en pantallas grandes y plegables) se
   presentaba como computador y el aviso no salía: ahora una pantalla táctil con puntero de dedo cuenta como celular (`plataformaDe(…, tactil)`); (2)
   Chrome avisa una sola vez por carga que se puede instalar (`beforeinstallprompt`) y se perdía si Hoy no estaba abierto: ahora lo escucha

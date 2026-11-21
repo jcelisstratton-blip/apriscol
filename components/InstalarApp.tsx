@@ -59,7 +59,8 @@ export function InstalarApp() {
   const [instalando, setInstalando] = useState(false);
   if (!texto) return <Cargando texto="Revisando este aparato…" />;
   const a = JSON.parse(texto) as Aparato;
-  const propio = a.plataforma === "otro" ? "computador" : a.plataforma;
+  // Ya instalada aquí: los pasos solo sirven para otro aparato, así que ninguno se marca como «Este aparato».
+  const propio = a.instalada ? null : a.plataforma === "otro" ? "computador" : a.plataforma;
   const pasos = [...PASOS].sort((x, y) => Number(y.id === propio) - Number(x.id === propio));
 
   const instalar = async () => {
@@ -78,18 +79,18 @@ export function InstalarApp() {
           </span>
           <div className="min-w-0 flex-1">
             <p className="font-semibold [overflow-wrap:anywhere]">Este aparato: {NOMBRE[a.plataforma]}</p>
-            <p className="text-sm text-humo [overflow-wrap:anywhere]">Abierta en {a.navegador} · {a.instalada ? "abierta desde la app instalada" : "todavía no instalada aquí"}</p>
+            <p className="text-sm text-humo [overflow-wrap:anywhere]">{a.instalada ? "Abierta desde la app instalada" : `Abierta en ${a.navegador} · todavía no instalada aquí`}</p>
           </div>
         </div>
         <div className="mt-4 space-y-3">
           {a.instalada ? (
-            <Aviso tipo="exito">Ya la tienes instalada: ábrela siempre desde el ícono de Apriscol.</Aviso>
+            <Aviso tipo="exito">Ya la tienes instalada en este aparato. No tienes que hacer nada más: ábrela siempre desde el ícono de Apriscol.</Aviso>
           ) : a.dentroDeApp ? (
             <Aviso tipo="atencion">Estás dentro de otra app (WhatsApp, Instagram, Gmail…). Abre esta página en {a.plataforma === "ios" ? "Safari" : "Chrome"} para poder instalarla.</Aviso>
           ) : a.directo ? (
             <Boton onClick={instalar} pendiente={instalando} cargando="Abriendo…">Instalar Apriscol</Boton>
           ) : (
-            <p className="text-[0.9375rem]">Sigue los pasos de abajo{a.plataforma === "ios" ? "" : ". Si tu navegador no muestra la opción, ábrela en Chrome"}.</p>
+            <p className="text-[0.9375rem]">Sigue los pasos de abajo{a.plataforma === "ios" || a.navegador === "Chrome" ? "" : ". Si tu navegador no muestra la opción, ábrela en Chrome"}.</p>
           )}
           {!a.instalada && a.oculto ? (
             <button type="button" onClick={() => { mostrarAviso(); toast.exito("El aviso volverá a salir en Hoy"); }} className="inline-flex min-h-11 items-center text-[0.9375rem] font-semibold text-musgo underline-offset-4 hover:underline">
@@ -99,6 +100,12 @@ export function InstalarApp() {
         </div>
       </Tarjeta>
 
+      {a.instalada ? (
+        <div className="px-1 pt-2">
+          <h2 className="font-display text-lg font-semibold">¿Otro celular o computador?</h2>
+          <p className="text-[0.9375rem] text-humo">Estos son los pasos para instalarla allá (aquí ya no hace falta).</p>
+        </div>
+      ) : null}
       {pasos.map((p) => (
         <Tarjeta key={p.id}>
           <h2 className="flex min-w-0 items-center gap-2 font-display text-lg font-semibold">
