@@ -101,6 +101,32 @@ y de Ceba, la página «Sin señal» y la etiqueta flotante. La ayuda «¿Cómo 
 `tests/sin-senal.test.mjs` (el service worker con `/campo`). En el navegador: `npm run build && npm start`, abrir el panel con sesión, cortar
 la red **y** apagar el servidor, abrir `/campo`, anotar, volver a encender y ver que se envía. Auditoría de celular a 360 y 320 px.
 
+### Sanidad sin señal y respaldo de todos los formularios (21 nov 2026)
+
+**Sanidad en «Registrar sin señal»** (`components/campo/SanidadCampo.tsx`, `/campo#sanidad`; atajo «Sanidad sin señal» y enlace en Hato → Sanidad):
+lo que se le hizo a uno o varios animales (vacuna, desparasitación, tratamiento, podología, pediluvio, cirugía u otro), con lo que pide cada tipo
+(`REGLAS` de `lib/sanidad-campos.ts`: contra qué, etapa, motivo, días, cojera, anestesia, solución), el producto del catálogo guardado (con su retiro)
+o escrito, dosis, unidad y vía, retiro de leche y carne, quién lo hizo, diagnóstico, próxima dosis (con sus atajos) y observaciones. Los animales
+se eligen en una hoja con buscador («Elegir todos» / «Quitar todos»). El **lote de una compra** se elige después, con señal; quien compra
+(propietario o administrador) puede escribirlo. Las reglas viven en un solo lugar, `lib/evento-sanitario.ts` (`esquemaEvento`,
+`leerEventoSanitario`, `vincularPrograma`), que usan `crearEvento`/`editarEvento` y `guardarSanidadCampo`; se guarda con la misma función de la base
+(`guardar_evento_sanitario_detalle`) y el identificador del registro como `client_request_id` (reenviar no duplica).
+
+**Respaldo sin señal en los formularios con señal** (`lib/offline/respaldo.ts`: `accionConRespaldo`, `AvisoGuardadoLocal`). Antes, si la señal
+se caía al tocar «Guardar», la acción del servidor fallaba y la app mostraba «Algo no salió bien», perdiendo lo escrito. Ahora, en todo lo que
+se puede hacer sin señal:
+- **Registro nuevo** → queda en el celular con el mismo identificador del formulario (nunca se duplica) y el formulario lo dice («Guardado en el
+  celular…», «Ver lo guardado»): animal nuevo (`FormAnimal`), peso desde la ficha (`FormPeso`, con tipo, condición corporal y observaciones),
+  servicio desde la ficha (`FormServicio`: monta, inseminación o transferencia, con `leerServicio` de `lib/servicio-reglas.ts`), diagnóstico desde
+  la ficha (`FormDiagnostico`, también «otro método», quién lo hizo y observaciones) y sanidad (`FormEvento`). La captura de leche y la pesada de
+  Ceba ya lo hacían.
+- **Corrección (editar)** → aviso amable «Sin señal: los cambios no se guardaron… lo que escribiste sigue aquí» (no se guarda en el celular).
+- Cualquier otro error sigue su camino de siempre: solo un fallo de **red** cambia el comportamiento.
+- El diagnóstico con señal ahora también lleva su identificador de envío (`client_request_id`): un doble toque no lo duplica.
+
+**Copia de la finca, versión 4**: suma `productos` (catálogo activo con su retiro) y los permisos `sanidad` y `lotes`; los animales llegan a quien
+crea animales o registra sanidad (el veterinario). Las copias de las versiones 1 a 3 siguen sirviendo.
+
 ### Animal nuevo sin señal (21 nov 2026)
 
 Es **lo primero** de «Registrar sin señal» para quien registra en el Hato (propietario y administrador): la tarjeta «Animal nuevo» va de

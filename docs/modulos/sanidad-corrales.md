@@ -1,5 +1,7 @@
 # Sanidad y corrales
 
+**Sin señal:** los registros sanitarios también se anotan en «Registrar sin señal» (`/campo#sanidad`) y se envían solos; si la señal se cae al guardar el formulario, el registro queda en el celular. Ver `docs/modulos/sin-senal.md`.
+
 Movido desde `CLAUDE.md`; sigue siendo ley del repo. Si cambia el proceso, se actualiza aquí en el mismo commit.
 
 ## Sanidad (programar y aplicar)

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, CloudOff, CloudUpload, Heart, PawPrint, Plus, Scale, Stethoscope, Wifi, WifiOff } from "lucide-react";
+import { ArrowLeft, CloudOff, CloudUpload, Heart, PawPrint, Plus, Scale, ShieldPlus, Stethoscope, Syringe, Wifi, WifiOff } from "lucide-react";
 import { Aviso } from "@/components/Aviso";
 import { AyudaModulo } from "@/components/AyudaModulo";
 import { Cargando } from "@/components/Cargando";
@@ -15,6 +15,7 @@ import { PesarCampo } from "@/components/campo/PesarCampo";
 import { BandejaCampo } from "@/components/campo/BandejaCampo";
 import { MontaCampo } from "@/components/campo/MontaCampo";
 import { AnimalCampo } from "@/components/campo/AnimalCampo";
+import { SanidadCampo } from "@/components/campo/SanidadCampo";
 import { DiagnosticoCampo } from "@/components/campo/DiagnosticoCampo";
 import { AYUDA_CAMPO } from "@/lib/ayuda";
 import { ESC, escena } from "@/lib/escenas";
@@ -23,12 +24,13 @@ import { fechaHoraBogota, hoyBogota } from "@/lib/fechas";
 import { horaBogota, jornadaDeHora, RUTA_CAMPO } from "@/lib/campo";
 import { useBandejaCampo } from "@/lib/offline/useBandejaCampo";
 
-type Vista = "animal" | "ordeno" | "pesar" | "monta" | "diagnostico" | "bandeja";
+type Vista = "animal" | "ordeno" | "pesar" | "monta" | "diagnostico" | "sanidad" | "bandeja";
 
 const ESCENA_PESAR = escena(Scale, "arcilla");
 const ESCENA_BANDEJA = escena(CloudUpload, "grafito");
 const ESCENA_MONTA = escena(Heart, "ocre");
 const ESCENA_ANIMAL = escena(PawPrint, "ambar", Plus);
+const ESCENA_SANIDAD = escena(Syringe, "musgo", ShieldPlus);
 const ESCENA_DIAGNOSTICO = escena(Stethoscope, "musgo");
 
 /**
@@ -49,6 +51,7 @@ export function PantallaCampo() {
     const leerAncla = () => {
       if (window.location.hash === "#bandeja") setVista("bandeja");
       if (window.location.hash === "#animal") setVista("animal");
+      if (window.location.hash === "#sanidad") setVista("sanidad");
     };
     const t = setTimeout(leerAncla, 0);
     window.addEventListener("hashchange", leerAncla);
@@ -59,7 +62,7 @@ export function PantallaCampo() {
   }, []);
 
   // Sin elegir: lo primero que la persona puede registrar.
-  const primera: Vista = !referencia ? "ordeno" : referencia.puede.hato ? "animal" : referencia.puede.leche ? "ordeno" : referencia.puede.pesos ? "pesar" : referencia.puede.reproduccion ? "monta" : "bandeja";
+  const primera: Vista = !referencia ? "ordeno" : referencia.puede.hato ? "animal" : referencia.puede.leche ? "ordeno" : referencia.puede.pesos ? "pesar" : referencia.puede.reproduccion ? "monta" : referencia.puede.sanidad ? "sanidad" : "bandeja";
   const elegida: Vista = vista ?? primera;
 
   return (
@@ -102,7 +105,7 @@ export function PantallaCampo() {
           >
             <Link href="/" className={clasesBoton("primario", true)}>Ir a Apriscol</Link>
           </EstadoVacio>
-        ) : !referencia.puede.leche && !referencia.puede.pesos && !referencia.puede.reproduccion && !referencia.puede.hato ? (
+        ) : !referencia.puede.leche && !referencia.puede.pesos && !referencia.puede.reproduccion && !referencia.puede.hato && !referencia.puede.sanidad ? (
           <EstadoVacio icono={<CloudOff strokeWidth={1.5} />} titulo="Tu rol no registra en el campo" descripcion="Si necesitas hacerlo, pídele al propietario de la finca que cambie tu rol en Equipo." />
         ) : (
           <>
@@ -129,6 +132,9 @@ export function PantallaCampo() {
               {referencia.puede.reproduccion ? (
                 <TarjetaOpcion escena={ESCENA_DIAGNOSTICO} titulo="Diagnóstico" dato={`${referencia.hembras.filter((h) => h.estado === "servida").length} servidas`} activo={elegida === "diagnostico"} onClick={() => setVista("diagnostico")} />
               ) : null}
+              {referencia.puede.sanidad ? (
+                <TarjetaOpcion escena={ESCENA_SANIDAD} titulo="Sanidad" dato="Vacunas, tratamientos…" activo={elegida === "sanidad"} onClick={() => setVista("sanidad")} />
+              ) : null}
               <TarjetaOpcion
                 escena={ESCENA_BANDEJA}
                 titulo="Guardado"
@@ -149,6 +155,8 @@ export function PantallaCampo() {
                 <MontaCampo referencia={referencia} registros={registros} usuarioId={usuarioId} hoy={hoy} enLinea={enLinea} alGuardar={() => void enviarAhora()} />
               ) : elegida === "diagnostico" && usuarioId ? (
                 <DiagnosticoCampo referencia={referencia} registros={registros} usuarioId={usuarioId} hoy={hoy} enLinea={enLinea} alGuardar={() => void enviarAhora()} />
+              ) : elegida === "sanidad" && usuarioId ? (
+                <SanidadCampo referencia={referencia} registros={registros} usuarioId={usuarioId} hoy={hoy} enLinea={enLinea} alGuardar={() => void enviarAhora()} />
               ) : elegida === "pesar" && usuarioId ? (
                 <PesarCampo referencia={referencia} registros={registros} usuarioId={usuarioId} hoy={hoy} enLinea={enLinea} alGuardar={() => void enviarAhora()} />
               ) : usuarioId ? (

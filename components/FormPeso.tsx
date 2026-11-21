@@ -8,6 +8,9 @@ import { Campo, CLASE_INPUT } from "@/components/Campo";
 import { Selector } from "@/components/Selector";
 import { SelectorTarjetas } from "@/components/SelectorTarjetas";
 import { crearPesaje, editarPesaje } from "@/app/(app)/carne/actions";
+import { AvisoGuardadoLocal } from "@/components/AvisoGuardadoLocal";
+import { accionConRespaldo, camposDe, errorDe, etiquetaDeAnimal, quedoEnCelular } from "@/lib/offline/respaldo";
+import { leerNumero } from "@/lib/numeros";
 import { ETIQUETA_PESAJE, TIPOS_PESAJE } from "@/lib/carne";
 import { textoCC, VALORES_CC } from "@/lib/empadronamiento";
 import { ESCENA_TIPO_PESAJE } from "@/lib/escenas-forms-b-carne";
@@ -18,7 +21,24 @@ const coma = (n: number | null | undefined) => (n == null ? "" : String(n).repla
 /** Registrar o corregir el peso de un animal (viene fijo desde su ficha). Un solo peso por animal y día. */
 export function FormPeso({ animalId, hoy, pesaje, solicitud }: { animalId: string; hoy: string; pesaje?: Pesaje; solicitud?: string }) {
   const editando = Boolean(pesaje);
-  const [estado, enviar, pendiente] = useActionState(editando ? editarPesaje : crearPesaje, undefined);
+  // Sin señal: un peso nuevo queda en el celular (mismo identificador del formulario) con su tipo, condición y observaciones; una corrección pide
+  // intentarlo de nuevo. Nunca se pierde lo escrito.
+  const [estado, enviar, pendiente] = useActionState(
+    accionConRespaldo(
+      editando ? editarPesaje : crearPesaje,
+      editando || !solicitud
+        ? null
+        : (datos, ref) => {
+            const peso = leerNumero(String(datos.get("peso_kg") ?? ""));
+            if (peso === null) return null;
+            const extras = camposDe(datos, ["animal_id", "client_request_id", "peso_kg", "fecha"]);
+            return { id: solicitud, tipo: "peso", animalId, etiqueta: etiquetaDeAnimal(ref, animalId), fecha: String(datos.get("fecha") ?? ""), peso, campos: extras };
+          },
+    ),
+    undefined,
+  );
+  const guardadoLocal = quedoEnCelular(estado);
+  const error = errorDe(estado);
   const [, iniciar] = useTransition();
   const [tipo, setTipo] = useState<TipoPesaje>(pesaje?.tipo ?? "control");
   const [cc, setCc] = useState<number | "">(pesaje?.condicion_corporal ?? "");
@@ -58,10 +78,11 @@ export function FormPeso({ animalId, hoy, pesaje, solicitud }: { animalId: strin
         {(id) => <textarea id={id} name="observaciones" defaultValue={pesaje?.observaciones ?? ""} rows={3} maxLength={1000} className={`${CLASE_INPUT} py-3`} />}
       </Campo>
 
-      {estado?.error ? <Aviso tipo="error">{estado.error}</Aviso> : null}
+      {error ? <Aviso tipo="error">{error}</Aviso> : null}
+      {guardadoLocal ? <AvisoGuardadoLocal /> : null}
       <div className="space-y-2">
-        <Boton type="submit" pendiente={pendiente} cargando="Guardando…">
-          {editando ? "Guardar cambios" : "Guardar peso"}
+        <Boton type="submit" pendiente={pendiente} cargando="Guardando…" disabled={guardadoLocal}>
+          {guardadoLocal ? "Guardado en el celular" : editando ? "Guardar cambios" : "Guardar peso"}
         </Boton>
         <Link href={`/hato/${animalId}#crecimiento`} className={clasesBoton("fantasma")}>
           Cancelar

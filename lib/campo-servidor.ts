@@ -9,13 +9,17 @@ import { puedeEscribir } from "@/lib/permisos";
 import { litros as fmtLitros } from "@/lib/fechas";
 import {
   CONDICIONES, MAX_DIAS_GESTACION, errorFecha, errorLitros, errorPeso, redondearPeso,
-  type AnimalHato, type AnimalPesar, type EnvioCampo, type HembraCampo, type HembraRepro, type MachoCampo, type RazaCampo, type ReferenciaCampo, type RespuestaEnvio,
+  type AnimalHato, type AnimalPesar, type EnvioCampo, type ProductoCampo, type HembraCampo, type HembraRepro, type MachoCampo, type RazaCampo, type ReferenciaCampo, type RespuestaEnvio,
 } from "@/lib/campo";
 import { reglasDiagnostico } from "@/lib/diagnostico-reglas";
 import { esquemaAnimal, fotoValida, prepararAnimalNuevo } from "@/lib/animal-nuevo";
 import { MENSAJE_SIN_SERVICIO, MENSAJE_YA_VACIA, servicioVigente } from "@/lib/servicio-vigente";
 import { ETIQUETA_RESULTADO } from "@/lib/reproduccion";
 import { formatoFecha } from "@/lib/fechas";
+import { TIPOS_PESAJE } from "@/lib/carne";
+import { VALORES_CC } from "@/lib/empadronamiento";
+import { leerServicio } from "@/lib/servicio-reglas";
+import { leerEventoSanitario, vincularPrograma } from "@/lib/evento-sanitario";
 
 /**
  * El servidor del registro sin señal: la copia mínima de la finca para el celular y el guardado de lo que llega desde la bandeja del celular.
@@ -27,7 +31,15 @@ type Cliente = SupabaseClient<Database>;
 
 /** Qué puede registrar sin señal cada rol en su plan: los mismos módulos que la captura de leche y la pesada con señal. */
 export function permisosCampo(rol: RolFinca, plan: PlanId): ReferenciaCampo["puede"] {
-  return { leche: puedeEscribir(rol, "leche", plan), pesos: puedeEscribir(rol, "carne", plan), reproduccion: puedeEscribir(rol, "reproduccion", plan), hato: puedeEscribir(rol, "hato", plan) };
+  return {
+    leche: puedeEscribir(rol, "leche", plan),
+    pesos: puedeEscribir(rol, "carne", plan),
+    reproduccion: puedeEscribir(rol, "reproduccion", plan),
+    hato: puedeEscribir(rol, "hato", plan),
+    sanidad: puedeEscribir(rol, "sanidad", plan),
+    // Quien compra (propietario o administrador) escribe el lote del producto al aplicar; los demás lo eligen con señal.
+    lotes: puedeEscribir(rol, "sanidad", plan) && puedeEscribir(rol, "contabilidad", plan),
+  };
 }
 
 /** La copia de la finca que se guarda en el celular: solo lo indispensable para capturar (aretes, nombres, turnos, retiro y último peso). */
@@ -39,7 +51,8 @@ export async function leerReferenciaCampo(
 ): Promise<ReferenciaCampo> {
   const puede = permisosCampo(ctx.rol, ctx.finca.plan);
   const fincaId = ctx.finca.id;
-  const [leche, ceba, todos, repro, razasDB, hatoDB] = await Promise.all([
+  const conAnimales = puede.hato || puede.sanidad;
+  const [leche, ceba, todos, repro, razasDB, hatoDB, productosDB] = await Promise.all([
     puede.leche ? hembrasEnLeche(supabase, fincaId) : null,
     puede.pesos ? leerCeba(supabase, fincaId, hoy) : null,
     puede.pesos || puede.reproduccion
@@ -50,8 +63,11 @@ export async function leerReferenciaCampo(
       : null,
     puede.hato ? supabase.from("razas").select("id, especie, nombre, cobertura").in("especie", ctx.finca.especies).order("nombre") : null,
     // Para padre y madre (también los que ya salieron del hato) y para avisar si un arete ya existe.
-    puede.hato
+    conAnimales
       ? leerTodo((d, h) => supabase.from("animales").select("id, numero_arete, nombre, sexo, especie, estado").eq("finca_id", fincaId).is("deleted_at", null).order("id").range(d, h))
+      : null,
+    puede.sanidad
+      ? leerTodo((d, h) => supabase.from("productos_veterinarios").select("id, nombre, tipo, retiro_leche_dias, retiro_carne_dias, unidad_dosis").eq("finca_id", fincaId).eq("activo", true).order("id").range(d, h))
       : null,
   ]);
 
@@ -98,8 +114,12 @@ export async function leerReferenciaCampo(
     .map((a) => ({ id: a.id, arete: a.numero_arete, nombre: a.nombre, sexo: a.sexo as AnimalHato["sexo"], especie: a.especie as Especie, activo: a.estado === "activo" }))
     .sort(porArete);
 
+  const productos: ProductoCampo[] = (productosDB?.data ?? [])
+    .map((p) => ({ id: p.id, nombre: p.nombre, tipo: p.tipo, retiroLeche: p.retiro_leche_dias ?? 0, retiroCarne: p.retiro_carne_dias ?? 0, unidad: p.unidad_dosis ?? null }))
+    .sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
+
   return {
-    version: 3,
+    version: 4,
     generadaEn: ahora.toISOString(),
     hoy,
     usuario: { id: ctx.usuarioId },
@@ -113,6 +133,7 @@ export async function leerReferenciaCampo(
     proposito: ctx.finca.proposito,
     razas,
     animales,
+    productos,
   };
 }
 
@@ -122,7 +143,7 @@ const uuid = z.uuid();
 const fecha = z.iso.date();
 export const esquemaEnvio = z.discriminatedUnion("tipo", [
   z.object({ tipo: z.literal("ordeno"), id: uuid, fincaId: uuid, animalId: uuid, fecha, jornada: z.enum(["manana", "tarde", "noche"]), litros: z.number(), descartar: z.boolean() }),
-  z.object({ tipo: z.literal("peso"), id: uuid, fincaId: uuid, animalId: uuid, fecha, peso: z.number() }),
+  z.object({ tipo: z.literal("peso"), id: uuid, fincaId: uuid, animalId: uuid, fecha, peso: z.number(), extras: z.record(z.string(), z.string().max(1000)).optional() }),
   z.object({ tipo: z.literal("monta"), id: uuid, fincaId: uuid, animalId: uuid, fecha, machoId: uuid.nullable(), machoExterno: z.string().trim().max(80).nullable() }),
   z.object({
     tipo: z.literal("diagnostico"),
@@ -130,15 +151,21 @@ export const esquemaEnvio = z.discriminatedUnion("tipo", [
     fincaId: uuid,
     animalId: uuid,
     fecha,
-    metodo: z.enum(["ecografia", "palpacion"]),
+    metodo: z.enum(["ecografia", "palpacion", "otro"]),
     resultado: z.enum(["gestante", "vacia", "dudoso"]),
     diasGestacion: z.number().int().min(1).max(MAX_DIAS_GESTACION).nullish(),
     numFetos: z.number().int().min(1).max(4).nullish(),
     viabilidad: z.enum(["latido", "sin_actividad"]).nullish(),
     indicador: z.enum(["ausencia_celo", "retorno_celo", "llenado_uterino", "revision_manual"]).nullish(),
     condicion: z.number().refine((n) => CONDICIONES.includes(n)).nullish(),
+    pruebaNombre: z.string().trim().max(80).nullish(),
+    pruebaResultado: z.string().trim().max(120).nullish(),
+    responsable: z.string().trim().max(120).nullish(),
+    observaciones: z.string().trim().max(1000).nullish(),
   }),
   z.object({ tipo: z.literal("animal"), id: uuid, fincaId: uuid, animalId: uuid, fecha, campos: z.record(z.string(), z.string().max(1000)) }),
+  z.object({ tipo: z.literal("servicio"), id: uuid, fincaId: uuid, animalId: uuid, fecha, campos: z.record(z.string(), z.string().max(1000)) }),
+  z.object({ tipo: z.literal("sanidad"), id: uuid, fincaId: uuid, animalId: uuid, fecha, campos: z.record(z.string(), z.string().max(1000)), animales: z.array(uuid).min(1).max(1000) }),
 ]);
 
 const rechazo = (error: string): RespuestaEnvio => ({ ok: false, codigo: "rechazado", error });
@@ -194,6 +221,13 @@ export async function guardarOrdenoCampo(supabase: Cliente, e: Extract<EnvioCamp
 export async function guardarPesoCampo(supabase: Cliente, e: Extract<EnvioCampo, { tipo: "peso" }>, hoy: string): Promise<RespuestaEnvio> {
   const problema = errorFecha(e.fecha, hoy) ?? errorPeso(e.peso);
   if (problema) return rechazo(problema);
+  // Lo extra de un peso hecho desde la ficha (respaldo sin señal): tipo de pesaje, condición corporal y observaciones, como allí.
+  const extras = e.extras ?? {};
+  const tipoPesaje = extras.tipo ?? "control";
+  if (!(TIPOS_PESAJE as string[]).includes(tipoPesaje)) return rechazo("Elige qué tipo de pesaje es.");
+  const cc = extras.condicion_corporal ? Number(extras.condicion_corporal.replace(",", ".")) : null;
+  if (cc !== null && !(VALORES_CC as readonly number[]).includes(cc)) return rechazo("La condición corporal va de 1 a 5, de medio en medio.");
+  const observaciones = extras.observaciones?.trim() || null;
   const animal = await animalActivo(supabase, e.fincaId, e.animalId);
   if (!animal) return rechazo("Ese animal ya no está en esta finca.");
   if (animal.estado !== "activo") return rechazo(`${animal.numero_arete} ya salió del hato: no se guardó su peso.`);
@@ -207,7 +241,16 @@ export async function guardarPesoCampo(supabase: Cliente, e: Extract<EnvioCampo,
   const previo = await existente();
   if (previo.data) return decidir(previo.data);
 
-  const { error } = await supabase.from("pesajes").insert({ finca_id: e.fincaId, animal_id: e.animalId, fecha: e.fecha, peso_kg: redondearPeso(e.peso), client_request_id: e.id });
+  const { error } = await supabase.from("pesajes").insert({
+    finca_id: e.fincaId,
+    animal_id: e.animalId,
+    fecha: e.fecha,
+    peso_kg: redondearPeso(e.peso),
+    tipo: tipoPesaje as never,
+    condicion_corporal: cc,
+    observaciones,
+    client_request_id: e.id,
+  });
   if (!error) return { ok: true, estado: "guardado" };
   if (esDuplicado(error)) {
     const ahora = await existente();
@@ -283,6 +326,8 @@ export async function guardarDiagnosticoCampo(supabase: Cliente, e: Extract<Envi
       viabilidad_fetal: e.viabilidad ?? null,
       indicador_palpacion: e.indicador ?? null,
       condicion_corporal: e.condicion ?? null,
+      prueba_nombre: e.pruebaNombre ?? null,
+      prueba_resultado: e.pruebaResultado ?? null,
     },
     v.servicio.fecha,
   );
@@ -303,6 +348,8 @@ export async function guardarDiagnosticoCampo(supabase: Cliente, e: Extract<Envi
     metodo: e.metodo,
     resultado: e.resultado,
     ...reglas.propios,
+    responsable: e.responsable?.trim() || null,
+    observaciones: e.observaciones?.trim() || null,
     client_request_id: e.id,
   });
   if (!error) return { ok: true, estado: "guardado" };
@@ -327,4 +374,40 @@ export async function guardarAnimalCampo(supabase: Cliente, e: Extract<EnvioCamp
     return conflicto(`Ya hay un animal con el arete ${datos.data.numero_arete} en la finca (lo registró otra persona o se creó desde otro aparato). No se creó otro: revisa el arete y corrígelo antes de reintentar.`);
   }
   return rechazo(mensajeAmigable(error?.message ?? "No se pudo registrar el animal."));
+}
+
+/**
+ * Un servicio (monta, inseminación o transferencia) hecho desde la ficha de la hembra cuando se cayó la señal: las mismas reglas que allí
+ * (`leerServicio`). El identificador del registro es su `client_request_id`: reenviarlo no lo duplica.
+ */
+export async function guardarServicioCampo(supabase: Cliente, e: Extract<EnvioCampo, { tipo: "servicio" }>, hoy: string): Promise<RespuestaEnvio> {
+  const ya = await supabase.from("servicios").select("id").eq("finca_id", e.fincaId).eq("client_request_id", e.id).maybeSingle();
+  if (ya.data) return { ok: true, estado: "ya_estaba" };
+  const problema = errorFecha(e.campos.fecha ?? "", hoy);
+  if (problema) return rechazo(problema);
+  const l = await leerServicio(e.campos, e.fincaId, supabase);
+  if ("error" in l) return rechazo(l.error ?? "Revisa los datos del servicio.");
+  const { error } = await supabase.from("servicios").insert({ finca_id: e.fincaId, hembra_id: l.d.hembra_id, ...l.fila, client_request_id: e.id });
+  if (!error) return { ok: true, estado: "guardado" };
+  if (esDuplicado(error)) return { ok: true, estado: "ya_estaba" };
+  return rechazo(mensajeAmigable(error.message));
+}
+
+/**
+ * Un evento sanitario (vacuna, desparasitación, tratamiento…) a uno o varios animales, hecho sin señal: las mismas reglas que el formulario con
+ * señal (`leerEventoSanitario`) y la misma función de la base. Reenviarlo no lo duplica. Si aplicaba una programación, los animales quedan
+ * como aplicados en ella.
+ */
+export async function guardarSanidadCampo(supabase: Cliente, e: Extract<EnvioCampo, { tipo: "sanidad" }>, puedeEscribirLote: boolean): Promise<RespuestaEnvio> {
+  const ya = await supabase.from("eventos_sanitarios").select("id").eq("finca_id", e.fincaId).eq("client_request_id", e.id).maybeSingle();
+  if (ya.data) return { ok: true, estado: "ya_estaba" };
+  const leido = await leerEventoSanitario({ ...e.campos, client_request_id: e.id }, e.animales, e.fincaId, supabase, true, puedeEscribirLote);
+  if ("error" in leido) return rechazo(leido.error ?? "Revisa los datos del registro sanitario.");
+  const { data, error } = await supabase.rpc("guardar_evento_sanitario_detalle", { p_finca: e.fincaId, p_evento: null, p_datos: leido.payload, p_extra: leido.extra, p_animales: leido.ids });
+  if (error) {
+    if (esDuplicado(error)) return { ok: true, estado: "ya_estaba" };
+    return rechazo(mensajeAmigable(error.message));
+  }
+  if (leido.programaId && data) await vincularPrograma(supabase, e.fincaId, leido.programaId, data as string, leido.ids);
+  return { ok: true, estado: "guardado" };
 }
