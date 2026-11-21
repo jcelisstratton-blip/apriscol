@@ -52,7 +52,7 @@ export function visibilidadMenu(rol: RolFinca, plan: PlanId, especies: Especie[]
     novedades: ve("novedades"),
     revisaNovedades: revisaNovedades(rol),
     semaforos: areasSemaforo(rol, plan).length > 0,
-    sinSenal: (["leche", "carne", "reproduccion", "hato", "sanidad", "corrales", "contabilidad"] as const).some((m) => puedeEscribir(rol, m, plan)),
+    sinSenal: (["leche", "carne", "reproduccion", "hato", "sanidad", "corrales", "contabilidad", "nutricion"] as const).some((m) => puedeEscribir(rol, m, plan)),
     leche: ve("leche"),
     repro: ve("reproduccion"),
     carne: ve("carne"),

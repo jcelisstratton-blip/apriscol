@@ -60,6 +60,16 @@ Concentrado, forraje, sales y suplementos, y leche maternizada: los productos de
 - Semáforos: área **Alimento** (propietario, administrador y ordeñador), `senalAlimento`. Atajos «Anotar lo que se dio de comer» e «Inventario de alimento» en «Al grano».
 - Exportación: hojas «Inventario de medicamentos» e «Inventario de alimento (kg)» (en esta última no sale el lote de ceba).
 
+## Lo que se dio de comer, sin señal (21 nov 2026)
+
+- Se anota también en «Registrar sin señal» (`/campo#alimento`, `AlimentoCampo`) y «Anotar lo que se dio» guarda en el celular si se cae la señal
+  (respaldo con el mismo `client_request_id`). Lo hace quien escribe en `nutricion` (propietario, administrador y ordeñador); el veterinario y el
+  contador no.
+- **Una sola regla**: `lib/alimento-reglas.ts` (`esquemaSalida`, `cargarAlimento`, `prepararSalida`, `cargarDestinosSalida`) para `guardarSalida` y para
+  el envío (`guardarSalidaAlimentoCampo`). El peso de cada bulto lo pone el servidor al enviar; la copia del celular solo lleva los alimentos con su
+  conteo de apertura, su unidad, su peso por unidad y lo que quedaba («Quedaban X»), y los destinos que la persona ve (corrales y lotes de ceba).
+- Es un hecho nuevo: nunca reemplaza otra salida; reenviarla no la duplica (índice `inv_alimento_client_req_uk`).
+
 ## Reportes
 
 Los reportes del inventario viven en **Reportes → Inventario** (`/reportes`, ver `reportes.md`) y solo los abren el propietario y el administrador: existencias de medicamentos, lotes y vencimientos, movimiento de medicamentos, existencias de alimento y movimiento de alimento. Los tres de «movimiento» y los lotes salen de funciones de lectura que validan `puede_gestionar` (`inventario_movimientos_med`, `inventario_movimientos_alimento`, `inventario_lotes_finca`).

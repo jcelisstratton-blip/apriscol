@@ -9,9 +9,13 @@ import { Chip, FilaDesplazable } from "@/components/FilaDesplazable";
 import { Selector } from "@/components/Selector";
 import { useToast } from "@/components/Toast";
 import { guardarSalida } from "@/app/(app)/inventario/alimento/actions";
+import { AvisoGuardadoLocal } from "@/components/AvisoGuardadoLocal";
+import { MENSAJE_GUARDADO_LOCAL } from "@/lib/campo";
+import { accionConRespaldo, camposDe, errorDe, quedoEnCelular } from "@/lib/offline/respaldo";
 import { singular, textoKg, unidadesDeCantidad, type FilaAlimento } from "@/lib/inventario-alimento";
 
-export type DestinoSalida = { valor: string; etiqueta: string; detalle?: string };
+import type { DestinoSalida } from "@/lib/alimento-reglas";
+export type { DestinoSalida };
 
 /**
  * Anotar lo que se dio de comer: alimento, cuánto (en kg o en bultos) y la fecha; el destino (un corral o un lote de ceba) es opcional y solo se ofrece a quien ve
@@ -31,7 +35,27 @@ export function FormSalidaAlimento({
   hoy: string;
   volver: string;
 }) {
-  const [estado, enviar, pendiente] = useActionState(guardarSalida, undefined);
+  // Sin señal: la salida queda en el celular con el mismo identificador (nunca se duplica) y se envía sola; el formulario queda listo para la
+  // siguiente, como con «Guardar y anotar otro». Nunca se pierde lo escrito.
+  const [estado, enviar, pendiente] = useActionState(
+    accionConRespaldo(guardarSalida, (formulario) => {
+      const id = String(formulario.get("client_request_id") ?? "");
+      if (!id) return null;
+      const a = alimentos.find((x) => x.producto_id === formulario.get("producto_id"));
+      const u = a && formulario.get("unidad") === "unidad" ? (a.unidad ?? "unidades") : "kg";
+      return {
+        id,
+        tipo: "alimento",
+        animalId: id,
+        etiqueta: `${a?.nombre ?? "Alimento"} · ${String(formulario.get("cantidad") ?? "").trim()} ${u}`,
+        fecha: String(formulario.get("fecha") ?? ""),
+        campos: camposDe(formulario, ["client_request_id", "seguir"]),
+      };
+    }),
+    undefined,
+  );
+  const guardadoLocal = quedoEnCelular(estado);
+  const error = errorDe(estado);
   const [, iniciar] = useTransition();
   const toast = useToast();
   const [elegido, setElegido] = useState(alimentoId ?? "");
@@ -50,16 +74,18 @@ export function FormSalidaAlimento({
   const noListo = !elegido || !cantidad.trim();
 
   useEffect(() => {
-    if (!estado?.guardado || atendido.current === estado) return;
+    const enCelular = quedoEnCelular(estado);
+    if (!(enCelular || (estado && "guardado" in estado && estado.guardado)) || atendido.current === estado) return;
     atendido.current = estado;
     peticion.current = null;
-    toast.exito(`Salida guardada: ${ultimo.current}`);
-    setElegido("");
+    if (enCelular) toast.exito(MENSAJE_GUARDADO_LOCAL);
+    else toast.exito(`Salida guardada: ${ultimo.current}`);
+    setElegido(alimentoId ?? "");
     setCantidad("");
     setUnidad("kg");
     setRonda((r) => r + 1);
     window.scrollTo({ top: 0, behavior: "smooth" });
-  }, [estado, toast]);
+  }, [estado, toast, alimentoId]);
 
   const alEnviar = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -123,7 +149,8 @@ export function FormSalidaAlimento({
         {(id) => <textarea key={ronda} id={id} name="observaciones" rows={2} maxLength={300} className={`${CLASE_INPUT} py-3`} />}
       </Campo>
 
-      {estado?.error ? <Aviso tipo="error">{estado.error}</Aviso> : null}
+      {error ? <Aviso tipo="error">{error}</Aviso> : null}
+      {guardadoLocal ? <AvisoGuardadoLocal /> : null}
       <div className="space-y-2">
         <Boton type="submit" pendiente={pendiente} cargando="Guardando…" disabled={noListo}>
           Guardar salida

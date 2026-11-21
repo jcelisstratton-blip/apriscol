@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { ChevronLeft } from "lucide-react";
 import { Encabezado } from "@/components/Encabezado";
 import { FormSalidaAlimento } from "@/components/FormSalidaAlimento";
+import { EnlaceSinSenal } from "@/components/EnlaceSinSenal";
 import { cargarDestinosSalida } from "@/lib/inventario-alimento-servidor";
 import { obtenerContexto } from "@/lib/contexto";
 import { crearClienteServidor } from "@/lib/supabase/server";
@@ -30,6 +31,9 @@ export default async function PaginaSalidaGeneral() {
       </Link>
       <Encabezado titulo="Anotar lo que se dio" subtitulo={finca.nombre} />
       <div className="lg:max-w-xl">
+        <div className="mb-3">
+          <EnlaceSinSenal texto="¿Sin señal? Anótalo en el celular" ancla="alimento" />
+        </div>
         <FormSalidaAlimento alimentos={alimentos} destinos={destinos} hoy={hoy} volver="/inventario?vista=alimento" />
       </div>
     </>

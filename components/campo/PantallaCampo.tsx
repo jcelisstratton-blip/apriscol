@@ -5,6 +5,8 @@ import Link from "next/link";
 import { ArrowLeft, CloudOff, Wifi, WifiOff } from "lucide-react";
 import { Aviso } from "@/components/Aviso";
 import { AvisoInstalar } from "@/components/AvisoInstalar";
+import { AlimentoCampo } from "@/components/campo/AlimentoCampo";
+import { DespachoCampo } from "@/components/campo/DespachoCampo";
 import { AyudaModulo } from "@/components/AyudaModulo";
 import { Cargando } from "@/components/Cargando";
 import { clasesBoton } from "@/components/Boton";
@@ -54,7 +56,7 @@ export function PantallaCampo() {
   useEffect(() => {
     const leerAncla = () => {
       const ancla = window.location.hash.slice(1);
-      if (ancla === "bandeja" || ancla === "animal" || ancla === "sanidad" || ancla === "corrales" || ancla === "compra" || ancla === "venta" || ancla === "baja" || ancla === "parto") setVista(ancla);
+      if (ancla === "bandeja" || ancla === "animal" || ancla === "sanidad" || ancla === "corrales" || ancla === "alimento" || ancla === "despacho" || ancla === "compra" || ancla === "venta" || ancla === "baja" || ancla === "parto") setVista(ancla);
     };
     const t = setTimeout(leerAncla, 0);
     window.addEventListener("hashchange", leerAncla);
@@ -65,7 +67,7 @@ export function PantallaCampo() {
   }, []);
 
   // Sin elegir: lo primero que la persona puede registrar.
-  const primera: Vista = !referencia ? "ordeno" : referencia.puede.hato ? "animal" : referencia.puede.leche ? "ordeno" : referencia.puede.pesos ? "pesar" : referencia.puede.reproduccion ? "monta" : referencia.puede.sanidad ? "sanidad" : referencia.puede.corrales ? "corrales" : referencia.puede.compras ? "compra" : referencia.puede.ventas ? "venta" : "bandeja";
+  const primera: Vista = !referencia ? "ordeno" : referencia.puede.hato ? "animal" : referencia.puede.leche ? "ordeno" : referencia.puede.pesos ? "pesar" : referencia.puede.reproduccion ? "monta" : referencia.puede.sanidad ? "sanidad" : referencia.puede.corrales ? "corrales" : referencia.puede.alimento ? "alimento" : referencia.puede.compras ? "compra" : referencia.puede.ventas ? "venta" : "bandeja";
   const elegida: Vista = vista ?? primera;
 
   return (
@@ -108,7 +110,7 @@ export function PantallaCampo() {
           >
             <Link href="/" className={clasesBoton("primario", true)}>Ir a Apriscol</Link>
           </EstadoVacio>
-        ) : !referencia.puede.leche && !referencia.puede.pesos && !referencia.puede.reproduccion && !referencia.puede.hato && !referencia.puede.sanidad && !referencia.puede.corrales && !referencia.puede.compras && !referencia.puede.ventas ? (
+        ) : !referencia.puede.leche && !referencia.puede.pesos && !referencia.puede.reproduccion && !referencia.puede.hato && !referencia.puede.sanidad && !referencia.puede.corrales && !referencia.puede.alimento && !referencia.puede.compras && !referencia.puede.ventas ? (
           <EstadoVacio icono={<CloudOff strokeWidth={1.5} />} titulo="Tu rol no registra en el campo" descripcion="Si necesitas hacerlo, pídele al propietario de la finca que cambie tu rol en Equipo." />
         ) : (
           <>
@@ -146,6 +148,12 @@ export function PantallaCampo() {
               {referencia.puede.corrales ? (
                 <TarjetaOpcion escena={E.corrales} titulo="Corrales" dato="Mover animales" activo={elegida === "corrales"} onClick={() => setVista("corrales")} />
               ) : null}
+              {referencia.puede.alimento ? (
+                <TarjetaOpcion escena={E.alimento} titulo="Alimento" dato="Lo que se dio de comer" activo={elegida === "alimento"} onClick={() => setVista("alimento")} />
+              ) : null}
+              {referencia.puede.leche ? (
+                <TarjetaOpcion escena={E.despacho} titulo="Despacho" dato="Leche que salió" activo={elegida === "despacho"} onClick={() => setVista("despacho")} />
+              ) : null}
               {referencia.puede.compras ? (
                 <TarjetaOpcion escena={E.compra} titulo="Compra" dato="Alimento, droga…" activo={elegida === "compra"} onClick={() => setVista("compra")} />
               ) : null}
@@ -179,6 +187,12 @@ export function PantallaCampo() {
                 <SanidadCampo referencia={referencia} registros={registros} usuarioId={usuarioId} hoy={hoy} enLinea={enLinea} alGuardar={() => void enviarAhora()} />
               ) : elegida === "corrales" && usuarioId ? (
                 <MoverCampo referencia={referencia} registros={registros} usuarioId={usuarioId} hoy={hoy} enLinea={enLinea} alGuardar={() => void enviarAhora()} />
+              ) : elegida === "alimento" && usuarioId ? (
+                <AlimentoCampo referencia={referencia} registros={registros} usuarioId={usuarioId} hoy={hoy} enLinea={enLinea} alGuardar={() => void enviarAhora()} />
+              ) : elegida === "despacho" && usuarioId ? (
+                <ProveedorMoneda moneda={referencia.finca.moneda ?? MONEDA_DEFECTO}>
+                  <DespachoCampo referencia={referencia} registros={registros} usuarioId={usuarioId} hoy={hoy} enLinea={enLinea} alGuardar={() => void enviarAhora()} />
+                </ProveedorMoneda>
               ) : elegida === "compra" && usuarioId ? (
                 <ProveedorMoneda moneda={referencia.finca.moneda ?? MONEDA_DEFECTO}>
                   <CompraCampo referencia={referencia} registros={registros} usuarioId={usuarioId} hoy={hoy} enLinea={enLinea} alGuardar={() => void enviarAhora()} />

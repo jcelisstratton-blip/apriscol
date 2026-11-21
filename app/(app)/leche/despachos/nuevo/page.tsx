@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { ChevronLeft } from "lucide-react";
 import { Encabezado } from "@/components/Encabezado";
 import { FormDespacho } from "@/components/FormDespacho";
+import { EnlaceSinSenal } from "@/components/EnlaceSinSenal";
 import { obtenerContexto } from "@/lib/contexto";
 import { obtenerAjustes } from "@/lib/ajustes-servidor";
 import { puedeEscribir } from "@/lib/permisos";
@@ -26,6 +27,9 @@ export default async function PaginaDespachoNuevo() {
       </Link>
       <Encabezado titulo="Registrar despacho" subtitulo="Leche que salió de la finca" />
       <div className="lg:max-w-xl">
+        <div className="mb-3">
+          <EnlaceSinSenal texto="¿Sin señal? Regístralo en el celular" ancla="despacho" />
+        </div>
         <FormDespacho hoy={hoyBogota()} solicitud={randomUUID()} terceros={terceros} precioHabitual={precioHabitual} ivaDefecto={(await obtenerAjustes()).general.iva_tarifa_defecto} />
       </div>
     </>
