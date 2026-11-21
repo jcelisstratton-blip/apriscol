@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { crearClienteServidor } from "@/lib/supabase/server";
-import { esquemaEnvio, guardarAnimalCampo, guardarCompraCampo, guardarDiagnosticoCampo, guardarMontaCampo, guardarMovimientoCampo, guardarOrdenoCampo, guardarPesoCampo, guardarSanidadCampo, guardarServicioCampo, permisosCampo } from "@/lib/campo-servidor";
+import { esquemaEnvio, guardarAnimalCampo, guardarCompraCampo, guardarVentaCampo, guardarDiagnosticoCampo, guardarMontaCampo, guardarMovimientoCampo, guardarOrdenoCampo, guardarPesoCampo, guardarSanidadCampo, guardarServicioCampo, permisosCampo } from "@/lib/campo-servidor";
 import { hoyBogota } from "@/lib/fechas";
 import type { Especie, PlanId, RolFinca } from "@/lib/tipos";
 
@@ -12,7 +12,7 @@ const responder = (cuerpo: object, status = 200) => NextResponse.json(cuerpo, { 
 const rechazo = (error: string, status = 422) => responder({ ok: false, codigo: "rechazado", error }, status);
 
 /**
- * Recibe UN registro hecho sin señal (animal nuevo, ordeño, peso, monta, servicio, diagnóstico de gestación, sanidad, movimiento a un corral o compra) desde la bandeja del celular. Exige sesión, que la petición venga de la propia app y que
+ * Recibe UN registro hecho sin señal (animal nuevo, ordeño, peso, monta, servicio, diagnóstico de gestación, sanidad, movimiento a un corral, compra o venta) desde la bandeja del celular. Exige sesión, que la petición venga de la propia app y que
  * la persona pueda registrar eso en ESA finca (la del registro, no la activa: pudo cambiar de finca antes de que volviera la señal).
  * Respuestas: 200 guardado o ya estaba · 409 ya había otro dato · 422/403 rechazado · 401 sin sesión (el celular lo guarda y espera).
  */
@@ -48,6 +48,7 @@ export async function POST(request: Request) {
   if ((e.tipo === "monta" || e.tipo === "diagnostico" || e.tipo === "servicio") && !puede.reproduccion) return rechazo("No tienes permiso para registrar reproducción en esta finca.", 403);
   if (e.tipo === "animal" && !puede.hato) return rechazo("No tienes permiso para registrar animales en esta finca.", 403);
   if (e.tipo === "sanidad" && !puede.sanidad) return rechazo("No tienes permiso para registrar sanidad en esta finca.", 403);
+  if (e.tipo === "venta" && !puede.ventas) return rechazo("No tienes permiso para registrar ventas en esta finca.", 403);
   if (e.tipo === "compra" && !puede.compras) return rechazo("No tienes permiso para registrar compras en esta finca.", 403);
   if (e.tipo === "movimiento" && !puede.corrales) return rechazo("No tienes permiso para mover animales en esta finca.", 403);
 
@@ -65,7 +66,9 @@ export async function POST(request: Request) {
               ? await guardarServicioCampo(supabase, e, hoy)
               : e.tipo === "sanidad"
                 ? await guardarSanidadCampo(supabase, e, puede.lotes)
-                : e.tipo === "compra"
+                : e.tipo === "venta"
+                  ? await guardarVentaCampo(supabase, e, hoy)
+                  : e.tipo === "compra"
                   ? await guardarCompraCampo(supabase, e, finca.plan as PlanId, hoy)
                   : e.tipo === "movimiento"
                   ? await guardarMovimientoCampo(supabase, e, hoy, usuario)
@@ -73,7 +76,7 @@ export async function POST(request: Request) {
   if (r.ok) {
     revalidatePath(e.tipo === "ordeno" ? "/leche" : e.tipo === "peso" ? "/carne" : e.tipo === "animal" || e.tipo === "movimiento" ? "/hato" : e.tipo === "sanidad" ? "/sanidad" : "/reproduccion");
     if (e.tipo === "movimiento") revalidatePath("/corrales");
-    if (e.tipo === "compra") {
+    if (e.tipo === "compra" || e.tipo === "venta") {
       revalidatePath("/costos");
       revalidatePath("/inventario");
       revalidatePath("/");

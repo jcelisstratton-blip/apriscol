@@ -9,7 +9,7 @@ import { puedeEscribir } from "@/lib/permisos";
 import { litros as fmtLitros } from "@/lib/fechas";
 import {
   CONDICIONES, MAX_DIAS_GESTACION, errorFecha, errorLitros, errorPeso, redondearPeso,
-  type AnimalHato, type AnimalPesar, type UbicacionCampo, type ComprasCampo, COMPRAS_VACIAS, type EnvioCampo, type ProductoCampo, type HembraCampo, type HembraRepro, type MachoCampo, type RazaCampo, type ReferenciaCampo, type RespuestaEnvio,
+  type AnimalHato, type AnimalPesar, type UbicacionCampo, type ComprasCampo, type VentasCampo, COMPRAS_VACIAS, VENTAS_VACIAS, type EnvioCampo, type ProductoCampo, type HembraCampo, type HembraRepro, type MachoCampo, type RazaCampo, type ReferenciaCampo, type RespuestaEnvio,
 } from "@/lib/campo";
 import { reglasDiagnostico } from "@/lib/diagnostico-reglas";
 import { esquemaAnimal, fotoValida, prepararAnimalNuevo } from "@/lib/animal-nuevo";
@@ -22,9 +22,10 @@ import { leerServicio } from "@/lib/servicio-reglas";
 import { leerEventoSanitario, vincularPrograma } from "@/lib/evento-sanitario";
 import { leerMovimiento } from "@/lib/movimiento-reglas";
 import { esquemaCompra, filaCompra, recordarPrecioCompra, resolverListasCompra, revisarCompra } from "@/lib/compra-reglas";
+import { comprobarListasVenta, esquemaVenta, filaVenta, revisarVenta } from "@/lib/venta-reglas";
 import { asegurarTercero } from "@/lib/terceros-servidor";
 import { moduloEnPlan } from "@/lib/planes";
-import type { EstadoUbicacion, RubroGasto, TipoUbicacion, UsoUbicacion } from "@/lib/tipos";
+import type { EstadoUbicacion, LineaVenta, RubroGasto, TipoUbicacion, UsoUbicacion } from "@/lib/tipos";
 
 /**
  * El servidor del registro sin señal: la copia mínima de la finca para el celular y el guardado de lo que llega desde la bandeja del celular.
@@ -46,6 +47,7 @@ export function permisosCampo(rol: RolFinca, plan: PlanId): ReferenciaCampo["pue
     lotes: puedeEscribir(rol, "sanidad", plan) && puedeEscribir(rol, "contabilidad", plan),
     corrales: puedeEscribir(rol, "corrales", plan),
     compras: puedeEscribir(rol, "contabilidad", plan),
+    ventas: puedeEscribir(rol, "contabilidad", plan),
   };
 }
 
@@ -85,7 +87,10 @@ export async function leerReferenciaCampo(
       ? leerTodo((d, h) => supabase.from("movimientos_animales").select("animal_id, ubicacion_id").eq("finca_id", fincaId).is("hasta", null).order("animal_id").range(d, h))
       : null,
   ]);
-  const compras = puede.compras ? await leerComprasCampo(supabase, ctx.finca) : COMPRAS_VACIAS;
+  const [compras, ventas] = await Promise.all([
+    puede.compras ? leerComprasCampo(supabase, ctx.finca) : COMPRAS_VACIAS,
+    puede.ventas ? leerVentasCampo(supabase, fincaId) : VENTAS_VACIAS,
+  ]);
 
   const ordeno: HembraCampo[] = (leche?.animales ?? []).map((a) => ({
     id: a.id,
@@ -157,7 +162,7 @@ export async function leerReferenciaCampo(
     .sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
 
   return {
-    version: 6,
+    version: 7,
     generadaEn: ahora.toISOString(),
     hoy,
     usuario: { id: ctx.usuarioId },
@@ -174,6 +179,22 @@ export async function leerReferenciaCampo(
     productos,
     ubicaciones,
     compras,
+    ventas,
+  };
+}
+
+/** Lo de Ventas para la copia: los productos de venta que se registran a mano (activos, sin los automáticos) y los compradores activos. */
+async function leerVentasCampo(supabase: Cliente, fincaId: string): Promise<VentasCampo> {
+  const [productos, terceros] = await Promise.all([
+    leerTodo((d, h) => supabase.from("finca_productos").select("id, nombre, linea, unidad, precio_habitual, orden").eq("finca_id", fincaId).eq("tipo", "venta").eq("automatico", false).eq("activo", true).order("id").range(d, h)),
+    leerTodo((d, h) => supabase.from("finca_terceros").select("id, nombre, tipo").eq("finca_id", fincaId).eq("activo", true).order("id").range(d, h)),
+  ]);
+  const porNombre = (a: { nombre: string }, b: { nombre: string }) => a.nombre.localeCompare(b.nombre, "es");
+  return {
+    productos: (productos.data ?? [])
+      .map((p) => ({ id: p.id, nombre: p.nombre, linea: (p.linea ?? "otros") as LineaVenta, unidad: p.unidad ?? null, precio: p.precio_habitual != null ? Number(p.precio_habitual) : null, orden: p.orden ?? 0 }))
+      .sort((a, b) => a.orden - b.orden || porNombre(a, b)),
+    compradores: (terceros.data ?? []).filter((t) => t.tipo === "comprador" || t.tipo === "ambos").map((t) => ({ id: t.id, nombre: t.nombre })).sort(porNombre),
   };
 }
 
@@ -232,6 +253,7 @@ export const esquemaEnvio = z.discriminatedUnion("tipo", [
   z.object({ tipo: z.literal("servicio"), id: uuid, fincaId: uuid, animalId: uuid, fecha, campos: z.record(z.string(), z.string().max(1000)) }),
   z.object({ tipo: z.literal("sanidad"), id: uuid, fincaId: uuid, animalId: uuid, fecha, campos: z.record(z.string(), z.string().max(1000)), animales: z.array(uuid).min(1).max(1000) }),
   z.object({ tipo: z.literal("compra"), id: uuid, fincaId: uuid, animalId: uuid, fecha, campos: z.record(z.string(), z.string().max(1000)) }),
+  z.object({ tipo: z.literal("venta"), id: uuid, fincaId: uuid, animalId: uuid, fecha, campos: z.record(z.string(), z.string().max(1000)) }),
   z.object({ tipo: z.literal("movimiento"), id: uuid, fincaId: uuid, animalId: uuid, fecha, campos: z.record(z.string(), z.string().max(1000)), animales: z.array(uuid).min(1).max(1000), creadoEn: z.iso.datetime({ offset: true }) }),
 ]);
 
@@ -576,5 +598,39 @@ export async function guardarCompraCampo(supabase: Cliente, e: Extract<EnvioCamp
     return rechazo(mensajeAmigable(error.message));
   }
   await recordarPrecioCompra(supabase, e.fincaId, d);
+  return { ok: true, estado: "guardado" };
+}
+
+/**
+ * Una venta anotada sin señal (o desde «Registrar una venta» cuando se cayó la señal): las mismas reglas que con señal (`esquemaVenta`, `revisarVenta`,
+ * `comprobarListasVenta`: producto de venta de la finca, nunca uno de los que entran solos) y la misma tabla. El identificador del registro es su
+ * `client_request_id`: reenviarla no la duplica. Un comprador nuevo (`comprador_nuevo`) se reutiliza o se crea con `asegurarTercero`. Una venta es un
+ * hecho nuevo: nunca reemplaza otra.
+ */
+export async function guardarVentaCampo(supabase: Cliente, e: Extract<EnvioCampo, { tipo: "venta" }>, hoy: string): Promise<RespuestaEnvio> {
+  const ya = await supabase.from("ventas").select("id").eq("finca_id", e.fincaId).eq("client_request_id", e.id).maybeSingle();
+  if (ya.data) return { ok: true, estado: "ya_estaba" };
+  const campos: Record<string, string> = { ...e.campos, client_request_id: e.id };
+  delete campos.venta_id;
+  const datos = esquemaVenta.safeParse(campos);
+  if (!datos.success) return rechazo(datos.error.issues[0]?.message ?? "Revisa los datos de la venta.");
+  const d = datos.data;
+  const problema = revisarVenta(d, hoy);
+  if (problema) return rechazo(problema);
+  const listas = await comprobarListasVenta(supabase, e.fincaId, d);
+  if (listas) return rechazo(listas);
+
+  const nuevo = (campos.comprador_nuevo ?? "").replace(/\s+/g, " ").trim().slice(0, 120);
+  if (!d.tercero_id && nuevo) {
+    const t = await asegurarTercero(supabase, e.fincaId, nuevo, "comprador");
+    if ("error" in t) return rechazo(t.error);
+    d.tercero_id = t.tercero.id;
+  }
+  const { error } = await supabase.from("ventas").insert({ finca_id: e.fincaId, ...filaVenta(d), client_request_id: e.id });
+  if (error) {
+    if (esDuplicado(error)) return { ok: true, estado: "ya_estaba" };
+    return rechazo(mensajeAmigable(error.message));
+  }
+  await supabase.rpc("recordar_precio_producto", { p_finca: e.fincaId, p_producto: d.producto_id, p_precio: d.precio_unitario });
   return { ok: true, estado: "guardado" };
 }
