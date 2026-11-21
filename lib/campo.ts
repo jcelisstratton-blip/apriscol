@@ -1,6 +1,6 @@
 import { sumarDias } from "@/lib/fechas";
 import { turnosDe, type Turno } from "@/lib/ordeno";
-import type { Cobertura, Especie, EstadoRepro, IndicadorPalpacion, MetodoDiagnostico, ResultadoDiagnostico, SexoAnimal, ViabilidadFetal, Vocacion } from "@/lib/tipos";
+import type { Cobertura, Especie, EstadoRepro, EstadoUbicacion, IndicadorPalpacion, MetodoDiagnostico, ResultadoDiagnostico, SexoAnimal, TipoUbicacion, UsoUbicacion, ViabilidadFetal, Vocacion } from "@/lib/tipos";
 
 /**
  * Registrar sin señal (modo sin señal, paso 3): reglas puras que usan la pantalla `/campo`, la captura de leche, la pesada de ceba, el motor de
@@ -66,16 +66,37 @@ export type MachoCampo = { id: string; arete: string; nombre: string | null; esp
 export type RazaCampo = { id: number; especie: Especie; nombre: string; cobertura: Cobertura | null };
 
 /** Un animal de la finca para elegir padre o madre y comprobar que el arete no se repita (también los que ya salieron). */
-export type AnimalHato = { id: string; arete: string; nombre: string | null; sexo: SexoAnimal; especie: Especie; activo: boolean };
+export type AnimalHato = {
+  id: string;
+  arete: string;
+  nombre: string | null;
+  sexo: SexoAnimal;
+  especie: Especie;
+  activo: boolean;
+  /** Corrales: la instalación donde está hoy (`null` = sin ubicación). Solo viene si la persona mueve animales. */
+  ubicacion?: string | null;
+};
+
+/** Un corral o potrero activo de la finca (para mover animales sin señal). La ocupación se calcula con `ubicacionesEfectivas`. */
+export type UbicacionCampo = {
+  id: string;
+  nombre: string;
+  tipo: TipoUbicacion;
+  uso: UsoUbicacion;
+  capacidad: number | null;
+  estado: EstadoUbicacion;
+  diasDescanso: number | null;
+  diasDescansoMin: number;
+};
 
 /** Lo mínimo de la finca para registrar sin señal. Se guarda en el celular de quien abre la app con señal. */
 export type ReferenciaCampo = {
-  version: 4;
+  version: 5;
   generadaEn: string;
   hoy: string;
   usuario: { id: string };
   finca: { id: string; nombre: string };
-  puede: { leche: boolean; pesos: boolean; reproduccion: boolean; hato: boolean; sanidad: boolean; lotes: boolean };
+  puede: { leche: boolean; pesos: boolean; reproduccion: boolean; hato: boolean; sanidad: boolean; lotes: boolean; corrales: boolean };
   ordeno: HembraCampo[];
   pesar: AnimalPesar[];
   /** Hembras activas y reproductores (solo si la persona registra reproducción). */
@@ -88,9 +109,11 @@ export type ReferenciaCampo = {
   animales: AnimalHato[];
   /** Para Sanidad: el catálogo de productos veterinarios de la finca (los animales salen de `animales`). */
   productos: ProductoCampo[];
+  /** Para Corrales: las instalaciones activas (dónde está cada animal va en `animales`). */
+  ubicaciones: UbicacionCampo[];
 };
 
-export type TipoRegistroCampo = "ordeno" | "peso" | "monta" | "diagnostico" | "animal" | "sanidad" | "servicio";
+export type TipoRegistroCampo = "ordeno" | "peso" | "monta" | "diagnostico" | "animal" | "sanidad" | "servicio" | "movimiento";
 
 /** Lo que se anota en un diagnóstico de gestación sin señal (ecografía o palpación). */
 export type DiagnosticoCampo = {
@@ -135,10 +158,10 @@ export type RegistroCampo = {
   diagnostico?: DiagnosticoCampo;
   /**
    * Los mismos campos (texto) que envía el formulario con señal: animal nuevo (`animalId` es el propio identificador del registro), sanidad,
-   * servicio desde la ficha y lo extra de un peso desde la ficha (tipo, condición corporal, observaciones).
+   * servicio desde la ficha, lo extra de un peso desde la ficha (tipo, condición corporal, observaciones) y el movimiento a un corral.
    */
   campos?: Record<string, string>;
-  /** Sanidad: los animales que recibieron el tratamiento (`animalId` es el primero). */
+  /** Sanidad y movimiento: los animales del registro (`animalId` es el primero). */
   animales?: string[];
   creadoEn: string;
   estado: EstadoRegistro;
@@ -156,7 +179,9 @@ export type EnvioCampo =
   | ({ tipo: "diagnostico"; id: string; fincaId: string; animalId: string; fecha: string } & DiagnosticoCampo)
   | { tipo: "animal"; id: string; fincaId: string; animalId: string; fecha: string; campos: Record<string, string> }
   | { tipo: "servicio"; id: string; fincaId: string; animalId: string; fecha: string; campos: Record<string, string> }
-  | { tipo: "sanidad"; id: string; fincaId: string; animalId: string; fecha: string; campos: Record<string, string>; animales: string[] };
+  | { tipo: "sanidad"; id: string; fincaId: string; animalId: string; fecha: string; campos: Record<string, string>; animales: string[] }
+  /** `creadoEn`: cuándo se anotó en el celular; un movimiento registrado DESPUÉS por otra persona no se pisa. */
+  | { tipo: "movimiento"; id: string; fincaId: string; animalId: string; fecha: string; campos: Record<string, string>; animales: string[]; creadoEn: string };
 
 export function envioDe(r: RegistroCampo): EnvioCampo {
   const base = { id: r.id, fincaId: r.fincaId, animalId: r.animalId, fecha: r.fecha };
@@ -166,6 +191,7 @@ export function envioDe(r: RegistroCampo): EnvioCampo {
   if (r.tipo === "animal") return { tipo: "animal", ...base, campos: r.campos ?? {} };
   if (r.tipo === "servicio") return { tipo: "servicio", ...base, campos: r.campos ?? {} };
   if (r.tipo === "sanidad") return { tipo: "sanidad", ...base, campos: r.campos ?? {}, animales: r.animales ?? [] };
+  if (r.tipo === "movimiento") return { tipo: "movimiento", ...base, campos: r.campos ?? {}, animales: r.animales ?? [], creadoEn: r.creadoEn };
   return { tipo: "peso", ...base, peso: r.peso!, ...(r.campos && Object.keys(r.campos).length > 0 ? { extras: r.campos } : {}) };
 }
 
@@ -305,17 +331,18 @@ export function referenciaVencida(ref: Pick<ReferenciaCampo, "generadaEn"> | nul
 
 /**
  * Lee una copia guardada y la descarta si está dañada. Las copias de versiones anteriores (1: ordeño y pesos; 2: más monta y diagnóstico;
- * 3: más animal nuevo) siguen sirviendo para lo que ya traían: se completan vacías hasta que la app se abra con señal y traiga la nueva.
+ * 3: más animal nuevo; 4: más sanidad) siguen sirviendo para lo que ya traían: se completan vacías hasta que la app se abra con señal y traiga la nueva.
  */
 export function referenciaValida(valor: unknown): ReferenciaCampo | null {
   if (typeof valor !== "object" || valor === null) return null;
   const r = valor as Omit<Partial<ReferenciaCampo>, "version" | "puede"> & { version?: number; puede?: Partial<ReferenciaCampo["puede"]> };
-  if (![1, 2, 3, 4].includes(r.version ?? 0) || typeof r.generadaEn !== "string" || typeof r.hoy !== "string") return null;
+  if (![1, 2, 3, 4, 5].includes(r.version ?? 0) || typeof r.generadaEn !== "string" || typeof r.hoy !== "string") return null;
   if (!r.usuario?.id || !r.finca?.id || !Array.isArray(r.ordeno) || !Array.isArray(r.pesar) || !r.puede) return null;
   const v = r.version!;
   if (v >= 2 && (!Array.isArray(r.hembras) || !Array.isArray(r.machos))) return null;
   if (v >= 3 && (!Array.isArray(r.especies) || !Array.isArray(r.razas) || !Array.isArray(r.animales))) return null;
   if (v >= 4 && !Array.isArray(r.productos)) return null;
+  if (v >= 5 && !Array.isArray(r.ubicaciones)) return null;
   const puede = {
     leche: Boolean(r.puede.leche),
     pesos: Boolean(r.puede.pesos),
@@ -323,10 +350,11 @@ export function referenciaValida(valor: unknown): ReferenciaCampo | null {
     hato: v >= 3 && Boolean(r.puede.hato),
     sanidad: v >= 4 && Boolean(r.puede.sanidad),
     lotes: v >= 4 && Boolean(r.puede.lotes),
+    corrales: v >= 5 && Boolean(r.puede.corrales),
   };
   return {
     ...(r as ReferenciaCampo),
-    version: 4,
+    version: 5,
     puede,
     hembras: r.hembras ?? [],
     machos: r.machos ?? [],
@@ -335,6 +363,7 @@ export function referenciaValida(valor: unknown): ReferenciaCampo | null {
     razas: r.razas ?? [],
     animales: r.animales ?? [],
     productos: r.productos ?? [],
+    ubicaciones: r.ubicaciones ?? [],
   };
 }
 
@@ -382,4 +411,30 @@ export function nombreMachoExterno(texto: string): string | null {
 /** Hembras para diagnosticar: primero las servidas (esperan diagnóstico), luego el resto. */
 export function hembrasParaDiagnostico(hembras: HembraRepro[]): HembraRepro[] {
   return [...hembras].sort((a, b) => Number(b.estado === "servida") - Number(a.estado === "servida") || a.arete.localeCompare(b.arete, "es", { numeric: true }));
+}
+
+// ───────────── Corrales: mover animales ─────────────
+
+/**
+ * Dónde está cada animal activo según la copia de la finca MÁS los movimientos de esta persona guardados en el celular que aún no se envían (en el
+ * orden en que se anotaron), sin contar el que se está corrigiendo. Así, mover un lote dos veces seguidas sin señal cuenta bien el cupo.
+ */
+export function ubicacionesEfectivas(ref: Pick<ReferenciaCampo, "animales" | "finca">, registros: RegistroCampo[], usuarioId: string, excepto?: string): Map<string, string | null> {
+  const donde = new Map<string, string | null>();
+  for (const a of ref.animales) if (a.activo) donde.set(a.id, a.ubicacion ?? null);
+  const propios = registros
+    .filter((r) => r.tipo === "movimiento" && r.id !== excepto && r.usuarioId === usuarioId && r.fincaId === ref.finca.id && r.estado !== "enviado" && r.estado !== "error")
+    .sort((a, b) => a.creadoEn.localeCompare(b.creadoEn));
+  for (const r of propios) {
+    const destino = r.campos?.sin_destino === "si" ? null : (r.campos?.destino ?? null);
+    for (const id of r.animales ?? []) if (donde.has(id)) donde.set(id, destino);
+  }
+  return donde;
+}
+
+/** Cuántos animales hay en cada instalación según `ubicacionesEfectivas`. */
+export function ocupacion(donde: Map<string, string | null>): Map<string, number> {
+  const n = new Map<string, number>();
+  for (const u of donde.values()) if (u) n.set(u, (n.get(u) ?? 0) + 1);
+  return n;
 }

@@ -15,6 +15,7 @@ import { leerNumero } from "@/lib/numeros";
 import { DIAS_DESCANSO_DEFECTO, DIAS_OCUPACION_DEFECTO, MOTIVOS, PISOS, TIPOS_UBICACION, USOS } from "@/lib/corrales";
 import { DIRECCION_CORRALES } from "@/lib/hato";
 import { opcional } from "@/lib/validacion";
+import { leerMovimiento } from "@/lib/movimiento-reglas";
 
 export type EstadoForm = { error?: string } | undefined;
 type Resultado = { ok: true } | { ok: false; error: string };
@@ -125,30 +126,13 @@ export async function eliminarUbicacion(id: string): Promise<Resultado & { desti
 }
 
 // ───────────────────────── Mover animales ─────────────────────────
-const esquemaMover = z.object({
-  destino: opcional(z.uuid("El destino no es válido.")),
-  sin_destino: z.preprocess((v) => v === "si", z.boolean()),
-  fecha: z.iso.date("Indica la fecha del movimiento."),
-  motivo: z.enum(MOTIVOS as [string, ...string[]], "Elige el motivo."),
-  observaciones: opcional(z.string().trim().max(300, "Las observaciones son muy largas (máximo 300 letras).")),
-  animal: opcional(z.uuid()),
-  /** El destino al que se vuelve al terminar (la instalación desde la que se llegó). */
-  volver: opcional(z.uuid()),
-});
-
 /** Mueve a los animales elegidos a una instalación (o los saca de la que tienen) y deja el movimiento en el historial de cada uno. */
 export async function moverAnimales(_: EstadoForm, form: FormData): Promise<EstadoForm> {
   const { finca, rol } = await obtenerContexto();
   if (!puedeEscribir(rol, "corrales", finca.plan)) return { error: "No tienes permiso para mover animales en esta finca." };
-  const datos = esquemaMover.safeParse(Object.fromEntries(form));
-  if (!datos.success) return { error: datos.error.issues[0]?.message ?? "Revisa los datos." };
-  const d = datos.data;
-  const ids = [...new Set(form.getAll("animal_id").map(String))];
-  if (ids.length === 0) return { error: "Elige al menos un animal." };
-  if (ids.length > 1000) return { error: "Son demasiados animales a la vez (máximo 1000)." };
-  if (!ids.every((i) => ID_UUID.safeParse(i).success)) return { error: "Hay un animal que no es válido. Elígelos de nuevo." };
-  if (d.fecha > hoyBogota()) return { error: "La fecha no puede ser futura: registra lo que ya se movió." };
-  if (!d.sin_destino && !d.destino) return { error: "Elige a dónde van los animales." };
+  const leido = leerMovimiento(Object.fromEntries(form), form.getAll("animal_id").map(String), hoyBogota());
+  if ("error" in leido) return { error: leido.error };
+  const { d, ids } = leido;
 
   const supabase = await crearClienteServidor();
   const { error } = await supabase.rpc("mover_animales", { p_finca: finca.id, p_ubicacion: d.sin_destino ? null : (d.destino ?? null), p_animales: ids, p_fecha: d.fecha, p_motivo: d.motivo, p_observaciones: d.observaciones ?? "" });

@@ -26,7 +26,7 @@ export const AYUDA_CORRALES: Ayuda = {
     { titulo: "Instalaciones", texto: "Crea tus corrales y potreros y dile a la app cuántos animales caben en cada uno." },
     { titulo: "Cupo", texto: "Si un corral está lleno, la app no deja meter más animales: así se evita el hacinamiento, que causa estrés, peleas y enfermedades." },
     { titulo: "Etapas y mezcla", texto: "Cada animal tiene su etapa (lactante, levante, lista para monta, ceba, adulto) según su edad y su peso frente al peso adulto de tu finca. La app avisa, sin bloquear, si un corral mezcla lactantes con animales ya destetados, machos destetados con hembras o pesos muy distintos. Los machos se separan después de la lactancia." },
-    { titulo: "Mover", texto: "Mueve uno, varios o todo un lote. Cada animal guarda por dónde ha pasado, y si te equivocas puedes corregir el movimiento." },
+    { titulo: "Mover", texto: "Mueve uno, varios o todo un lote. Cada animal guarda por dónde ha pasado, y si te equivocas puedes corregir el movimiento. Sin señal en el potrero, usa «Mover animales sin señal»: queda en el celular y se envía solo." },
     {
       titulo: "Rotación de potreros",
       texto: `El lote debe salir a los ${DIAS_OCUPACION_DEFECTO} días y el potrero descansa ${DIAS_DESCANSO_DEFECTO}: así los parásitos no completan su ciclo. Puedes cambiar esos días en cada potrero.`,
@@ -73,7 +73,7 @@ export const AYUDA_CAMPO: Ayuda = {
   tutorial: 5,
   puntos: [
     { titulo: "Prepárala con señal", texto: "Abre Apriscol con señal al menos una vez en este celular: así guarda la lista de tus animales, razas y reproductores para trabajar sin señal." },
-    { titulo: "Anota donde estés", texto: "Sin señal, abre esta pantalla (también sale en la página «Sin señal») y crea un animal nuevo, o anota el ordeño, el peso, la monta, el diagnóstico de gestación o la sanidad (vacunas, tratamientos…). Queda guardado en el celular." },
+    { titulo: "Anota donde estés", texto: "Sin señal, abre esta pantalla (también sale en la página «Sin señal») y crea un animal nuevo, o anota el ordeño, el peso, la monta, el diagnóstico de gestación la sanidad (vacunas, tratamientos…) o mover animales de corral o potrero. Queda guardado en el celular." },
     { titulo: "Se envía solo", texto: "Cuando vuelve la señal se envía sin que hagas nada, con la app abierta. En iPhone se envía al abrir la app, no en segundo plano." },
     { titulo: "Nada se duplica ni se pisa", texto: "Si ya había un dato de ese animal en esa jornada o ese día, no se cambia: el tuyo queda en «Pendientes con error» para que decidas. La temporada de empadre se arma y se cierra con señal." },
     { titulo: "Si algo no entra", texto: "Un animal que ya salió del hato o un permiso que cambió dejan el registro en «Pendientes con error», con el motivo, para reintentar o descartar." },

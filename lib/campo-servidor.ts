@@ -1,7 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import type { Cobertura, Database, Especie, EstadoRepro, PlanId, RolFinca, Vocacion } from "@/lib/tipos";
-import { leerTodo } from "@/lib/consultas";
+import { enTramos, leerTodo } from "@/lib/consultas";
 import { leerCeba } from "@/lib/ceba-servidor";
 import { hembrasEnLeche } from "@/lib/ordeno-servidor";
 import { mensajeAmigable } from "@/lib/mensaje-amigable";
@@ -9,7 +9,7 @@ import { puedeEscribir } from "@/lib/permisos";
 import { litros as fmtLitros } from "@/lib/fechas";
 import {
   CONDICIONES, MAX_DIAS_GESTACION, errorFecha, errorLitros, errorPeso, redondearPeso,
-  type AnimalHato, type AnimalPesar, type EnvioCampo, type ProductoCampo, type HembraCampo, type HembraRepro, type MachoCampo, type RazaCampo, type ReferenciaCampo, type RespuestaEnvio,
+  type AnimalHato, type AnimalPesar, type UbicacionCampo, type EnvioCampo, type ProductoCampo, type HembraCampo, type HembraRepro, type MachoCampo, type RazaCampo, type ReferenciaCampo, type RespuestaEnvio,
 } from "@/lib/campo";
 import { reglasDiagnostico } from "@/lib/diagnostico-reglas";
 import { esquemaAnimal, fotoValida, prepararAnimalNuevo } from "@/lib/animal-nuevo";
@@ -20,6 +20,8 @@ import { TIPOS_PESAJE } from "@/lib/carne";
 import { VALORES_CC } from "@/lib/empadronamiento";
 import { leerServicio } from "@/lib/servicio-reglas";
 import { leerEventoSanitario, vincularPrograma } from "@/lib/evento-sanitario";
+import { leerMovimiento } from "@/lib/movimiento-reglas";
+import type { EstadoUbicacion, TipoUbicacion, UsoUbicacion } from "@/lib/tipos";
 
 /**
  * El servidor del registro sin señal: la copia mínima de la finca para el celular y el guardado de lo que llega desde la bandeja del celular.
@@ -39,6 +41,7 @@ export function permisosCampo(rol: RolFinca, plan: PlanId): ReferenciaCampo["pue
     sanidad: puedeEscribir(rol, "sanidad", plan),
     // Quien compra (propietario o administrador) escribe el lote del producto al aplicar; los demás lo eligen con señal.
     lotes: puedeEscribir(rol, "sanidad", plan) && puedeEscribir(rol, "contabilidad", plan),
+    corrales: puedeEscribir(rol, "corrales", plan),
   };
 }
 
@@ -51,8 +54,8 @@ export async function leerReferenciaCampo(
 ): Promise<ReferenciaCampo> {
   const puede = permisosCampo(ctx.rol, ctx.finca.plan);
   const fincaId = ctx.finca.id;
-  const conAnimales = puede.hato || puede.sanidad;
-  const [leche, ceba, todos, repro, razasDB, hatoDB, productosDB] = await Promise.all([
+  const conAnimales = puede.hato || puede.sanidad || puede.corrales;
+  const [leche, ceba, todos, repro, razasDB, hatoDB, productosDB, ubicacionesDB, abiertosDB] = await Promise.all([
     puede.leche ? hembrasEnLeche(supabase, fincaId) : null,
     puede.pesos ? leerCeba(supabase, fincaId, hoy) : null,
     puede.pesos || puede.reproduccion
@@ -68,6 +71,13 @@ export async function leerReferenciaCampo(
       : null,
     puede.sanidad
       ? leerTodo((d, h) => supabase.from("productos_veterinarios").select("id, nombre, tipo, retiro_leche_dias, retiro_carne_dias, unidad_dosis").eq("finca_id", fincaId).eq("activo", true).order("id").range(d, h))
+      : null,
+    // Corrales: las instalaciones activas y dónde está hoy cada animal (su fila abierta).
+    puede.corrales
+      ? leerTodo((d, h) => supabase.from("v_ubicaciones").select("id, nombre, tipo, uso, capacidad, estado, dias_descanso, dias_descanso_min").eq("finca_id", fincaId).eq("activa", true).order("id").range(d, h))
+      : null,
+    puede.corrales
+      ? leerTodo((d, h) => supabase.from("movimientos_animales").select("animal_id, ubicacion_id").eq("finca_id", fincaId).is("hasta", null).order("animal_id").range(d, h))
       : null,
   ]);
 
@@ -110,16 +120,38 @@ export async function leerReferenciaCampo(
     : [];
 
   const razas: RazaCampo[] = ((razasDB?.data ?? []) as { id: number; especie: Especie; nombre: string; cobertura: Cobertura | null }[]).map((r) => ({ id: r.id, especie: r.especie, nombre: r.nombre, cobertura: r.cobertura ?? null }));
+  const dondeEsta = new Map((abiertosDB?.data ?? []).map((m) => [m.animal_id, m.ubicacion_id]));
   const animales: AnimalHato[] = (hatoDB?.data ?? [])
-    .map((a) => ({ id: a.id, arete: a.numero_arete, nombre: a.nombre, sexo: a.sexo as AnimalHato["sexo"], especie: a.especie as Especie, activo: a.estado === "activo" }))
+    .map((a) => ({
+      id: a.id,
+      arete: a.numero_arete,
+      nombre: a.nombre,
+      sexo: a.sexo as AnimalHato["sexo"],
+      especie: a.especie as Especie,
+      activo: a.estado === "activo",
+      ...(puede.corrales ? { ubicacion: a.estado === "activo" ? (dondeEsta.get(a.id) ?? null) : null } : {}),
+    }))
     .sort(porArete);
+  const ubicaciones: UbicacionCampo[] = (ubicacionesDB?.data ?? [])
+    .filter((u) => u.id && u.nombre)
+    .map((u) => ({
+      id: u.id!,
+      nombre: u.nombre!,
+      tipo: u.tipo as TipoUbicacion,
+      uso: u.uso as UsoUbicacion,
+      capacidad: u.capacidad ?? null,
+      estado: (u.estado ?? "vacio") as EstadoUbicacion,
+      diasDescanso: u.dias_descanso ?? null,
+      diasDescansoMin: u.dias_descanso_min ?? 35,
+    }))
+    .sort((a, b) => a.tipo.localeCompare(b.tipo) || a.nombre.localeCompare(b.nombre, "es", { numeric: true }));
 
   const productos: ProductoCampo[] = (productosDB?.data ?? [])
     .map((p) => ({ id: p.id, nombre: p.nombre, tipo: p.tipo, retiroLeche: p.retiro_leche_dias ?? 0, retiroCarne: p.retiro_carne_dias ?? 0, unidad: p.unidad_dosis ?? null }))
     .sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
 
   return {
-    version: 4,
+    version: 5,
     generadaEn: ahora.toISOString(),
     hoy,
     usuario: { id: ctx.usuarioId },
@@ -134,6 +166,7 @@ export async function leerReferenciaCampo(
     razas,
     animales,
     productos,
+    ubicaciones,
   };
 }
 
@@ -166,6 +199,7 @@ export const esquemaEnvio = z.discriminatedUnion("tipo", [
   z.object({ tipo: z.literal("animal"), id: uuid, fincaId: uuid, animalId: uuid, fecha, campos: z.record(z.string(), z.string().max(1000)) }),
   z.object({ tipo: z.literal("servicio"), id: uuid, fincaId: uuid, animalId: uuid, fecha, campos: z.record(z.string(), z.string().max(1000)) }),
   z.object({ tipo: z.literal("sanidad"), id: uuid, fincaId: uuid, animalId: uuid, fecha, campos: z.record(z.string(), z.string().max(1000)), animales: z.array(uuid).min(1).max(1000) }),
+  z.object({ tipo: z.literal("movimiento"), id: uuid, fincaId: uuid, animalId: uuid, fecha, campos: z.record(z.string(), z.string().max(1000)), animales: z.array(uuid).min(1).max(1000), creadoEn: z.iso.datetime({ offset: true }) }),
 ]);
 
 const rechazo = (error: string): RespuestaEnvio => ({ ok: false, codigo: "rechazado", error });
@@ -409,5 +443,67 @@ export async function guardarSanidadCampo(supabase: Cliente, e: Extract<EnvioCam
     return rechazo(mensajeAmigable(error.message));
   }
   if (leido.programaId && data) await vincularPrograma(supabase, e.fincaId, leido.programaId, data as string, leido.ids);
+  return { ok: true, estado: "guardado" };
+}
+
+const listaAretes = (aretes: string[]) => (aretes.length <= 5 ? aretes.join(", ") : `${aretes.slice(0, 5).join(", ")} y ${aretes.length - 5} más`);
+
+/**
+ * Mover animales a un corral o potrero (o sacarlos de donde están), anotado sin señal: las mismas reglas que con señal (`leerMovimiento`) y la misma
+ * función de la base (`mover_animales`, que exige el cupo y la fecha). Reenviarlo no duplica nada: los que ya están en el destino no se mueven.
+ * **Nunca pisa a otra persona**: si alguno lo movió OTRA persona después de anotarse este registro (su fila abierta se creó después de `creadoEn`, o
+ * con fecha posterior), no se mueve ninguno y pasa a «Pendientes con error» para corregirlo; tampoco si salió del hato. Lo que movió la misma persona
+ * no cuenta como ajeno: dos movimientos seguidos del mismo lote guardados sin señal se envían en orden y el segundo debe aplicarse.
+ */
+export async function guardarMovimientoCampo(supabase: Cliente, e: Extract<EnvioCampo, { tipo: "movimiento" }>, hoy: string, usuarioId: string): Promise<RespuestaEnvio> {
+  const problema = errorFecha(e.campos.fecha ?? "", hoy);
+  if (problema) return rechazo(problema);
+  const leido = leerMovimiento(e.campos, e.animales, hoy);
+  if ("error" in leido) return rechazo(leido.error);
+  const { d, ids } = leido;
+  const destino = d.sin_destino ? null : (d.destino ?? null);
+
+  const animales: { id: string; numero_arete: string; estado: string; deleted_at: string | null }[] = [];
+  const abiertos: { animal_id: string; ubicacion_id: string; desde: string; created_at: string; created_by: string | null }[] = [];
+  for (const tramo of enTramos(ids)) {
+    const [a, m] = await Promise.all([
+      supabase.from("animales").select("id, numero_arete, estado, deleted_at").eq("finca_id", e.fincaId).in("id", tramo),
+      supabase.from("movimientos_animales").select("animal_id, ubicacion_id, desde, created_at, created_by").eq("finca_id", e.fincaId).is("hasta", null).in("animal_id", tramo),
+    ]);
+    if (a.error || m.error) return rechazo(mensajeAmigable((a.error ?? m.error)!.message));
+    animales.push(...(a.data ?? []));
+    abiertos.push(...(m.data ?? []));
+  }
+  const arete = new Map(animales.map((a) => [a.id, a.numero_arete]));
+  const fuera = ids.filter((i) => !animales.some((a) => a.id === i && a.estado === "activo" && !a.deleted_at));
+  if (fuera.length > 0) {
+    const nombres = fuera.map((i) => arete.get(i)).filter((x): x is string => Boolean(x));
+    return rechazo(
+      nombres.length > 0
+        ? `${listaAretes(nombres)} ya ${nombres.length === 1 ? "salió" : "salieron"} del hato. No se movió ninguno: quítalos con «Corregir» y vuelve a enviar.`
+        : "Hay un animal que ya no está en la finca. No se movió ninguno: corrige la lista y vuelve a enviar.",
+    );
+  }
+
+  const fila = new Map(abiertos.map((m) => [m.animal_id, m]));
+  // Ya hecho: los que están en el destino (o sin ubicación, si se sacaban). Si son todos, este registro ya había llegado.
+  const hecho = (i: string) => (destino ? fila.get(i)?.ubicacion_id === destino : !fila.has(i));
+  const faltan = ids.filter((i) => !hecho(i));
+  if (faltan.length === 0) return { ok: true, estado: "ya_estaba" };
+
+  const anotado = Date.parse(e.creadoEn);
+  const otros = faltan.filter((i) => {
+    const f = fila.get(i);
+    return f !== undefined && f.created_by !== usuarioId && (Date.parse(f.created_at) > anotado || f.desde > d.fecha);
+  });
+  if (otros.length > 0) {
+    const nombres = otros.map((i) => arete.get(i) ?? "un animal");
+    return conflicto(
+      `${listaAretes(nombres)} ${otros.length === 1 ? "lo movió" : "los movieron"} otra persona o desde otro aparato después de que anotaste este movimiento. No se movió ninguno para no cambiar lo que registraron: quítalos con «Corregir» y vuelve a enviar.`,
+    );
+  }
+
+  const { error } = await supabase.rpc("mover_animales", { p_finca: e.fincaId, p_ubicacion: destino, p_animales: faltan, p_fecha: d.fecha, p_motivo: d.motivo, p_observaciones: d.observaciones ?? "" });
+  if (error) return rechazo(mensajeAmigable(error.message));
   return { ok: true, estado: "guardado" };
 }

@@ -8,6 +8,7 @@ import { Campo, CLASE_INPUT } from "@/components/Campo";
 import { Segmentado } from "@/components/Segmentado";
 import { SelectorTarjetas } from "@/components/SelectorTarjetas";
 import { crearUbicacion, editarUbicacion } from "@/app/(app)/hato/corrales/actions";
+import { accionConRespaldo, errorDe } from "@/lib/offline/respaldo";
 import { AYUDA_USO, ETIQUETA_PISO, ETIQUETA_TIPO_UBICACION, ETIQUETA_USO, PISOS, PISOS_SECOS, TIPOS_UBICACION, USOS } from "@/lib/corrales";
 import { ESCENA_TIPO_UBICACION } from "@/lib/escenas-corrales";
 import { ESCENA_PISO, ESCENA_USO_UBICACION } from "@/lib/escenas-forms-a-corrales";
@@ -21,7 +22,9 @@ const coma = (n: number | null | undefined) => (n == null ? "" : String(n).repla
  */
 export function FormUbicacion({ ubicacion, volver, ocupantes = 0 }: { ubicacion?: Ubicacion; volver: string; /** Cuántos animales hay hoy (al editar): la capacidad no puede bajar de ahí. */ ocupantes?: number }) {
   const editando = Boolean(ubicacion);
-  const [estado, enviar, pendiente] = useActionState(editando ? editarUbicacion : crearUbicacion, undefined);
+  // Sin señal: un corral o potrero se crea con señal (de él dependen el cupo y la rotación); avisa y deja lo escrito.
+  const [estado, enviar, pendiente] = useActionState(accionConRespaldo(editando ? editarUbicacion : crearUbicacion, null), undefined);
+  const error = errorDe(estado);
   const [, iniciar] = useTransition();
   const [tipo, setTipo] = useState<TipoUbicacion>(ubicacion?.tipo ?? "corral");
   const [uso, setUso] = useState<UsoUbicacion>(ubicacion?.uso ?? "general");
@@ -114,7 +117,7 @@ export function FormUbicacion({ ubicacion, volver, ocupantes = 0 }: { ubicacion?
         {(id) => <textarea id={id} name="observaciones" defaultValue={ubicacion?.observaciones ?? ""} rows={3} maxLength={500} className={`${CLASE_INPUT} py-3`} />}
       </Campo>
 
-      {estado?.error ? <Aviso tipo="error">{estado.error}</Aviso> : null}
+      {error ? <Aviso tipo="error">{error}</Aviso> : null}
       <div className="space-y-2">
         <Boton type="submit" pendiente={pendiente} cargando="Guardando…">{editando ? "Guardar cambios" : "Crear"}</Boton>
         <Link href={volver} className={clasesBoton("fantasma")}>Cancelar</Link>

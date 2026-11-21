@@ -4,10 +4,11 @@ import { existsSync, readFileSync } from "node:fs";
 import {
   aplicarTecla, coincideBusqueda, enRetiroLeche, enviadosViejos, envioDe, errorFecha, errorLitros, errorPeso, hembrasDelTurno, jornadaDeHora, numeroDeTexto, porEnviar,
   redondearPeso, referenciaValida, referenciaVencida, registrosDe, resultadoEnvio, resumenBandeja, MAX_LITROS, MAX_PESO, RUTA_CAMPO,
-  hembrasParaDiagnostico, machosPara, nombreMachoExterno, areteClave, areteRepetido, padresPosibles,
+  hembrasParaDiagnostico, machosPara, nombreMachoExterno, areteClave, areteRepetido, padresPosibles, ubicacionesEfectivas, ocupacion,
 } from "../lib/campo.ts";
+import { cupoDestino, leerMovimiento, motivoPorDestino } from "../lib/movimiento-reglas.ts";
 import { esquemaAnimal, prepararAnimalNuevo } from "../lib/animal-nuevo.ts";
-import { esquemaEnvio, guardarAnimalCampo, guardarDiagnosticoCampo, guardarMontaCampo, guardarSanidadCampo, guardarServicioCampo, guardarOrdenoCampo, guardarPesoCampo, leerReferenciaCampo, permisosCampo } from "../lib/campo-servidor.ts";
+import { esquemaEnvio, guardarAnimalCampo, guardarDiagnosticoCampo, guardarMontaCampo, guardarMovimientoCampo, guardarSanidadCampo, guardarServicioCampo, guardarOrdenoCampo, guardarPesoCampo, leerReferenciaCampo, permisosCampo } from "../lib/campo-servidor.ts";
 import { reglasDiagnostico } from "../lib/diagnostico-reglas.ts";
 import { ATAJOS } from "../lib/atajos.ts";
 import { AYUDA_CAMPO } from "../lib/ayuda.ts";
@@ -112,30 +113,32 @@ test("campo: qué hacer con cada respuesta del servidor", () => {
 
 test("campo: la copia de la finca se descarta si es vieja o está dañada; las de versiones anteriores siguen sirviendo para lo que traían", () => {
   const ref = {
-    version: 4, generadaEn: "2026-11-20T10:00:00Z", hoy: HOY, usuario: { id: U }, finca: { id: FINCA, nombre: "La Esperanza" },
-    puede: { leche: true, pesos: true, reproduccion: true, hato: true, sanidad: true, lotes: true }, ordeno: [], pesar: [], hembras: [], machos: [],
-    especies: ["caprino"], proposito: "leche", razas: [], animales: [], productos: [],
+    version: 5, generadaEn: "2026-11-20T10:00:00Z", hoy: HOY, usuario: { id: U }, finca: { id: FINCA, nombre: "La Esperanza" },
+    puede: { leche: true, pesos: true, reproduccion: true, hato: true, sanidad: true, lotes: true, corrales: true }, ordeno: [], pesar: [], hembras: [], machos: [],
+    especies: ["caprino"], proposito: "leche", razas: [], animales: [], productos: [], ubicaciones: [],
   };
   assert.deepEqual(referenciaValida(ref), ref);
-  for (const malo of [null, "x", { ...ref, version: 5 }, { ...ref, ordeno: null }, { ...ref, usuario: {} }, { ...ref, hembras: undefined }, { ...ref, animales: undefined }, { ...ref, productos: undefined }]) assert.equal(referenciaValida(malo), null);
-  const extra = { especies: [], proposito: "leche", razas: [], animales: [], productos: [] };
+  for (const malo of [null, "x", { ...ref, version: 6 }, { ...ref, ordeno: null }, { ...ref, usuario: {} }, { ...ref, hembras: undefined }, { ...ref, animales: undefined }, { ...ref, productos: undefined }, { ...ref, ubicaciones: undefined }]) assert.equal(referenciaValida(malo), null);
+  const extra = { especies: [], proposito: "leche", razas: [], animales: [], productos: [], ubicaciones: [] };
   const v1 = { version: 1, generadaEn: ref.generadaEn, hoy: HOY, usuario: { id: U }, finca: ref.finca, puede: { leche: true, pesos: false }, ordeno: [], pesar: [] };
-  assert.deepEqual(referenciaValida(v1), { ...v1, version: 4, puede: { leche: true, pesos: false, reproduccion: false, hato: false, sanidad: false, lotes: false }, hembras: [], machos: [], ...extra });
+  assert.deepEqual(referenciaValida(v1), { ...v1, version: 5, puede: { leche: true, pesos: false, reproduccion: false, hato: false, sanidad: false, lotes: false, corrales: false }, hembras: [], machos: [], ...extra });
   const v2 = { ...v1, version: 2, puede: { leche: true, pesos: true, reproduccion: true }, hembras: [], machos: [] };
-  assert.deepEqual(referenciaValida(v2), { ...v2, version: 4, puede: { leche: true, pesos: true, reproduccion: true, hato: false, sanidad: false, lotes: false }, ...extra });
+  assert.deepEqual(referenciaValida(v2), { ...v2, version: 5, puede: { leche: true, pesos: true, reproduccion: true, hato: false, sanidad: false, lotes: false, corrales: false }, ...extra });
   const v3 = { ...v2, version: 3, puede: { leche: true, pesos: true, reproduccion: true, hato: true }, especies: ["caprino"], proposito: "carne", razas: [], animales: [] };
-  assert.deepEqual(referenciaValida(v3), { ...v3, version: 4, puede: { ...v3.puede, sanidad: false, lotes: false }, productos: [] });
+  assert.deepEqual(referenciaValida(v3), { ...v3, version: 5, puede: { ...v3.puede, sanidad: false, lotes: false, corrales: false }, productos: [], ubicaciones: [] });
+  const v4 = { ...v3, version: 4, puede: { ...v3.puede, sanidad: true, lotes: false }, productos: [] };
+  assert.deepEqual(referenciaValida(v4), { ...v4, version: 5, puede: { ...v4.puede, corrales: false }, ubicaciones: [] }, "una copia de la versión 4 sirve, sin corrales hasta renovarse");
   assert.equal(referenciaVencida(ref, new Date("2026-11-20T10:10:00Z")), false);
   assert.equal(referenciaVencida(ref, new Date("2026-11-20T10:16:00Z")), true);
   assert.equal(referenciaVencida(null, new Date()), true);
 });
 
 test("campo: permisos por rol (los mismos módulos que con señal)", () => {
-  assert.deepEqual(permisosCampo("propietario", "hacienda"), { leche: true, pesos: true, reproduccion: true, hato: true, sanidad: true, lotes: true });
-  assert.deepEqual(permisosCampo("administrador", "hacienda"), { leche: true, pesos: true, reproduccion: true, hato: true, sanidad: true, lotes: true });
-  assert.deepEqual(permisosCampo("ordenador", "hacienda"), { leche: true, pesos: false, reproduccion: false, hato: false, sanidad: false, lotes: false });
-  assert.deepEqual(permisosCampo("veterinario", "hacienda"), { leche: false, pesos: false, reproduccion: true, hato: false, sanidad: true, lotes: false });
-  assert.deepEqual(permisosCampo("contador", "hacienda"), { leche: false, pesos: false, reproduccion: false, hato: false, sanidad: false, lotes: false });
+  assert.deepEqual(permisosCampo("propietario", "hacienda"), { leche: true, pesos: true, reproduccion: true, hato: true, sanidad: true, lotes: true, corrales: true });
+  assert.deepEqual(permisosCampo("administrador", "hacienda"), { leche: true, pesos: true, reproduccion: true, hato: true, sanidad: true, lotes: true, corrales: true });
+  assert.deepEqual(permisosCampo("ordenador", "hacienda"), { leche: true, pesos: false, reproduccion: false, hato: false, sanidad: false, lotes: false, corrales: false });
+  assert.deepEqual(permisosCampo("veterinario", "hacienda"), { leche: false, pesos: false, reproduccion: true, hato: false, sanidad: true, lotes: false, corrales: true });
+  assert.deepEqual(permisosCampo("contador", "hacienda"), { leche: false, pesos: false, reproduccion: false, hato: false, sanidad: false, lotes: false, corrales: false });
 });
 
 // ───────────────────────── Servidor con una base falsa ─────────────────────────
@@ -280,7 +283,17 @@ test("servidor: la copia de la finca lleva solo lo indispensable, según lo que 
     { id: "p1", finca_id: FINCA, nombre: "Ivermectina", tipo: "desparasitante", retiro_leche_dias: 7, retiro_carne_dias: 28, unidad_dosis: "ml", activo: true },
     { id: "p2", finca_id: FINCA, nombre: "Viejo", tipo: "otro", retiro_leche_dias: 0, retiro_carne_dias: 0, unidad_dosis: null, activo: false },
   ];
-  const db = baseFalsa({ animales: animales(), lactancias, lotes_ceba: [], v_repro_hembras, razas, productos_veterinarios }, rpcs);
+  const v_ubicaciones = [
+    { id: "u2", finca_id: FINCA, nombre: "Potrero 1", tipo: "potrero", uso: "general", capacidad: null, estado: "descanso", dias_descanso: 12, dias_descanso_min: 35, activa: true },
+    { id: "u1", finca_id: FINCA, nombre: "Corral 1", tipo: "corral", uso: "crias", capacidad: 10, estado: "ocupado", dias_descanso: null, dias_descanso_min: 35, activa: true },
+    { id: "u3", finca_id: FINCA, nombre: "Archivado", tipo: "corral", uso: "general", capacidad: 5, estado: "vacio", dias_descanso: null, dias_descanso_min: 35, activa: false },
+  ];
+  const movimientos_animales = [
+    { finca_id: FINCA, animal_id: A1, ubicacion_id: "u1", hasta: null },
+    { finca_id: FINCA, animal_id: A2, ubicacion_id: "u2", hasta: "2026-11-01" },
+    { finca_id: FINCA, animal_id: VENDIDA, ubicacion_id: "u1", hasta: null },
+  ];
+  const db = baseFalsa({ animales: animales(), lactancias, lotes_ceba: [], v_repro_hembras, razas, productos_veterinarios, v_ubicaciones, movimientos_animales }, rpcs);
   const ctx = (rol) => ({ usuarioId: U, finca: { id: FINCA, nombre: "La Esperanza", plan: "hacienda", especies: ["caprino", "ovino"], proposito: "leche" }, rol });
   const ref = await leerReferenciaCampo(db, ctx("propietario"), HOY, new Date("2026-11-20T15:00:00Z"));
   assert.equal(ref.generadaEn, "2026-11-20T15:00:00.000Z");
@@ -302,10 +315,16 @@ test("servidor: la copia de la finca lleva solo lo indispensable, según lo que 
   assert.equal(ref.proposito, "leche");
   assert.deepEqual(ref.razas.map((r) => r.nombre), ["Saanen", "Katahdin"]);
   assert.deepEqual(ref.animales.map((a) => [a.arete, a.activo]), [["101", true], ["102", true], ["200", true], ["300", false], ["400", true]], "para padre y madre y el arete: también los que salieron");
-  assert.deepEqual(Object.keys(ref.animales[0]).sort(), ["activo", "arete", "especie", "id", "nombre", "sexo"]);
+  assert.deepEqual(Object.keys(ref.animales[0]).sort(), ["activo", "arete", "especie", "id", "nombre", "sexo", "ubicacion"]);
+  assert.deepEqual(ref.animales.map((a) => [a.arete, a.ubicacion]), [["101", "u1"], ["102", null], ["200", null], ["300", null], ["400", null]], "dónde está hoy cada animal activo (solo su fila abierta)");
+  assert.deepEqual(ref.ubicaciones, [
+    { id: "u1", nombre: "Corral 1", tipo: "corral", uso: "crias", capacidad: 10, estado: "ocupado", diasDescanso: null, diasDescansoMin: 35 },
+    { id: "u2", nombre: "Potrero 1", tipo: "potrero", uso: "general", capacidad: null, estado: "descanso", diasDescanso: 12, diasDescansoMin: 35 },
+  ], "solo las instalaciones activas, corrales primero");
 
   const ordenador = await leerReferenciaCampo(db, ctx("ordenador"), HOY);
-  assert.deepEqual(ordenador.puede, { leche: true, pesos: false, reproduccion: false, hato: false, sanidad: false, lotes: false });
+  assert.deepEqual(ordenador.puede, { leche: true, pesos: false, reproduccion: false, hato: false, sanidad: false, lotes: false, corrales: false });
+  assert.deepEqual(ordenador.ubicaciones, [], "quien no mueve animales no se lleva los corrales");
   assert.deepEqual(ordenador.productos, [], "quien no registra sanidad no se lleva el catálogo de productos");
   assert.deepEqual(ref.productos, [{ id: "p1", nombre: "Ivermectina", tipo: "desparasitante", retiroLeche: 7, retiroCarne: 28, unidad: "ml" }], "solo los productos activos, con su retiro");
   assert.deepEqual([ordenador.especies, ordenador.razas, ordenador.animales], [[], [], []], "quien no crea animales no se lleva el hato ni las razas");
@@ -313,7 +332,7 @@ test("servidor: la copia de la finca lleva solo lo indispensable, según lo que 
   assert.deepEqual(ordenador.pesar, [], "quien no pesa no se lleva la lista del hato");
   assert.deepEqual([ordenador.hembras, ordenador.machos], [[], []], "quien no registra reproducción no se lleva hembras ni reproductores");
   const vet = await leerReferenciaCampo(db, ctx("veterinario"), HOY);
-  assert.deepEqual(vet.puede, { leche: false, pesos: false, reproduccion: true, hato: false, sanidad: true, lotes: false });
+  assert.deepEqual(vet.puede, { leche: false, pesos: false, reproduccion: true, hato: false, sanidad: true, lotes: false, corrales: true });
   assert.deepEqual([vet.ordeno, vet.pesar], [[], []]);
   assert.equal(vet.animales.length, 5, "el veterinario se lleva los animales para Sanidad");
   assert.deepEqual([vet.especies, vet.razas], [[], []], "pero no lo de crear animales");
@@ -626,6 +645,131 @@ test("respaldo: ningún formulario de lo que se hace sin señal pierde lo escrit
   assert.match(leer("app/(app)/reproduccion/actions.ts"), /client_request_id: l\.d\.client_request_id \?\? null/, "el diagnóstico con señal también lleva su identificador (doble toque)");
   assert.ok(ATAJOS.some((a) => a.href === "/campo#sanidad" && a.modulo === "sanidad"), "«Sanidad sin señal» en «Al grano»");
   assert.match(leer("app/(app)/hato/Sanidad.tsx"), /<EnlaceSinSenal [^>]*ancla="sanidad"/);
+});
+
+// ───────────────────────── Corrales: mover animales ─────────────────────────
+
+const C1 = "c1c1c1c1-c1c1-4c1c-8c1c-c1c1c1c1c1c1";
+const C2 = "c2c2c2c2-c2c2-4c2c-8c2c-c2c2c2c2c2c2";
+const OTRA = "88888888-8888-4888-8888-888888888888";
+
+test("corrales: dónde está cada animal suma lo movido en el celular; el cupo y el motivo son los de con señal", () => {
+  const ref = {
+    finca: { id: FINCA, nombre: "La Esperanza" },
+    animales: [
+      { id: A1, arete: "101", nombre: null, sexo: "hembra", especie: "caprino", activo: true, ubicacion: C1 },
+      { id: A2, arete: "102", nombre: null, sexo: "hembra", especie: "caprino", activo: true, ubicacion: C1 },
+      { id: MACHO, arete: "200", nombre: null, sexo: "macho", especie: "caprino", activo: true, ubicacion: null },
+      { id: VENDIDA, arete: "300", nombre: null, sexo: "hembra", especie: "caprino", activo: false, ubicacion: null },
+    ],
+  };
+  const mov = (id, creadoEn, animales, campos, extra = {}) => ({ id, tipo: "movimiento", usuarioId: U, fincaId: FINCA, animalId: animales[0], animales, etiqueta: "", fecha: HOY, campos, creadoEn, estado: "pendiente", intentos: 0, ...extra });
+  const registros = [
+    mov(uuid(2), "2026-11-20T09:00:00Z", [A1, MACHO], { destino: C2, sin_destino: "no", fecha: HOY, motivo: "rotacion" }),
+    mov(uuid(1), "2026-11-20T08:00:00Z", [A1], { sin_destino: "si", fecha: HOY, motivo: "otro" }),
+    mov(uuid(3), "2026-11-20T10:00:00Z", [A2], { destino: C2, sin_destino: "no", fecha: HOY, motivo: "traslado" }, { estado: "error" }),
+    mov(uuid(4), "2026-11-20T10:00:00Z", [A2], { destino: C2, sin_destino: "no", fecha: HOY, motivo: "traslado" }, { usuarioId: OTRA }),
+  ];
+  const donde = ubicacionesEfectivas(ref, registros, U);
+  assert.deepEqual([...donde.entries()], [[A1, C2], [A2, C1], [MACHO, C2]], "en orden de anotación; sin los que tienen error, los de otra cuenta ni los que salieron");
+  assert.deepEqual([...ocupacion(donde).entries()], [[C2, 2], [C1, 1]]);
+  assert.equal(ubicacionesEfectivas(ref, registros, U, uuid(2)).get(A1), null, "sin contar el registro que se está corrigiendo");
+  assert.deepEqual(cupoDestino(10, 9, 3, 1), { libres: 1, entran: 2, sinCupo: true }, "los que ya están en el destino no cuentan");
+  assert.deepEqual(cupoDestino(null, 50, 30, 0), { libres: null, entran: 30, sinCupo: false }, "un potrero sin capacidad no tiene tope");
+  assert.equal(motivoPorDestino({ tipo: "potrero", uso: "general" }), "rotacion");
+  assert.equal(motivoPorDestino({ tipo: "corral", uso: "cuarentena" }), "cuarentena");
+  assert.equal(motivoPorDestino({ tipo: "corral", uso: "crias" }), "traslado");
+  assert.match(leerMovimiento({ sin_destino: "no", fecha: HOY, motivo: "traslado" }, [A1], HOY).error, /a dónde van/);
+  assert.match(leerMovimiento({ destino: C1, sin_destino: "no", fecha: "2099-01-01", motivo: "traslado" }, [A1], HOY).error, /futura/);
+  assert.match(leerMovimiento({ destino: C1, sin_destino: "no", fecha: HOY, motivo: "traslado" }, [], HOY).error, /al menos un animal/);
+  assert.deepEqual(leerMovimiento({ destino: C1, sin_destino: "no", fecha: HOY, motivo: "traslado" }, [A1, A1], HOY).ids, [A1]);
+});
+
+/** `mover_animales` de mentira: el cupo, y por animal cierra su fila abierta y abre otra (como la base: `created_by` = quien llama). */
+function moverFalso(quien, ahora) {
+  return (args, tablas) => {
+    const filas = (tablas.movimientos_animales ??= []);
+    const cap = (tablas.ubicaciones ?? []).find((u) => u.id === args.p_ubicacion)?.capacidad ?? null;
+    if (cap !== null) {
+      const ocupan = filas.filter((m) => m.ubicacion_id === args.p_ubicacion && m.hasta === null).length;
+      const entran = args.p_animales.filter((a) => !filas.some((m) => m.animal_id === a && m.ubicacion_id === args.p_ubicacion && m.hasta === null)).length;
+      if (entran > cap - ocupan) return { data: null, error: { code: "23514", message: `En la instalación solo caben ${cap - ocupan} animales más y quieres mover ${entran}.` } };
+    }
+    for (const a of args.p_animales) {
+      const abierta = filas.find((m) => m.animal_id === a && m.hasta === null);
+      if (abierta && abierta.ubicacion_id === args.p_ubicacion) continue;
+      if (abierta) abierta.hasta = args.p_fecha;
+      if (args.p_ubicacion) filas.push({ finca_id: args.p_finca, animal_id: a, ubicacion_id: args.p_ubicacion, desde: args.p_fecha, hasta: null, motivo: args.p_motivo, created_at: ahora, created_by: quien });
+    }
+    tablas.llamadas = (tablas.llamadas ?? 0) + 1;
+    return { data: args.p_animales.length, error: null };
+  };
+}
+const movimiento = (campos = {}, extra = {}) => ({
+  tipo: "movimiento", id: uuid(70), fincaId: FINCA, animalId: A1, fecha: HOY, animales: [A1, A2], creadoEn: "2026-11-20T08:00:00.000Z",
+  campos: { destino: C2, sin_destino: "no", fecha: HOY, motivo: "rotacion", ...campos },
+  ...extra,
+});
+const baseCorrales = (movs = []) => baseFalsa(
+  { animales: animales(), ubicaciones: [{ id: C1, capacidad: 10 }, { id: C2, capacidad: 3 }], movimientos_animales: movs },
+  { mover_animales: moverFalso(U, "2026-11-20T12:00:00.000Z") },
+);
+const abierta = (animal, ubicacion, extra = {}) => ({ finca_id: FINCA, animal_id: animal, ubicacion_id: ubicacion, desde: "2026-11-10", hasta: null, created_at: "2026-11-10T08:00:00.000Z", created_by: OTRA, ...extra });
+
+test("servidor: mover sin señal usa la función de la base; reenviarlo no mueve nada otra vez", async () => {
+  const db = baseCorrales([abierta(A1, C1), abierta(A2, C1)]);
+  assert.deepEqual(await guardarMovimientoCampo(db, movimiento(), HOY, U), { ok: true, estado: "guardado" });
+  assert.deepEqual(db.tablas.movimientos_animales.filter((m) => m.hasta === null).map((m) => [m.animal_id, m.ubicacion_id]), [[A1, C2], [A2, C2]]);
+  assert.deepEqual(await guardarMovimientoCampo(db, movimiento(), HOY, U), { ok: true, estado: "ya_estaba" });
+  assert.equal(db.tablas.llamadas, 1, "el reenvío no llama a la base");
+  const sacar = await guardarMovimientoCampo(db, movimiento({ destino: "", sin_destino: "si", motivo: "otro" }, { id: uuid(71), creadoEn: "2026-11-20T13:00:00.000Z" }), HOY, U);
+  assert.deepEqual(sacar, { ok: true, estado: "guardado" });
+  assert.equal(db.tablas.movimientos_animales.filter((m) => m.hasta === null).length, 0, "sacarlos cierra su fila sin abrir otra");
+});
+
+test("servidor: mover sin señal nunca pisa lo que otra persona movió después; lo propio sí se aplica en orden", async () => {
+  const despues = abierta(A2, C1, { created_at: "2026-11-20T09:30:00.000Z" });
+  const db = baseCorrales([abierta(A1, C1), despues]);
+  const r = await guardarMovimientoCampo(db, movimiento(), HOY, U);
+  assert.equal(r.codigo, "conflicto");
+  assert.match(r.error, /102 lo movió otra persona[\s\S]*No se movió ninguno[\s\S]*Corregir/);
+  assert.equal(db.tablas.llamadas, undefined, "no tocó la base");
+  const conFecha = baseCorrales([abierta(A1, C1, { desde: "2026-11-21" }), abierta(A2, C1)]);
+  assert.equal((await guardarMovimientoCampo(conFecha, movimiento(), HOY, U)).codigo, "conflicto", "una entrada con fecha posterior tampoco se pisa");
+  // Dos movimientos de la misma persona guardados sin señal: el primero crea filas «después» del segundo, y aun así el segundo se aplica.
+  const propio = baseCorrales([abierta(A1, C1), abierta(A2, C1)]);
+  assert.deepEqual(await guardarMovimientoCampo(propio, movimiento(), HOY, U), { ok: true, estado: "guardado" });
+  const segundo = movimiento({ destino: C1, motivo: "traslado" }, { id: uuid(72), creadoEn: "2026-11-20T08:05:00.000Z" });
+  assert.deepEqual(await guardarMovimientoCampo(propio, segundo, HOY, U), { ok: true, estado: "guardado" });
+  assert.deepEqual(propio.tablas.movimientos_animales.filter((m) => m.hasta === null).map((m) => m.ubicacion_id), [C1, C1]);
+});
+
+test("servidor: mover sin señal rechaza lo que con señal se rechaza (salió del hato, sin cupo, sin destino)", async () => {
+  const vendida = await guardarMovimientoCampo(baseCorrales(), movimiento({}, { animales: [A1, VENDIDA] }), HOY, U);
+  assert.match(vendida.error, /300 ya salió del hato\. No se movió ninguno/);
+  const lleno = await guardarMovimientoCampo(baseCorrales([abierta(MACHO, C2), abierta(OVEJO, C2)]), movimiento(), HOY, U);
+  assert.match(lleno.error, /solo caben 1 animales más/, "el cupo lo exige la base");
+  assert.match((await guardarMovimientoCampo(baseCorrales(), movimiento({ destino: "" }), HOY, U)).error, /a dónde van/);
+  assert.match((await guardarMovimientoCampo(baseCorrales(), movimiento({ fecha: "2025-01-01" }), HOY, U)).error, /un año/);
+  assert.ok(esquemaEnvio.safeParse(movimiento()).success);
+  assert.ok(!esquemaEnvio.safeParse({ ...movimiento(), creadoEn: undefined }).success, "sin la hora en que se anotó no se puede saber qué es más reciente");
+  assert.deepEqual(envioDe({ ...movimiento(), usuarioId: U, etiqueta: "x", estado: "pendiente", intentos: 0 }), movimiento(), "viaja con la hora en que se anotó");
+});
+
+test("corrales: la pantalla, el formulario con señal, la ayuda y los atajos están conectados", () => {
+  const pantalla = leer("components/campo/PantallaCampo.tsx");
+  assert.match(pantalla, /<MoverCampo /);
+  assert.match(pantalla, /ancla === "corrales"/, "«#corrales» abre directo esa parte");
+  assert.match(leer("components/campo/MoverCampo.tsx"), /leerMovimiento\(/, "valida con la misma regla que con señal");
+  assert.match(leer("app/(app)/hato/corrales/actions.ts"), /leerMovimiento\(/);
+  assert.match(leer("components/FormMover.tsx"), /tipo: "movimiento"/, "mover con señal guarda en el celular si se cae la señal");
+  for (const f of ["components/FormMover.tsx", "components/FormMovimiento.tsx", "components/FormUbicacion.tsx"]) assert.match(leer(f), /accionConRespaldo\(/, `${f}: no rompe la pantalla sin señal`);
+  assert.match(leer("components/FormMover.tsx"), /<AvisoGuardadoLocal \/>/);
+  assert.ok(ATAJOS.some((a) => a.href === "/campo#corrales" && a.modulo === "corrales"), "«Mover animales sin señal» en «Al grano»");
+  assert.match(leer("app/(app)/hato/Corrales.tsx"), /<EnlaceSinSenal [^>]*ancla="corrales"/);
+  assert.match(leer("app/api/campo/enviar/route.ts"), /e\.tipo === "movimiento" && !puede\.corrales/);
+  assert.match(leer("components/MotorCampo.tsx"), /referencia\.puede\.corrales/);
+  assert.ok(AYUDA_CAMPO.puntos.some((p) => /corral o potrero/.test(p.texto)));
 });
 
 // ───────────────────────── Conexiones ─────────────────────────
