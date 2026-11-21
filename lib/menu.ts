@@ -1,4 +1,4 @@
-import { CirclePlay, Inbox, Plug, WifiOff, Activity, Baby, Beef, Boxes, Download, Droplets, Fence, FileBarChart2, Gift, GitFork, Home, MapPin, Package, PawPrint, Plus, Rocket, Send, SlidersHorizontal, Syringe, TrendingUp, Trophy, Users, Wallet, Scissors, type LucideIcon } from "lucide-react";
+import { CirclePlay, Inbox, Plug, Smartphone, WifiOff, Activity, Baby, Beef, Boxes, Download, Droplets, Fence, FileBarChart2, Gift, GitFork, Home, MapPin, Package, PawPrint, Plus, Rocket, Send, SlidersHorizontal, Syringe, TrendingUp, Trophy, Users, Wallet, Scissors, type LucideIcon } from "lucide-react";
 import { puedeEscribir, puedeGestionar, puedeVer, revisaNovedades } from "@/lib/permisos";
 import { reportesVisibles } from "@/lib/reportes/catalogo";
 import { areasSemaforo } from "@/lib/semaforos";
@@ -136,6 +136,8 @@ export function menuFinca(v: VisibilidadMenu): EntradaMenu[] {
     { href: "/mas/referidos", etiqueta: "Referidos", Icono: Gift, acento: true },
     ...(v.propietario ? [{ href: "/mas/plan", etiqueta: v.planMejorable ? "Cambiar el plan" : "Plan de esta finca", Icono: Rocket, acento: true }] : []),
     ...(v.propietario ? [{ href: "/mas/exportar", etiqueta: "Exportar datos", Icono: Download }] : []),
+    // Para todos: instalada se abre de un toque (también sin señal) y el celular no borra lo guardado sin señal.
+    { href: "/mas/instalar", etiqueta: "Instalar la app", Icono: Smartphone },
     ...(v.agregarFinca ? [{ href: "/onboarding", etiqueta: "Agregar otra finca", Icono: Plus }] : []),
   ];
 }

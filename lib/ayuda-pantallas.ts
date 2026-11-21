@@ -232,6 +232,18 @@ export const AYUDA_PANTALLA: Record<string, Ayuda> = {
   },
 
 
+  "/mas/instalar": {
+    titulo: "Instalar la app",
+    tutorial: 5,
+    puntos: [
+      { titulo: "Para qué", texto: "Apriscol queda en la pantalla de inicio como una app más y se abre de un toque, también sin señal." },
+      { titulo: "Lo guardado sin señal", texto: "Instalada, el celular no borra lo que anotas sin señal. En iPhone es lo único que lo protege si pasan unos días sin abrirla." },
+      { titulo: "Cómo", texto: "En Android, Chrome ofrece «Instalar». En iPhone se hace desde Safari: Compartir y luego «Agregar a inicio»." },
+      { titulo: "No es una descarga", texto: "No pasa por la tienda de apps, ocupa muy poco y siempre tiene la última versión." },
+    ],
+    enlace: { href: "/mas/tutoriales", texto: "Ver los tutoriales" },
+  },
+
   "/mas/tutoriales": {
     titulo: "Tutoriales",
     tutorial: 0,

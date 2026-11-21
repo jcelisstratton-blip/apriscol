@@ -1,77 +1,25 @@
 "use client";
 
-import { useEffect, useState, useSyncExternalStore } from "react";
+import { useSyncExternalStore } from "react";
+import Link from "next/link";
 import { Share, Smartphone } from "lucide-react";
-import { avisoInstalarVisible, CLAVE_INSTALAR_OCULTO, plataformaDe, type Plataforma } from "@/lib/instalar";
+import { RUTA_INSTALAR } from "@/lib/instalar";
+import { avisoTexto, instalarDirecto, ocultarAviso, puedeInstalarDirecto, suscribirInstalar } from "@/lib/instalar-navegador";
+import { dentroDeApp } from "@/lib/instalar";
 
-/** El evento con el que Chrome en Android ofrece instalar la página (no está en los tipos de TypeScript). */
-type EventoInstalar = Event & { prompt: () => Promise<void>; userChoice: Promise<{ outcome: "accepted" | "dismissed" }> };
-
-/** Se avisa al ocultar o instalar, para que el aviso se vuelva a leer. */
-const EVENTO_INSTALAR = "apriscol:instalar";
-
-const leerOculto = () => {
-  try {
-    return localStorage.getItem(CLAVE_INSTALAR_OCULTO);
-  } catch {
-    return null;
-  }
-};
-
-/** «Ahora no» o ya instalada (en la pestaña del navegador sigue sin verse como app): se recuerda la fecha y se vuelve a leer el aviso. */
-function ocultar() {
-  try {
-    localStorage.setItem(CLAVE_INSTALAR_OCULTO, new Date().toISOString());
-  } catch {
-    // Sin almacenamiento no se puede recordar: volverá a salir.
-  }
-  window.dispatchEvent(new Event(EVENTO_INSTALAR));
-}
-
-/** Qué aviso mostrar en este navegador («» = ninguno). Se lee en el navegador; en el servidor no sale. */
-function plataformaVisible(): Plataforma | "" {
-  const instalada = window.matchMedia("(display-mode: standalone)").matches || (navigator as Navigator & { standalone?: boolean }).standalone === true;
-  const p = plataformaDe(navigator.userAgent, navigator.maxTouchPoints ?? 0);
-  return avisoInstalarVisible({ instalada, plataforma: p, ocultoEn: leerOculto(), ahora: new Date() }) ? p : "";
-}
-
-const suscribir = (avisar: () => void) => {
-  window.addEventListener(EVENTO_INSTALAR, avisar);
-  window.addEventListener("appinstalled", ocultar);
-  return () => {
-    window.removeEventListener(EVENTO_INSTALAR, avisar);
-    window.removeEventListener("appinstalled", ocultar);
-  };
-};
+const nada = () => () => {};
 
 /**
  * Invita a instalar Apriscol en la pantalla de inicio del celular, para abrirla sin señal de un toque y para que el celular no borre lo guardado sin
- * señal (en iPhone es lo que lo protege). En Android con Chrome ofrece «Instalar» directo; si el navegador no lo permite, y siempre en iPhone, dice los
- * pasos. No sale en el computador, si ya está instalada ni durante unos días tras «Ahora no» (`lib/instalar.ts`). Una tarjeta suave: es una
- * sugerencia, no un problema.
+ * señal (en iPhone es lo que lo protege). Con Chrome o Edge ofrece «Instalar» directo; si el navegador no lo permite, y siempre en iPhone, dice los
+ * pasos, y «Ver cómo» lleva a Mi finca → Instalar la app. No sale en el computador, si ya está instalada ni durante unos días tras «Ahora no»
+ * (`lib/instalar.ts`, `lib/instalar-navegador.ts`). Una tarjeta suave: es una sugerencia, no un problema.
  */
 export function AvisoInstalar({ className = "" }: { className?: string }) {
-  const plataforma = useSyncExternalStore(suscribir, plataformaVisible, () => "" as const);
-  const [evento, setEvento] = useState<EventoInstalar | null>(null);
-
-  useEffect(() => {
-    const ofrecer = (e: Event) => {
-      e.preventDefault();
-      setEvento(e as EventoInstalar);
-    };
-    window.addEventListener("beforeinstallprompt", ofrecer);
-    return () => window.removeEventListener("beforeinstallprompt", ofrecer);
-  }, []);
-
+  const plataforma = useSyncExternalStore(suscribirInstalar, avisoTexto, () => "" as const);
+  const directo = useSyncExternalStore(suscribirInstalar, puedeInstalarDirecto, () => false);
+  const enOtraApp = useSyncExternalStore(nada, () => dentroDeApp(navigator.userAgent), () => false);
   if (!plataforma) return null;
-
-  const instalar = async () => {
-    if (!evento) return;
-    await evento.prompt();
-    const { outcome } = await evento.userChoice;
-    setEvento(null);
-    if (outcome === "accepted") ocultar();
-  };
 
   return (
     <section aria-label="Instala Apriscol en tu celular" className={`flex min-w-0 items-start gap-3.5 rounded-3xl bg-papel p-3.5 ring-1 ring-arena lg:max-w-xl ${className}`}>
@@ -85,7 +33,9 @@ export function AvisoInstalar({ className = "" }: { className?: string }) {
             ? "En iPhone es lo que protege lo que anotas sin señal: si no la instalas, el iPhone puede borrarlo cuando pasan unos días sin abrirla. Además la abres de un toque, aun sin señal."
             : "La abres de un toque desde la pantalla de inicio, aun sin señal, y el celular guarda mejor lo que anotas sin señal."}
         </p>
-        {plataforma === "ios" ? (
+        {enOtraApp ? (
+          <p className="mt-2 text-[0.9375rem]">Estás dentro de otra app: abre esta página en {plataforma === "ios" ? "Safari" : "Chrome"} para poder instalarla.</p>
+        ) : plataforma === "ios" ? (
           <ol className="mt-2 grid grid-cols-1 gap-1 text-[0.9375rem]">
             <li className="flex min-w-0 items-center gap-2">
               <span className="grid size-6 shrink-0 place-items-center rounded-full bg-arena text-xs font-semibold">1</span>
@@ -98,20 +48,24 @@ export function AvisoInstalar({ className = "" }: { className?: string }) {
               <span className="min-w-0">Elige «Agregar a inicio» y luego «Agregar».</span>
             </li>
           </ol>
-        ) : !evento ? (
+        ) : !directo ? (
           <p className="mt-2 text-[0.9375rem]">Abre el menú del navegador (los tres puntos) y toca «Instalar aplicación» o «Agregar a la pantalla principal».</p>
         ) : null}
         <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1">
-          {evento ? (
+          {directo ? (
             <button
               type="button"
-              onClick={() => void instalar()}
+              onClick={() => void instalarDirecto()}
               className="inline-flex min-h-11 items-center gap-2 rounded-2xl bg-musgo px-4 text-[0.9375rem] font-semibold text-sobre-musgo shadow-sm transition hover:brightness-110 active:scale-[0.98]"
             >
               Instalar
             </button>
-          ) : null}
-          <button type="button" onClick={ocultar} className="inline-flex min-h-11 items-center text-[0.9375rem] font-semibold text-musgo underline-offset-4 hover:underline">
+          ) : (
+            <Link href={RUTA_INSTALAR} className="inline-flex min-h-11 items-center text-[0.9375rem] font-semibold text-musgo underline-offset-4 hover:underline">
+              Ver cómo
+            </Link>
+          )}
+          <button type="button" onClick={ocultarAviso} className="inline-flex min-h-11 items-center text-[0.9375rem] font-semibold text-humo underline-offset-4 hover:underline">
             Ahora no
           </button>
         </div>

@@ -315,6 +315,18 @@ La misma pantalla `/campo` suma **Monta** y **Diagnóstico** para quien registra
   señal; los controles de calidad del despacho se responden después, con señal. Enlace «¿Sin señal?» en las dos pantallas, atajos en «Al grano» y
   «Registrar sin señal» en el menú también para quien solo anota alimento (`nutricion` en `sinSenal`). Sin migración.
 
+### «Instalar la app» en Mi finca y aviso más confiable (21 nov 2026)
+
+- **Mi finca → Instalar la app** (`/mas/instalar`, `InstalarApp`), para todos los roles: dice cómo se detectó el aparato («Este aparato: Celular
+  Android · Abierta en Chrome · todavía no instalada aquí»), ofrece «Instalar Apriscol» cuando el navegador lo permite, avisa si se abrió dentro de
+  otra app (WhatsApp, Instagram, Gmail…: desde ahí no se puede instalar), da los pasos de iPhone, Android y computador (los de este aparato primero) y
+  permite volver a mostrar el aviso de Hoy si se ocultó. Atajo en Al grano y ayuda en `AYUDA_PANTALLA["/mas/instalar"]`.
+- **Dos fallas corregidas del aviso**: (1) un celular que pide el «sitio de escritorio» (Chrome lo hace solo en pantallas grandes y plegables) se
+  presentaba como computador y el aviso no salía: ahora una pantalla táctil con puntero de dedo cuenta como celular (`plataformaDe(…, tactil)`); (2)
+  Chrome avisa una sola vez por carga que se puede instalar (`beforeinstallprompt`) y se perdía si Hoy no estaba abierto: ahora lo escucha
+  `lib/instalar-navegador.ts` desde que carga la app (lo importa `RegistrarSW`) y lo comparten el aviso y la pantalla. Reglas puras en
+  `lib/instalar.ts` (`plataformaDe`, `navegadorDe`, `dentroDeApp`), con pruebas.
+
 ### Prueba en la finca (Android y iPhone, en modo avión)
 
 Lo emulado en Chromium (Pixel 7 e iPhone 13, sin red) ya pasa: abre `/campo` guardada, anota alimento y despacho, crea un animal y una cría y los usa

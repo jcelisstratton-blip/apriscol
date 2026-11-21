@@ -27,6 +27,7 @@ export type ContenidoOpcion = {
 export const OMITIDAS: Record<string, string> = {
   "/mas/finca": "Datos básicos de la finca: no convence a nadie de registrarse.",
   "/mas/plan": "Los planes tienen su propia sección.",
+  "/mas/instalar": "Son los pasos para instalar la app en el celular de quien ya tiene cuenta: la ventaja (abrir sin señal) ya la cuenta «Registrar sin señal».",
   "/mas/tutoriales": "Es ayuda para quien ya tiene cuenta (videos paso a paso): no es una función que convenza de registrarse.",
 };
 
