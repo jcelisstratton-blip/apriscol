@@ -12,6 +12,8 @@ import { SelectorAnimal } from "@/components/SelectorAnimal";
 import { SelectorTarjetas } from "@/components/SelectorTarjetas";
 import { SelectorTercero } from "@/components/SelectorTercero";
 import { SubirSoporte } from "@/components/SubirSoporte";
+import { AvisoGuardadoLocal } from "@/components/AvisoGuardadoLocal";
+import { accionConRespaldo, camposDe, errorDe, quedoEnCelular } from "@/lib/offline/respaldo";
 import { crearGasto, editarGasto } from "@/app/(app)/hato/gastos/actions";
 import { DESTINOS, DETALLE_DESTINO, DETALLE_GRUPO, ETIQUETA_DESTINO, ETIQUETA_GRUPO, ETIQUETA_PAGO, ETIQUETA_RUBRO, GRUPO_DE, GRUPOS, RUBROS_CON_LOTE, RUBROS_DE, RUBROS_LOTE_OBLIGATORIO, UNIDADES_GASTO, UNIDAD_SUGERIDA, type EstadoPago, type GrupoGasto } from "@/lib/costos";
 import { ESCENA_DESTINO_GASTO, ESCENA_ESPECIE, ESCENA_GRUPO_GASTO, ESCENA_PAGO, ESCENA_RUBRO } from "@/lib/escenas-costos";
@@ -84,7 +86,27 @@ export function FormGasto({
   const dinero = useDinero();
   const moneda = useMoneda();
   const editando = Boolean(gasto);
-  const [estado, enviar, pendiente] = useActionState(editando ? editarGasto : crearGasto, undefined);
+  // Sin señal: una compra nueva queda en el celular (mismo identificador del formulario: nunca se duplica) y se envía sola; una corrección pide
+  // intentarlo de nuevo. Nunca se pierde lo escrito.
+  const [estado, enviar, pendiente] = useActionState(
+    accionConRespaldo(
+      editando ? editarGasto : crearGasto,
+      editando || !solicitud
+        ? null
+        : (formulario) => ({
+            id: solicitud,
+            tipo: "compra",
+            animalId: solicitud,
+            etiqueta: `${String(formulario.get("descripcion") ?? "Compra")} · ${dinero(leerNumero(String(formulario.get("monto") ?? "")))}`,
+            fecha: String(formulario.get("fecha") ?? ""),
+            campos: camposDe(formulario, ["client_request_id", "gasto_id", "volver", "novedad_id"]),
+          }),
+      fincaId,
+    ),
+    undefined,
+  );
+  const guardadoLocal = quedoEnCelular(estado);
+  const error = errorDe(estado);
   const [, iniciar] = useTransition();
 
   const rubroArranque = gasto?.rubro ?? rubroInicial ?? "";
@@ -393,10 +415,11 @@ export function FormGasto({
       </Campo>
 
       {falta ? <Aviso tipo="atencion">{falta}</Aviso> : null}
-      {estado?.error ? <Aviso tipo="error">{estado.error}</Aviso> : null}
+      {error ? <Aviso tipo="error">{error}</Aviso> : null}
+      {guardadoLocal ? <AvisoGuardadoLocal /> : null}
       <div className="space-y-2">
-        <Boton type="submit" pendiente={pendiente} cargando="Guardando…" disabled={Boolean(falta) || subiendo}>
-          {editando ? "Guardar cambios" : "Guardar compra"}
+        <Boton type="submit" pendiente={pendiente} cargando="Guardando…" disabled={Boolean(falta) || subiendo || guardadoLocal}>
+          {guardadoLocal ? "Guardado en el celular" : editando ? "Guardar cambios" : "Guardar compra"}
         </Boton>
         <Link href={volver} className={clasesBoton("fantasma")}>Cancelar</Link>
       </div>

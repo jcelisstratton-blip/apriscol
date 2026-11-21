@@ -9,6 +9,7 @@ import { mensajeAmigable } from "@/lib/mensaje-amigable";
 import { leerNumero } from "@/lib/numeros";
 import { RUBROS } from "@/lib/costos";
 import { LINEAS } from "@/lib/ventas";
+import { asegurarTercero } from "@/lib/terceros-servidor";
 import type { Producto, Tercero } from "@/lib/tipos";
 
 type Resultado<T = Record<never, never>> = ({ ok: true } & T) | { ok: false; error: string };
@@ -46,22 +47,10 @@ export async function crearTercero(entrada: z.input<typeof esquemaTercero>): Pro
   if (!ok) return { ok: false, error: "No tienes permiso para agregar proveedores o compradores en esta finca." };
   const d = esquemaTercero.safeParse(entrada);
   if (!d.success) return { ok: false, error: d.error.issues[0]?.message ?? "Revisa los datos." };
-  const supabase = await crearClienteServidor();
-  const { data: previos } = await supabase.from("finca_terceros").select("*").eq("finca_id", finca.id).ilike("nombre", d.data.nombre.replace(/[%_\\]/g, (c) => `\\${c}`)).limit(5);
-  const igual = (previos ?? []).find((t) => t.nombre.trim().toLowerCase() === d.data.nombre.toLowerCase());
-  if (igual) {
-    if (!igual.activo || (igual.tipo !== "ambos" && igual.tipo !== d.data.tipo)) {
-      const { data, error } = await supabase.from("finca_terceros").update({ activo: true, tipo: igual.tipo === d.data.tipo ? igual.tipo : "ambos" }).eq("id", igual.id).eq("finca_id", finca.id).select("*").single();
-      if (error) return { ok: false, error: mensajeAmigable(error.message) };
-      refrescar();
-      return { ok: true, tercero: data };
-    }
-    return { ok: true, tercero: igual };
-  }
-  const { data, error } = await supabase.from("finca_terceros").insert({ finca_id: finca.id, nombre: d.data.nombre, tipo: d.data.tipo }).select("*").single();
-  if (error) return { ok: false, error: mensajeAmigable(error.message) };
+  const r = await asegurarTercero(await crearClienteServidor(), finca.id, d.data.nombre, d.data.tipo);
+  if ("error" in r) return { ok: false, error: r.error };
   refrescar();
-  return { ok: true, tercero: data };
+  return { ok: true, tercero: r.tercero };
 }
 
 const esquemaEditarTercero = z.object({ id: ID, nombre: nombre(120, "Escribe el nombre.").optional(), tipo: z.enum(["proveedor", "comprador", "ambos"]).optional(), activo: z.boolean().optional() });

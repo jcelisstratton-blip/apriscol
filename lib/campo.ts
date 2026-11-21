@@ -1,6 +1,6 @@
 import { sumarDias } from "@/lib/fechas";
 import { turnosDe, type Turno } from "@/lib/ordeno";
-import type { Cobertura, Especie, EstadoRepro, EstadoUbicacion, IndicadorPalpacion, MetodoDiagnostico, ResultadoDiagnostico, SexoAnimal, TipoUbicacion, UsoUbicacion, ViabilidadFetal, Vocacion } from "@/lib/tipos";
+import type { Cobertura, Especie, EstadoRepro, EstadoUbicacion, RubroGasto, IndicadorPalpacion, MetodoDiagnostico, ResultadoDiagnostico, SexoAnimal, TipoUbicacion, UsoUbicacion, ViabilidadFetal, Vocacion } from "@/lib/tipos";
 
 /**
  * Registrar sin señal (modo sin señal, paso 3): reglas puras que usan la pantalla `/campo`, la captura de leche, la pesada de ceba, el motor de
@@ -89,14 +89,31 @@ export type UbicacionCampo = {
   diasDescansoMin: number;
 };
 
+/** Un producto de compra del catálogo de la finca, con su rubro, su unidad y el último precio pagado. */
+export type ProductoCompraCampo = { id: string; nombre: string; rubro: RubroGasto; unidad: string | null; precio: number | null; orden: number };
+
+/** Lo que pide una compra sin señal: catálogo, proveedores, lotes de ceba, productos veterinarios (para el lote), especies, IVA y si el plan tiene Sanidad. */
+export type ComprasCampo = {
+  productos: ProductoCompraCampo[];
+  proveedores: { id: string; nombre: string }[];
+  lotes: { id: string; nombre: string }[];
+  productosVet: { id: string; nombre: string }[];
+  especies: Especie[];
+  ivaDefecto: number | null;
+  conSanidad: boolean;
+};
+
+export const COMPRAS_VACIAS: ComprasCampo = { productos: [], proveedores: [], lotes: [], productosVet: [], especies: [], ivaDefecto: null, conSanidad: false };
+
 /** Lo mínimo de la finca para registrar sin señal. Se guarda en el celular de quien abre la app con señal. */
 export type ReferenciaCampo = {
-  version: 5;
+  version: 6;
   generadaEn: string;
   hoy: string;
   usuario: { id: string };
-  finca: { id: string; nombre: string };
-  puede: { leche: boolean; pesos: boolean; reproduccion: boolean; hato: boolean; sanidad: boolean; lotes: boolean; corrales: boolean };
+  /** `moneda`: la de la finca (ISO 4217) para escribir el dinero de una compra; sin ella, la de fábrica. */
+  finca: { id: string; nombre: string; moneda?: string };
+  puede: { leche: boolean; pesos: boolean; reproduccion: boolean; hato: boolean; sanidad: boolean; lotes: boolean; corrales: boolean; compras: boolean };
   ordeno: HembraCampo[];
   pesar: AnimalPesar[];
   /** Hembras activas y reproductores (solo si la persona registra reproducción). */
@@ -111,9 +128,11 @@ export type ReferenciaCampo = {
   productos: ProductoCampo[];
   /** Para Corrales: las instalaciones activas (dónde está cada animal va en `animales`). */
   ubicaciones: UbicacionCampo[];
+  /** Para Compras (solo quien registra compras). */
+  compras: ComprasCampo;
 };
 
-export type TipoRegistroCampo = "ordeno" | "peso" | "monta" | "diagnostico" | "animal" | "sanidad" | "servicio" | "movimiento";
+export type TipoRegistroCampo = "ordeno" | "peso" | "monta" | "diagnostico" | "animal" | "sanidad" | "servicio" | "movimiento" | "compra";
 
 /** Lo que se anota en un diagnóstico de gestación sin señal (ecografía o palpación). */
 export type DiagnosticoCampo = {
@@ -158,7 +177,7 @@ export type RegistroCampo = {
   diagnostico?: DiagnosticoCampo;
   /**
    * Los mismos campos (texto) que envía el formulario con señal: animal nuevo (`animalId` es el propio identificador del registro), sanidad,
-   * servicio desde la ficha, lo extra de un peso desde la ficha (tipo, condición corporal, observaciones) y el movimiento a un corral.
+   * servicio desde la ficha, lo extra de un peso desde la ficha (tipo, condición corporal, observaciones) el movimiento a un corral y la compra (`animalId` es el propio identificador del registro).
    */
   campos?: Record<string, string>;
   /** Sanidad y movimiento: los animales del registro (`animalId` es el primero). */
@@ -181,7 +200,8 @@ export type EnvioCampo =
   | { tipo: "servicio"; id: string; fincaId: string; animalId: string; fecha: string; campos: Record<string, string> }
   | { tipo: "sanidad"; id: string; fincaId: string; animalId: string; fecha: string; campos: Record<string, string>; animales: string[] }
   /** `creadoEn`: cuándo se anotó en el celular; un movimiento registrado DESPUÉS por otra persona no se pisa. */
-  | { tipo: "movimiento"; id: string; fincaId: string; animalId: string; fecha: string; campos: Record<string, string>; animales: string[]; creadoEn: string };
+  | { tipo: "movimiento"; id: string; fincaId: string; animalId: string; fecha: string; campos: Record<string, string>; animales: string[]; creadoEn: string }
+  | { tipo: "compra"; id: string; fincaId: string; animalId: string; fecha: string; campos: Record<string, string> };
 
 export function envioDe(r: RegistroCampo): EnvioCampo {
   const base = { id: r.id, fincaId: r.fincaId, animalId: r.animalId, fecha: r.fecha };
@@ -191,6 +211,7 @@ export function envioDe(r: RegistroCampo): EnvioCampo {
   if (r.tipo === "animal") return { tipo: "animal", ...base, campos: r.campos ?? {} };
   if (r.tipo === "servicio") return { tipo: "servicio", ...base, campos: r.campos ?? {} };
   if (r.tipo === "sanidad") return { tipo: "sanidad", ...base, campos: r.campos ?? {}, animales: r.animales ?? [] };
+  if (r.tipo === "compra") return { tipo: "compra", ...base, campos: r.campos ?? {} };
   if (r.tipo === "movimiento") return { tipo: "movimiento", ...base, campos: r.campos ?? {}, animales: r.animales ?? [], creadoEn: r.creadoEn };
   return { tipo: "peso", ...base, peso: r.peso!, ...(r.campos && Object.keys(r.campos).length > 0 ? { extras: r.campos } : {}) };
 }
@@ -331,18 +352,19 @@ export function referenciaVencida(ref: Pick<ReferenciaCampo, "generadaEn"> | nul
 
 /**
  * Lee una copia guardada y la descarta si está dañada. Las copias de versiones anteriores (1: ordeño y pesos; 2: más monta y diagnóstico;
- * 3: más animal nuevo; 4: más sanidad) siguen sirviendo para lo que ya traían: se completan vacías hasta que la app se abra con señal y traiga la nueva.
+ * 3: más animal nuevo; 4: más sanidad; 5: más corrales) siguen sirviendo para lo que ya traían: se completan vacías hasta que la app se abra con señal y traiga la nueva.
  */
 export function referenciaValida(valor: unknown): ReferenciaCampo | null {
   if (typeof valor !== "object" || valor === null) return null;
   const r = valor as Omit<Partial<ReferenciaCampo>, "version" | "puede"> & { version?: number; puede?: Partial<ReferenciaCampo["puede"]> };
-  if (![1, 2, 3, 4, 5].includes(r.version ?? 0) || typeof r.generadaEn !== "string" || typeof r.hoy !== "string") return null;
+  if (![1, 2, 3, 4, 5, 6].includes(r.version ?? 0) || typeof r.generadaEn !== "string" || typeof r.hoy !== "string") return null;
   if (!r.usuario?.id || !r.finca?.id || !Array.isArray(r.ordeno) || !Array.isArray(r.pesar) || !r.puede) return null;
   const v = r.version!;
   if (v >= 2 && (!Array.isArray(r.hembras) || !Array.isArray(r.machos))) return null;
   if (v >= 3 && (!Array.isArray(r.especies) || !Array.isArray(r.razas) || !Array.isArray(r.animales))) return null;
   if (v >= 4 && !Array.isArray(r.productos)) return null;
   if (v >= 5 && !Array.isArray(r.ubicaciones)) return null;
+  if (v >= 6 && (typeof r.compras !== "object" || r.compras === null || !Array.isArray(r.compras.productos))) return null;
   const puede = {
     leche: Boolean(r.puede.leche),
     pesos: Boolean(r.puede.pesos),
@@ -351,10 +373,11 @@ export function referenciaValida(valor: unknown): ReferenciaCampo | null {
     sanidad: v >= 4 && Boolean(r.puede.sanidad),
     lotes: v >= 4 && Boolean(r.puede.lotes),
     corrales: v >= 5 && Boolean(r.puede.corrales),
+    compras: v >= 6 && Boolean(r.puede.compras),
   };
   return {
     ...(r as ReferenciaCampo),
-    version: 5,
+    version: 6,
     puede,
     hembras: r.hembras ?? [],
     machos: r.machos ?? [],
@@ -364,6 +387,7 @@ export function referenciaValida(valor: unknown): ReferenciaCampo | null {
     animales: r.animales ?? [],
     productos: r.productos ?? [],
     ubicaciones: r.ubicaciones ?? [],
+    compras: r.compras ?? COMPRAS_VACIAS,
   };
 }
 

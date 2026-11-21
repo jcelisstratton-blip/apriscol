@@ -3,6 +3,7 @@ import { Plus, Receipt } from "lucide-react";
 import { AvisoGuardado } from "@/components/AvisoGuardado";
 import { AyudaModulo } from "@/components/AyudaModulo";
 import { clasesBoton } from "@/components/Boton";
+import { EnlaceSinSenal } from "@/components/EnlaceSinSenal";
 import { ListaGastos } from "@/components/ListaGastos";
 import { crearClienteServidor } from "@/lib/supabase/server";
 import { AYUDA_GASTOS } from "@/lib/ayuda";
@@ -39,7 +40,10 @@ export async function Gastos({
   return (
     <div className="space-y-4">
       <AvisoGuardado activo={guardado} />
-      <AyudaModulo ayuda={AYUDA_GASTOS} />
+      <div className="flex flex-wrap items-center gap-x-5">
+        <AyudaModulo ayuda={AYUDA_GASTOS} />
+        {puedeEditar ? <EnlaceSinSenal texto="Registrar una compra sin señal" ancla="compra" /> : null}
+      </div>
       {puedeEditar ? (
         <Link href="/hato/gastos/nuevo" className={clasesBoton("primario")}>
           <Plus className="size-5" strokeWidth={2.2} aria-hidden="true" /> Registrar una compra

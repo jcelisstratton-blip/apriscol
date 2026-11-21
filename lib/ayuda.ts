@@ -73,7 +73,7 @@ export const AYUDA_CAMPO: Ayuda = {
   tutorial: 5,
   puntos: [
     { titulo: "Prepárala con señal", texto: "Abre Apriscol con señal al menos una vez en este celular: así guarda la lista de tus animales, razas y reproductores para trabajar sin señal." },
-    { titulo: "Anota donde estés", texto: "Sin señal, abre esta pantalla (también sale en la página «Sin señal») y crea un animal nuevo, o anota el ordeño, el peso, la monta, el diagnóstico de gestación la sanidad (vacunas, tratamientos…) o mover animales de corral o potrero. Queda guardado en el celular." },
+    { titulo: "Anota donde estés", texto: "Sin señal, abre esta pantalla (también sale en la página «Sin señal») y crea un animal nuevo, o anota el ordeño, el peso, la monta, el diagnóstico de gestación la sanidad (vacunas, tratamientos…), mover animales de corral o potrero, o una compra. Queda guardado en el celular." },
     { titulo: "Se envía solo", texto: "Cuando vuelve la señal se envía sin que hagas nada, con la app abierta. En iPhone se envía al abrir la app, no en segundo plano." },
     { titulo: "Nada se duplica ni se pisa", texto: "Si ya había un dato de ese animal en esa jornada o ese día, no se cambia: el tuyo queda en «Pendientes con error» para que decidas. La temporada de empadre se arma y se cierra con señal." },
     { titulo: "Si algo no entra", texto: "Un animal que ya salió del hato o un permiso que cambió dejan el registro en «Pendientes con error», con el motivo, para reintentar o descartar." },
@@ -152,7 +152,7 @@ export const AYUDA_GASTOS: Ayuda = {
     { titulo: "A quién se carga", texto: "A toda la finca, a una especie, a un corral, a un lote o a un animal. Así sabes cuánto cuesta cada animal y cada litro." },
     { titulo: "Lo que ya registraste", texto: "El costo de cada tratamiento (Sanidad), el alimento de la ceba y la compra de cada animal comprado se suman solos. Si registras aquí el mismo alimento o medicina, el resumen de Costos te avisa para que no se cuente dos veces." },
     { titulo: "Por pagar", texto: "Si lo compraste a crédito, deja la fecha de vencimiento: te avisamos en Hoy cuando se pase y lo marcas pagado con un toque." },
-    { titulo: "Tu lista", texto: "Si algo que compras no está en la lista, elige «Otra compra» o agrégalo a tus productos en Más → Productos y terceros." },
+    { titulo: "Tu lista y sin señal", texto: "Si algo no está en la lista, elige «Otra compra» o agrégalo en Más → Productos y terceros. Sin señal, usa «Registrar una compra sin señal»: queda en el celular y se envía sola." },
   ],
   enlace: { href: "/costos?vista=compras", texto: "Ver las compras de toda la finca" },
 };
