@@ -4,14 +4,15 @@ import { existsSync, readFileSync } from "node:fs";
 import {
   aplicarTecla, coincideBusqueda, enRetiroLeche, enviadosViejos, envioDe, errorFecha, errorLitros, errorPeso, hembrasDelTurno, jornadaDeHora, numeroDeTexto, porEnviar,
   redondearPeso, referenciaValida, referenciaVencida, registrosDe, resultadoEnvio, resumenBandeja, MAX_LITROS, MAX_PESO, RUTA_CAMPO,
-  hembrasParaDiagnostico, machosPara, nombreMachoExterno, areteClave, areteRepetido, padresPosibles, ubicacionesEfectivas, ocupacion, conBajaPendiente,
+  hembrasParaDiagnostico, machosPara, nombreMachoExterno, areteClave, areteRepetido, padresPosibles, ubicacionesEfectivas, ocupacion, conBajaPendiente, conPartoPendiente, aretesDeCrias, hembrasParaParto,
 } from "../lib/campo.ts";
 import { cupoDestino, leerMovimiento, motivoPorDestino } from "../lib/movimiento-reglas.ts";
 import { esquemaCompra, revisarCompra } from "../lib/compra-reglas.ts";
 import { esquemaVenta, revisarVenta } from "../lib/venta-reglas.ts";
 import { entradaBajaDeCampos, esquemaBaja } from "../lib/baja-reglas.ts";
+import { revisarCrias } from "../lib/parto-reglas.ts";
 import { esquemaAnimal, prepararAnimalNuevo } from "../lib/animal-nuevo.ts";
-import { esquemaEnvio, guardarAnimalCampo, guardarBajaCampo, guardarCompraCampo, guardarVentaCampo, guardarDiagnosticoCampo, guardarMontaCampo, guardarMovimientoCampo, guardarSanidadCampo, guardarServicioCampo, guardarOrdenoCampo, guardarPesoCampo, leerReferenciaCampo, permisosCampo } from "../lib/campo-servidor.ts";
+import { esquemaEnvio, guardarAnimalCampo, guardarBajaCampo, guardarPartoCampo, guardarCompraCampo, guardarVentaCampo, guardarDiagnosticoCampo, guardarMontaCampo, guardarMovimientoCampo, guardarSanidadCampo, guardarServicioCampo, guardarOrdenoCampo, guardarPesoCampo, leerReferenciaCampo, permisosCampo } from "../lib/campo-servidor.ts";
 import { reglasDiagnostico } from "../lib/diagnostico-reglas.ts";
 import { ATAJOS } from "../lib/atajos.ts";
 import { AYUDA_CAMPO } from "../lib/ayuda.ts";
@@ -179,6 +180,8 @@ function baseFalsa(tablas, rpcs = {}, { antesDeInsertar } = {}) {
       eq: (c, v) => (filtros.push((f) => f[c] === v), q),
       is: (c, v) => (filtros.push((f) => (f[c] ?? null) === v), q),
       in: (c, vs) => (filtros.push((f) => vs.includes(f[c])), q),
+      gte: (c, v) => (filtros.push((f) => f[c] >= v), q),
+      lte: (c, v) => (filtros.push((f) => f[c] <= v), q),
       ilike: (c, patron) => (filtros.push((f) => String(f[c] ?? "").toLowerCase() === patron.replace(/\\(.)/g, "$1").toLowerCase()), q),
       order: () => q,
       limit: () => q,
@@ -1057,6 +1060,95 @@ test("bajas: la pantalla, la ficha con señal, el filtro del Hato, la ayuda y lo
   assert.match(leer("app/api/campo/enviar/route.ts"), /e\.tipo === "baja" && !puede\.hato/);
   assert.match(leer("supabase/migrations/20261121161427_bajas_client_request_id.sql"), /add column if not exists client_request_id uuid[\s\S]*bajas_client_req_uk/);
   assert.ok(AYUDA_CAMPO.puntos.some((p) => /dar de baja/.test(p.texto)));
+});
+
+// ───────────────────────── Partos ─────────────────────────
+
+/** `registrar_parto` de mentira: idempotente por `client_request_id`; guarda el parto, sus crías y los animales de las crías con arete. */
+function registrarPartoFalso(args, tablas) {
+  const crid = args.p_parto.client_request_id;
+  const previo = (tablas.partos ?? []).find((x) => x.finca_id === args.p_finca && crid && x.client_request_id === crid);
+  if (previo) return { data: { parto_id: previo.id, repetido: true, sin_crear: [] }, error: null };
+  const id = `dddddddd-dddd-4ddd-8ddd-${String((tablas.partos ?? []).length).padStart(12, "0")}`;
+  (tablas.partos ??= []).push({ id, finca_id: args.p_finca, ...args.p_parto });
+  for (const c of args.p_crias) {
+    if (c.arete) (tablas.animales ??= []).push({ id: crypto.randomUUID(), finca_id: args.p_finca, numero_arete: c.arete, sexo: c.sexo, madre_id: args.p_parto.madre_id, padre_id: args.p_parto.padre_id, estado: "activo", deleted_at: null });
+    (tablas.crias ??= []).push({ parto_id: id, ...c });
+  }
+  return { data: { parto_id: id, repetido: false, sin_crear: [] }, error: null };
+}
+const SERVICIO = "5e5e5e5e-5e5e-4e5e-8e5e-5e5e5e5e5e5e";
+const parto = (campos = {}, extra = {}) => ({
+  tipo: "parto", id: uuid(30), fincaId: FINCA, animalId: A1, fecha: HOY,
+  campos: { fecha: HOY, tipo: "normal", crias: JSON.stringify([{ sexo: "hembra", vivo: true, peso: "3,2", arete: "501" }, { sexo: "macho", vivo: false }]), ...campos },
+  ...extra,
+});
+const basePartos = (extra = {}) => baseFalsa(
+  {
+    animales: animales(),
+    partos: [],
+    servicios: [{ id: SERVICIO, finca_id: FINCA, hembra_id: A1, fecha: "2026-06-20", macho_id: MACHO, macho_externo: null }],
+    v_repro_hembras: [{ animal_id: A1, finca_id: FINCA, estado: "gestante", servicio_id: SERVICIO, ultimo_servicio: "2026-06-20" }],
+    ...extra,
+  },
+  { registrar_parto: registrarPartoFalso },
+);
+
+test("partos: reglas del celular (crías, aretes guardados, hembras que esperan parir)", () => {
+  assert.equal(revisarCrias([{ sexo: "hembra", vivo: true, arete: "A" }, { sexo: "macho", vivo: true, arete: "a" }]), "Dos crías tienen el mismo arete. Cámbialo.");
+  assert.match(revisarCrias([{ sexo: "hembra", vivo: false, arete: "A" }]), /nació muerta/);
+  assert.match(revisarCrias([{ vivo: true, arete: "A" }]), /sexo/);
+  assert.equal(revisarCrias([{ sexo: "hembra", vivo: true }, { vivo: false }]), null);
+  assert.deepEqual(aretesDeCrias(parto().campos.crias), ["501"]);
+  assert.deepEqual(aretesDeCrias("no es json"), []);
+  const registro = { ...parto(), usuarioId: U, etiqueta: "", creadoEn: "2026-11-20T10:00:00Z", estado: "pendiente", intentos: 0 };
+  assert.equal(areteRepetido(" 501 ", { animales: [] }, [registro]), true, "el arete de una cría de un parto guardado en el celular cuenta");
+  assert.equal(areteRepetido("501", { animales: [] }, [registro], registro.id), false, "salvo al corregir ese mismo parto");
+  assert.deepEqual([...conPartoPendiente([registro], U, FINCA)], [A1]);
+  const h = (arete, estado) => ({ id: arete, arete, nombre: null, especie: "caprino", nacimiento: null, estado, ultimoServicio: null });
+  assert.deepEqual(hembrasParaParto([h("3", "vacia"), h("2", "servida"), h("1", "gestante")]).map((x) => x.arete), ["1", "2", "3"]);
+  assert.match(leer("app/(app)/reproduccion/actions.ts"), /prepararParto\(/, "la ficha usa la misma regla");
+});
+
+test("servidor: un parto sin señal se liga al servicio en curso, crea la cría con arete y reenviarlo no lo duplica", async () => {
+  const db = basePartos();
+  assert.deepEqual(await guardarPartoCampo(db, parto()), { ok: true, estado: "guardado" });
+  const pt = db.tablas.partos[0];
+  assert.deepEqual([pt.madre_id, pt.servicio_id, pt.padre_id, pt.client_request_id, pt.tipo], [A1, SERVICIO, MACHO, uuid(30), "normal"]);
+  assert.deepEqual(db.tablas.crias.map((c) => [c.arete, c.vivo, c.peso]), [["501", true, 3.2], [null, false, null]]);
+  assert.ok(db.tablas.animales.some((a) => a.numero_arete === "501" && a.madre_id === A1));
+  assert.deepEqual(await guardarPartoCampo(db, parto()), { ok: true, estado: "ya_estaba" });
+  assert.equal(db.tablas.partos.length, 1);
+});
+
+test("servidor: un parto sin señal nunca duplica el que registró otra persona; rechaza lo que la ficha rechaza", async () => {
+  const db = basePartos({ partos: [{ id: "x", finca_id: FINCA, madre_id: A1, fecha: "2026-11-05", client_request_id: null }] });
+  const r = await guardarPartoCampo(db, parto());
+  assert.equal(r.codigo, "conflicto");
+  assert.match(r.error, /101 ya tiene un parto el 5 de nov[\s\S]*No se registró otro/);
+  assert.equal(db.tablas.partos.length, 1);
+  assert.match((await guardarPartoCampo(basePartos(), parto({ crias: JSON.stringify([{ sexo: "hembra", vivo: true, arete: "101" }]) }))).error, /101 ya está en tu hato/);
+  assert.match((await guardarPartoCampo(basePartos(), parto({ tipo: "asistido" }))).error, /quién asistió/);
+  assert.match((await guardarPartoCampo(basePartos(), parto({ tipo: "aborto", crias: "" }))).error, /causa aparente/);
+  assert.deepEqual(await guardarPartoCampo(basePartos(), parto({ tipo: "aborto", causa_aborto: "desconocida", crias: "" })), { ok: true, estado: "guardado" });
+  assert.match((await guardarPartoCampo(basePartos(), parto({ fecha: "2026-06-01" }))).error, /posterior al nacimiento|posterior al servicio/);
+  assert.match((await guardarPartoCampo(basePartos(), parto({}, { animalId: MACHO }))).error, /hembra/);
+  assert.ok(esquemaEnvio.safeParse(parto()).success);
+});
+
+test("partos: la pantalla, la ficha con señal, la ayuda y los atajos están conectados", () => {
+  const pantalla = leer("components/campo/PantallaCampo.tsx");
+  assert.match(pantalla, /<PartoCampo /);
+  assert.match(pantalla, /ancla === "parto"/);
+  assert.match(leer("components/campo/PartoCampo.tsx"), /esquemaParto\.safeParse\([\s\S]*datosPorTipoParto\([\s\S]*revisarCrias\(/);
+  const form = leer("components/FormParto.tsx");
+  assert.match(form, /accionConRespaldo\(/);
+  assert.match(form, /tipo: "parto"/, "un parto nuevo con señal queda en el celular si se cae la señal");
+  assert.match(form, /<AvisoGuardadoLocal \/>/);
+  assert.match(leer("app/(app)/hato/[id]/reproduccion/parto/nuevo/page.tsx"), /<EnlaceSinSenal [^>]*ancla="parto"/);
+  assert.ok(ATAJOS.some((a) => a.href === "/campo#parto" && a.modulo === "reproduccion"), "«Parto sin señal» en «Al grano»");
+  assert.match(leer("app/api/campo/enviar/route.ts"), /e\.tipo === "parto"\) && !puede\.reproduccion/);
+  assert.ok(AYUDA_CAMPO.puntos.some((p) => /un parto/.test(p.texto)));
 });
 
 // ───────────────────────── Conexiones ─────────────────────────

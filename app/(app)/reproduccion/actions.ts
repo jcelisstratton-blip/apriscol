@@ -7,12 +7,11 @@ import { crearClienteServidor } from "@/lib/supabase/server";
 import { obtenerContexto } from "@/lib/contexto";
 import { puedeEscribir, puedeGestionar } from "@/lib/permisos";
 import { mensajeAmigable } from "@/lib/mensaje-amigable";
-import { CAUSAS_ABORTO, INDICADORES_PALPACION, MAX_CRIAS, METODOS_DIAGNOSTICO, RESULTADOS_DIAGNOSTICO, TIPOS_PARTO, VIABILIDADES } from "@/lib/reproduccion";
-import { datosPorTipoParto } from "@/lib/parto-reglas";
+import { INDICADORES_PALPACION, MAX_CRIAS, METODOS_DIAGNOSTICO, RESULTADOS_DIAGNOSTICO, TIPOS_PARTO, VIABILIDADES } from "@/lib/reproduccion";
+import { camposClinicosParto, datosPorTipoParto, esquemaCria, prepararParto } from "@/lib/parto-reglas";
 import { MENSAJE_SIN_SERVICIO, MENSAJE_YA_VACIA, servicioVigente } from "@/lib/servicio-vigente";
 import type { IndicadorPalpacion, MetodoDiagnostico, ResultadoDiagnostico, ViabilidadFetal } from "@/lib/tipos";
 import { reglasDiagnostico } from "@/lib/diagnostico-reglas";
-import { leerNumero } from "@/lib/numeros";
 import { hembraActiva, leerServicio } from "@/lib/servicio-reglas";
 import { decimal, opcional, texto } from "@/lib/validacion";
 import { esRepetido, noFutura } from "@/lib/validacion";
@@ -177,116 +176,26 @@ export async function eliminarDiagnostico(id: string): Promise<Resultado> {
 }
 
 // ───────────────────────── Partos (con sus crías) ─────────────────────────
-const esquemaCria = z.object({
-  sexo: z.enum(["hembra", "macho"], "Indica el sexo de cada cría.").nullable().optional(),
-  vivo: z.boolean(),
-  // El peso llega como lo escribió la persona («3,2»); un texto que no es número no se descarta en silencio.
-  peso: z.preprocess(
-    (v) => (typeof v === "string" ? (v.trim() === "" ? undefined : (leerNumero(v) ?? v)) : (v ?? undefined)),
-    z.number("El peso de la cría debe ser un número, como 3,2.").min(0.1, "El peso al nacer debe estar entre 0,1 y 15 kg.").max(15, "El peso al nacer debe estar entre 0,1 y 15 kg.").optional(),
-  ),
-  arete: z.string().trim().max(40, "El arete es muy largo.").optional(),
-  nombre: z.string().trim().max(60, "El nombre es muy largo.").optional(),
-});
-
-/** Lo clínico de un parto: complicaciones y observaciones de todos; causa del aborto; y el médico y el protocolo de una cesárea. */
-const camposClinicosParto = {
-  complicaciones: texto(1000, "Las complicaciones son muy largas."),
-  observaciones: texto(1000, "Las observaciones son muy largas."),
-  causa_aborto: opcional(z.enum(CAUSAS_ABORTO as [string, ...string[]], "Elige la causa aparente del aborto.")),
-  asistido_por: texto(120, "El nombre de quien asistió es muy largo."),
-  protocolo_posoperatorio: texto(1000, "El protocolo posoperatorio es muy largo."),
-};
-
-const esquemaParto = z.object({
-  madre_id: z.uuid("Elige la hembra."),
-  fecha: z.iso.date("Indica la fecha del parto."),
-  tipo: z.enum(TIPOS_PARTO as [string, ...string[]], "Elige qué pasó."),
-  servicio_id: opcional(z.uuid()),
-  ...camposClinicosParto,
-  crias: opcional(z.string().max(5000)),
-  client_request_id: opcional(z.uuid()),
-  parto_id: opcional(z.uuid()),
-});
-
-export type CriaEntrada = z.infer<typeof esquemaCria>;
-
-function leerCrias(texto: string | undefined, tipo: string) {
-  if (tipo === "aborto") return { crias: [] as CriaEntrada[] } as const;
-  let bruto: unknown;
-  try {
-    bruto = texto ? JSON.parse(texto) : [];
-  } catch {
-    return { error: "No se entendieron los datos de las crías. Revísalos." } as const;
-  }
-  const r = z.array(esquemaCria).max(MAX_CRIAS, `Máximo ${MAX_CRIAS} crías por parto.`).safeParse(bruto);
-  if (!r.success) return { error: r.error.issues[0]?.message ?? "Revisa los datos de las crías." } as const;
-  if (r.data.length === 0) return { error: "Registra al menos una cría (si nació muerta, márcala como no viva)." } as const;
-  return { crias: r.data } as const;
-}
-
 export async function crearParto(_: EstadoForm, form: FormData): Promise<EstadoForm> {
   const p = await permiso("registrar partos");
   if (!p.ok) return { error: p.error };
-  const datos = esquemaParto.safeParse(Object.fromEntries(form));
-  if (!datos.success) return { error: datos.error.issues[0]?.message ?? "Revisa los datos." };
-  const d = datos.data;
-  const futura = noFutura(d.fecha);
-  if (futura) return { error: futura };
-  const clinico = datosPorTipoParto(d);
-  if ("error" in clinico) return { error: clinico.error };
-  const c = leerCrias(d.crias, d.tipo);
-  if ("error" in c) return { error: c.error };
-
   const supabase = await crearClienteServidor();
-  const h = await hembraActiva(supabase, p.finca.id, d.madre_id);
-  if ("error" in h) return { error: h.error };
-  if (h.hembra.fecha_nacimiento && d.fecha <= h.hembra.fecha_nacimiento) return { error: "El parto debe ser posterior al nacimiento de la hembra." };
-
-  let servicio: { id: string; macho_id: string | null; macho_externo: string | null; fecha: string } | null = null;
-  if (d.servicio_id) {
-    const { data: s } = await supabase.from("servicios").select("id, macho_id, macho_externo, fecha").eq("id", d.servicio_id).eq("finca_id", p.finca.id).eq("hembra_id", d.madre_id).maybeSingle();
-    if (!s) return { error: "No encontramos el servicio de este parto." };
-    if (d.fecha <= s.fecha) return { error: "El parto debe ser posterior al servicio." };
-    servicio = s;
-  }
-
-  // Los aretes de las crías que se crean como animales no pueden repetirse (ni entre ellas ni con el hato): se comprueba antes de guardar nada.
-  const aretes = c.crias.map((x) => x.arete).filter((a): a is string => Boolean(a));
-  if (new Set(aretes.map((a) => a.toLowerCase())).size !== aretes.length) return { error: "Dos crías tienen el mismo arete. Cámbialo." };
-  if (aretes.length) {
-    const { data: ya } = await supabase.from("animales").select("numero_arete").eq("finca_id", p.finca.id).in("numero_arete", aretes);
-    if (ya && ya.length > 0) return { error: `El arete ${ya[0].numero_arete} ya está en tu hato. Usa otro para la cría.` };
-  }
-  if (c.crias.some((x) => x.arete && !x.vivo)) return { error: "Una cría que nació muerta no se crea como animal: quita su arete." };
-  if (c.crias.some((x) => x.arete && !x.sexo)) return { error: "Indica el sexo de la cría que vas a crear como animal." };
+  const listo = await prepararParto(supabase, p.finca.id, Object.fromEntries(form));
+  if ("error" in listo) return { error: listo.error };
 
   // Un solo paso en la base: el parto, sus crías y los animales de las crías con arete (todo o nada; la lactancia la abre un disparador).
-  const { data: r, error } = await supabase.rpc("registrar_parto", {
-    p_finca: p.finca.id,
-    p_parto: {
-      madre_id: d.madre_id,
-      servicio_id: servicio?.id ?? null,
-      fecha: d.fecha,
-      tipo: d.tipo,
-      ...clinico.datos,
-      client_request_id: d.client_request_id ?? null,
-      padre_id: servicio?.macho_id ?? null,
-      padre_externo: servicio?.macho_externo ?? null,
-    },
-    p_crias: c.crias.map((x) => ({ arete: x.arete ?? null, nombre: x.nombre || null, sexo: x.sexo ?? null, peso: x.peso ?? null, vivo: x.vivo })),
-  });
+  const { data: r, error } = await supabase.rpc("registrar_parto", listo.args as never);
   if (error || !r) return { error: mensajeAmigable(error?.message ?? "No se pudo guardar el parto.") };
   const { repetido, sin_crear: fallos } = r as { repetido: boolean; sin_crear: string[] };
   // Doble toque: este parto ya se guardó con sus crías; no se repite.
-  if (repetido) redirect(destinoFicha(d.madre_id));
+  if (repetido) redirect(destinoFicha(listo.madreId));
 
   revalidatePath("/reproduccion");
   revalidatePath("/hato");
   revalidatePath("/leche");
-  revalidatePath(`/hato/${d.madre_id}`);
+  revalidatePath(`/hato/${listo.madreId}`);
   // Si alguna cría no se pudo crear como animal, se dice en la ficha (el parto y las demás ya quedaron).
-  redirect(fallos.length ? `/hato/${d.madre_id}?guardado=1&sin_crear=${encodeURIComponent(fallos.join(","))}#reproduccion` : destinoFicha(d.madre_id));
+  redirect(fallos.length ? `/hato/${listo.madreId}?guardado=1&sin_crear=${encodeURIComponent(fallos.join(","))}#reproduccion` : destinoFicha(listo.madreId));
 }
 
 const esquemaEdicionParto = z.object({

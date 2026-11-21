@@ -142,7 +142,7 @@ export type ReferenciaCampo = {
   ventas: VentasCampo;
 };
 
-export type TipoRegistroCampo = "ordeno" | "peso" | "monta" | "diagnostico" | "animal" | "sanidad" | "servicio" | "movimiento" | "compra" | "venta" | "baja";
+export type TipoRegistroCampo = "ordeno" | "peso" | "monta" | "diagnostico" | "animal" | "sanidad" | "servicio" | "movimiento" | "compra" | "venta" | "baja" | "parto";
 
 /** Lo que se anota en un diagnóstico de gestación sin señal (ecografía o palpación). */
 export type DiagnosticoCampo = {
@@ -187,7 +187,7 @@ export type RegistroCampo = {
   diagnostico?: DiagnosticoCampo;
   /**
    * Los mismos campos (texto) que envía el formulario con señal: animal nuevo (`animalId` es el propio identificador del registro), sanidad,
-   * servicio desde la ficha, lo extra de un peso desde la ficha (tipo, condición corporal, observaciones) el movimiento a un corral, la compra, la venta (en estas dos, `animalId` es el propio identificador del registro) y la baja de un animal.
+   * servicio desde la ficha, lo extra de un peso desde la ficha (tipo, condición corporal, observaciones) el movimiento a un corral, la compra, la venta (en estas dos, `animalId` es el propio identificador del registro) la baja de un animal y el parto (con sus crías en `crias`, como texto JSON igual que el formulario).
    */
   campos?: Record<string, string>;
   /** Sanidad y movimiento: los animales del registro (`animalId` es el primero). */
@@ -213,7 +213,8 @@ export type EnvioCampo =
   | { tipo: "movimiento"; id: string; fincaId: string; animalId: string; fecha: string; campos: Record<string, string>; animales: string[]; creadoEn: string }
   | { tipo: "compra"; id: string; fincaId: string; animalId: string; fecha: string; campos: Record<string, string> }
   | { tipo: "venta"; id: string; fincaId: string; animalId: string; fecha: string; campos: Record<string, string> }
-  | { tipo: "baja"; id: string; fincaId: string; animalId: string; fecha: string; campos: Record<string, string> };
+  | { tipo: "baja"; id: string; fincaId: string; animalId: string; fecha: string; campos: Record<string, string> }
+  | { tipo: "parto"; id: string; fincaId: string; animalId: string; fecha: string; campos: Record<string, string> };
 
 export function envioDe(r: RegistroCampo): EnvioCampo {
   const base = { id: r.id, fincaId: r.fincaId, animalId: r.animalId, fecha: r.fecha };
@@ -226,6 +227,7 @@ export function envioDe(r: RegistroCampo): EnvioCampo {
   if (r.tipo === "compra") return { tipo: "compra", ...base, campos: r.campos ?? {} };
   if (r.tipo === "venta") return { tipo: "venta", ...base, campos: r.campos ?? {} };
   if (r.tipo === "baja") return { tipo: "baja", ...base, campos: r.campos ?? {} };
+  if (r.tipo === "parto") return { tipo: "parto", ...base, campos: r.campos ?? {} };
   if (r.tipo === "movimiento") return { tipo: "movimiento", ...base, campos: r.campos ?? {}, animales: r.animales ?? [], creadoEn: r.creadoEn };
   return { tipo: "peso", ...base, peso: r.peso!, ...(r.campos && Object.keys(r.campos).length > 0 ? { extras: r.campos } : {}) };
 }
@@ -421,7 +423,24 @@ export function areteRepetido(arete: string, ref: Pick<ReferenciaCampo, "animale
   const clave = areteClave(arete);
   if (!clave) return false;
   if (ref.animales.some((a) => areteClave(a.arete) === clave)) return true;
-  return registros.some((r) => r.tipo === "animal" && r.id !== excepto && r.estado !== "enviado" && r.estado !== "error" && areteClave(r.campos?.numero_arete ?? "") === clave);
+  return registros.some((r) => {
+    if (r.id === excepto || r.estado === "enviado" || r.estado === "error") return false;
+    if (r.tipo === "animal") return areteClave(r.campos?.numero_arete ?? "") === clave;
+    // Las crías con arete de un parto guardado en el celular también serán animales del hato.
+    if (r.tipo === "parto") return aretesDeCrias(r.campos?.crias).some((a) => areteClave(a) === clave);
+    return false;
+  });
+}
+
+/** Los aretes de las crías de un parto guardado en el celular (`campos.crias`, texto JSON). */
+export function aretesDeCrias(crias: string | undefined): string[] {
+  if (!crias) return [];
+  try {
+    const lista: unknown = JSON.parse(crias);
+    return Array.isArray(lista) ? lista.map((c) => (typeof c?.arete === "string" ? c.arete.trim() : "")).filter(Boolean) : [];
+  } catch {
+    return [];
+  }
 }
 
 /** Padres posibles: machos (o hembras) de la misma especie, también los que ya salieron del hato, como en la ficha. */
@@ -484,5 +503,20 @@ export function ocupacion(donde: Map<string, string | null>): Map<string, number
 
 /** Los animales que ya tienen una baja guardada en este celular, sin enviar (no se ofrecen de nuevo). `excepto`: la que se está corrigiendo. */
 export function conBajaPendiente(registros: RegistroCampo[], usuarioId: string, fincaId: string, excepto?: string): Set<string> {
-  return new Set(registros.filter((r) => r.tipo === "baja" && r.id !== excepto && r.usuarioId === usuarioId && r.fincaId === fincaId && r.estado !== "enviado").map((r) => r.animalId));
+  return pendientesDe("baja", registros, usuarioId, fincaId, excepto);
+}
+
+/** Las hembras que ya tienen un parto guardado en este celular, sin enviar (no se ofrecen de nuevo). */
+export function conPartoPendiente(registros: RegistroCampo[], usuarioId: string, fincaId: string, excepto?: string): Set<string> {
+  return pendientesDe("parto", registros, usuarioId, fincaId, excepto);
+}
+
+function pendientesDe(tipo: TipoRegistroCampo, registros: RegistroCampo[], usuarioId: string, fincaId: string, excepto?: string): Set<string> {
+  return new Set(registros.filter((r) => r.tipo === tipo && r.id !== excepto && r.usuarioId === usuarioId && r.fincaId === fincaId && r.estado !== "enviado").map((r) => r.animalId));
+}
+
+/** Hembras para el parto: primero las gestantes y servidas (las que esperan parir), luego el resto. */
+export function hembrasParaParto(hembras: HembraRepro[]): HembraRepro[] {
+  const espera = (h: HembraRepro) => h.estado === "gestante" || h.estado === "servida";
+  return [...hembras].sort((a, b) => Number(espera(b)) - Number(espera(a)) || a.arete.localeCompare(b.arete, "es", { numeric: true }));
 }

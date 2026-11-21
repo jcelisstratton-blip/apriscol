@@ -25,6 +25,8 @@ import { esquemaCompra, filaCompra, recordarPrecioCompra, resolverListasCompra, 
 import { comprobarListasVenta, esquemaVenta, filaVenta, revisarVenta } from "@/lib/venta-reglas";
 import { datosDeVenta, entradaBajaDeCampos, esBajaRepetida, esquemaBaja, filaBaja, revisarBaja } from "@/lib/baja-reglas";
 import { ETIQUETA_TIPO_BAJA } from "@/lib/bajas";
+import { prepararParto } from "@/lib/parto-reglas";
+import { sumarDias } from "@/lib/fechas";
 import { asegurarTercero } from "@/lib/terceros-servidor";
 import { moduloEnPlan } from "@/lib/planes";
 import type { EstadoUbicacion, LineaVenta, RubroGasto, TipoUbicacion, UsoUbicacion } from "@/lib/tipos";
@@ -260,6 +262,7 @@ export const esquemaEnvio = z.discriminatedUnion("tipo", [
   z.object({ tipo: z.literal("compra"), id: uuid, fincaId: uuid, animalId: uuid, fecha, campos: z.record(z.string(), z.string().max(1000)) }),
   z.object({ tipo: z.literal("venta"), id: uuid, fincaId: uuid, animalId: uuid, fecha, campos: z.record(z.string(), z.string().max(1000)) }),
   z.object({ tipo: z.literal("baja"), id: uuid, fincaId: uuid, animalId: uuid, fecha, campos: z.record(z.string(), z.string().max(1000)) }),
+  z.object({ tipo: z.literal("parto"), id: uuid, fincaId: uuid, animalId: uuid, fecha, campos: z.record(z.string(), z.string().max(5000)) }),
   z.object({ tipo: z.literal("movimiento"), id: uuid, fincaId: uuid, animalId: uuid, fecha, campos: z.record(z.string(), z.string().max(1000)), animales: z.array(uuid).min(1).max(1000), creadoEn: z.iso.datetime({ offset: true }) }),
 ]);
 
@@ -679,4 +682,38 @@ export async function guardarBajaCampo(supabase: Cliente, e: Extract<EnvioCampo,
     return rechazo(mensajeAmigable(error.message));
   }
   return { ok: true, estado: "guardado" };
+}
+
+/** Una hembra no pare dos veces en un mes: un parto de otra persona tan cerca del anotado es el mismo parto registrado dos veces. */
+const DIAS_MISMO_PARTO = 30;
+
+/**
+ * Un parto (con sus crías) anotado sin señal o desde la ficha cuando se cayó la señal: las mismas reglas que con señal (`prepararParto`) y la misma
+ * función de la base (`registrar_parto`: el parto, sus crías y los animales de las crías con arete, todo o nada; reenviarlo devuelve el mismo). Si no
+ * trae el servicio, se liga al de la gestación en curso. **Nunca pisa a otra persona**: si la hembra ya tiene un parto de otra persona o de otro aparato
+ * a menos de un mes, no se registra otro y pasa a «Pendientes con error».
+ */
+export async function guardarPartoCampo(supabase: Cliente, e: Extract<EnvioCampo, { tipo: "parto" }>): Promise<RespuestaEnvio> {
+  const ya = await supabase.from("partos").select("id").eq("finca_id", e.fincaId).eq("client_request_id", e.id).maybeSingle();
+  if (ya.data) return { ok: true, estado: "ya_estaba" };
+  const fecha = e.campos.fecha ?? e.fecha;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(fecha)) {
+    const { data: cerca } = await supabase
+      .from("partos")
+      .select("fecha")
+      .eq("finca_id", e.fincaId)
+      .eq("madre_id", e.animalId)
+      .gte("fecha", sumarDias(fecha, -DIAS_MISMO_PARTO))
+      .lte("fecha", sumarDias(fecha, DIAS_MISMO_PARTO))
+      .limit(1);
+    if (cerca && cerca.length > 0) {
+      const { data: madre } = await supabase.from("animales").select("numero_arete").eq("id", e.animalId).eq("finca_id", e.fincaId).maybeSingle();
+      return conflicto(`${madre?.numero_arete ?? "Esta hembra"} ya tiene un parto el ${formatoFecha(cerca[0].fecha, { day: "numeric", month: "short" })}, registrado por otra persona o desde otro aparato. No se registró otro: revisa su ficha y descarta este registro.`);
+    }
+  }
+  const listo = await prepararParto(supabase, e.fincaId, { ...e.campos, madre_id: e.animalId, client_request_id: e.id }, true);
+  if ("error" in listo) return rechazo(listo.error);
+  const { data: r, error } = await supabase.rpc("registrar_parto", listo.args as never);
+  if (error || !r) return rechazo(mensajeAmigable(error?.message ?? "No se pudo guardar el parto."));
+  return { ok: true, estado: (r as { repetido?: boolean }).repetido ? "ya_estaba" : "guardado" };
 }

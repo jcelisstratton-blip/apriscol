@@ -29,6 +29,8 @@ function Detalle({ r }: { r: RegistroCampo }) {
             ? `Venta · ${dia}`
           : r.tipo === "baja"
             ? `Salida del hato · ${dia}`
+          : r.tipo === "parto"
+            ? `Parto · ${dia}`
           : r.tipo === "movimiento"
             ? `Movimiento · ${dia} · ${r.animales?.length === 1 ? "1 animal" : `${r.animales?.length ?? 0} animales`}`
           : r.tipo === "servicio"
