@@ -276,6 +276,20 @@ La misma pantalla `/campo` suma **Monta** y **Diagnóstico** para quien registra
 - **Migración** `20261120190017_diagnosticos_client_request_id` (solo agrega): `diagnosticos_gestacion.client_request_id` con índice único por
   finca, como ya tenían `servicios`, `ordenos` y `pesajes`.
 
+### Lo creado sin señal se usa de inmediato (21 nov 2026)
+
+- **Un animal nuevo o una cría con arete creados sin señal ya salen en las demás opciones** sin esperar a que se envíen: la pantalla une a la copia de
+  la finca lo que la persona tiene guardado sin enviar (`referenciaConPendientes` en `lib/campo.ts`). Un animal nuevo entra a monta, pesos, sanidad,
+  corrales y bajas (y al ordeño si se anotó su último parto); una cría viva con arete, con la especie de la madre; la madre de un parto (no un aborto)
+  entra al ordeño; el que tiene una baja guardada sale de las listas (sigue en la copia, inactivo, para poder corregir esa baja). Un registro con error
+  no crea nada. Al corregir el animal o el parto, sus propios aretes no cuentan como repetidos (`AnimalHato.origen`).
+- **Identificadores**: lo anotado sobre ellos lleva el identificador del celular (el del registro del animal nuevo; a cada cría con arete el celular le
+  da uno en `campos.crias[].id`). Al enviar, `/api/campo/enviar` lo traduce al real (`traducirAnimalesLocales` en `lib/campo-servidor.ts`: busca
+  `animales.client_request_id` en `animalId`, `animales`, `machoId` y `madre_id`/`padre_id`/`hembra_id`/`macho_id`). Los registros se envían en el
+  orden en que se crearon, así que el animal llega antes que lo anotado sobre él; si no entró, lo de él queda en «Pendientes con error».
+- **Migración** `20261121175426_crias_con_identificador_del_celular` (solo reemplaza la función): `registrar_parto` guarda el `id` de cada cría como
+  `client_request_id` del animal creado (`esquemaCria.id` en `lib/parto-reglas.ts`).
+
 ## Pasos siguientes (por definir)
 
 - Todo lo del campo ya funciona sin señal (incluidos los partos con sus crías).

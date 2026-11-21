@@ -717,3 +717,52 @@ export async function guardarPartoCampo(supabase: Cliente, e: Extract<EnvioCampo
   if (error || !r) return rechazo(mensajeAmigable(error?.message ?? "No se pudo guardar el parto."));
   return { ok: true, estado: (r as { repetido?: boolean }).repetido ? "ya_estaba" : "guardado" };
 }
+
+/** Los campos de un envío que nombran a un animal (madre o padre de un animal nuevo, hembra o reproductor de un servicio, a quién se carga una compra). */
+const CAMPOS_DE_ANIMAL = ["animal_id", "madre_id", "padre_id", "hembra_id", "macho_id"] as const;
+
+/**
+ * Lo anotado sin señal sobre un animal creado en el mismo celular (o sobre una cría de un parto anotado ahí) lleva el identificador que le dio el
+ * celular, no el de la base. El animal guardó ese identificador como su `client_request_id` (`registrar_animal`; las crías, `registrar_parto`), así que
+ * aquí se traduce al real antes de guardar. Los animales que ya existen con ese identificador no cambian. Se envía en el orden en que se anotó, así que
+ * el animal llega antes que lo anotado sobre él; si el animal no se pudo crear, lo que depende de él se rechaza con su motivo.
+ */
+export async function traducirAnimalesLocales<T extends EnvioCampo>(supabase: Cliente, e: T): Promise<T> {
+  const ids = new Set<string>();
+  const anotar = (v: unknown) => {
+    if (typeof v === "string" && uuid.safeParse(v).success) ids.add(v);
+  };
+  // En el animal nuevo, la compra y la venta, `animalId` es el identificador del propio registro, no el de un animal que ya exista.
+  if (e.tipo !== "animal" && e.tipo !== "compra" && e.tipo !== "venta") anotar(e.animalId);
+  if ("animales" in e) e.animales.forEach(anotar);
+  if (e.tipo === "monta") anotar(e.machoId);
+  if ("campos" in e) for (const k of CAMPOS_DE_ANIMAL) anotar(e.campos[k]);
+  if (ids.size === 0) return e;
+
+  const lista = [...ids];
+  const existen = new Set<string>();
+  for (const tramo of enTramos(lista)) {
+    const { data } = await supabase.from("animales").select("id").eq("finca_id", e.fincaId).in("id", tramo);
+    for (const a of data ?? []) existen.add(a.id);
+  }
+  const faltan = lista.filter((i) => !existen.has(i));
+  if (faltan.length === 0) return e;
+  const real = new Map<string, string>();
+  for (const tramo of enTramos(faltan)) {
+    const { data } = await supabase.from("animales").select("id, client_request_id").eq("finca_id", e.fincaId).in("client_request_id", tramo);
+    for (const a of data ?? []) if (a.client_request_id) real.set(a.client_request_id, a.id);
+  }
+  if (real.size === 0) return e;
+
+  const t = (v: string) => real.get(v) ?? v;
+  const copia = { ...e } as T & { animales?: string[]; machoId?: string | null; campos?: Record<string, string> };
+  if (e.tipo !== "animal" && e.tipo !== "compra" && e.tipo !== "venta") copia.animalId = t(e.animalId);
+  if (copia.animales) copia.animales = copia.animales.map(t);
+  if (copia.machoId) copia.machoId = t(copia.machoId);
+  if (copia.campos) {
+    const campos = { ...copia.campos };
+    for (const k of CAMPOS_DE_ANIMAL) if (campos[k]) campos[k] = t(campos[k]);
+    copia.campos = campos;
+  }
+  return copia;
+}

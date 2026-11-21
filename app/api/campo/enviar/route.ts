@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { crearClienteServidor } from "@/lib/supabase/server";
-import { esquemaEnvio, guardarAnimalCampo, guardarBajaCampo, guardarPartoCampo, guardarCompraCampo, guardarVentaCampo, guardarDiagnosticoCampo, guardarMontaCampo, guardarMovimientoCampo, guardarOrdenoCampo, guardarPesoCampo, guardarSanidadCampo, guardarServicioCampo, permisosCampo } from "@/lib/campo-servidor";
+import { esquemaEnvio, guardarAnimalCampo, guardarBajaCampo, guardarPartoCampo, guardarCompraCampo, guardarVentaCampo, guardarDiagnosticoCampo, guardarMontaCampo, guardarMovimientoCampo, guardarOrdenoCampo, guardarPesoCampo, guardarSanidadCampo, guardarServicioCampo, permisosCampo, traducirAnimalesLocales } from "@/lib/campo-servidor";
 import { hoyBogota } from "@/lib/fechas";
 import type { Especie, PlanId, RolFinca } from "@/lib/tipos";
 
@@ -33,7 +33,7 @@ export async function POST(request: Request) {
   }
   const datos = esquemaEnvio.safeParse(cuerpo);
   if (!datos.success) return rechazo("El registro llegó incompleto.", 400);
-  const e = datos.data;
+  let e = datos.data;
 
   const [{ data: miembro }, { data: finca }, { data: vigencia }] = await Promise.all([
     supabase.from("finca_miembros").select("rol").eq("finca_id", e.fincaId).eq("user_id", usuario).maybeSingle(),
@@ -53,6 +53,8 @@ export async function POST(request: Request) {
   if (e.tipo === "compra" && !puede.compras) return rechazo("No tienes permiso para registrar compras en esta finca.", 403);
   if (e.tipo === "movimiento" && !puede.corrales) return rechazo("No tienes permiso para mover animales en esta finca.", 403);
 
+  // Un animal (o una cría) creado en el mismo celular sin señal llega con el identificador del celular: se traduce al real.
+  e = await traducirAnimalesLocales(supabase, e);
   const hoy = hoyBogota();
   const r =
     e.tipo === "ordeno"

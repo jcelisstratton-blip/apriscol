@@ -50,6 +50,8 @@ export function datosPorTipoParto(e: EntradaParto): { error: string } | { datos:
 
 // ───────────────────────── Parto nuevo (con sus crías) ─────────────────────────
 export const esquemaCria = z.object({
+  /** El identificador que le dio el celular a una cría con arete (sin señal): su animal lo guarda y lo anotado sobre ella se le traduce al enviarse. */
+  id: z.uuid().optional(),
   sexo: z.enum(["hembra", "macho"], "Indica el sexo de cada cría.").nullable().optional(),
   vivo: z.boolean(),
   // El peso llega como lo escribió la persona («3,2»); un texto que no es número no se descarta en silencio.
@@ -169,7 +171,7 @@ export async function prepararParto(supabase: Cliente, fincaId: string, campos: 
         padre_id: servicio?.macho_id ?? null,
         padre_externo: servicio?.macho_externo ?? null,
       },
-      p_crias: c.crias.map((x) => ({ arete: x.arete ?? null, nombre: x.nombre || null, sexo: x.sexo ?? null, peso: x.peso ?? null, vivo: x.vivo })),
+      p_crias: c.crias.map((x) => ({ arete: x.arete ?? null, nombre: x.nombre || null, sexo: x.sexo ?? null, peso: x.peso ?? null, vivo: x.vivo, ...(x.id && x.arete ? { id: x.id } : {}) })),
     },
   };
 }

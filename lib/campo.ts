@@ -106,6 +106,8 @@ export type AnimalHato = {
   activo: boolean;
   /** Corrales: la instalación donde está hoy (`null` = sin ubicación). Solo viene si la persona mueve animales. */
   ubicacion?: string | null;
+  /** Solo en el celular: el registro sin enviar que lo creó (un animal nuevo o el parto de una cría), ver `referenciaConPendientes`. */
+  origen?: string;
 };
 
 /** Un corral o potrero activo de la finca (para mover animales sin señal). La ocupación se calcula con `ubicacionesEfectivas`. */
@@ -453,7 +455,7 @@ export const areteClave = (arete: string) => arete.trim().toLowerCase();
 export function areteRepetido(arete: string, ref: Pick<ReferenciaCampo, "animales">, registros: RegistroCampo[], excepto?: string): boolean {
   const clave = areteClave(arete);
   if (!clave) return false;
-  if (ref.animales.some((a) => areteClave(a.arete) === clave)) return true;
+  if (ref.animales.some((a) => !(excepto && a.origen === excepto) && areteClave(a.arete) === clave)) return true;
   return registros.some((r) => {
     if (r.id === excepto || r.estado === "enviado" || r.estado === "error") return false;
     if (r.tipo === "animal") return areteClave(r.campos?.numero_arete ?? "") === clave;
@@ -550,4 +552,84 @@ function pendientesDe(tipo: TipoRegistroCampo, registros: RegistroCampo[], usuar
 export function hembrasParaParto(hembras: HembraRepro[]): HembraRepro[] {
   const espera = (h: HembraRepro) => h.estado === "gestante" || h.estado === "servida";
   return [...hembras].sort((a, b) => Number(espera(b)) - Number(espera(a)) || a.arete.localeCompare(b.arete, "es", { numeric: true }));
+}
+
+// ───────────── Lo guardado en el celular, usable de inmediato ─────────────
+
+type CriaGuardada = { id?: string; arete?: string; nombre?: string; sexo?: string | null; vivo?: boolean };
+const leerCriasGuardadas = (texto: string | undefined): CriaGuardada[] => {
+  try {
+    const lista: unknown = JSON.parse(texto ?? "[]");
+    return Array.isArray(lista) ? (lista as CriaGuardada[]) : [];
+  } catch {
+    return [];
+  }
+};
+
+/**
+ * La copia de la finca más lo que esta persona guardó en el celular y aún no se envía, para usarlo de inmediato sin señal: un animal nuevo (y una cría
+ * con arete de un parto) ya se puede ordeñar si entró con su último parto, pesar, servir, vacunar o mover; la madre de un parto entra al ordeño; y el
+ * que tiene una baja guardada sale de las listas. Lo anotado sobre ellos lleva el identificador del celular y el servidor lo traduce al real al
+ * enviarse (`traducirAnimalesLocales`). Un registro con error no cuenta: ese animal no se creó.
+ */
+export function referenciaConPendientes(ref: ReferenciaCampo, registros: RegistroCampo[], usuarioId: string): ReferenciaCampo {
+  const propios = registros
+    .filter((r) => r.usuarioId === usuarioId && r.fincaId === ref.finca.id && (r.estado === "pendiente" || r.estado === "enviando"))
+    .sort((a, b) => a.creadoEn.localeCompare(b.creadoEn));
+  if (propios.length === 0) return ref;
+  const animales = [...ref.animales];
+  const hembras = [...ref.hembras];
+  const machos = [...ref.machos];
+  const pesar = [...ref.pesar];
+  const ordeno = [...ref.ordeno];
+  const conocidos = new Set(ref.animales.map((a) => a.id));
+  const especieDe = (id: string) => (animales.find((a) => a.id === id)?.especie ?? ref.hembras.find((h) => h.id === id)?.especie) as Especie | undefined;
+
+  const sumar = (a: AnimalHato, nacimiento: string | null, alOrdeno: boolean) => {
+    if (conocidos.has(a.id)) return;
+    conocidos.add(a.id);
+    animales.push(a);
+    if (ref.puede.reproduccion) {
+      if (a.sexo === "hembra") hembras.push({ id: a.id, arete: a.arete, nombre: a.nombre, especie: a.especie, nacimiento, estado: "sin_datos", ultimoServicio: null });
+      else machos.push({ id: a.id, arete: a.arete, nombre: a.nombre, especie: a.especie });
+    }
+    if (ref.puede.pesos) pesar.push({ id: a.id, arete: a.arete, nombre: a.nombre, ceba: false, ultimoPeso: null, ultimaFecha: null });
+    if (alOrdeno && ref.puede.leche && a.sexo === "hembra") ordeno.push({ id: a.id, arete: a.arete, nombre: a.nombre, turnos: null, retiroLecheHasta: null });
+  };
+
+  for (const r of propios) {
+    const c = r.campos ?? {};
+    if (r.tipo === "animal" && c.numero_arete && (c.sexo === "hembra" || c.sexo === "macho") && (c.especie === "caprino" || c.especie === "ovino")) {
+      sumar(
+        { id: r.id, arete: c.numero_arete.trim(), nombre: c.nombre?.trim() || null, sexo: c.sexo, especie: c.especie, activo: true, origen: r.id, ...(ref.puede.corrales ? { ubicacion: null } : {}) },
+        c.fecha_nacimiento || null,
+        Boolean(c.fecha_ultimo_parto),
+      );
+    }
+    if (r.tipo === "parto") {
+      const especie = especieDe(r.animalId);
+      for (const cria of leerCriasGuardadas(c.crias)) {
+        const arete = cria.arete?.trim();
+        if (!cria.id || !arete || cria.vivo === false || (cria.sexo !== "hembra" && cria.sexo !== "macho") || !especie) continue;
+        sumar({ id: cria.id, arete, nombre: cria.nombre?.trim() || null, sexo: cria.sexo, especie, activo: true, origen: r.id, ...(ref.puede.corrales ? { ubicacion: null } : {}) }, r.fecha, false);
+      }
+      // Con el parto se le abre la lactancia: la madre entra al ordeño.
+      const madre = animales.find((a) => a.id === r.animalId) ?? ref.hembras.find((h) => h.id === r.animalId);
+      if (c.tipo !== "aborto" && ref.puede.leche && madre && !ordeno.some((h) => h.id === r.animalId)) {
+        ordeno.push({ id: madre.id, arete: madre.arete, nombre: madre.nombre, turnos: null, retiroLecheHasta: null });
+      }
+    }
+  }
+
+  // El que tiene una baja guardada ya no está en el hato: sale de las listas (se puede corregir esa baja).
+  const salen = new Set(propios.filter((r) => r.tipo === "baja").map((r) => r.animalId));
+  const queda = (x: { id: string }) => !salen.has(x.id);
+  return {
+    ...ref,
+    animales: salen.size ? animales.map((a) => (salen.has(a.id) ? { ...a, activo: false } : a)) : animales,
+    hembras: hembras.filter(queda),
+    machos: machos.filter(queda),
+    pesar: pesar.filter(queda),
+    ordeno: ordeno.filter(queda),
+  };
 }
