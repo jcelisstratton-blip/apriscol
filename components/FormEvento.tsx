@@ -12,6 +12,8 @@ import { Selector } from "@/components/Selector";
 import { SelectorTarjetas, type OpcionTarjeta } from "@/components/SelectorTarjetas";
 import { SelectorAnimales, type AnimalElegido } from "@/components/SelectorAnimales";
 import { crearEvento, editarEvento } from "@/app/(app)/sanidad/actions";
+import { AvisoGuardadoLocal } from "@/components/AvisoGuardadoLocal";
+import { accionConRespaldo, camposDe, errorDe, quedoEnCelular } from "@/lib/offline/respaldo";
 import { sumarDias, formatoFecha } from "@/lib/fechas";
 import { ESCENA_EVENTO } from "@/lib/escenas-sanidad";
 import { ESCENA_VIA } from "@/lib/escenas-forms-a-sanidad";
@@ -113,7 +115,34 @@ export function FormEvento({
 }) {
   const moneda = useMoneda();
   const editando = Boolean(datos?.id);
-  const [estado, enviar, pendiente] = useActionState(editando ? editarEvento : crearEvento, undefined);
+  // Sin señal: un registro nuevo queda en el celular (mismo identificador del formulario) con sus animales y se envía solo; una corrección pide
+  // intentarlo de nuevo. Nunca se pierde lo escrito.
+  const [estado, enviar, pendiente] = useActionState(
+    accionConRespaldo(
+      editando ? editarEvento : crearEvento,
+      editando || !solicitud
+        ? null
+        : (formulario) => {
+            const ids = [...new Set(formulario.getAll("animal_id").map(String).filter(Boolean))];
+            if (ids.length === 0) return null;
+            const tipoElegido = String(formulario.get("tipo") ?? "") as TipoEvento;
+            const que = ETIQUETA_EVENTO[tipoElegido] ?? "Sanidad";
+            return {
+              id: solicitud,
+              tipo: "sanidad",
+              animalId: ids[0],
+              animales: ids,
+              etiqueta: `${que} · ${ids.length === 1 ? "1 animal" : `${ids.length} animales`}`,
+              fecha: String(formulario.get("fecha") ?? ""),
+              campos: camposDe(formulario, ["client_request_id", "animal_id"]),
+            };
+          },
+      fincaId,
+    ),
+    undefined,
+  );
+  const guardadoLocal = quedoEnCelular(estado);
+  const error = errorDe(estado);
   const [, iniciar] = useTransition();
 
   const [tipo, setTipo] = useState<TipoEvento>(datos?.tipo ?? "vacunacion");
@@ -172,7 +201,7 @@ export function FormEvento({
   // Los campos obligatorios que quedarían escondidos deben venir llenos: el navegador no puede avisar de un campo que no se ve.
   const solucionLista = !r.solucion || (concentracion.trim() !== "" && minutos.trim() !== "");
   const resumible = aplicar && !editando && productoListo && categoriaLista && solucionLista;
-  const compacto = resumible && !cambiando && !estado?.error;
+  const compacto = resumible && !cambiando && !error;
   const nombreDelProducto = productos.find((p) => p.id === productoId)?.nombre ?? nombreProducto;
   const detalleResumen = [CATEGORIAS[tipo]?.find((o) => o.valor === categoria)?.etiqueta, via ? `vía ${ETIQUETA_VIA[via].toLowerCase()}` : null].filter(Boolean).join(" · ");
 
@@ -572,10 +601,11 @@ export function FormEvento({
       </Campo>
 
       {faltanAnimales ? <Aviso tipo="atencion">Aún no elegiste animales. Elige al menos uno para guardar.</Aviso> : null}
-      {estado?.error ? <Aviso tipo="error">{estado.error}</Aviso> : null}
+      {error ? <Aviso tipo="error">{error}</Aviso> : null}
+      {guardadoLocal ? <AvisoGuardadoLocal /> : null}
       <div className="space-y-2">
-        <Boton type="submit" pendiente={pendiente} cargando="Guardando…" disabled={faltanAnimales}>
-          {editando ? "Guardar cambios" : animales.length > 1 ? `Guardar para ${animales.length} animales` : "Guardar"}
+        <Boton type="submit" pendiente={pendiente} cargando="Guardando…" disabled={faltanAnimales || guardadoLocal}>
+          {guardadoLocal ? "Guardado en el celular" : editando ? "Guardar cambios" : animales.length > 1 ? `Guardar para ${animales.length} animales` : "Guardar"}
         </Boton>
         {editando && datos?.id ? (
           <Link href={`/sanidad/evento/${datos.id}`} className={clasesBoton("fantasma")}>

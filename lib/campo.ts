@@ -70,12 +70,12 @@ export type AnimalHato = { id: string; arete: string; nombre: string | null; sex
 
 /** Lo mínimo de la finca para registrar sin señal. Se guarda en el celular de quien abre la app con señal. */
 export type ReferenciaCampo = {
-  version: 3;
+  version: 4;
   generadaEn: string;
   hoy: string;
   usuario: { id: string };
   finca: { id: string; nombre: string };
-  puede: { leche: boolean; pesos: boolean; reproduccion: boolean; hato: boolean };
+  puede: { leche: boolean; pesos: boolean; reproduccion: boolean; hato: boolean; sanidad: boolean; lotes: boolean };
   ordeno: HembraCampo[];
   pesar: AnimalPesar[];
   /** Hembras activas y reproductores (solo si la persona registra reproducción). */
@@ -86,20 +86,30 @@ export type ReferenciaCampo = {
   proposito: Vocacion;
   razas: RazaCampo[];
   animales: AnimalHato[];
+  /** Para Sanidad: el catálogo de productos veterinarios de la finca (los animales salen de `animales`). */
+  productos: ProductoCampo[];
 };
 
-export type TipoRegistroCampo = "ordeno" | "peso" | "monta" | "diagnostico" | "animal";
+export type TipoRegistroCampo = "ordeno" | "peso" | "monta" | "diagnostico" | "animal" | "sanidad" | "servicio";
 
 /** Lo que se anota en un diagnóstico de gestación sin señal (ecografía o palpación). */
 export type DiagnosticoCampo = {
-  metodo: Exclude<MetodoDiagnostico, "otro">;
+  /** En «Registrar sin señal», ecografía o palpación; desde la ficha (respaldo sin señal) también «otro método». */
+  metodo: MetodoDiagnostico;
   resultado: ResultadoDiagnostico;
   diasGestacion?: number | null;
   numFetos?: number | null;
   viabilidad?: ViabilidadFetal | null;
   indicador?: IndicadorPalpacion | null;
   condicion?: number | null;
+  pruebaNombre?: string | null;
+  pruebaResultado?: string | null;
+  responsable?: string | null;
+  observaciones?: string | null;
 };
+
+/** Un producto veterinario del catálogo de la finca (para Sanidad sin señal). */
+export type ProductoCampo = { id: string; nombre: string; tipo: string; retiroLeche: number; retiroCarne: number; unidad: string | null };
 
 export type EstadoRegistro = "pendiente" | "enviando" | "error" | "enviado";
 
@@ -123,8 +133,13 @@ export type RegistroCampo = {
   machoEtiqueta?: string;
   /** Diagnóstico de gestación. */
   diagnostico?: DiagnosticoCampo;
-  /** Animal nuevo: los mismos campos (texto) que envía el formulario con señal; `animalId` es el propio identificador del registro. */
+  /**
+   * Los mismos campos (texto) que envía el formulario con señal: animal nuevo (`animalId` es el propio identificador del registro), sanidad,
+   * servicio desde la ficha y lo extra de un peso desde la ficha (tipo, condición corporal, observaciones).
+   */
   campos?: Record<string, string>;
+  /** Sanidad: los animales que recibieron el tratamiento (`animalId` es el primero). */
+  animales?: string[];
   creadoEn: string;
   estado: EstadoRegistro;
   /** Por qué el servidor no lo aceptó (en palabras de persona). */
@@ -136,10 +151,12 @@ export type RegistroCampo = {
 /** Lo que viaja al servidor (sin lo que solo sirve en el celular). */
 export type EnvioCampo =
   | { tipo: "ordeno"; id: string; fincaId: string; animalId: string; fecha: string; jornada: JornadaCampo; litros: number; descartar: boolean }
-  | { tipo: "peso"; id: string; fincaId: string; animalId: string; fecha: string; peso: number }
+  | { tipo: "peso"; id: string; fincaId: string; animalId: string; fecha: string; peso: number; extras?: Record<string, string> }
   | { tipo: "monta"; id: string; fincaId: string; animalId: string; fecha: string; machoId: string | null; machoExterno: string | null }
   | ({ tipo: "diagnostico"; id: string; fincaId: string; animalId: string; fecha: string } & DiagnosticoCampo)
-  | { tipo: "animal"; id: string; fincaId: string; animalId: string; fecha: string; campos: Record<string, string> };
+  | { tipo: "animal"; id: string; fincaId: string; animalId: string; fecha: string; campos: Record<string, string> }
+  | { tipo: "servicio"; id: string; fincaId: string; animalId: string; fecha: string; campos: Record<string, string> }
+  | { tipo: "sanidad"; id: string; fincaId: string; animalId: string; fecha: string; campos: Record<string, string>; animales: string[] };
 
 export function envioDe(r: RegistroCampo): EnvioCampo {
   const base = { id: r.id, fincaId: r.fincaId, animalId: r.animalId, fecha: r.fecha };
@@ -147,7 +164,9 @@ export function envioDe(r: RegistroCampo): EnvioCampo {
   if (r.tipo === "monta") return { tipo: "monta", ...base, machoId: r.machoId ?? null, machoExterno: r.machoExterno ?? null };
   if (r.tipo === "diagnostico") return { tipo: "diagnostico", ...base, ...r.diagnostico! };
   if (r.tipo === "animal") return { tipo: "animal", ...base, campos: r.campos ?? {} };
-  return { tipo: "peso", ...base, peso: r.peso! };
+  if (r.tipo === "servicio") return { tipo: "servicio", ...base, campos: r.campos ?? {} };
+  if (r.tipo === "sanidad") return { tipo: "sanidad", ...base, campos: r.campos ?? {}, animales: r.animales ?? [] };
+  return { tipo: "peso", ...base, peso: r.peso!, ...(r.campos && Object.keys(r.campos).length > 0 ? { extras: r.campos } : {}) };
 }
 
 // ───────────── Validación (la misma en el celular y en el servidor) ─────────────
@@ -285,21 +304,29 @@ export function referenciaVencida(ref: Pick<ReferenciaCampo, "generadaEn"> | nul
 }
 
 /**
- * Lee una copia guardada y la descarta si está dañada. Las copias de versiones anteriores (1: ordeño y pesos; 2: más monta y diagnóstico)
- * siguen sirviendo para lo que ya traían: se completan vacías hasta que la app se abra con señal y traiga la nueva.
+ * Lee una copia guardada y la descarta si está dañada. Las copias de versiones anteriores (1: ordeño y pesos; 2: más monta y diagnóstico;
+ * 3: más animal nuevo) siguen sirviendo para lo que ya traían: se completan vacías hasta que la app se abra con señal y traiga la nueva.
  */
 export function referenciaValida(valor: unknown): ReferenciaCampo | null {
   if (typeof valor !== "object" || valor === null) return null;
   const r = valor as Omit<Partial<ReferenciaCampo>, "version" | "puede"> & { version?: number; puede?: Partial<ReferenciaCampo["puede"]> };
-  if (![1, 2, 3].includes(r.version ?? 0) || typeof r.generadaEn !== "string" || typeof r.hoy !== "string") return null;
+  if (![1, 2, 3, 4].includes(r.version ?? 0) || typeof r.generadaEn !== "string" || typeof r.hoy !== "string") return null;
   if (!r.usuario?.id || !r.finca?.id || !Array.isArray(r.ordeno) || !Array.isArray(r.pesar) || !r.puede) return null;
   const v = r.version!;
   if (v >= 2 && (!Array.isArray(r.hembras) || !Array.isArray(r.machos))) return null;
   if (v >= 3 && (!Array.isArray(r.especies) || !Array.isArray(r.razas) || !Array.isArray(r.animales))) return null;
-  const puede = { leche: Boolean(r.puede.leche), pesos: Boolean(r.puede.pesos), reproduccion: v >= 2 && Boolean(r.puede.reproduccion), hato: v >= 3 && Boolean(r.puede.hato) };
+  if (v >= 4 && !Array.isArray(r.productos)) return null;
+  const puede = {
+    leche: Boolean(r.puede.leche),
+    pesos: Boolean(r.puede.pesos),
+    reproduccion: v >= 2 && Boolean(r.puede.reproduccion),
+    hato: v >= 3 && Boolean(r.puede.hato),
+    sanidad: v >= 4 && Boolean(r.puede.sanidad),
+    lotes: v >= 4 && Boolean(r.puede.lotes),
+  };
   return {
     ...(r as ReferenciaCampo),
-    version: 3,
+    version: 4,
     puede,
     hembras: r.hembras ?? [],
     machos: r.machos ?? [],
@@ -307,6 +334,7 @@ export function referenciaValida(valor: unknown): ReferenciaCampo | null {
     proposito: r.proposito ?? "leche",
     razas: r.razas ?? [],
     animales: r.animales ?? [],
+    productos: r.productos ?? [],
   };
 }
 

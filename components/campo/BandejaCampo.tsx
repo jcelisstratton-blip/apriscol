@@ -21,6 +21,10 @@ function Detalle({ r }: { r: RegistroCampo }) {
     <span className="block text-sm text-humo [overflow-wrap:anywhere]">
       {r.tipo === "animal"
         ? `Animal nuevo · registrado el ${dia}`
+        : r.tipo === "sanidad"
+          ? `Sanidad · ${dia} · ${r.animales?.length === 1 ? "1 animal" : `${r.animales?.length ?? 0} animales`}`
+          : r.tipo === "servicio"
+            ? `Servicio · ${dia}`
         : r.tipo === "ordeno"
         ? `Ordeño · ${dia}, ${JORNADA[r.jornada ?? ""] ?? ""} · ${fmt(r.litros ?? 0)} L${r.descartar ? " (descartada)" : ""}`
         : r.tipo === "monta"

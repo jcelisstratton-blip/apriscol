@@ -9,6 +9,9 @@ import { AsistidoPor } from "@/components/AsistidoPor";
 import { Selector } from "@/components/Selector";
 import { SelectorTarjetas } from "@/components/SelectorTarjetas";
 import { crearDiagnostico, editarDiagnostico } from "@/app/(app)/reproduccion/actions";
+import { AvisoGuardadoLocal } from "@/components/AvisoGuardadoLocal";
+import { accionConRespaldo, errorDe, etiquetaDeAnimal, quedoEnCelular } from "@/lib/offline/respaldo";
+import { leerNumero } from "@/lib/numeros";
 import { diasHasta, formatoFecha, sumarDias } from "@/lib/fechas";
 import { VALORES_CC, textoCC } from "@/lib/empadronamiento";
 import { ESCENA_FETOS, ESCENA_INDICADOR_PALPACION, ESCENA_METODO_DIAGNOSTICO, ESCENA_RESULTADO_DIAGNOSTICO, ESCENA_VIABILIDAD } from "@/lib/escenas-forms-b-reproduccion";
@@ -44,7 +47,45 @@ export function FormDiagnostico({
   diagnostico?: DiagnosticoGestacion;
 }) {
   const editando = Boolean(diagnostico);
-  const [estado, enviar, pendiente] = useActionState(editando ? editarDiagnostico : crearDiagnostico, undefined);
+  // El identificador de este envío: con señal, un doble toque no duplica; sin señal, el diagnóstico queda en el celular con ese mismo identificador.
+  const [solicitud] = useState(() => crypto.randomUUID());
+  const [estado, enviar, pendiente] = useActionState(
+    accionConRespaldo(
+      editando ? editarDiagnostico : crearDiagnostico,
+      editando
+        ? null
+        : (datos, ref) => {
+            const texto = (k: string) => String(datos.get(k) ?? "").trim() || null;
+            const entero = (k: string) => (texto(k) ? Number(texto(k)) : null);
+            const metodo = texto("metodo") as MetodoDiagnostico | null;
+            const resultado = texto("resultado") as ResultadoDiagnostico | null;
+            if (!metodo || !resultado) return null;
+            return {
+              id: solicitud,
+              tipo: "diagnostico",
+              animalId: hembraId,
+              etiqueta: etiquetaDeAnimal(ref, hembraId),
+              fecha: texto("fecha") ?? undefined,
+              diagnostico: {
+                metodo,
+                resultado,
+                diasGestacion: entero("dias_gestacion"),
+                numFetos: entero("num_fetos"),
+                viabilidad: texto("viabilidad_fetal") as ViabilidadFetal | null,
+                indicador: texto("indicador_palpacion") as IndicadorPalpacion | null,
+                condicion: texto("condicion_corporal") ? leerNumero(texto("condicion_corporal")!) : null,
+                pruebaNombre: texto("prueba_nombre"),
+                pruebaResultado: texto("prueba_resultado"),
+                responsable: texto("responsable"),
+                observaciones: texto("observaciones"),
+              },
+            };
+          },
+    ),
+    undefined,
+  );
+  const guardadoLocal = quedoEnCelular(estado);
+  const error = errorDe(estado);
   const [, iniciar] = useTransition();
   const [fecha, setFecha] = useState(diagnostico?.fecha ?? hoy);
   const [metodo, setMetodo] = useState<MetodoDiagnostico>(diagnostico?.metodo ?? "ecografia");
@@ -66,7 +107,7 @@ export function FormDiagnostico({
   return (
     <form onSubmit={alEnviar} className="space-y-5">
       <input type="hidden" name="hembra_id" value={hembraId} />
-      {diagnostico ? <input type="hidden" name="diagnostico_id" value={diagnostico.id} /> : null}
+      {diagnostico ? <input type="hidden" name="diagnostico_id" value={diagnostico.id} /> : <input type="hidden" name="client_request_id" value={solicitud} />}
 
       {servicio ? (
         <Aviso tipo="info">Corresponde al servicio del {formatoFecha(servicio.fecha)}{diasDelServicio != null && diasDelServicio >= 0 ? ` (hace ${diasDelServicio} días)` : ""}.</Aviso>
@@ -136,10 +177,11 @@ export function FormDiagnostico({
         {(id) => <textarea id={id} name="observaciones" defaultValue={diagnostico?.observaciones ?? ""} rows={3} maxLength={1000} className={`${CLASE_INPUT} py-3`} />}
       </Campo>
 
-      {estado?.error ? <Aviso tipo="error">{estado.error}</Aviso> : null}
+      {error ? <Aviso tipo="error">{error}</Aviso> : null}
+      {guardadoLocal ? <AvisoGuardadoLocal /> : null}
       <div className="space-y-2">
-        <Boton type="submit" pendiente={pendiente} cargando="Guardando…">
-          {editando ? "Guardar cambios" : "Guardar diagnóstico"}
+        <Boton type="submit" pendiente={pendiente} cargando="Guardando…" disabled={guardadoLocal}>
+          {guardadoLocal ? "Guardado en el celular" : editando ? "Guardar cambios" : "Guardar diagnóstico"}
         </Boton>
         <Link href={`/hato/${hembraId}#reproduccion`} className={clasesBoton("fantasma")}>
           Cancelar

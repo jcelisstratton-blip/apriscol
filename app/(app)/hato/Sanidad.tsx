@@ -3,6 +3,7 @@ import { CalendarClock, Footprints, Inbox, Microscope, Plus, Syringe } from "luc
 import { AvisoFamacha } from "@/components/AvisoFamacha";
 import { AvisoGuardado } from "@/components/AvisoGuardado";
 import { AyudaModulo } from "@/components/AyudaModulo";
+import { EnlaceSinSenal } from "@/components/EnlaceSinSenal";
 import { CancelarPrograma } from "@/components/AccionesPrograma";
 import { clasesBoton } from "@/components/Boton";
 import { EstadoVacio } from "@/components/EstadoVacio";
@@ -93,7 +94,10 @@ export async function Sanidad({
   return (
     <div className="space-y-4">
       <AvisoGuardado activo={guardado} />
-      <AyudaModulo ayuda={ayudaSanidad(ajustes)} />
+      <div className="flex flex-wrap items-center gap-x-5">
+        <AyudaModulo ayuda={ayudaSanidad(ajustes)} />
+        <EnlaceSinSenal texto="Registrar sanidad sin señal" ancla="sanidad" />
+      </div>
       {botones}
       {notaBotones}
 

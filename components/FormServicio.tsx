@@ -10,6 +10,8 @@ import { AsistidoPor } from "@/components/AsistidoPor";
 import { SelectorAnimal } from "@/components/SelectorAnimal";
 import { SelectorTarjetas } from "@/components/SelectorTarjetas";
 import { crearServicio, editarServicio } from "@/app/(app)/reproduccion/actions";
+import { AvisoGuardadoLocal } from "@/components/AvisoGuardadoLocal";
+import { accionConRespaldo, camposDe, errorDe, etiquetaDeAnimal, quedoEnCelular } from "@/lib/offline/respaldo";
 import { formatoFecha, sumarDias } from "@/lib/fechas";
 import { ESCENA_TECNICA_INSEMINACION, ESCENA_TIPO_SERVICIO, ESCENA_TIPO_TRANSFERENCIA } from "@/lib/escenas-forms-b-reproduccion";
 import { DETALLE_TECNICA, DETALLE_TRANSFERENCIA, ETIQUETA_SERVICIO, ETIQUETA_TECNICA, ETIQUETA_TRANSFERENCIA, TECNICAS_INSEMINACION, TIPOS_SERVICIO, TIPOS_TRANSFERENCIA } from "@/lib/reproduccion";
@@ -52,7 +54,23 @@ export function FormServicio({
   solicitud?: string;
 }) {
   const editando = Boolean(servicio);
-  const [estado, enviar, pendiente] = useActionState(editando ? editarServicio : crearServicio, undefined);
+  // Sin señal: un servicio nuevo queda en el celular (mismo identificador del formulario) y se envía solo; una corrección pide intentarlo de nuevo.
+  const [estado, enviar, pendiente] = useActionState(
+    accionConRespaldo(
+      editando ? editarServicio : crearServicio,
+      editando || !solicitud
+        ? null
+        : (datos, ref) => {
+            const hembra = String(datos.get("hembra_id") ?? "");
+            if (!hembra) return null;
+            return { id: solicitud, tipo: "servicio", animalId: hembra, etiqueta: etiquetaDeAnimal(ref, hembra), fecha: String(datos.get("fecha") ?? ""), campos: camposDe(datos, ["client_request_id"]) };
+          },
+      fincaId,
+    ),
+    undefined,
+  );
+  const guardadoLocal = quedoEnCelular(estado);
+  const error = errorDe(estado);
   const [, iniciar] = useTransition();
   const [fecha, setFecha] = useState(servicio?.fecha ?? hoy);
   const [tipo, setTipo] = useState<TipoServicio>(servicio?.tipo ?? "monta_natural");
@@ -152,10 +170,11 @@ export function FormServicio({
         {(id) => <textarea id={id} name="observaciones" defaultValue={servicio?.observaciones ?? ""} rows={3} maxLength={1000} className={`${CLASE_INPUT} py-3`} />}
       </Campo>
 
-      {estado?.error ? <Aviso tipo="error">{estado.error}</Aviso> : null}
+      {error ? <Aviso tipo="error">{error}</Aviso> : null}
+      {guardadoLocal ? <AvisoGuardadoLocal /> : null}
       <div className="space-y-2">
-        <Boton type="submit" pendiente={pendiente} cargando="Guardando…">
-          {editando ? "Guardar cambios" : "Guardar servicio"}
+        <Boton type="submit" pendiente={pendiente} cargando="Guardando…" disabled={guardadoLocal}>
+          {guardadoLocal ? "Guardado en el celular" : editando ? "Guardar cambios" : "Guardar servicio"}
         </Boton>
         <Link href={`/hato/${hembraId}#reproduccion`} className={clasesBoton("fantasma")}>
           Cancelar
