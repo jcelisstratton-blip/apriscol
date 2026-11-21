@@ -101,6 +101,12 @@ y de Ceba, la página «Sin señal» y la etiqueta flotante. La ayuda «¿Cómo 
 `tests/sin-senal.test.mjs` (el service worker con `/campo`). En el navegador: `npm run build && npm start`, abrir el panel con sesión, cortar
 la red **y** apagar el servidor, abrir `/campo`, anotar, volver a encender y ver que se envía. Auditoría de celular a 360 y 320 px.
 
+### En la pantalla de entrada (21 nov 2026)
+
+La pantalla de entrada explica qué se anota sin señal y cómo se llega (sección «Sin señal», pregunta frecuente y, debajo del formulario, el botón
+«Registrar sin señal» cuando el celular ya quedó listo). La lista sale de `REGISTROS_SIN_SENAL` (`lib/campo.ts`): **una opción nueva de «Registrar sin
+señal» se agrega también ahí** (la prueba lo exige). Detalle en `docs/modulos/presentacion-planes.md`.
+
 ### Partos sin señal (21 nov 2026)
 
 **Parto en «Registrar sin señal»** (`components/campo/PartoCampo.tsx`, `/campo#parto`; atajo «Parto sin señal» y enlace en «Registrar parto» de la

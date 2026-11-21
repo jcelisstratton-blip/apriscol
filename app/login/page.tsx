@@ -6,6 +6,7 @@ import { pesosPorDolar } from "@/lib/pago-manual";
 import { destinoSeguro } from "@/lib/redireccion";
 import { iniciarSesion } from "./actions";
 import { LimpiarCampo } from "@/components/LimpiarCampo";
+import { SinSenalAcceso } from "@/components/SinSenalAcceso";
 
 export const metadata: Metadata = {
   title: "Entrar",
@@ -23,13 +24,16 @@ export default async function PaginaLogin({ searchParams }: { searchParams: Prom
       modo="login"
       cambio={cambio}
       formulario={
-        <FormAuth
-          accion={iniciarSesion}
-          modo="login"
-          next={destino}
-          emailInicial={correoDeInvitacion(destino, email)}
-          errorInicial={error === "enlace" ? "El enlace del correo venció o ya se usó. Inicia sesión o pide uno nuevo." : undefined}
-        />
+        <>
+          <FormAuth
+            accion={iniciarSesion}
+            modo="login"
+            next={destino}
+            emailInicial={correoDeInvitacion(destino, email)}
+            errorInicial={error === "enlace" ? "El enlace del correo venció o ya se usó. Inicia sesión o pide uno nuevo." : undefined}
+          />
+          <SinSenalAcceso />
+        </>
       }
     />
     </>

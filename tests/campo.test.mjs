@@ -4,7 +4,7 @@ import { existsSync, readFileSync } from "node:fs";
 import {
   aplicarTecla, coincideBusqueda, enRetiroLeche, enviadosViejos, envioDe, errorFecha, errorLitros, errorPeso, hembrasDelTurno, jornadaDeHora, numeroDeTexto, porEnviar,
   redondearPeso, referenciaValida, referenciaVencida, registrosDe, resultadoEnvio, resumenBandeja, MAX_LITROS, MAX_PESO, RUTA_CAMPO,
-  hembrasParaDiagnostico, machosPara, nombreMachoExterno, areteClave, areteRepetido, padresPosibles, ubicacionesEfectivas, ocupacion, conBajaPendiente, conPartoPendiente, aretesDeCrias, hembrasParaParto,
+  hembrasParaDiagnostico, machosPara, nombreMachoExterno, areteClave, areteRepetido, padresPosibles, ubicacionesEfectivas, ocupacion, conBajaPendiente, conPartoPendiente, aretesDeCrias, hembrasParaParto, REGISTROS_SIN_SENAL, textoRegistrosSinSenal, SIN_SENAL_ENTRAR,
 } from "../lib/campo.ts";
 import { cupoDestino, leerMovimiento, motivoPorDestino } from "../lib/movimiento-reglas.ts";
 import { esquemaCompra, revisarCompra } from "../lib/compra-reglas.ts";
@@ -1149,6 +1149,34 @@ test("partos: la pantalla, la ficha con señal, la ayuda y los atajos están con
   assert.ok(ATAJOS.some((a) => a.href === "/campo#parto" && a.modulo === "reproduccion"), "«Parto sin señal» en «Al grano»");
   assert.match(leer("app/api/campo/enviar/route.ts"), /e\.tipo === "parto"\) && !puede\.reproduccion/);
   assert.ok(AYUDA_CAMPO.puntos.some((p) => /un parto/.test(p.texto)));
+});
+
+// ───────────────────────── Pantalla de entrada ─────────────────────────
+
+test("entrada: la lista de lo que se anota sin señal es la de la pantalla «Registrar sin señal»", () => {
+  const titulos = [...leer("components/campo/PantallaCampo.tsx").matchAll(/<TarjetaOpcion [^>]*titulo="([^"]+)"/g)].map((m) => m[1]).filter((t) => t !== "Guardado");
+  assert.equal(REGISTROS_SIN_SENAL.length, titulos.length, `una entrada por opción de la pantalla (${titulos.join(", ")})`);
+  assert.equal(textoRegistrosSinSenal(), "Animal nuevo, ordeño, pesos, monta, diagnóstico de gestación, parto y crías, sanidad, mover de corral, compras, ventas y dar de baja");
+});
+
+test("entrada: el formulario no borra lo escrito y explica qué hacer sin señal", () => {
+  const form = leer("components/FormAuth.tsx");
+  assert.match(form, /onSubmit=\{\(e\) => \{\s*e\.preventDefault\(\)/, "se envía con onSubmit: un error no borra el correo escrito");
+  assert.doesNotMatch(form, /action=\{enviar\}/);
+  assert.match(form, /if \(esFallaDeRed\(e\)\) return \{ error: SIN_SENAL_ENTRAR \};\s*throw e;/, "sin señal, un aviso en vez de romper la pantalla; los demás errores siguen igual");
+  assert.match(SIN_SENAL_ENTRAR, /no se puede entrar[\s\S]*sigue aquí/);
+  assert.match(leer("app/login/page.tsx"), /<SinSenalAcceso \/>/);
+  const acceso = leer("components/SinSenalAcceso.tsx");
+  assert.match(acceso, /leerReferencia\(\)/, "ofrece «Registrar sin señal» solo si el celular ya quedó listo");
+  assert.match(acceso, /href=\{RUTA_CAMPO\}/);
+  assert.match(acceso, /href="#sin-senal"/);
+  const pres = leer("components/presentacion/Presentacion.tsx");
+  assert.match(pres, /<Seccion id="sin-senal"/);
+  assert.match(pres, /REGISTROS_SIN_SENAL\.map/, "la sección usa la misma lista");
+  assert.match(pres, /\["#sin-senal", "Sin señal"\]/, "enlace en la barra de arriba");
+  assert.match(pres, /¿Funciona donde no hay señal\?/);
+  assert.match(leer("app/manifest.ts"), /name: "Registrar sin señal"[^}]*partos/, "el atajo del ícono ya no dice solo «ordeño y pesos»");
+  assert.match(leer("public/offline.html"), /href="\/campo">Registrar sin señal<\/a>/);
 });
 
 // ───────────────────────── Conexiones ─────────────────────────
