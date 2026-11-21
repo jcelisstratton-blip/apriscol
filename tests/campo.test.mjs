@@ -1172,7 +1172,12 @@ test("entrada: el formulario no borra lo escrito y explica qué hacer sin señal
   assert.match(acceso, /href="#sin-senal"/);
   const pres = leer("components/presentacion/Presentacion.tsx");
   assert.match(pres, /<Seccion id="sin-senal"/);
-  assert.match(pres, /REGISTROS_SIN_SENAL\.map/, "la sección usa la misma lista");
+  assert.match(pres, /REGISTROS_SIN_SENAL\.map\(\(r\) => \([\s\S]*<TarjetaOpcion [^>]*escena=\{ESCENA_OPCION_CAMPO\[r\.vista\]\}[^>]*estatica \/>/, "tarjetas con las mismas escenas de «Registrar sin señal»");
+  assert.match(pres, /<FilaTarjetasDeLado /, "de lado en celular y computador");
+  assert.doesNotMatch(leer("components/FilaTarjetasDeLado.tsx"), /lg:grid/, "en el computador no se vuelve rejilla: sigue de lado");
+  assert.match(leer("components/FilaTarjetasDeLado.tsx"), /useArrastrarParaDesplazar/, "en el computador se arrastra con el mouse");
+  assert.match(pres, /está en el menú \(en el celular, dentro de «Más»\) y en «Al grano», pestaña «Registrar»/, "el paso 2 dice dónde está de verdad");
+  assert.match(leer("components/campo/PantallaCampo.tsx"), /ESCENA_OPCION_CAMPO/, "la pantalla del celular usa las mismas escenas");
   assert.match(pres, /\["#sin-senal", "Sin señal"\]/, "enlace en la barra de arriba");
   assert.match(pres, /¿Funciona donde no hay señal\?/);
   assert.match(leer("app/manifest.ts"), /name: "Registrar sin señal"[^}]*partos/, "el atajo del ícono ya no dice solo «ordeño y pesos»");
@@ -1198,8 +1203,8 @@ test("campo: la pantalla, las rutas, el respaldo con señal, la ayuda y los ataj
   assert.match(leer("app/login/page.tsx"), /salio \? <LimpiarCampo \/>/);
   assert.match(leer("public/offline.html"), /href="\/campo"/);
   assert.match(leer("app/manifest.ts"), /url: "\/campo"/);
-  const atajo = ATAJOS.find((a) => a.href === "/campo" && a.modulo === "leche");
-  assert.ok(atajo, "«Registrar sin señal» está en «Al grano»");
+  const atajo = ATAJOS.find((a) => a.href === "/campo" && a.menu === "sinSenal" && a.tipo === "registrar");
+  assert.ok(atajo, "«Registrar sin señal» está en «Al grano», pestaña «Registrar», para quien lo ve en el menú");
   assert.ok(ATAJOS.some((a) => a.href === "/campo" && a.modulo === "reproduccion"), "y el de monta y diagnóstico, para quien registra reproducción (veterinario)");
   assert.match(leer("app/(app)/hato/Monta.tsx"), /<EnlaceSinSenal /, "el empadre lleva a registrar sin señal");
   assert.ok(ATAJOS.some((a) => a.href === "/campo#animal" && a.modulo === "hato"), "«Animal nuevo sin señal» en «Al grano»");

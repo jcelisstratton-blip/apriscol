@@ -41,4 +41,10 @@ supuestos ajustables, nunca como un resultado prometido.
   `REGISTROS_SIN_SENAL` de `lib/campo.ts`, una entrada por opción de «Registrar sin señal»: la prueba lo exige), qué necesita señal y cómo se llega en tres
   pasos (dejar listo el celular, abrir Apriscol y tocar «Registrar sin señal» —o «Al grano», o el ícono de la app instalada—, y se envía solo).
 - El atajo del ícono de la app (`app/manifest.ts`) y la página «Sin señal» (`public/offline.html`) ya no dicen solo «ordeño y pesos».
+- **«Registrar sin señal» en el menú** (primer bloque, después de Hato; en el celular, dentro de «Más»): `lib/menu.ts` (`sinSenal`: quien escribe en ordeño,
+  pesos, reproducción, hato, sanidad, corrales o cuentas). En «Al grano» está en la pestaña «Registrar» para esas mismas personas (`menu: "sinSenal"`).
+  El paso 2 de la sección dice exactamente eso. También tiene su tarjeta en «Qué resuelve» (`/campo` en `lib/presentacion.ts`).
+- **Qué puedes anotar** se muestra como **tarjetas**, con las mismas escenas de «Registrar sin señal» (`ESCENA_OPCION_CAMPO`, `lib/escenas-campo.ts`) y
+  un detalle corto (`REGISTROS_SIN_SENAL`), en una fila que se desplaza de lado **en el celular y en el computador** (`FilaTarjetasDeLado`: se desliza
+  con el dedo o se arrastra con el mouse). Las tarjetas solo muestran (`TarjetaOpcion` con `estatica`).
 

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, ArrowRightLeft, CloudOff, CloudUpload, Fence, Heart, PawPrint, Plus, Receipt, Scale, Banknote, LogOut, Baby, ShieldPlus, ShoppingCart, Stethoscope, Syringe, Wifi, WifiOff } from "lucide-react";
+import { ArrowLeft, CloudOff, Wifi, WifiOff } from "lucide-react";
 import { Aviso } from "@/components/Aviso";
 import { AyudaModulo } from "@/components/AyudaModulo";
 import { Cargando } from "@/components/Cargando";
@@ -25,25 +25,14 @@ import { ProveedorMoneda } from "@/components/ProveedorMoneda";
 import { MONEDA_DEFECTO } from "@/lib/moneda";
 import { DiagnosticoCampo } from "@/components/campo/DiagnosticoCampo";
 import { AYUDA_CAMPO } from "@/lib/ayuda";
-import { ESC, escena } from "@/lib/escenas";
+import { ESCENA_OPCION_CAMPO } from "@/lib/escenas-campo";
 import { textoAnimales } from "@/lib/hato";
 import { fechaHoraBogota, hoyBogota } from "@/lib/fechas";
-import { horaBogota, jornadaDeHora, RUTA_CAMPO } from "@/lib/campo";
+import { horaBogota, jornadaDeHora, RUTA_CAMPO, type VistaCampo } from "@/lib/campo";
 import { useBandejaCampo } from "@/lib/offline/useBandejaCampo";
 
-type Vista = "animal" | "ordeno" | "pesar" | "monta" | "diagnostico" | "sanidad" | "corrales" | "compra" | "venta" | "baja" | "parto" | "bandeja";
-
-const ESCENA_PESAR = escena(Scale, "arcilla");
-const ESCENA_BANDEJA = escena(CloudUpload, "grafito");
-const ESCENA_MONTA = escena(Heart, "ocre");
-const ESCENA_ANIMAL = escena(PawPrint, "ambar", Plus);
-const ESCENA_SANIDAD = escena(Syringe, "musgo", ShieldPlus);
-const ESCENA_DIAGNOSTICO = escena(Stethoscope, "musgo");
-const ESCENA_CORRALES = escena(Fence, "oliva", ArrowRightLeft);
-const ESCENA_COMPRA = escena(ShoppingCart, "ocre", Receipt);
-const ESCENA_VENTA = escena(Banknote, "musgo", Receipt);
-const ESCENA_BAJA = escena(LogOut, "arcilla", PawPrint);
-const ESCENA_PARTO = escena(Baby, "ocre", Heart);
+type Vista = VistaCampo;
+const E = ESCENA_OPCION_CAMPO;
 
 /**
  * «Registrar sin señal» (`/campo`): una página igual para todas las personas que el service worker deja lista para abrir sin conexión. Todo
@@ -129,40 +118,40 @@ export function PantallaCampo() {
 
             <FilaTarjetas etiqueta="Qué registrar">
               {referencia.puede.hato ? (
-                <TarjetaOpcion escena={ESCENA_ANIMAL} titulo="Animal nuevo" dato="Cabra, oveja…" activo={elegida === "animal"} onClick={() => setVista("animal")} />
+                <TarjetaOpcion escena={E.animal} titulo="Animal nuevo" dato="Cabra, oveja…" activo={elegida === "animal"} onClick={() => setVista("animal")} />
               ) : null}
               {referencia.puede.leche ? (
-                <TarjetaOpcion escena={ESC.leche} titulo="Ordeño" dato={textoAnimales(referencia.ordeno.length)} activo={elegida === "ordeno"} onClick={() => setVista("ordeno")} />
+                <TarjetaOpcion escena={E.ordeno} titulo="Ordeño" dato={textoAnimales(referencia.ordeno.length)} activo={elegida === "ordeno"} onClick={() => setVista("ordeno")} />
               ) : null}
               {referencia.puede.pesos ? (
-                <TarjetaOpcion escena={ESCENA_PESAR} titulo="Pesar" dato={textoAnimales(referencia.pesar.length)} activo={elegida === "pesar"} onClick={() => setVista("pesar")} />
+                <TarjetaOpcion escena={E.pesar} titulo="Pesar" dato={textoAnimales(referencia.pesar.length)} activo={elegida === "pesar"} onClick={() => setVista("pesar")} />
               ) : null}
               {referencia.puede.reproduccion ? (
-                <TarjetaOpcion escena={ESCENA_MONTA} titulo="Monta" dato={`${referencia.hembras.length} hembras`} activo={elegida === "monta"} onClick={() => setVista("monta")} />
+                <TarjetaOpcion escena={E.monta} titulo="Monta" dato={`${referencia.hembras.length} hembras`} activo={elegida === "monta"} onClick={() => setVista("monta")} />
               ) : null}
               {referencia.puede.reproduccion ? (
-                <TarjetaOpcion escena={ESCENA_DIAGNOSTICO} titulo="Diagnóstico" dato={`${referencia.hembras.filter((h) => h.estado === "servida").length} servidas`} activo={elegida === "diagnostico"} onClick={() => setVista("diagnostico")} />
+                <TarjetaOpcion escena={E.diagnostico} titulo="Diagnóstico" dato={`${referencia.hembras.filter((h) => h.estado === "servida").length} servidas`} activo={elegida === "diagnostico"} onClick={() => setVista("diagnostico")} />
               ) : null}
               {referencia.puede.reproduccion ? (
-                <TarjetaOpcion escena={ESCENA_PARTO} titulo="Parto" dato="Crías, aborto…" activo={elegida === "parto"} onClick={() => setVista("parto")} />
+                <TarjetaOpcion escena={E.parto} titulo="Parto" dato="Crías, aborto…" activo={elegida === "parto"} onClick={() => setVista("parto")} />
               ) : null}
               {referencia.puede.sanidad ? (
-                <TarjetaOpcion escena={ESCENA_SANIDAD} titulo="Sanidad" dato="Vacunas, tratamientos…" activo={elegida === "sanidad"} onClick={() => setVista("sanidad")} />
+                <TarjetaOpcion escena={E.sanidad} titulo="Sanidad" dato="Vacunas, tratamientos…" activo={elegida === "sanidad"} onClick={() => setVista("sanidad")} />
               ) : null}
               {referencia.puede.corrales ? (
-                <TarjetaOpcion escena={ESCENA_CORRALES} titulo="Corrales" dato="Mover animales" activo={elegida === "corrales"} onClick={() => setVista("corrales")} />
+                <TarjetaOpcion escena={E.corrales} titulo="Corrales" dato="Mover animales" activo={elegida === "corrales"} onClick={() => setVista("corrales")} />
               ) : null}
               {referencia.puede.compras ? (
-                <TarjetaOpcion escena={ESCENA_COMPRA} titulo="Compra" dato="Alimento, droga…" activo={elegida === "compra"} onClick={() => setVista("compra")} />
+                <TarjetaOpcion escena={E.compra} titulo="Compra" dato="Alimento, droga…" activo={elegida === "compra"} onClick={() => setVista("compra")} />
               ) : null}
               {referencia.puede.ventas ? (
-                <TarjetaOpcion escena={ESCENA_VENTA} titulo="Venta" dato="Queso, carne, abono…" activo={elegida === "venta"} onClick={() => setVista("venta")} />
+                <TarjetaOpcion escena={E.venta} titulo="Venta" dato="Queso, carne, abono…" activo={elegida === "venta"} onClick={() => setVista("venta")} />
               ) : null}
               {referencia.puede.hato ? (
-                <TarjetaOpcion escena={ESCENA_BAJA} titulo="Dar de baja" dato="Venta, muerte…" activo={elegida === "baja"} onClick={() => setVista("baja")} />
+                <TarjetaOpcion escena={E.baja} titulo="Dar de baja" dato="Venta, muerte…" activo={elegida === "baja"} onClick={() => setVista("baja")} />
               ) : null}
               <TarjetaOpcion
-                escena={ESCENA_BANDEJA}
+                escena={E.bandeja}
                 titulo="Guardado"
                 dato={resumen.conError > 0 ? `${resumen.conError} con error` : `${resumen.porEnviar} por enviar`}
                 activo={elegida === "bandeja"}

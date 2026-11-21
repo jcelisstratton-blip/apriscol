@@ -1,5 +1,5 @@
-import { CirclePlay, Inbox, Plug, Activity, Baby, Beef, Boxes, Download, Droplets, Fence, FileBarChart2, Gift, GitFork, Home, MapPin, Package, PawPrint, Plus, Rocket, Send, SlidersHorizontal, Syringe, TrendingUp, Trophy, Users, Wallet, Scissors, type LucideIcon } from "lucide-react";
-import { puedeGestionar, puedeVer, revisaNovedades } from "@/lib/permisos";
+import { CirclePlay, Inbox, Plug, WifiOff, Activity, Baby, Beef, Boxes, Download, Droplets, Fence, FileBarChart2, Gift, GitFork, Home, MapPin, Package, PawPrint, Plus, Rocket, Send, SlidersHorizontal, Syringe, TrendingUp, Trophy, Users, Wallet, Scissors, type LucideIcon } from "lucide-react";
+import { puedeEscribir, puedeGestionar, puedeVer, revisaNovedades } from "@/lib/permisos";
 import { reportesVisibles } from "@/lib/reportes/catalogo";
 import { areasSemaforo } from "@/lib/semaforos";
 import type { Especie, PlanId, RolFinca } from "@/lib/tipos";
@@ -20,6 +20,8 @@ export type VisibilidadMenu = {
   revisaNovedades: boolean;
   /** Tiene al menos un área de semáforos (según su rol y plan). */
   semaforos: boolean;
+  /** Registra algo que se puede anotar sin señal (ordeño, pesos, reproducción, hato, sanidad, corrales o cuentas): ve «Registrar sin señal». */
+  sinSenal: boolean;
   leche: boolean;
   repro: boolean;
   carne: boolean;
@@ -50,6 +52,7 @@ export function visibilidadMenu(rol: RolFinca, plan: PlanId, especies: Especie[]
     novedades: ve("novedades"),
     revisaNovedades: revisaNovedades(rol),
     semaforos: areasSemaforo(rol, plan).length > 0,
+    sinSenal: (["leche", "carne", "reproduccion", "hato", "sanidad", "corrales", "contabilidad"] as const).some((m) => puedeEscribir(rol, m, plan)),
     leche: ve("leche"),
     repro: ve("reproduccion"),
     carne: ve("carne"),
@@ -81,6 +84,8 @@ export function menuPrincipal(v: VisibilidadMenu): GrupoMenu[] {
         // Hoy y Semáforos son lo mismo visto de dos maneras (qué atender); Hato es donde vive cada animal.
         ...(v.semaforos ? [{ href: "/semaforos", etiqueta: "Semáforos", Icono: Activity }] : []),
         { href: "/hato", etiqueta: "Hato", Icono: PawPrint },
+        // Anotar donde no entra la señal: se deja listo abriendo la app con señal (fuera del panel, para que abra sin conexión).
+        ...(v.sinSenal ? [{ href: "/campo", etiqueta: "Registrar sin señal", Icono: WifiOff }] : []),
       ],
     },
     {
