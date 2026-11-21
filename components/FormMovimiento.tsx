@@ -8,6 +8,7 @@ import { Campo, CLASE_INPUT } from "@/components/Campo";
 import { Selector } from "@/components/Selector";
 import { SelectorTarjetas } from "@/components/SelectorTarjetas";
 import { editarMovimiento } from "@/app/(app)/hato/corrales/actions";
+import { accionConRespaldo, errorDe } from "@/lib/offline/respaldo";
 import { ETIQUETA_MOTIVO, ETIQUETA_TIPO_UBICACION, ETIQUETA_USO, MOTIVOS, textoOcupacion } from "@/lib/corrales";
 import { ESCENA_MOTIVO } from "@/lib/escenas-corrales";
 import { formatoFecha } from "@/lib/fechas";
@@ -21,7 +22,9 @@ export type DatosMovimiento = { id: string; ubicacion_id: string; desde: string;
  * cambia de instalación, el nuevo destino tiene que tener cupo; en uno que ya terminó es solo el historial y no cuenta el cupo.
  */
 export function FormMovimiento({ movimiento, ubicaciones, hoy, volver, volverA }: { movimiento: DatosMovimiento; ubicaciones: UbicacionOpcion[]; hoy: string; volver: string; volverA?: string }) {
-  const [estado, enviar, pendiente] = useActionState(editarMovimiento, undefined);
+  // Sin señal, una corrección no se guarda en el celular: avisa y deja lo escrito.
+  const [estado, enviar, pendiente] = useActionState(accionConRespaldo(editarMovimiento, null), undefined);
+  const error = errorDe(estado);
   const [, iniciar] = useTransition();
   const [destino, setDestino] = useState(movimiento.ubicacion_id);
   const [motivo, setMotivo] = useState<MotivoMovimiento>(movimiento.motivo);
@@ -75,7 +78,7 @@ export function FormMovimiento({ movimiento, ubicaciones, hoy, volver, volverA }
         {(id) => <textarea id={id} name="observaciones" defaultValue={movimiento.observaciones ?? ""} rows={2} maxLength={300} className={`${CLASE_INPUT} py-3`} />}
       </Campo>
 
-      {estado?.error ? <Aviso tipo="error">{estado.error}</Aviso> : null}
+      {error ? <Aviso tipo="error">{error}</Aviso> : null}
       <div className="space-y-2">
         <Boton type="submit" pendiente={pendiente} cargando="Guardando…" disabled={sinCupo}>Guardar cambios</Boton>
         <Link href={volver} className={clasesBoton("fantasma")}>Cancelar</Link>

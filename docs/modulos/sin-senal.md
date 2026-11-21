@@ -101,6 +101,29 @@ y de Ceba, la página «Sin señal» y la etiqueta flotante. La ayuda «¿Cómo 
 `tests/sin-senal.test.mjs` (el service worker con `/campo`). En el navegador: `npm run build && npm start`, abrir el panel con sesión, cortar
 la red **y** apagar el servidor, abrir `/campo`, anotar, volver a encender y ver que se envía. Auditoría de celular a 360 y 320 px.
 
+### Corrales sin señal: mover animales (21 nov 2026)
+
+**Corrales en «Registrar sin señal»** (`components/campo/MoverCampo.tsx`, `/campo#corrales`; atajo «Mover animales sin señal» y enlace en Hato →
+Corrales): mover uno o varios animales a un corral o potrero, o sacarlos de su ubicación, con fecha (hoy o ayer), motivo (sugerido por el destino:
+rotación en potrero, cuarentena, maternidad…) y observaciones. Los animales se eligen en una hoja **por dónde están** («Corral 2 · 14»,
+«Sin ubicación · 3») o con el buscador, y cada fila dice dónde está. Lo hace quien puede escribir en Corrales (propietario, administrador, veterinario).
+- **Dónde está cada animal** sale de la copia de la finca **más** lo movido en el celular que aún no se envía (`ubicacionesEfectivas` de
+  `lib/campo.ts`, en el orden en que se anotó): rotar un lote dos veces seguidas sin señal cuenta bien el cupo y la lista.
+- **El cupo se bloquea igual que con señal** (`cupoDestino` y `textoSinCupo` de `lib/movimiento-reglas.ts`, que también usa `FormMover`); avisa si
+  el potrero estaba en descanso cuando se guardó la copia y recuerda los días de cuarentena. Los **avisos de mezcla** (lactantes, machos con hembras,
+  pesos) necesitan los pesos y etapas del hato: salen al mover con señal.
+- **Una sola regla** (`leerMovimiento` de `lib/movimiento-reglas.ts`) para `moverAnimales` y `guardarMovimientoCampo`; se guarda con la misma
+  función de la base (`mover_animales`, que vuelve a exigir cupo, fecha y animales activos). **No hizo falta migración.**
+- **Reenviar no duplica**: los que ya están en el destino (o sin ubicación, si se sacaban) no se mueven; si son todos, «ya estaba».
+- **Nunca pisa a otra persona**: el registro viaja con la hora en que se anotó (`creadoEn`). Si alguno de los animales lo movió **otra persona**
+  después de esa hora (su fila abierta se creó después, o con fecha posterior), no se mueve ninguno y el registro pasa a «Pendientes con error»
+  diciendo cuáles; se arregla con «Corregir» (quitarlos) y se reenvía. Lo que movió la misma persona no cuenta como ajeno (dos movimientos
+  seguidos del mismo lote se aplican en orden). Un animal que salió del hato también lo rechaza, con su arete.
+- **Respaldo con señal**: «Mover animales» (`FormMover`) guarda en el celular si se cae la señal (sus avisos de cupo y mezcla ya no fallan sin
+  red); corregir un movimiento (`FormMovimiento`) y crear o editar un corral (`FormUbicacion`) avisan y dejan lo escrito.
+- **Copia de la finca, versión 5**: suma `ubicaciones` (las activas, con tipo, uso, capacidad y estado de rotación), la ubicación actual de cada
+  animal activo y el permiso `corrales`. Las copias de las versiones 1 a 4 siguen sirviendo.
+
 ### Sanidad sin señal y respaldo de todos los formularios (21 nov 2026)
 
 **Sanidad en «Registrar sin señal»** (`components/campo/SanidadCampo.tsx`, `/campo#sanidad`; atajo «Sanidad sin señal» y enlace en Hato → Sanidad):
@@ -173,4 +196,4 @@ La misma pantalla `/campo` suma **Monta** y **Diagnóstico** para quien registra
 
 ## Pasos siguientes (por definir)
 
-- Otros registros del campo sin señal (sanidad, partos) con el mismo motor, si hace falta. Los partos son más delicados: crean las crías como animales.
+- Otros registros del campo sin señal (partos) con el mismo motor, si hace falta. Los partos son más delicados: crean las crías como animales.

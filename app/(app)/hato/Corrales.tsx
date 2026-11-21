@@ -3,6 +3,7 @@ import { AlertTriangle, ArrowRightLeft, Fence, Plus } from "lucide-react";
 import { AvisoGuardado } from "@/components/AvisoGuardado";
 import { AyudaModulo } from "@/components/AyudaModulo";
 import { clasesBoton } from "@/components/Boton";
+import { EnlaceSinSenal } from "@/components/EnlaceSinSenal";
 import { EstadoVacio } from "@/components/EstadoVacio";
 import { Insignia } from "@/components/Insignia";
 import { TarjetaUbicacion } from "@/components/TarjetaUbicacion";
@@ -56,7 +57,10 @@ export async function Corrales({
   return (
     <div className="space-y-4">
       <AvisoGuardado activo={guardado} />
-      <AyudaModulo ayuda={AYUDA_CORRALES} />
+      <div className="flex flex-wrap items-center gap-x-5">
+        <AyudaModulo ayuda={AYUDA_CORRALES} />
+        {puedeEditar && activas.length > 0 ? <EnlaceSinSenal texto="Mover animales sin señal" ancla="corrales" /> : null}
+      </div>
       {puedeEditar ? (
         <div className="grid grid-cols-1 gap-2 min-[420px]:grid-cols-2">
           <Link href="/hato/corrales/mover" className={clasesBoton("primario")}>

@@ -8,6 +8,9 @@ import { Campo, CLASE_INPUT } from "@/components/Campo";
 import { Selector } from "@/components/Selector";
 import { SelectorTarjetas } from "@/components/SelectorTarjetas";
 import { SelectorAnimales, type AnimalElegido } from "@/components/SelectorAnimales";
+import { AvisoGuardadoLocal } from "@/components/AvisoGuardadoLocal";
+import { accionConRespaldo, camposDe, errorDe, quedoEnCelular } from "@/lib/offline/respaldo";
+import { cupoDestino, motivoPorDestino, textoSinCupo } from "@/lib/movimiento-reglas";
 import { avisosDeMezcla, moverAnimales } from "@/app/(app)/hato/corrales/actions";
 import { ESCENA_MOTIVO } from "@/lib/escenas-corrales";
 import { crearClienteNavegador } from "@/lib/supabase/client";
@@ -58,7 +61,32 @@ export function FormMover({
   /** El nombre de la instalación de la que se saca el lote (solo informativo). */
   desde?: string;
 }) {
-  const [estado, enviar, pendiente] = useActionState(moverAnimales, undefined);
+  // Sin señal: el movimiento queda en el celular (con su propio identificador) y se envía solo al volver; nunca se pierde lo elegido.
+  const [solicitud] = useState(() => crypto.randomUUID());
+  const [estado, enviar, pendiente] = useActionState(
+    accionConRespaldo(
+      moverAnimales,
+      (formulario) => {
+        const ids = [...new Set(formulario.getAll("animal_id").map(String).filter(Boolean))];
+        if (ids.length === 0) return null;
+        const sacar = formulario.get("sin_destino") === "si";
+        const nombre = ubicaciones.find((u) => u.id === formulario.get("destino"))?.nombre ?? "otra instalación";
+        return {
+          id: solicitud,
+          tipo: "movimiento",
+          animalId: ids[0],
+          animales: ids,
+          etiqueta: `${sacar ? "Sacar de su ubicación" : `A ${nombre}`} · ${ids.length === 1 ? "1 animal" : `${ids.length} animales`}`,
+          fecha: String(formulario.get("fecha") ?? ""),
+          campos: camposDe(formulario, ["animal_id", "animal", "volver"]),
+        };
+      },
+      fincaId,
+    ),
+    undefined,
+  );
+  const guardadoLocal = quedoEnCelular(estado);
+  const error = errorDe(estado);
   const [, iniciar] = useTransition();
   const [destino, setDestino] = useState<string>(destinoInicial ?? "");
   const [animales, setAnimales] = useState<AnimalElegido[]>(animalesIniciales);
@@ -78,14 +106,18 @@ export function FormMover({
       if (!elDestino || animales.length === 0) return setYaAhi(0);
       let n = 0;
       const supabase = crearClienteNavegador();
-      for (let i = 0; i < animales.length; i += 100) {
-        const { count } = await supabase
-          .from("movimientos_animales")
-          .select("id", { count: "exact", head: true })
-          .eq("ubicacion_id", elDestino.id)
-          .is("hasta", null)
-          .in("animal_id", animales.slice(i, i + 100).map((a) => a.id));
-        n += count ?? 0;
+      try {
+        for (let i = 0; i < animales.length; i += 100) {
+          const { count } = await supabase
+            .from("movimientos_animales")
+            .select("id", { count: "exact", head: true })
+            .eq("ubicacion_id", elDestino.id)
+            .is("hasta", null)
+            .in("animal_id", animales.slice(i, i + 100).map((a) => a.id));
+          n += count ?? 0;
+        }
+      } catch {
+        return; // Sin señal: se queda la cuenta anterior; la base vuelve a exigir el cupo.
       }
       if (vigente) setYaAhi(n);
     }
@@ -93,8 +125,12 @@ export function FormMover({
     // Qué conviene revisar de la mezcla (lactantes con grandes, machos con hembras, pesos distintos): solo avisa, no bloquea.
     const pedirAvisos = async () => {
       if (!elDestino || animales.length === 0) return setMezcla([]);
-      const r = await avisosDeMezcla(elDestino.id, animales.map((a) => a.id));
-      if (vigente) setMezcla(r.avisos);
+      try {
+        const r = await avisosDeMezcla(elDestino.id, animales.map((a) => a.id));
+        if (vigente) setMezcla(r.avisos);
+      } catch {
+        // Sin señal no hay avisos de mezcla: son una recomendación y salen al volver la señal.
+      }
     };
     void pedirAvisos();
     return () => {
@@ -105,18 +141,13 @@ export function FormMover({
 
   const elegirDestino = (v: string) => {
     setDestino(v);
-    const u = ubicaciones.find((x) => x.id === v);
     // El motivo más probable según el destino; se puede cambiar.
-    if (u?.uso === "cuarentena") setMotivo("cuarentena");
-    else if (u?.uso === "maternidad") setMotivo("maternidad");
-    else if (u?.tipo === "potrero") setMotivo("rotacion");
-    else if (u) setMotivo("traslado");
+    const m = motivoPorDestino(ubicaciones.find((x) => x.id === v));
+    if (m) setMotivo(m);
   };
 
   // El hacinamiento se bloquea: no caben más animales que la capacidad (los que ya están en el destino no cuentan, no se mueven).
-  const entran = Math.max(0, animales.length - yaAhi);
-  const libres = elDestino?.capacidad ? Math.max(0, elDestino.capacidad - elDestino.ocupantes) : null;
-  const sinCupo = Boolean(elDestino && libres !== null && entran > libres);
+  const { entran, libres, sinCupo } = elDestino ? cupoDestino(elDestino.capacidad, elDestino.ocupantes, animales.length, yaAhi) : { entran: 0, libres: null, sinCupo: false };
   const faltan = animales.length === 0 ? "Elige los animales." : !destino ? "Elige a dónde van." : null;
 
   const alEnviar = (e: React.FormEvent<HTMLFormElement>) => {
@@ -166,11 +197,7 @@ export function FormMover({
       </Campo>
 
       {sinCupo && elDestino && libres !== null ? (
-        <Aviso tipo="atencion">
-          {libres === 0
-            ? `${elDestino.nombre} está llena: caben ${elDestino.capacidad} animales y ya tiene ${elDestino.ocupantes}. Elige otra instalación o saca a algunos antes.`
-            : `En ${elDestino.nombre} solo caben ${libres} ${libres === 1 ? "animal más" : "animales más"} y elegiste ${entran}. Quita ${entran - libres} o elige otra instalación: el hacinamiento causa estrés, peleas y enfermedades respiratorias.`}
-        </Aviso>
+        <Aviso tipo="atencion">{textoSinCupo(elDestino.nombre, elDestino.capacidad ?? 0, elDestino.ocupantes, libres, entran)}</Aviso>
       ) : null}
       {elDestino?.estado === "descanso" ? (
         <Aviso tipo="atencion">
@@ -200,10 +227,11 @@ export function FormMover({
       </Campo>
 
       {faltan ? <Aviso tipo="atencion">{faltan}</Aviso> : null}
-      {estado?.error ? <Aviso tipo="error">{estado.error}</Aviso> : null}
+      {error ? <Aviso tipo="error">{error}</Aviso> : null}
+      {guardadoLocal ? <AvisoGuardadoLocal /> : null}
       <div className="space-y-2">
-        <Boton type="submit" pendiente={pendiente} cargando="Moviendo…" disabled={faltan != null || sinCupo}>
-          {sinDestino ? "Sacar de su ubicación" : animales.length > 1 ? `Mover ${animales.length} animales` : "Mover"}
+        <Boton type="submit" pendiente={pendiente} cargando="Moviendo…" disabled={faltan != null || sinCupo || guardadoLocal}>
+          {guardadoLocal ? "Guardado en el celular" : sinDestino ? "Sacar de su ubicación" : animales.length > 1 ? `Mover ${animales.length} animales` : "Mover"}
         </Boton>
         <Link href={volver} className={clasesBoton("fantasma")}>Cancelar</Link>
       </div>

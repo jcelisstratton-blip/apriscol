@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, CloudOff, CloudUpload, Heart, PawPrint, Plus, Scale, ShieldPlus, Stethoscope, Syringe, Wifi, WifiOff } from "lucide-react";
+import { ArrowLeft, ArrowRightLeft, CloudOff, CloudUpload, Fence, Heart, PawPrint, Plus, Scale, ShieldPlus, Stethoscope, Syringe, Wifi, WifiOff } from "lucide-react";
 import { Aviso } from "@/components/Aviso";
 import { AyudaModulo } from "@/components/AyudaModulo";
 import { Cargando } from "@/components/Cargando";
@@ -16,6 +16,7 @@ import { BandejaCampo } from "@/components/campo/BandejaCampo";
 import { MontaCampo } from "@/components/campo/MontaCampo";
 import { AnimalCampo } from "@/components/campo/AnimalCampo";
 import { SanidadCampo } from "@/components/campo/SanidadCampo";
+import { MoverCampo } from "@/components/campo/MoverCampo";
 import { DiagnosticoCampo } from "@/components/campo/DiagnosticoCampo";
 import { AYUDA_CAMPO } from "@/lib/ayuda";
 import { ESC, escena } from "@/lib/escenas";
@@ -24,7 +25,7 @@ import { fechaHoraBogota, hoyBogota } from "@/lib/fechas";
 import { horaBogota, jornadaDeHora, RUTA_CAMPO } from "@/lib/campo";
 import { useBandejaCampo } from "@/lib/offline/useBandejaCampo";
 
-type Vista = "animal" | "ordeno" | "pesar" | "monta" | "diagnostico" | "sanidad" | "bandeja";
+type Vista = "animal" | "ordeno" | "pesar" | "monta" | "diagnostico" | "sanidad" | "corrales" | "bandeja";
 
 const ESCENA_PESAR = escena(Scale, "arcilla");
 const ESCENA_BANDEJA = escena(CloudUpload, "grafito");
@@ -32,6 +33,7 @@ const ESCENA_MONTA = escena(Heart, "ocre");
 const ESCENA_ANIMAL = escena(PawPrint, "ambar", Plus);
 const ESCENA_SANIDAD = escena(Syringe, "musgo", ShieldPlus);
 const ESCENA_DIAGNOSTICO = escena(Stethoscope, "musgo");
+const ESCENA_CORRALES = escena(Fence, "oliva", ArrowRightLeft);
 
 /**
  * «Registrar sin señal» (`/campo`): una página igual para todas las personas que el service worker deja lista para abrir sin conexión. Todo
@@ -45,13 +47,12 @@ export function PantallaCampo() {
   const [hoy] = useState(() => hoyBogota());
   const [jornadaInicial] = useState(() => jornadaDeHora(horaBogota()));
 
-  // «#bandeja» (la etiqueta «N sin enviar» del panel) o «#animal» (el atajo «Animal nuevo sin señal») abren directo esa parte, al abrir la
-  // pantalla y si el ancla cambia con la pantalla ya abierta.
+  // «#bandeja» (la etiqueta «N sin enviar» del panel), «#animal», «#sanidad» o «#corrales» (los atajos «… sin señal») abren directo esa parte, al
+  // abrir la pantalla y si el ancla cambia con la pantalla ya abierta.
   useEffect(() => {
     const leerAncla = () => {
-      if (window.location.hash === "#bandeja") setVista("bandeja");
-      if (window.location.hash === "#animal") setVista("animal");
-      if (window.location.hash === "#sanidad") setVista("sanidad");
+      const ancla = window.location.hash.slice(1);
+      if (ancla === "bandeja" || ancla === "animal" || ancla === "sanidad" || ancla === "corrales") setVista(ancla);
     };
     const t = setTimeout(leerAncla, 0);
     window.addEventListener("hashchange", leerAncla);
@@ -62,7 +63,7 @@ export function PantallaCampo() {
   }, []);
 
   // Sin elegir: lo primero que la persona puede registrar.
-  const primera: Vista = !referencia ? "ordeno" : referencia.puede.hato ? "animal" : referencia.puede.leche ? "ordeno" : referencia.puede.pesos ? "pesar" : referencia.puede.reproduccion ? "monta" : referencia.puede.sanidad ? "sanidad" : "bandeja";
+  const primera: Vista = !referencia ? "ordeno" : referencia.puede.hato ? "animal" : referencia.puede.leche ? "ordeno" : referencia.puede.pesos ? "pesar" : referencia.puede.reproduccion ? "monta" : referencia.puede.sanidad ? "sanidad" : referencia.puede.corrales ? "corrales" : "bandeja";
   const elegida: Vista = vista ?? primera;
 
   return (
@@ -105,7 +106,7 @@ export function PantallaCampo() {
           >
             <Link href="/" className={clasesBoton("primario", true)}>Ir a Apriscol</Link>
           </EstadoVacio>
-        ) : !referencia.puede.leche && !referencia.puede.pesos && !referencia.puede.reproduccion && !referencia.puede.hato && !referencia.puede.sanidad ? (
+        ) : !referencia.puede.leche && !referencia.puede.pesos && !referencia.puede.reproduccion && !referencia.puede.hato && !referencia.puede.sanidad && !referencia.puede.corrales ? (
           <EstadoVacio icono={<CloudOff strokeWidth={1.5} />} titulo="Tu rol no registra en el campo" descripcion="Si necesitas hacerlo, pídele al propietario de la finca que cambie tu rol en Equipo." />
         ) : (
           <>
@@ -135,6 +136,9 @@ export function PantallaCampo() {
               {referencia.puede.sanidad ? (
                 <TarjetaOpcion escena={ESCENA_SANIDAD} titulo="Sanidad" dato="Vacunas, tratamientos…" activo={elegida === "sanidad"} onClick={() => setVista("sanidad")} />
               ) : null}
+              {referencia.puede.corrales ? (
+                <TarjetaOpcion escena={ESCENA_CORRALES} titulo="Corrales" dato="Mover animales" activo={elegida === "corrales"} onClick={() => setVista("corrales")} />
+              ) : null}
               <TarjetaOpcion
                 escena={ESCENA_BANDEJA}
                 titulo="Guardado"
@@ -157,6 +161,8 @@ export function PantallaCampo() {
                 <DiagnosticoCampo referencia={referencia} registros={registros} usuarioId={usuarioId} hoy={hoy} enLinea={enLinea} alGuardar={() => void enviarAhora()} />
               ) : elegida === "sanidad" && usuarioId ? (
                 <SanidadCampo referencia={referencia} registros={registros} usuarioId={usuarioId} hoy={hoy} enLinea={enLinea} alGuardar={() => void enviarAhora()} />
+              ) : elegida === "corrales" && usuarioId ? (
+                <MoverCampo referencia={referencia} registros={registros} usuarioId={usuarioId} hoy={hoy} enLinea={enLinea} alGuardar={() => void enviarAhora()} />
               ) : elegida === "pesar" && usuarioId ? (
                 <PesarCampo referencia={referencia} registros={registros} usuarioId={usuarioId} hoy={hoy} enLinea={enLinea} alGuardar={() => void enviarAhora()} />
               ) : usuarioId ? (

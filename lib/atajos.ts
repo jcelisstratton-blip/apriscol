@@ -104,6 +104,7 @@ export const ATAJOS: Atajo[] = [
   // Corrales
   { grupo: "Corrales", tipo: "registrar", titulo: "Corral o potrero nuevo", detalle: "Capacidad, piso y rotación", href: "/hato/corrales/nueva", Icono: Fence, modulo: "corrales", clave: "instalacion potrero" },
   { grupo: "Corrales", tipo: "registrar", titulo: "Mover animales", detalle: "Cambiar de corral a uno o a todo un lote", href: "/hato/corrales/mover", Icono: ArrowRightLeft, modulo: "corrales", clave: "rotar trasladar" },
+  { grupo: "Corrales", tipo: "registrar", titulo: "Mover animales sin señal", detalle: "Cambiar de corral o rotar un lote en el potrero sin señal", href: "/campo#corrales", Icono: WifiOff, modulo: "corrales", clave: "sin senal sin conexion offline potrero corral campo rotar trasladar lote celular" },
   { grupo: "Corrales", tipo: "ir", titulo: "Corrales y potreros", detalle: "Dónde está cada animal", href: "/hato?vista=corrales", Icono: Fence, modulo: "corrales" },
   { grupo: "Corrales", tipo: "ir", titulo: "Resumen de corrales", detalle: "Ocupación, movimientos y alertas", href: "/corrales", Icono: BarChart3, modulo: "corrales", clave: "hacinamiento cuarentena" },
 
