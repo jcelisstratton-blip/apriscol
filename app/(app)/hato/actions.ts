@@ -9,53 +9,13 @@ import { obtenerContexto } from "@/lib/contexto";
 import { puedeEscribir, puedeGestionar } from "@/lib/permisos";
 import { mensajeAmigable } from "@/lib/mensaje-amigable";
 import { hoyBogota } from "@/lib/fechas";
-import { leerNumero } from "@/lib/numeros";
 import { motivoBloqueoIdentidad } from "@/lib/animal-historia";
 import { TIPOS_FOTO } from "@/lib/ferias";
-import { opcional, vacio } from "@/lib/validacion";
+import { vacio } from "@/lib/validacion";
+import { esquemaAnimal, fotoValida, prepararAnimalNuevo } from "@/lib/animal-nuevo";
 
 export type EstadoAnimal = { error?: string } | undefined;
 
-
-const esquema = z.object({
-  especie: z.enum(["caprino", "ovino"]),
-  numero_arete: z.string().trim().min(1, "El número de arete es obligatorio.").max(40),
-  nombre: opcional(z.string().trim().max(60)),
-  sexo: z.enum(["hembra", "macho"]),
-  raza_id: opcional(z.coerce.number().int().positive()),
-  fecha_nacimiento: opcional(z.iso.date("La fecha de nacimiento no es válida.")),
-  fecha_nacimiento_aprox: z.preprocess((v) => v === "on" || v === "true", z.boolean()),
-  padre_id: opcional(z.uuid()),
-  madre_id: opcional(z.uuid()),
-  padre_externo: opcional(z.string().trim().max(80)),
-  madre_externa: opcional(z.string().trim().max(80)),
-  origen: z.enum(["nacido_en_finca", "comprado"]),
-  vocacion: z.enum(["leche", "carne", "doble"]),
-  uso_macho: opcional(z.enum(["reproductor", "carne", "por_definir"])),
-  /** Solo ovejas: lana o pelo. Vacío = la de su raza. */
-  cobertura: opcional(z.enum(["lana", "pelo", "segun_raza"])),
-  chip: opcional(z.string().trim().max(40, "El microchip es muy largo.")),
-  color: opcional(z.string().trim().max(60, "El color es muy largo.")),
-  marcas: opcional(z.string().trim().max(120, "Las marcas son muy largas.")),
-  rasgos: opcional(z.string().trim().max(200, "Los rasgos son muy largos.")),
-  peso_nacer_kg: z.preprocess(
-    (v) => (typeof v === "string" ? v.replace(",", ".") : v),
-    opcional(z.coerce.number("El peso al nacer debe ser un número.").min(0.1, "El peso al nacer debe estar entre 0,1 y 15 kg.").max(15, "El peso al nacer debe estar entre 0,1 y 15 kg.")),
-  ),
-  valor_compra: z.preprocess(
-    (v) => (typeof v === "string" ? (leerNumero(v) ?? v) : v),
-    opcional(z.number("El valor debe ser un número.").min(0, "El valor no puede ser negativo.").max(99_999_999_999, "El valor es demasiado grande. Revísalo.")),
-  ),
-  /** Cuándo se compró (solo animales comprados): la compra cuenta como costo en esa fecha. */
-  fecha_compra: opcional(z.iso.date("La fecha de compra no es válida.")),
-  notas: opcional(z.string().trim().max(1000, "Las notas son muy largas.")),
-  fecha_ultimo_parto: opcional(z.iso.date("La fecha del parto no es válida.")),
-  foto_path: opcional(z.string().max(200)),
-  client_request_id: opcional(z.uuid()),
-});
-
-/** La ruta de una foto de animal debe estar en la carpeta de esta finca (la base también lo exige). */
-const fotoValida = (ruta: string | undefined, fincaId: string) => !ruta || new RegExp(`^${fincaId}/[0-9a-f-]{36}\\.(jpg|png|webp)$`).test(ruta);
 
 /**
  * El servidor arma la ruta (<finca>/<uuid>.<ext>) y emite un permiso de subida de un solo uso para la foto de un animal.
@@ -78,29 +38,15 @@ export async function crearAnimal(_: EstadoAnimal, form: FormData): Promise<Esta
   const { finca, rol } = await obtenerContexto();
   if (!puedeEscribir(rol, "hato", finca.plan)) return { error: "No tienes permiso para registrar animales en esta finca." };
 
-  const datos = esquema.safeParse(Object.fromEntries(form));
+  const datos = esquemaAnimal.safeParse(Object.fromEntries(form));
   if (!datos.success) return { error: datos.error.issues[0]?.message };
-  const { fecha_ultimo_parto, uso_macho, ...animal } = datos.data;
-  // La aptitud de leche solo aplica a las hembras; un macho tiene, en cambio, un uso (reproductor, carne o por definir).
-  if (animal.sexo === "macho") animal.vocacion = "carne";
-  const usoMacho = animal.sexo === "macho" && uso_macho && uso_macho !== "por_definir" ? uso_macho : null;
-  // El peso al nacer solo se conoce de los animales que nacieron en la finca.
-  if (animal.origen === "comprado") animal.peso_nacer_kg = undefined;
-
-  if (!finca.especies.includes(animal.especie)) return { error: "Esa especie no está activa en tu finca." };
-  if (!fotoValida(animal.foto_path, finca.id)) return { error: "La foto no es válida. Súbela de nuevo." };
-  if (fecha_ultimo_parto && animal.sexo !== "hembra") return { error: "Solo una hembra puede tener un parto." };
-  if (fecha_ultimo_parto && animal.fecha_nacimiento && fecha_ultimo_parto <= animal.fecha_nacimiento) {
-    return { error: "El parto debe ser posterior al nacimiento de la hembra." };
-  }
+  if (!fotoValida(datos.data.foto_path, finca.id)) return { error: "La foto no es válida. Súbela de nuevo." };
+  const listo = prepararAnimalNuevo(datos.data, finca.especies);
+  if ("error" in listo) return { error: listo.error };
 
   // Un solo paso en la base: el animal y, si trae «último parto», su primera lactancia (todo o nada). El doble toque devuelve el mismo animal.
   const supabase = await crearClienteServidor();
-  const { data: id, error } = await supabase.rpc("registrar_animal", {
-    p_finca: finca.id,
-    p_animal: { ...animal, uso_macho: usoMacho, cobertura: animal.especie === "ovino" && (animal.cobertura === "lana" || animal.cobertura === "pelo") ? animal.cobertura : null },
-    p_fecha_ultimo_parto: fecha_ultimo_parto ?? null,
-  });
+  const { data: id, error } = await supabase.rpc("registrar_animal", { p_finca: finca.id, p_animal: listo.animal, p_fecha_ultimo_parto: listo.fechaUltimoParto });
   if (error || !id) return { error: mensajeAmigable(error?.message ?? "No se pudo registrar el animal.") };
 
   revalidatePath("/hato");
@@ -109,7 +55,7 @@ export async function crearAnimal(_: EstadoAnimal, form: FormData): Promise<Esta
 }
 
 // ───────────────────────── Editar un animal ─────────────────────────
-const esquemaEdicion = esquema.omit({ client_request_id: true, fecha_ultimo_parto: true }).extend({ animal_id: z.uuid() });
+const esquemaEdicion = esquemaAnimal.omit({ client_request_id: true, fecha_ultimo_parto: true }).extend({ animal_id: z.uuid() });
 
 /** ¿El animal `candidato` desciende de `animalId`? Evita que, al editar, un animal quede como su propio ancestro. */
 async function desciendeDe(supabase: Awaited<ReturnType<typeof crearClienteServidor>>, fincaId: string, candidato: string, animalId: string): Promise<boolean> {

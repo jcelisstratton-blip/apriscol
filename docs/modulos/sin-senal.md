@@ -101,6 +101,27 @@ y de Ceba, la página «Sin señal» y la etiqueta flotante. La ayuda «¿Cómo 
 `tests/sin-senal.test.mjs` (el service worker con `/campo`). En el navegador: `npm run build && npm start`, abrir el panel con sesión, cortar
 la red **y** apagar el servidor, abrir `/campo`, anotar, volver a encender y ver que se envía. Auditoría de celular a 360 y 320 px.
 
+### Animal nuevo sin señal (21 nov 2026)
+
+Es **lo primero** de «Registrar sin señal» para quien registra en el Hato (propietario y administrador): la tarjeta «Animal nuevo» va de
+primera y abre por defecto. También se llega con `/campo#animal` (atajo «Animal nuevo sin señal» de «Al grano» y enlace en Hato → Animal nuevo).
+
+- **Mismos datos y mismas reglas que el formulario con señal** (`components/campo/AnimalCampo.tsx`): especie, sexo, arete, nombre, raza,
+  lana o pelo (ovejas), nacimiento, origen, peso al nacer, aptitud y último parto (hembras) o uso (machos), padre y madre del hato (también los
+  que ya salieron) y, en «Más datos», color, microchip, marcas, rasgos, padres de fuera y notas. **Quedan para después, desde la ficha, con
+  señal:** la foto y el valor y la fecha de compra. Las reglas viven en un solo lugar, `lib/animal-nuevo.ts` (`esquemaAnimal`,
+  `prepararAnimalNuevo`, `fotoValida`), que usan `crearAnimal` y el registro sin señal.
+- **El arete**: avisa y no deja guardar si ya está en la copia de la finca o en otro animal guardado en el celular (`areteRepetido`, misma
+  comparación que la base: sin espacios ni mayúsculas). La base lo vuelve a comprobar al enviar: si otra persona lo creó mientras tanto, queda en
+  «Pendientes con error» («Ya hay un animal con el arete…») y se puede **corregir** desde la lista «Creados en este celular».
+- **Servidor** (`guardarAnimalCampo`): valida los mismos campos de texto con `esquemaAnimal` y llama a `registrar_animal` con el identificador
+  del registro como `client_request_id`: reenviar devuelve el mismo animal; con último parto abre su lactancia en el mismo paso.
+- **Respaldo en el formulario con señal** (`FormAnimal`): si la señal se cae al tocar «Guardar animal», el animal queda en el celular con el
+  mismo identificador del formulario (nunca se duplica) y el formulario lo dice, con «Ver lo guardado». Antes la app mostraba «Algo no salió
+  bien» y se perdía lo escrito. Una **corrección** de un animal sin señal pide intentarlo de nuevo (no se guarda en el celular).
+- **Copia de la finca, versión 3**: suma `especies`, `proposito`, `razas` y `animales` (todos los de la finca, también los que salieron: arete,
+  nombre, sexo, especie y si sigue activo), solo si la persona registra en el Hato. Las copias de las versiones 1 y 2 siguen sirviendo.
+
 ### Monta y diagnóstico de gestación sin señal (20 nov 2026)
 
 La misma pantalla `/campo` suma **Monta** y **Diagnóstico** para quien registra reproducción (propietario, administrador, veterinario):

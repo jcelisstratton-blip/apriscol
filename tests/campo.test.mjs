@@ -4,9 +4,10 @@ import { existsSync, readFileSync } from "node:fs";
 import {
   aplicarTecla, coincideBusqueda, enRetiroLeche, enviadosViejos, envioDe, errorFecha, errorLitros, errorPeso, hembrasDelTurno, jornadaDeHora, numeroDeTexto, porEnviar,
   redondearPeso, referenciaValida, referenciaVencida, registrosDe, resultadoEnvio, resumenBandeja, MAX_LITROS, MAX_PESO, RUTA_CAMPO,
-  hembrasParaDiagnostico, machosPara, nombreMachoExterno,
+  hembrasParaDiagnostico, machosPara, nombreMachoExterno, areteClave, areteRepetido, padresPosibles,
 } from "../lib/campo.ts";
-import { esquemaEnvio, guardarDiagnosticoCampo, guardarMontaCampo, guardarOrdenoCampo, guardarPesoCampo, leerReferenciaCampo, permisosCampo } from "../lib/campo-servidor.ts";
+import { esquemaAnimal, prepararAnimalNuevo } from "../lib/animal-nuevo.ts";
+import { esquemaEnvio, guardarAnimalCampo, guardarDiagnosticoCampo, guardarMontaCampo, guardarOrdenoCampo, guardarPesoCampo, leerReferenciaCampo, permisosCampo } from "../lib/campo-servidor.ts";
 import { reglasDiagnostico } from "../lib/diagnostico-reglas.ts";
 import { ATAJOS } from "../lib/atajos.ts";
 import { AYUDA_CAMPO } from "../lib/ayuda.ts";
@@ -109,22 +110,30 @@ test("campo: qué hacer con cada respuesta del servidor", () => {
   assert.deepEqual(resultadoEnvio(403, "texto"), { estado: "error", error: "No se pudo guardar este registro." });
 });
 
-test("campo: la copia de la finca se descarta si es vieja o está dañada; la de la versión anterior sigue sirviendo sin reproducción", () => {
-  const ref = { version: 2, generadaEn: "2026-11-20T10:00:00Z", hoy: HOY, usuario: { id: U }, finca: { id: FINCA, nombre: "La Esperanza" }, puede: { leche: true, pesos: true, reproduccion: true }, ordeno: [], pesar: [], hembras: [], machos: [] };
+test("campo: la copia de la finca se descarta si es vieja o está dañada; las de versiones anteriores siguen sirviendo para lo que traían", () => {
+  const ref = {
+    version: 3, generadaEn: "2026-11-20T10:00:00Z", hoy: HOY, usuario: { id: U }, finca: { id: FINCA, nombre: "La Esperanza" },
+    puede: { leche: true, pesos: true, reproduccion: true, hato: true }, ordeno: [], pesar: [], hembras: [], machos: [],
+    especies: ["caprino"], proposito: "leche", razas: [], animales: [],
+  };
   assert.deepEqual(referenciaValida(ref), ref);
-  for (const malo of [null, "x", { ...ref, version: 3 }, { ...ref, ordeno: null }, { ...ref, usuario: {} }, { ...ref, hembras: undefined }]) assert.equal(referenciaValida(malo), null);
-  const vieja = { version: 1, generadaEn: ref.generadaEn, hoy: HOY, usuario: { id: U }, finca: ref.finca, puede: { leche: true, pesos: false }, ordeno: [], pesar: [] };
-  assert.deepEqual(referenciaValida(vieja), { ...vieja, version: 2, puede: { leche: true, pesos: false, reproduccion: false }, hembras: [], machos: [] });
+  for (const malo of [null, "x", { ...ref, version: 4 }, { ...ref, ordeno: null }, { ...ref, usuario: {} }, { ...ref, hembras: undefined }, { ...ref, animales: undefined }]) assert.equal(referenciaValida(malo), null);
+  const extra = { especies: [], proposito: "leche", razas: [], animales: [] };
+  const v1 = { version: 1, generadaEn: ref.generadaEn, hoy: HOY, usuario: { id: U }, finca: ref.finca, puede: { leche: true, pesos: false }, ordeno: [], pesar: [] };
+  assert.deepEqual(referenciaValida(v1), { ...v1, version: 3, puede: { leche: true, pesos: false, reproduccion: false, hato: false }, hembras: [], machos: [], ...extra });
+  const v2 = { ...v1, version: 2, puede: { leche: true, pesos: true, reproduccion: true }, hembras: [], machos: [] };
+  assert.deepEqual(referenciaValida(v2), { ...v2, version: 3, puede: { leche: true, pesos: true, reproduccion: true, hato: false }, ...extra });
   assert.equal(referenciaVencida(ref, new Date("2026-11-20T10:10:00Z")), false);
   assert.equal(referenciaVencida(ref, new Date("2026-11-20T10:16:00Z")), true);
   assert.equal(referenciaVencida(null, new Date()), true);
 });
 
 test("campo: permisos por rol (los mismos módulos que con señal)", () => {
-  assert.deepEqual(permisosCampo("propietario", "hacienda"), { leche: true, pesos: true, reproduccion: true });
-  assert.deepEqual(permisosCampo("ordenador", "hacienda"), { leche: true, pesos: false, reproduccion: false });
-  assert.deepEqual(permisosCampo("veterinario", "hacienda"), { leche: false, pesos: false, reproduccion: true });
-  assert.deepEqual(permisosCampo("contador", "hacienda"), { leche: false, pesos: false, reproduccion: false });
+  assert.deepEqual(permisosCampo("propietario", "hacienda"), { leche: true, pesos: true, reproduccion: true, hato: true });
+  assert.deepEqual(permisosCampo("administrador", "hacienda"), { leche: true, pesos: true, reproduccion: true, hato: true });
+  assert.deepEqual(permisosCampo("ordenador", "hacienda"), { leche: true, pesos: false, reproduccion: false, hato: false });
+  assert.deepEqual(permisosCampo("veterinario", "hacienda"), { leche: false, pesos: false, reproduccion: true, hato: false });
+  assert.deepEqual(permisosCampo("contador", "hacienda"), { leche: false, pesos: false, reproduccion: false, hato: false });
 });
 
 // ───────────────────────── Servidor con una base falsa ─────────────────────────
@@ -170,7 +179,8 @@ function baseFalsa(tablas, rpcs = {}, { antesDeInsertar } = {}) {
     };
     return q;
   };
-  return { from: consulta, rpc: async (nombre) => ({ data: rpcs[nombre] ?? [], error: null }), tablas };
+  const rpc = async (nombre, args) => (typeof rpcs[nombre] === "function" ? rpcs[nombre](args, tablas) : { data: rpcs[nombre] ?? [], error: null });
+  return { from: consulta, rpc, tablas };
 }
 
 const OVEJO = "77777777-7777-4777-8777-777777777777";
@@ -263,8 +273,9 @@ test("servidor: la copia de la finca lleva solo lo indispensable, según lo que 
     ceba_animales: [{ animal_id: A1, lote_id: null, n_pesajes: 2, fecha_ultimo: "2026-11-01", peso_ultimo: 41.2 }],
   };
   const v_repro_hembras = [{ finca_id: FINCA, animal_id: A1, estado: "servida", ultimo_servicio: "2026-10-01" }, { finca_id: FINCA, animal_id: A2, estado: "vacia", ultimo_servicio: null }];
-  const db = baseFalsa({ animales: animales(), lactancias, lotes_ceba: [], v_repro_hembras }, rpcs);
-  const ctx = (rol) => ({ usuarioId: U, finca: { id: FINCA, nombre: "La Esperanza", plan: "hacienda" }, rol });
+  const razas = [{ id: 1, especie: "caprino", nombre: "Saanen", cobertura: null }, { id: 2, especie: "ovino", nombre: "Katahdin", cobertura: "pelo" }];
+  const db = baseFalsa({ animales: animales(), lactancias, lotes_ceba: [], v_repro_hembras, razas }, rpcs);
+  const ctx = (rol) => ({ usuarioId: U, finca: { id: FINCA, nombre: "La Esperanza", plan: "hacienda", especies: ["caprino", "ovino"], proposito: "leche" }, rol });
   const ref = await leerReferenciaCampo(db, ctx("propietario"), HOY, new Date("2026-11-20T15:00:00Z"));
   assert.equal(ref.generadaEn, "2026-11-20T15:00:00.000Z");
   assert.deepEqual(ref.usuario, { id: U });
@@ -281,14 +292,20 @@ test("servidor: la copia de la finca lleva solo lo indispensable, según lo que 
   assert.deepEqual(ref.machos.map((m) => [m.arete, m.especie]), [["200", "caprino"], ["400", "ovino"]]);
   assert.equal(ref.pesar[0].ultimoPeso, 41.2);
   assert.deepEqual(Object.keys(ref.ordeno[0]).sort(), ["arete", "id", "nombre", "retiroLecheHasta", "turnos"], "nada más que lo indispensable");
+  assert.deepEqual(ref.especies, ["caprino", "ovino"]);
+  assert.equal(ref.proposito, "leche");
+  assert.deepEqual(ref.razas.map((r) => r.nombre), ["Saanen", "Katahdin"]);
+  assert.deepEqual(ref.animales.map((a) => [a.arete, a.activo]), [["101", true], ["102", true], ["200", true], ["300", false], ["400", true]], "para padre y madre y el arete: también los que salieron");
+  assert.deepEqual(Object.keys(ref.animales[0]).sort(), ["activo", "arete", "especie", "id", "nombre", "sexo"]);
 
   const ordenador = await leerReferenciaCampo(db, ctx("ordenador"), HOY);
-  assert.deepEqual(ordenador.puede, { leche: true, pesos: false, reproduccion: false });
+  assert.deepEqual(ordenador.puede, { leche: true, pesos: false, reproduccion: false, hato: false });
+  assert.deepEqual([ordenador.especies, ordenador.razas, ordenador.animales], [[], [], []], "quien no crea animales no se lleva el hato ni las razas");
   assert.equal(ordenador.ordeno.length, 2);
   assert.deepEqual(ordenador.pesar, [], "quien no pesa no se lleva la lista del hato");
   assert.deepEqual([ordenador.hembras, ordenador.machos], [[], []], "quien no registra reproducción no se lleva hembras ni reproductores");
   const vet = await leerReferenciaCampo(db, ctx("veterinario"), HOY);
-  assert.deepEqual(vet.puede, { leche: false, pesos: false, reproduccion: true });
+  assert.deepEqual(vet.puede, { leche: false, pesos: false, reproduccion: true, hato: false });
   assert.deepEqual([vet.ordeno, vet.pesar], [[], []]);
   assert.equal(vet.hembras.length, 2);
 });
@@ -417,6 +434,92 @@ test("servidor: lo que llega de monta y diagnóstico se valida antes de tocar la
   assert.ok(!esquemaEnvio.safeParse(diagnostico({ numFetos: 5 })).success);
 });
 
+// ───────────────────────── Animal nuevo ─────────────────────────
+
+const camposAnimal = (extra = {}) => ({ especie: "caprino", sexo: "hembra", numero_arete: "555", origen: "nacido_en_finca", vocacion: "leche", ...extra });
+
+test("animal nuevo: las reglas son las del formulario con señal (una sola definición)", () => {
+  const preparar = (c, especies = ["caprino"]) => prepararAnimalNuevo(esquemaAnimal.parse(c), especies);
+  const macho = preparar(camposAnimal({ sexo: "macho", vocacion: "leche", uso_macho: "reproductor", fecha_ultimo_parto: undefined }));
+  assert.equal(macho.animal.vocacion, "carne", "un macho no tiene aptitud de leche");
+  assert.equal(macho.animal.uso_macho, "reproductor");
+  assert.equal(preparar(camposAnimal({ sexo: "macho", uso_macho: "por_definir" })).animal.uso_macho, null);
+  assert.equal(preparar(camposAnimal({ origen: "comprado", peso_nacer_kg: "3,2" })).animal.peso_nacer_kg, undefined, "el peso al nacer solo en los nacidos aquí");
+  assert.equal(preparar(camposAnimal({ peso_nacer_kg: "3,2" })).animal.peso_nacer_kg, 3.2, "con coma decimal");
+  assert.match(preparar(camposAnimal({ especie: "ovino" })).error, /especie no está activa/);
+  assert.match(preparar(camposAnimal({ sexo: "macho", fecha_ultimo_parto: "2026-10-01" })).error, /Solo una hembra/);
+  assert.match(preparar(camposAnimal({ fecha_nacimiento: "2026-10-01", fecha_ultimo_parto: "2026-09-01" })).error, /posterior al nacimiento/);
+  assert.equal(preparar(camposAnimal({ fecha_ultimo_parto: "2026-10-01" })).fechaUltimoParto, "2026-10-01");
+  assert.equal(preparar(camposAnimal({ especie: "ovino", cobertura: "lana" }), ["ovino"]).animal.cobertura, "lana");
+  assert.equal(preparar(camposAnimal({ cobertura: "lana" })).animal.cobertura, null, "la cobertura solo en ovejas");
+  assert.equal(esquemaAnimal.parse(camposAnimal({ fecha_nacimiento_aprox: "on" })).fecha_nacimiento_aprox, true);
+  assert.ok(!esquemaAnimal.safeParse(camposAnimal({ numero_arete: "  " })).success, "el arete es obligatorio");
+  const acciones = leer("app/(app)/hato/actions.ts");
+  assert.match(acciones, /esquemaAnimal\.safeParse/);
+  assert.match(acciones, /prepararAnimalNuevo\(/, "el formulario con señal usa las mismas reglas");
+});
+
+test("animal nuevo: avisa si el arete ya está en la finca o en otro animal guardado en el celular", () => {
+  const ref = { animales: [{ id: A1, arete: " AB-01 ", nombre: null, sexo: "hembra", especie: "caprino", activo: true }] };
+  assert.equal(areteClave("  Ab-01 "), "ab-01");
+  assert.ok(areteRepetido("ab-01", ref, []));
+  assert.ok(!areteRepetido("ab-02", ref, []));
+  assert.ok(!areteRepetido("", ref, []));
+  const guardado = registro({ id: uuid(70), tipo: "animal", campos: { numero_arete: "XY-9" } });
+  assert.ok(areteRepetido("xy-9", ref, [guardado]));
+  assert.ok(!areteRepetido("xy-9", ref, [guardado], uuid(70)), "al corregir ese mismo registro no cuenta");
+  assert.ok(!areteRepetido("xy-9", ref, [{ ...guardado, estado: "enviado" }]), "lo enviado ya está en la copia la próxima vez");
+});
+
+test("animal nuevo: padres posibles de la misma especie y sexo, los activos primero (también los que salieron)", () => {
+  const a = (id, arete, sexo, especie, activo = true) => ({ id, arete, nombre: null, sexo, especie, activo });
+  const ref = { animales: [a("1", "20", "macho", "caprino", false), a("2", "10", "macho", "caprino"), a("3", "5", "hembra", "caprino"), a("4", "1", "macho", "ovino")] };
+  assert.deepEqual(padresPosibles(ref, "caprino", "macho").map((x) => x.id), ["2", "1"]);
+  assert.deepEqual(padresPosibles(ref, "caprino", "hembra").map((x) => x.id), ["3"]);
+});
+
+/** La función `registrar_animal` de la base, en pequeño: idempotente por client_request_id y con el arete único por finca. */
+function registrarAnimalFalso(args, tablas) {
+  const a = args.p_animal;
+  const ya = (tablas.animales ?? []).find((x) => x.finca_id === args.p_finca && a.client_request_id && x.client_request_id === a.client_request_id);
+  if (ya) return { data: ya.id, error: null };
+  if ((tablas.animales ?? []).some((x) => x.finca_id === args.p_finca && x.deleted_at == null && x.numero_arete.trim().toLowerCase() === String(a.numero_arete).trim().toLowerCase())) {
+    return { data: null, error: { code: "23505", message: 'duplicate key value violates unique constraint "animales_arete_uk"' } };
+  }
+  const id = `bbbbbbbb-bbbb-4bbb-8bbb-${String((tablas.animales ?? []).length).padStart(12, "0")}`;
+  (tablas.animales ??= []).push({ id, finca_id: args.p_finca, ...a, deleted_at: null });
+  if (args.p_fecha_ultimo_parto) (tablas.lactancias ??= []).push({ animal_id: id, fecha_parto: args.p_fecha_ultimo_parto });
+  return { data: id, error: null };
+}
+const envioAnimal = (extra = {}, campos = {}) => ({ tipo: "animal", id: uuid(60), fincaId: FINCA, animalId: uuid(60), fecha: HOY, campos: camposAnimal(campos), ...extra });
+
+test("servidor: un animal nuevo se crea con la función de la base; reenviarlo devuelve el mismo, no otro", async () => {
+  const db = baseFalsa({ animales: animales() }, { registrar_animal: registrarAnimalFalso });
+  const antes = db.tablas.animales.length;
+  assert.deepEqual(await guardarAnimalCampo(db, envioAnimal({}, { fecha_ultimo_parto: "2026-10-01" }), ["caprino"]), { ok: true, estado: "guardado" });
+  assert.deepEqual(await guardarAnimalCampo(db, envioAnimal({}, { fecha_ultimo_parto: "2026-10-01" }), ["caprino"]), { ok: true, estado: "guardado" }, "la base devuelve el mismo animal");
+  assert.equal(db.tablas.animales.length, antes + 1);
+  const nuevo = db.tablas.animales.at(-1);
+  assert.equal(nuevo.client_request_id, uuid(60), "el identificador del registro es el del envío");
+  assert.equal(db.tablas.lactancias.length, 1, "con último parto abre su lactancia (una sola vez)");
+});
+
+test("servidor: si el arete ya existe en la finca, no crea otro y lo dice", async () => {
+  const db = baseFalsa({ animales: animales() }, { registrar_animal: registrarAnimalFalso });
+  const r = await guardarAnimalCampo(db, envioAnimal({}, { numero_arete: "101" }), ["caprino"]);
+  assert.equal(r.codigo, "conflicto");
+  assert.match(r.error, /Ya hay un animal con el arete 101/);
+});
+
+test("servidor: rechaza el animal con datos que el formulario rechaza o con una foto de otra finca", async () => {
+  const db = baseFalsa({ animales: animales() }, { registrar_animal: registrarAnimalFalso });
+  assert.match((await guardarAnimalCampo(db, envioAnimal({}, { especie: "ovino" }), ["caprino"])).error, /especie no está activa/);
+  assert.match((await guardarAnimalCampo(db, envioAnimal({}, { sexo: "jirafa" }), ["caprino"])).error, /./);
+  assert.match((await guardarAnimalCampo(db, envioAnimal({}, { foto_path: `${uuid(99)}/${uuid(1)}.jpg` }), ["caprino"])).error, /foto no es válida/);
+  assert.ok(esquemaEnvio.safeParse(envioAnimal()).success);
+  assert.ok(!esquemaEnvio.safeParse({ ...envioAnimal(), campos: { notas: "x".repeat(1001) } }).success);
+});
+
 // ───────────────────────── Conexiones ─────────────────────────
 
 test("campo: la pantalla, las rutas, el respaldo con señal, la ayuda y los atajos están conectados", () => {
@@ -440,6 +543,9 @@ test("campo: la pantalla, las rutas, el respaldo con señal, la ayuda y los ataj
   assert.ok(atajo, "«Registrar sin señal» está en «Al grano»");
   assert.ok(ATAJOS.some((a) => a.href === "/campo" && a.modulo === "reproduccion"), "y el de monta y diagnóstico, para quien registra reproducción (veterinario)");
   assert.match(leer("app/(app)/hato/Monta.tsx"), /<EnlaceSinSenal /, "el empadre lleva a registrar sin señal");
+  assert.ok(ATAJOS.some((a) => a.href === "/campo#animal" && a.modulo === "hato"), "«Animal nuevo sin señal» en «Al grano»");
+  assert.match(leer("app/(app)/hato/nuevo/page.tsx"), /<EnlaceSinSenal [^>]*ancla="animal"/);
+  assert.match(leer("components/FormAnimal.tsx"), /esFallaDeRed\(e\)[\s\S]*guardarEnCelular\(\{ id: solicitud, tipo: "animal"/, "el formulario con señal guarda en el celular si se cae la señal, con el mismo identificador");
   assert.match(leer("supabase/migrations/20261120190017_diagnosticos_client_request_id.sql"), /add column if not exists client_request_id uuid[\s\S]*diagnosticos_client_req_uk/);
   assert.ok(TUTORIALES.some((t) => t.numero === AYUDA_CAMPO.tutorial && t.youtube), "el tutorial de la ayuda existe");
   assert.notEqual(AYUDA_CAMPO.enlace.href, "/campo");
