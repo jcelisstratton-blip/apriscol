@@ -9,6 +9,8 @@ import { Campo, CLASE_INPUT } from "@/components/Campo";
 import { AsistidoPor } from "@/components/AsistidoPor";
 import { SelectorTarjetas } from "@/components/SelectorTarjetas";
 import { crearParto, editarParto } from "@/app/(app)/reproduccion/actions";
+import { AvisoGuardadoLocal } from "@/components/AvisoGuardadoLocal";
+import { accionConRespaldo, camposDe, errorDe, etiquetaDeAnimal, quedoEnCelular } from "@/lib/offline/respaldo";
 import { formatoFecha } from "@/lib/fechas";
 import { ESCENA_CAUSA_ABORTO, ESCENA_ESTADO_CRIA, ESCENA_TIPO_PARTO } from "@/lib/escenas-forms-b-reproduccion";
 import { ESCENA_SEXO } from "@/lib/escenas-forms-b-hato";
@@ -49,7 +51,29 @@ export function FormParto({
   solicitud?: string;
 }) {
   const editando = Boolean(parto);
-  const [estado, enviar, pendiente] = useActionState(editando ? editarParto : crearParto, undefined);
+  // Sin señal: un parto nuevo queda en el celular con sus crías (mismo identificador del formulario: nunca se duplica) y se envía solo; una corrección
+  // pide intentarlo de nuevo. Nunca se pierde lo escrito.
+  const [estado, enviar, pendiente] = useActionState(
+    accionConRespaldo(
+      editando ? editarParto : crearParto,
+      editando || !solicitud
+        ? null
+        : (formulario, ref) => {
+            const t = String(formulario.get("tipo") ?? "normal") as TipoParto;
+            return {
+              id: solicitud,
+              tipo: "parto",
+              animalId: hembraId,
+              etiqueta: `${etiquetaDeAnimal(ref, hembraId)} · ${ETIQUETA_PARTO[t]?.toLowerCase() ?? "parto"}`,
+              fecha: String(formulario.get("fecha") ?? ""),
+              campos: camposDe(formulario, ["client_request_id", "parto_id", "madre_id", "crias_edit"]),
+            };
+          },
+    ),
+    undefined,
+  );
+  const guardadoLocal = quedoEnCelular(estado);
+  const error = errorDe(estado);
   const [, iniciar] = useTransition();
   const [tipo, setTipo] = useState<TipoParto>(parto?.tipo ?? "normal");
   const [filas, setFilas] = useState<Fila[]>([{ ...NUEVA }]);
@@ -208,10 +232,11 @@ export function FormParto({
         {(id) => <textarea id={id} name="observaciones" defaultValue={parto?.observaciones ?? ""} rows={3} maxLength={1000} className={`${CLASE_INPUT} py-3`} />}
       </Campo>
 
-      {estado?.error ? <Aviso tipo="error">{estado.error}</Aviso> : null}
+      {error ? <Aviso tipo="error">{error}</Aviso> : null}
+      {guardadoLocal ? <AvisoGuardadoLocal /> : null}
       <div className="space-y-2">
-        <Boton type="submit" pendiente={pendiente} cargando="Guardando…">
-          {editando ? "Guardar cambios" : "Guardar parto"}
+        <Boton type="submit" pendiente={pendiente} cargando="Guardando…" disabled={guardadoLocal}>
+          {guardadoLocal ? "Guardado en el celular" : editando ? "Guardar cambios" : "Guardar parto"}
         </Boton>
         <Link href={`/hato/${hembraId}#reproduccion`} className={clasesBoton("fantasma")}>
           Cancelar

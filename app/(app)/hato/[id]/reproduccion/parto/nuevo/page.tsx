@@ -4,6 +4,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { ChevronLeft } from "lucide-react";
 import { Encabezado } from "@/components/Encabezado";
+import { EnlaceSinSenal } from "@/components/EnlaceSinSenal";
 import { FormParto } from "@/components/FormParto";
 import { obtenerContexto } from "@/lib/contexto";
 import { cargarVeterinarios } from "@/lib/veterinarios-servidor";
@@ -38,6 +39,9 @@ export default async function PaginaPartoNuevo({ params }: { params: Promise<{ i
       </Link>
       <Encabezado titulo="Registrar parto" subtitulo={etiquetaAnimal(animal)} />
       <div className="lg:max-w-xl">
+        <div className="mb-3">
+          <EnlaceSinSenal texto="¿Sin señal? Regístralo en el celular" ancla="parto" />
+        </div>
         <FormParto hembraId={id} veterinarios={veterinarios} puedeAgregarVeterinario={puedeAgregarVeterinario} hoy={hoyBogota()} servicio={servicio} solicitud={randomUUID()} />
       </div>
     </>

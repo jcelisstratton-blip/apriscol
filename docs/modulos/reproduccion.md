@@ -57,3 +57,5 @@ Quién aparece como veterinario: el personal activo con `es_veterinario` (se mar
 - **Cría sin arete:** todavía no es un animal y no tiene movimientos propios, así que se sigue a **su madre desde el nacimiento** y la pantalla lo dice (se asume que la cría está con ella). Cuando se crea el animal con esta madre, la línea de tiempo pasa a usar los movimientos de la cría.
 - **Dónde se entra:** en el parto (`/reproduccion/partos/<id>`) la tarjeta «Trazabilidad de las crías» lista cada cría; y en la ficha de un animal nacido de un parto registrado, la tarjeta Ubicación trae «Ver trazabilidad desde el nacimiento».
 - Cada parte respeta el módulo: los corrales solo si el rol ve Corrales, la sanidad solo si ve Sanidad.
+
+**Sin señal:** monta, diagnóstico y **parto con sus crías** también se anotan en «Registrar sin señal» (`/campo`) con las mismas reglas (`lib/servicio-reglas.ts`, `lib/diagnostico-reglas.ts`, `lib/parto-reglas.ts`) y se envían solos sin duplicar; ver `docs/modulos/sin-senal.md`.

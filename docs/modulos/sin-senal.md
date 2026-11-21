@@ -101,6 +101,25 @@ y de Ceba, la página «Sin señal» y la etiqueta flotante. La ayuda «¿Cómo 
 `tests/sin-senal.test.mjs` (el service worker con `/campo`). En el navegador: `npm run build && npm start`, abrir el panel con sesión, cortar
 la red **y** apagar el servidor, abrir `/campo`, anotar, volver a encender y ver que se envía. Auditoría de celular a 360 y 320 px.
 
+### Partos sin señal (21 nov 2026)
+
+**Parto en «Registrar sin señal»** (`components/campo/PartoCampo.tsx`, `/campo#parto`; atajo «Parto sin señal» y enlace en «Registrar parto» de la
+ficha): lo mismo que con señal: la hembra (primero las gestantes y servidas; una con un parto guardado en el celular no se ofrece de nuevo), fecha,
+qué pasó (normal, asistido, cesárea o aborto), una fila por cría (sexo, viva o muerta, peso, arete y nombre), quién asistió, causa del aborto,
+complicaciones, protocolo posoperatorio y observaciones. Lo hace quien registra reproducción (propietario, administrador, veterinario).
+- **Una sola regla** (`lib/parto-reglas.ts`: `esquemaParto`, `datosPorTipoParto`, `leerCrias`, `revisarCrias`, `prepararParto`) para `crearParto`, la
+  pantalla del celular y el envío (`guardarPartoCampo`). Se guarda con la misma función de la base (`registrar_parto`: el parto, sus crías y los
+  animales de las crías con arete, todo o nada; la lactancia la abre un disparador), que ya era idempotente por `client_request_id`. **No hizo falta migración.**
+- **El servicio** se liga solo, al enviar, al de la gestación en curso (servida o gestante), como la pantalla con señal; con una gestación en curso, el
+  parto debe ser posterior a su servicio (sin señal antes se habría guardado suelto: corregido en la regla compartida).
+- **Aretes de las crías**: se avisa en el celular si ya están en la copia o en otro registro sin enviar (un animal nuevo u otro parto: `areteRepetido`
+  ahora mira también las crías, `aretesDeCrias`); el servidor lo vuelve a comprobar. Una cría con arete se crea solo si quien envía puede escribir en el
+  Hato (si no, el parto queda sin crear ese animal, igual que con señal).
+- **Nunca duplica a otra persona**: si la hembra ya tiene un parto (de otra persona u otro aparato) a menos de 30 días del anotado, no se registra otro
+  y pasa a «Pendientes con error» con su fecha.
+- **Respaldo con señal**: «Registrar parto» (`FormParto`) guarda en el celular si se cae la señal, con sus crías y el mismo identificador; corregir un
+  parto avisa y deja lo escrito.
+
 ### Dar de baja sin señal y ajustes de «Dados de baja» (21 nov 2026)
 
 **Dar de baja en «Registrar sin señal»** (`components/campo/BajaCampo.tsx`, `/campo#baja`; atajo «Dar de baja sin señal» y enlace en la pantalla «Dar de
@@ -250,4 +269,4 @@ La misma pantalla `/campo` suma **Monta** y **Diagnóstico** para quien registra
 
 ## Pasos siguientes (por definir)
 
-- Otros registros del campo sin señal (partos) con el mismo motor, si hace falta. Los partos son más delicados: crean las crías como animales.
+- Todo lo del campo ya funciona sin señal (incluidos los partos con sus crías).
