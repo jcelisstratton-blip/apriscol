@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { ChevronLeft } from "lucide-react";
 import { Encabezado } from "@/components/Encabezado";
+import { EnlaceSinSenal } from "@/components/EnlaceSinSenal";
 import { FormBaja } from "@/components/FormBaja";
 import { obtenerContexto } from "@/lib/contexto";
 import { obtenerAjustes } from "@/lib/ajustes-servidor";
@@ -45,6 +46,9 @@ export default async function PaginaBaja({ params }: { params: Promise<{ id: str
       </Link>
       <Encabezado titulo="Dar de baja" subtitulo={etiquetaAnimal(animal)} />
       <div className="lg:max-w-xl">
+        <div className="mb-3">
+          <EnlaceSinSenal texto="¿Sin señal? Regístralo en el celular" ancla="baja" />
+        </div>
         <FormBaja animalId={id} etiqueta={etiquetaAnimal(animal)} hoy={hoyBogota()} nacimiento={animal.fecha_nacimiento} enOrdeno={Boolean(lactancia)} terceros={await obtenerTerceros()} ivaDefecto={(await obtenerAjustes()).general.iva_tarifa_defecto} />
       </div>
     </>

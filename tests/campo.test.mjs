@@ -4,13 +4,14 @@ import { existsSync, readFileSync } from "node:fs";
 import {
   aplicarTecla, coincideBusqueda, enRetiroLeche, enviadosViejos, envioDe, errorFecha, errorLitros, errorPeso, hembrasDelTurno, jornadaDeHora, numeroDeTexto, porEnviar,
   redondearPeso, referenciaValida, referenciaVencida, registrosDe, resultadoEnvio, resumenBandeja, MAX_LITROS, MAX_PESO, RUTA_CAMPO,
-  hembrasParaDiagnostico, machosPara, nombreMachoExterno, areteClave, areteRepetido, padresPosibles, ubicacionesEfectivas, ocupacion,
+  hembrasParaDiagnostico, machosPara, nombreMachoExterno, areteClave, areteRepetido, padresPosibles, ubicacionesEfectivas, ocupacion, conBajaPendiente,
 } from "../lib/campo.ts";
 import { cupoDestino, leerMovimiento, motivoPorDestino } from "../lib/movimiento-reglas.ts";
 import { esquemaCompra, revisarCompra } from "../lib/compra-reglas.ts";
 import { esquemaVenta, revisarVenta } from "../lib/venta-reglas.ts";
+import { entradaBajaDeCampos, esquemaBaja } from "../lib/baja-reglas.ts";
 import { esquemaAnimal, prepararAnimalNuevo } from "../lib/animal-nuevo.ts";
-import { esquemaEnvio, guardarAnimalCampo, guardarCompraCampo, guardarVentaCampo, guardarDiagnosticoCampo, guardarMontaCampo, guardarMovimientoCampo, guardarSanidadCampo, guardarServicioCampo, guardarOrdenoCampo, guardarPesoCampo, leerReferenciaCampo, permisosCampo } from "../lib/campo-servidor.ts";
+import { esquemaEnvio, guardarAnimalCampo, guardarBajaCampo, guardarCompraCampo, guardarVentaCampo, guardarDiagnosticoCampo, guardarMontaCampo, guardarMovimientoCampo, guardarSanidadCampo, guardarServicioCampo, guardarOrdenoCampo, guardarPesoCampo, leerReferenciaCampo, permisosCampo } from "../lib/campo-servidor.ts";
 import { reglasDiagnostico } from "../lib/diagnostico-reglas.ts";
 import { ATAJOS } from "../lib/atajos.ts";
 import { AYUDA_CAMPO } from "../lib/ayuda.ts";
@@ -163,6 +164,7 @@ function baseFalsa(tablas, rpcs = {}, { antesDeInsertar } = {}) {
     pesajes: [["animal_id", "fecha"], ["finca_id", "client_request_id"]],
     servicios: [["finca_id", "client_request_id"]],
     diagnosticos_gestacion: [["finca_id", "client_request_id"]],
+    bajas: [["animal_id"], ["finca_id", "client_request_id"]],
   };
   const consulta = (tabla) => {
     const filtros = [];
@@ -982,6 +984,79 @@ test("ventas: la pantalla, el formulario con señal, la ayuda y los atajos está
   assert.match(leer("app/api/campo/enviar/route.ts"), /e\.tipo === "venta" && !puede\.ventas/);
   assert.match(leer("components/MotorCampo.tsx"), /referencia\.puede\.ventas/);
   assert.ok(AYUDA_CAMPO.puntos.some((p) => /una venta/.test(p.texto)));
+});
+
+// ───────────────────────── Dar de baja ─────────────────────────
+
+const baja = (campos = {}, extra = {}) => ({ tipo: "baja", id: uuid(40), fincaId: FINCA, animalId: A1, fecha: HOY, campos: { tipo: "muerte", fecha: HOY, motivo: "sanidad", ...campos }, ...extra });
+const baseBajas = (extra = {}) => baseFalsa({ animales: animales(), bajas: [], finca_terceros: [{ id: COMPRADOR, finca_id: FINCA, nombre: "Quesera La Vega", tipo: "comprador", activo: true }], ...extra });
+
+test("bajas: lo anotado en el celular se valida con la misma regla que la ficha", () => {
+  const venta = entradaBajaDeCampos(A1, { tipo: "venta", fecha: HOY, valor: "450.000", ivaTarifa: "19", cobro: "por_cobrar", cobroVence: "2026-11-30", destinoConsumo: "si", pesoKg: "38,5", guiaMovilizacion: "G-1", detalle: "x" }, uuid(1));
+  const d = esquemaBaja.parse(venta);
+  assert.deepEqual([d.valor, d.ivaTarifa, d.cobro, d.cobroVence, d.destinoConsumo, d.pesoKg, d.clientRequestId], [450000, 19, "por_cobrar", "2026-11-30", true, 38.5, uuid(1)], "números a la colombiana y «va para consumo»");
+  const muerte = esquemaBaja.parse(entradaBajaDeCampos(A1, { tipo: "muerte", fecha: HOY, valor: "1000", pesoKg: "30", destinoConsumo: "si" }));
+  assert.deepEqual([muerte.valor, muerte.pesoKg, muerte.destinoConsumo], [undefined, undefined, false], "una muerte no lleva valor, peso ni consumo");
+  assert.match(esquemaBaja.safeParse(entradaBajaDeCampos(A1, { fecha: HOY })).error.issues[0].message, /qué pasó/);
+  assert.ok(!esquemaBaja.safeParse(entradaBajaDeCampos(A1, { tipo: "venta", fecha: HOY, valor: "mucho" })).success, "un valor que no es número no pasa");
+  const r = (id, animalId, estado = "pendiente") => ({ id, tipo: "baja", usuarioId: U, fincaId: FINCA, animalId, estado });
+  assert.deepEqual([...conBajaPendiente([r(uuid(1), A1), r(uuid(2), A2, "enviado"), r(uuid(3), MACHO)], U, FINCA, uuid(3))], [A1], "lo enviado y lo que se corrige vuelven a ofrecerse");
+  assert.match(leer("app/(app)/hato/actions.ts"), /esquemaBaja\.safeParse\([\s\S]*filaBaja\(/, "la ficha usa la misma regla y la misma fila");
+});
+
+test("servidor: una baja sin señal se guarda con su identificador; reenviarla no la duplica ni da error", async () => {
+  const db = baseBajas();
+  assert.deepEqual(await guardarBajaCampo(db, baja(), HOY), { ok: true, estado: "guardado" });
+  const b = db.tablas.bajas[0];
+  assert.deepEqual([b.animal_id, b.tipo, b.motivo, b.client_request_id, b.valor, b.peso_kg], [A1, "muerte", "sanidad", uuid(40), null, null]);
+  db.tablas.animales.find((a) => a.id === A1).estado = "muerto"; // lo hace la base al registrar la baja
+  assert.deepEqual(await guardarBajaCampo(db, baja(), HOY), { ok: true, estado: "ya_estaba" });
+  assert.equal(db.tablas.bajas.length, 1);
+});
+
+test("servidor: una baja sin señal nunca pisa la salida que registró otra persona", async () => {
+  const db = baseBajas();
+  db.tablas.bajas.push({ finca_id: FINCA, animal_id: A1, tipo: "venta", fecha: "2026-11-18", client_request_id: uuid(99) });
+  db.tablas.animales.find((a) => a.id === A1).estado = "vendido";
+  const r = await guardarBajaCampo(db, baja(), HOY);
+  assert.equal(r.codigo, "conflicto");
+  assert.match(r.error, /101 ya salió del hato \(venta del 18 de nov\)[\s\S]*No se registró otra salida/);
+  assert.equal(db.tablas.bajas.length, 1);
+  // Carrera: el animal seguía activo al leerlo, pero otra baja entró antes de insertar (choca con la del animal, no con la nuestra).
+  const carrera = baseBajas({ bajas: [{ finca_id: FINCA, animal_id: A2, tipo: "muerte", fecha: HOY, client_request_id: null }] });
+  assert.equal((await guardarBajaCampo(carrera, baja({}, { animalId: A2, id: uuid(41) }), HOY)).codigo, "conflicto");
+});
+
+test("servidor: una venta sin señal con comprador nuevo; rechaza lo que la ficha rechaza", async () => {
+  const db = baseBajas();
+  const v = baja({ tipo: "venta", motivo: "", valor: "450.000", cobro: "cobrado", compradorNuevo: "Frigorífico del Norte", pesoKg: "38,5", guiaMovilizacion: "ICA-123" }, { id: uuid(42), animalId: MACHO });
+  assert.deepEqual(await guardarBajaCampo(db, v, HOY), { ok: true, estado: "guardado" });
+  const b = db.tablas.bajas[0];
+  assert.deepEqual([b.valor, b.comprador, b.cobrado_en, b.peso_kg, b.guia_movilizacion], [450000, "Frigorífico del Norte", HOY, 38.5, "ICA-123"]);
+  assert.equal(db.tablas.finca_terceros.length, 2, "el comprador nuevo queda en la lista");
+  assert.match((await guardarBajaCampo(db, baja({ fecha: "2026-01-01" }, { id: uuid(43) }), HOY)).error, /anterior al nacimiento/, "Lucía nació el 10 de enero");
+  assert.match((await guardarBajaCampo(db, baja({ fecha: "2099-01-01" }, { id: uuid(44) }), HOY)).error, /futura/);
+  assert.match((await guardarBajaCampo(db, baja({}, { id: uuid(45), animalId: uuid(7) }), HOY)).error, /ya no está en la finca/);
+  assert.ok(esquemaEnvio.safeParse(baja()).success);
+  assert.deepEqual(envioDe({ ...baja(), usuarioId: U, etiqueta: "x", creadoEn: "2026-11-20T10:00:00Z", estado: "pendiente", intentos: 0 }), baja());
+});
+
+test("bajas: la pantalla, la ficha con señal, el filtro del Hato, la ayuda y los atajos están conectados", () => {
+  const pantalla = leer("components/campo/PantallaCampo.tsx");
+  assert.match(pantalla, /<BajaCampo /);
+  assert.match(pantalla, /ancla === "baja"/);
+  assert.match(leer("components/campo/BajaCampo.tsx"), /esquemaBaja\.safeParse\(entradaBajaDeCampos\(/);
+  const form = leer("components/FormBaja.tsx");
+  assert.match(form, /esFallaDeRed\(e\)[\s\S]*guardarRespaldo\([\s\S]*tipo: "baja"/, "si se cae la señal, la baja queda en el celular");
+  assert.match(form, /clientRequestId: solicitud/, "un doble toque no registra otra baja");
+  assert.match(form, /leerNumero\(valor\)/, "el valor se lee a la colombiana");
+  assert.doesNotMatch(form, /replace\(",", "\."\)/);
+  assert.match(leer("components/ListaHato.tsx"), /Ningún animal ha salido del hato/, "el filtro «Dados de baja» vacío tiene su propio estado vacío");
+  assert.match(leer("app/(app)/hato/[id]/baja/page.tsx"), /<EnlaceSinSenal [^>]*ancla="baja"/);
+  assert.ok(ATAJOS.some((a) => a.href === "/campo#baja" && a.modulo === "hato"), "«Dar de baja sin señal» en «Al grano»");
+  assert.match(leer("app/api/campo/enviar/route.ts"), /e\.tipo === "baja" && !puede\.hato/);
+  assert.match(leer("supabase/migrations/20261121161427_bajas_client_request_id.sql"), /add column if not exists client_request_id uuid[\s\S]*bajas_client_req_uk/);
+  assert.ok(AYUDA_CAMPO.puntos.some((p) => /dar de baja/.test(p.texto)));
 });
 
 // ───────────────────────── Conexiones ─────────────────────────

@@ -386,6 +386,7 @@ export type Database = {
           iva_valor: number | null
           animal_id: string
           cobrado_en: string | null
+          client_request_id: string | null
           cobro_vence: string | null
           comprador: string | null
           created_at: string
@@ -409,6 +410,7 @@ export type Database = {
           iva_valor?: number | null
           animal_id: string
           cobrado_en?: string | null
+          client_request_id?: string | null
           cobro_vence?: string | null
           comprador?: string | null
           created_at?: string
@@ -432,6 +434,7 @@ export type Database = {
           iva_valor?: number | null
           animal_id?: string
           cobrado_en?: string | null
+          client_request_id?: string | null
           cobro_vence?: string | null
           comprador?: string | null
           created_at?: string

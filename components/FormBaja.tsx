@@ -11,14 +11,20 @@ import { SelectorTercero } from "@/components/SelectorTercero";
 import { useToast } from "@/components/Toast";
 import { darDeBaja } from "@/app/(app)/hato/actions";
 import { CamposTrazabilidad } from "@/components/CamposTrazabilidad";
-import { MOTIVOS_BAJA, TIPOS_BAJA } from "@/lib/bajas";
+import { ETIQUETA_TIPO_BAJA, MOTIVOS_BAJA, TIPOS_BAJA } from "@/lib/bajas";
+import { AvisoGuardadoLocal } from "@/components/AvisoGuardadoLocal";
+import { esFallaDeRed } from "@/lib/offline/campo-envio";
+import { guardarRespaldo } from "@/lib/offline/respaldo";
 import { ESCENA_MOTIVO_BAJA, ESCENA_TIPO_BAJA } from "@/lib/escenas-forms-a-hato";
 import { ESCENA_COBRO } from "@/lib/escenas-costos";
 import { leerNumero } from "@/lib/numeros";
 import type { MotivoBaja, Tercero, TipoBaja } from "@/lib/tipos";
 import { useMoneda } from "@/components/ProveedorMoneda";
 
-/** Dar de baja a un animal: qué pasó, cuándo y, si fue una venta, a quién y por cuánto. */
+/**
+ * Dar de baja a un animal: qué pasó, cuándo y, si fue una venta, a quién y por cuánto. Lleva su identificador de envío: un doble toque no registra
+ * otra baja. Si se cae la señal al guardar, la baja queda en el celular (con el mismo identificador) y se envía sola; lo escrito no se pierde.
+ */
 export function FormBaja({
   animalId,
   etiqueta,
@@ -57,8 +63,10 @@ export function FormBaja({
   const [destino, setDestino] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [guardando, iniciar] = useTransition();
+  const [solicitud] = useState(() => crypto.randomUUID());
+  const [enCelular, setEnCelular] = useState(false);
 
-  const numeroValor = valor.trim() === "" ? undefined : Number(valor.replace(/[.\s]/g, "").replace(",", "."));
+  const numeroValor = valor.trim() === "" ? undefined : (leerNumero(valor) ?? Number.NaN);
   const valorInvalido = numeroValor !== undefined && !Number.isFinite(numeroValor);
   const comercial = tipo === "venta" || tipo === "sacrificio";
   const numeroPeso = peso.trim() === "" ? undefined : (leerNumero(peso) ?? Number.NaN);
@@ -68,20 +76,31 @@ export function FormBaja({
     if (!tipo) return;
     setError(null);
     iniciar(async () => {
-      const r = await darDeBaja({
-        animalId,
-        tipo,
-        fecha,
-        motivo: motivo || undefined,
-        terceroId: tercero,
-        cobro: tipo === "venta" && numeroValor ? cobro : undefined,
-        cobroVence: cobro === "por_cobrar" ? cobroVence : undefined,
-        valor: numeroValor,
-        ivaTarifa: leerNumero(iva) ?? undefined,
-        destinoConsumo: consumo,
-        detalle,
-        ...(comercial ? { pesoKg: numeroPeso, guiaMovilizacion: guia, destino } : {}),
-      });
+      let r;
+      try {
+        r = await darDeBaja({
+          animalId,
+          tipo,
+          fecha,
+          motivo: motivo || undefined,
+          terceroId: tercero,
+          cobro: tipo === "venta" && numeroValor ? cobro : undefined,
+          cobroVence: cobro === "por_cobrar" ? cobroVence : undefined,
+          valor: numeroValor,
+          ivaTarifa: leerNumero(iva) ?? undefined,
+          destinoConsumo: consumo,
+          detalle,
+          ...(comercial ? { pesoKg: numeroPeso, guiaMovilizacion: guia, destino } : {}),
+          clientRequestId: solicitud,
+        });
+      } catch (e) {
+        if (!esFallaDeRed(e)) throw e;
+        // Sin señal: la baja queda en el celular con los mismos campos que «Registrar sin señal» y se envía sola.
+        const campos: Record<string, string> = { tipo, fecha, motivo, terceroId: tercero, cobro, cobroVence: cobro === "por_cobrar" ? cobroVence : "", valor, ivaTarifa: iva, destinoConsumo: consumo ? "si" : "", detalle, ...(comercial ? { pesoKg: peso, guiaMovilizacion: guia, destino } : {}) };
+        const local = await guardarRespaldo(() => ({ id: solicitud, tipo: "baja", animalId, etiqueta: `${etiqueta} · ${ETIQUETA_TIPO_BAJA[tipo]}`, fecha, campos: Object.fromEntries(Object.entries(campos).filter(([, v]) => v.trim() !== "")) }));
+        if ("error" in local) return setError(local.error);
+        return setEnCelular(true);
+      }
       if (!r.ok) return setError(r.error);
       toast.exito(`${etiqueta} salió del hato`);
       if (r.aviso) toast.error(r.aviso);
@@ -165,10 +184,11 @@ export function FormBaja({
 
       {enOrdeno ? <Aviso tipo="info">Está en el ordeño: al darla de baja sale también de esa lista.</Aviso> : null}
       {error ? <Aviso tipo="error">{error}</Aviso> : null}
+      {enCelular ? <AvisoGuardadoLocal /> : null}
       {!tipo ? <Aviso tipo="atencion">Elige qué pasó con el animal para continuar.</Aviso> : null}
 
-      <Boton variante="peligro" onClick={guardar} pendiente={guardando} cargando="Guardando…" disabled={!tipo || !fecha || valorInvalido || pesoInvalido}>
-        Dar de baja
+      <Boton variante="peligro" onClick={guardar} pendiente={guardando} cargando="Guardando…" disabled={!tipo || !fecha || valorInvalido || pesoInvalido || enCelular}>
+        {enCelular ? "Guardado en el celular" : "Dar de baja"}
       </Boton>
     </div>
   );

@@ -101,6 +101,25 @@ y de Ceba, la página «Sin señal» y la etiqueta flotante. La ayuda «¿Cómo 
 `tests/sin-senal.test.mjs` (el service worker con `/campo`). En el navegador: `npm run build && npm start`, abrir el panel con sesión, cortar
 la red **y** apagar el servidor, abrir `/campo`, anotar, volver a encender y ver que se envía. Auditoría de celular a 360 y 320 px.
 
+### Dar de baja sin señal y ajustes de «Dados de baja» (21 nov 2026)
+
+**Dar de baja en «Registrar sin señal»** (`components/campo/BajaCampo.tsx`, `/campo#baja`; atajo «Dar de baja sin señal» y enlace en la pantalla «Dar de
+baja» de la ficha): lo mismo que con señal: el animal (los activos de la copia; uno con una baja guardada en el celular no se ofrece de nuevo), qué
+pasó (venta, muerte, sacrificio o pérdida), cuándo; si fue una venta, comprador (o uno nuevo por nombre), valor, IVA, si ya pagaron y si va para
+consumo; peso, guía y destino de una salida comercial; motivo y notas. Avisa si la hembra está en el ordeño. Lo hace quien escribe en el Hato.
+- **Una sola regla** (`lib/baja-reglas.ts`: `esquemaBaja`, `revisarBaja`, `datosDeVenta`, `datosComerciales`, `filaBaja`, `entradaBajaDeCampos`) para
+  `darDeBaja`/`corregirSalida`, la pantalla del celular y el envío (`guardarBajaCampo`). La base sigue marcando el estado del animal, cerrando su
+  lactancia y rechazando sacar para consumo a uno en retiro de carne; el nacimiento lo comprueba el servidor.
+- **Identificador de envío en las bajas** (migración `20261121161427_bajas_client_request_id`, solo agrega): reenviar no duplica, y un **doble toque**
+  en la ficha ya no da «Ese animal ya tiene una baja registrada».
+- **Nunca pisa a otra persona**: si el animal ya salió por otra baja (de otra persona u otro aparato), no se registra otra salida y el registro pasa a
+  «Pendientes con error» diciendo cuál fue (tipo y fecha).
+- **Respaldo con señal**: «Dar de baja» en la ficha (`FormBaja`) guarda en el celular si se cae la señal (`guardarRespaldo` de `lib/offline/respaldo.ts`,
+  para formularios sin `useActionState`); los controles de calidad de una salida para consumo se responden después, con señal.
+- **Ajustes de «Dados de baja»**: el valor de la venta se lee con `leerNumero` (antes a mano), y el filtro «Dados de baja» del Hato sin animales
+  muestra su propio estado vacío («Ningún animal ha salido del hato») en vez de «Nada con ese filtro».
+- **Copia de la finca**: sin cambio de versión; los compradores (de `ventas`) llegan también a quien da de baja animales.
+
 ### Ventas sin señal (21 nov 2026)
 
 **Venta en «Registrar sin señal»** (`components/campo/VentaCampo.tsx`, `/campo#venta`; atajo «Venta sin señal» y enlace en Hato → Ventas): lo mismo que

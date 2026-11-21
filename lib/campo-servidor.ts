@@ -23,6 +23,8 @@ import { leerEventoSanitario, vincularPrograma } from "@/lib/evento-sanitario";
 import { leerMovimiento } from "@/lib/movimiento-reglas";
 import { esquemaCompra, filaCompra, recordarPrecioCompra, resolverListasCompra, revisarCompra } from "@/lib/compra-reglas";
 import { comprobarListasVenta, esquemaVenta, filaVenta, revisarVenta } from "@/lib/venta-reglas";
+import { datosDeVenta, entradaBajaDeCampos, esBajaRepetida, esquemaBaja, filaBaja, revisarBaja } from "@/lib/baja-reglas";
+import { ETIQUETA_TIPO_BAJA } from "@/lib/bajas";
 import { asegurarTercero } from "@/lib/terceros-servidor";
 import { moduloEnPlan } from "@/lib/planes";
 import type { EstadoUbicacion, LineaVenta, RubroGasto, TipoUbicacion, UsoUbicacion } from "@/lib/tipos";
@@ -89,7 +91,7 @@ export async function leerReferenciaCampo(
   ]);
   const [compras, ventas] = await Promise.all([
     puede.compras ? leerComprasCampo(supabase, ctx.finca) : COMPRAS_VACIAS,
-    puede.ventas ? leerVentasCampo(supabase, fincaId) : VENTAS_VACIAS,
+    puede.ventas || puede.hato ? leerVentasCampo(supabase, fincaId, puede.ventas) : VENTAS_VACIAS,
   ]);
 
   const ordeno: HembraCampo[] = (leche?.animales ?? []).map((a) => ({
@@ -183,10 +185,13 @@ export async function leerReferenciaCampo(
   };
 }
 
-/** Lo de Ventas para la copia: los productos de venta que se registran a mano (activos, sin los automáticos) y los compradores activos. */
-async function leerVentasCampo(supabase: Cliente, fincaId: string): Promise<VentasCampo> {
+/**
+ * Lo de Ventas para la copia: los productos de venta que se registran a mano (activos, sin los automáticos; solo para quien registra ventas) y los
+ * compradores activos (también para quien da de baja animales: una salida puede ser una venta).
+ */
+async function leerVentasCampo(supabase: Cliente, fincaId: string, conProductos: boolean): Promise<VentasCampo> {
   const [productos, terceros] = await Promise.all([
-    leerTodo((d, h) => supabase.from("finca_productos").select("id, nombre, linea, unidad, precio_habitual, orden").eq("finca_id", fincaId).eq("tipo", "venta").eq("automatico", false).eq("activo", true).order("id").range(d, h)),
+    !conProductos ? { data: [] } : leerTodo((d, h) => supabase.from("finca_productos").select("id, nombre, linea, unidad, precio_habitual, orden").eq("finca_id", fincaId).eq("tipo", "venta").eq("automatico", false).eq("activo", true).order("id").range(d, h)),
     leerTodo((d, h) => supabase.from("finca_terceros").select("id, nombre, tipo").eq("finca_id", fincaId).eq("activo", true).order("id").range(d, h)),
   ]);
   const porNombre = (a: { nombre: string }, b: { nombre: string }) => a.nombre.localeCompare(b.nombre, "es");
@@ -254,6 +259,7 @@ export const esquemaEnvio = z.discriminatedUnion("tipo", [
   z.object({ tipo: z.literal("sanidad"), id: uuid, fincaId: uuid, animalId: uuid, fecha, campos: z.record(z.string(), z.string().max(1000)), animales: z.array(uuid).min(1).max(1000) }),
   z.object({ tipo: z.literal("compra"), id: uuid, fincaId: uuid, animalId: uuid, fecha, campos: z.record(z.string(), z.string().max(1000)) }),
   z.object({ tipo: z.literal("venta"), id: uuid, fincaId: uuid, animalId: uuid, fecha, campos: z.record(z.string(), z.string().max(1000)) }),
+  z.object({ tipo: z.literal("baja"), id: uuid, fincaId: uuid, animalId: uuid, fecha, campos: z.record(z.string(), z.string().max(1000)) }),
   z.object({ tipo: z.literal("movimiento"), id: uuid, fincaId: uuid, animalId: uuid, fecha, campos: z.record(z.string(), z.string().max(1000)), animales: z.array(uuid).min(1).max(1000), creadoEn: z.iso.datetime({ offset: true }) }),
 ]);
 
@@ -632,5 +638,45 @@ export async function guardarVentaCampo(supabase: Cliente, e: Extract<EnvioCampo
     return rechazo(mensajeAmigable(error.message));
   }
   await supabase.rpc("recordar_precio_producto", { p_finca: e.fincaId, p_producto: d.producto_id, p_precio: d.precio_unitario });
+  return { ok: true, estado: "guardado" };
+}
+
+/**
+ * Dar de baja a un animal sin señal (o desde la ficha cuando se cayó la señal): las mismas reglas que con señal (`esquemaBaja`, `revisarBaja`,
+ * `datosDeVenta`) y la misma tabla; la base marca el estado del animal, cierra su lactancia y rechaza sacar para consumo a uno en retiro de carne.
+ * El identificador del registro es su `client_request_id`: reenviarla no la duplica. **Nunca pisa a otra persona**: si el animal ya salió del hato
+ * por otra baja (registrada por otra persona o desde otro aparato), no se registra otra salida y pasa a «Pendientes con error».
+ */
+export async function guardarBajaCampo(supabase: Cliente, e: Extract<EnvioCampo, { tipo: "baja" }>, hoy: string): Promise<RespuestaEnvio> {
+  const ya = await supabase.from("bajas").select("id").eq("finca_id", e.fincaId).eq("client_request_id", e.id).maybeSingle();
+  if (ya.data) return { ok: true, estado: "ya_estaba" };
+  const datos = esquemaBaja.safeParse(entradaBajaDeCampos(e.animalId, e.campos, e.id));
+  if (!datos.success) return rechazo(datos.error.issues[0]?.message ?? "Revisa los datos de la salida.");
+  const d = datos.data;
+
+  const { data: animal } = await supabase.from("animales").select("id, numero_arete, estado, fecha_nacimiento").eq("id", d.animalId).eq("finca_id", e.fincaId).is("deleted_at", null).maybeSingle();
+  if (!animal) return rechazo("Ese animal ya no está en la finca.");
+  if (animal.estado !== "activo") {
+    const { data: otra } = await supabase.from("bajas").select("tipo, fecha").eq("animal_id", d.animalId).eq("finca_id", e.fincaId).maybeSingle();
+    const que = otra ? ` (${ETIQUETA_TIPO_BAJA[otra.tipo as keyof typeof ETIQUETA_TIPO_BAJA]?.toLowerCase() ?? "salida"} del ${formatoFecha(otra.fecha, { day: "numeric", month: "short" })})` : "";
+    return conflicto(`${animal.numero_arete} ya salió del hato${que}: lo registró otra persona o se hizo desde otro aparato. No se registró otra salida: revisa su ficha y descarta este registro.`);
+  }
+  const problema = revisarBaja(d, hoy, animal.fecha_nacimiento);
+  if (problema) return rechazo(problema);
+
+  const nuevo = (e.campos.compradorNuevo ?? "").replace(/\s+/g, " ").trim().slice(0, 120);
+  if (d.tipo === "venta" && !d.terceroId && nuevo) {
+    const t = await asegurarTercero(supabase, e.fincaId, nuevo, "comprador");
+    if ("error" in t) return rechazo(t.error);
+    d.terceroId = t.tercero.id;
+  }
+  const venta = d.tipo === "venta" ? await datosDeVenta(supabase, e.fincaId, d, d.fecha) : { comprador: null, tercero_id: null, cobrado_en: null, cobro_vence: null };
+  if ("error" in venta) return rechazo(venta.error);
+  const { error } = await supabase.from("bajas").insert({ finca_id: e.fincaId, ...filaBaja(d, venta) });
+  if (error) {
+    if (esBajaRepetida(error)) return { ok: true, estado: "ya_estaba" };
+    if (error.code === "23505") return conflicto(`${animal.numero_arete} ya tiene una salida registrada por otra persona o desde otro aparato. No se registró otra: revisa su ficha y descarta este registro.`);
+    return rechazo(mensajeAmigable(error.message));
+  }
   return { ok: true, estado: "guardado" };
 }

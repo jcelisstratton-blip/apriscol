@@ -53,14 +53,22 @@ export function accionConRespaldo<E extends { error?: string } | undefined>(
     } catch (e) {
       if (!esFallaDeRed(e)) throw e;
       if (!respaldo) return { error: SIN_SENAL_CORRECCION };
-      const ref = await copiaDelCelular(fincaId);
-      if (!ref) return { error: SIN_SENAL_SIN_COPIA };
-      const registro = respaldo(datos, ref);
-      if (!registro) return { error: SIN_SENAL_CORRECCION };
-      await guardarEnCelular({ ...registro, fecha: registro.fecha || hoyBogota(), usuarioId: ref.usuario.id, fincaId: ref.finca.id });
-      return { local: true };
+      return guardarRespaldo((ref) => respaldo(datos, ref), fincaId);
     }
   };
+}
+
+/**
+ * Guarda en el celular el registro de un formulario con señal cuya acción falló por la red (para los que no usan `useActionState`, como «Dar de
+ * baja»). `armar` recibe la copia de la finca y devuelve el registro (o `null` si no aplica). Devuelve `{ local: true }` o un aviso amable.
+ */
+export async function guardarRespaldo(armar: (ref: ReferenciaCampo) => Registro | null, fincaId?: string): Promise<GuardadoLocal | { error: string }> {
+  const ref = await copiaDelCelular(fincaId);
+  if (!ref) return { error: SIN_SENAL_SIN_COPIA };
+  const registro = armar(ref);
+  if (!registro) return { error: SIN_SENAL_CORRECCION };
+  await guardarEnCelular({ ...registro, fecha: registro.fecha || hoyBogota(), usuarioId: ref.usuario.id, fincaId: ref.finca.id });
+  return { local: true };
 }
 
 /** ¿El último envío quedó guardado en el celular? */
