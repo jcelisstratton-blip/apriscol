@@ -74,6 +74,7 @@ export const AYUDA_CAMPO: Ayuda = {
   puntos: [
     { titulo: "Prepárala con señal", texto: "Abre Apriscol con señal al menos una vez en este celular: así guarda la lista de tus animales, razas y reproductores para trabajar sin señal." },
     { titulo: "Anota donde estés", texto: "Sin señal, abre esta pantalla (también sale en la página «Sin señal») y crea un animal nuevo, o anota el ordeño, el peso, la monta, el diagnóstico de gestación la sanidad (vacunas, tratamientos…), mover animales de corral o potrero, una compra, una venta, un parto o dar de baja un animal. Queda guardado en el celular, y el animal o la cría que crees ya sale en las demás opciones." },
+    { titulo: "Instálala en el celular", texto: "Desde la pantalla de inicio la abres de un toque, aun sin señal. En iPhone es importante: si no la instalas, el iPhone puede borrar lo guardado sin señal cuando pasan unos días sin abrirla. El aviso de Hoy te dice cómo." },
     { titulo: "Se envía solo", texto: "Cuando vuelve la señal se envía sin que hagas nada, con la app abierta. En iPhone se envía al abrir la app, no en segundo plano." },
     { titulo: "Nada se duplica ni se pisa", texto: "Si ya había un dato de ese animal en esa jornada o ese día, no se cambia: el tuyo queda en «Pendientes con error» para que decidas. La temporada de empadre se arma y se cierra con señal." },
     { titulo: "Si algo no entra", texto: "Un animal que ya salió del hato o un permiso que cambió dejan el registro en «Pendientes con error», con el motivo, para reintentar o descartar." },
