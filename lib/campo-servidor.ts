@@ -9,7 +9,7 @@ import { puedeEscribir } from "@/lib/permisos";
 import { litros as fmtLitros } from "@/lib/fechas";
 import {
   CONDICIONES, MAX_DIAS_GESTACION, errorFecha, errorLitros, errorPeso, redondearPeso,
-  type AnimalHato, type AnimalPesar, type UbicacionCampo, type EnvioCampo, type ProductoCampo, type HembraCampo, type HembraRepro, type MachoCampo, type RazaCampo, type ReferenciaCampo, type RespuestaEnvio,
+  type AnimalHato, type AnimalPesar, type UbicacionCampo, type ComprasCampo, COMPRAS_VACIAS, type EnvioCampo, type ProductoCampo, type HembraCampo, type HembraRepro, type MachoCampo, type RazaCampo, type ReferenciaCampo, type RespuestaEnvio,
 } from "@/lib/campo";
 import { reglasDiagnostico } from "@/lib/diagnostico-reglas";
 import { esquemaAnimal, fotoValida, prepararAnimalNuevo } from "@/lib/animal-nuevo";
@@ -21,7 +21,10 @@ import { VALORES_CC } from "@/lib/empadronamiento";
 import { leerServicio } from "@/lib/servicio-reglas";
 import { leerEventoSanitario, vincularPrograma } from "@/lib/evento-sanitario";
 import { leerMovimiento } from "@/lib/movimiento-reglas";
-import type { EstadoUbicacion, TipoUbicacion, UsoUbicacion } from "@/lib/tipos";
+import { esquemaCompra, filaCompra, recordarPrecioCompra, resolverListasCompra, revisarCompra } from "@/lib/compra-reglas";
+import { asegurarTercero } from "@/lib/terceros-servidor";
+import { moduloEnPlan } from "@/lib/planes";
+import type { EstadoUbicacion, RubroGasto, TipoUbicacion, UsoUbicacion } from "@/lib/tipos";
 
 /**
  * El servidor del registro sin señal: la copia mínima de la finca para el celular y el guardado de lo que llega desde la bandeja del celular.
@@ -42,19 +45,21 @@ export function permisosCampo(rol: RolFinca, plan: PlanId): ReferenciaCampo["pue
     // Quien compra (propietario o administrador) escribe el lote del producto al aplicar; los demás lo eligen con señal.
     lotes: puedeEscribir(rol, "sanidad", plan) && puedeEscribir(rol, "contabilidad", plan),
     corrales: puedeEscribir(rol, "corrales", plan),
+    compras: puedeEscribir(rol, "contabilidad", plan),
   };
 }
 
 /** La copia de la finca que se guarda en el celular: solo lo indispensable para capturar (aretes, nombres, turnos, retiro y último peso). */
 export async function leerReferenciaCampo(
   supabase: Cliente,
-  ctx: { usuarioId: string; finca: { id: string; nombre: string; plan: PlanId; especies: Especie[]; proposito: Vocacion }; rol: RolFinca },
+  ctx: { usuarioId: string; finca: { id: string; nombre: string; plan: PlanId; especies: Especie[]; proposito: Vocacion; moneda?: string }; rol: RolFinca },
   hoy: string,
   ahora = new Date(),
 ): Promise<ReferenciaCampo> {
   const puede = permisosCampo(ctx.rol, ctx.finca.plan);
   const fincaId = ctx.finca.id;
-  const conAnimales = puede.hato || puede.sanidad || puede.corrales;
+  const conAnimales = puede.hato || puede.sanidad || puede.corrales || puede.compras;
+  const conUbicaciones = puede.corrales || puede.compras;
   const [leche, ceba, todos, repro, razasDB, hatoDB, productosDB, ubicacionesDB, abiertosDB] = await Promise.all([
     puede.leche ? hembrasEnLeche(supabase, fincaId) : null,
     puede.pesos ? leerCeba(supabase, fincaId, hoy) : null,
@@ -73,13 +78,14 @@ export async function leerReferenciaCampo(
       ? leerTodo((d, h) => supabase.from("productos_veterinarios").select("id, nombre, tipo, retiro_leche_dias, retiro_carne_dias, unidad_dosis").eq("finca_id", fincaId).eq("activo", true).order("id").range(d, h))
       : null,
     // Corrales: las instalaciones activas y dónde está hoy cada animal (su fila abierta).
-    puede.corrales
+    conUbicaciones
       ? leerTodo((d, h) => supabase.from("v_ubicaciones").select("id, nombre, tipo, uso, capacidad, estado, dias_descanso, dias_descanso_min").eq("finca_id", fincaId).eq("activa", true).order("id").range(d, h))
       : null,
     puede.corrales
       ? leerTodo((d, h) => supabase.from("movimientos_animales").select("animal_id, ubicacion_id").eq("finca_id", fincaId).is("hasta", null).order("animal_id").range(d, h))
       : null,
   ]);
+  const compras = puede.compras ? await leerComprasCampo(supabase, ctx.finca) : COMPRAS_VACIAS;
 
   const ordeno: HembraCampo[] = (leche?.animales ?? []).map((a) => ({
     id: a.id,
@@ -151,11 +157,11 @@ export async function leerReferenciaCampo(
     .sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
 
   return {
-    version: 5,
+    version: 6,
     generadaEn: ahora.toISOString(),
     hoy,
     usuario: { id: ctx.usuarioId },
-    finca: { id: fincaId, nombre: ctx.finca.nombre },
+    finca: { id: fincaId, nombre: ctx.finca.nombre, ...(ctx.finca.moneda ? { moneda: ctx.finca.moneda } : {}) },
     puede,
     ordeno,
     pesar,
@@ -167,6 +173,32 @@ export async function leerReferenciaCampo(
     animales,
     productos,
     ubicaciones,
+    compras,
+  };
+}
+
+/** Lo de Compras para la copia: productos de compra activos, proveedores activos, lotes de ceba abiertos, productos veterinarios (si el plan tiene Sanidad) y el IVA predeterminado. */
+async function leerComprasCampo(supabase: Cliente, finca: { id: string; plan: PlanId; especies: Especie[] }): Promise<ComprasCampo> {
+  const conSanidad = moduloEnPlan(finca.plan, "sanidad");
+  const [productos, terceros, lotes, vet, ajustes] = await Promise.all([
+    leerTodo((d, h) => supabase.from("finca_productos").select("id, nombre, rubro, unidad, precio_habitual, orden").eq("finca_id", finca.id).eq("tipo", "compra").eq("activo", true).order("id").range(d, h)),
+    leerTodo((d, h) => supabase.from("finca_terceros").select("id, nombre, tipo").eq("finca_id", finca.id).eq("activo", true).order("id").range(d, h)),
+    supabase.from("lotes_ceba").select("id, nombre").eq("finca_id", finca.id).is("cerrado_en", null).order("nombre").limit(300),
+    conSanidad ? leerTodo((d, h) => supabase.from("productos_veterinarios").select("id, nombre").eq("finca_id", finca.id).eq("activo", true).order("id").range(d, h)) : null,
+    supabase.from("finca_ajustes").select("iva_tarifa_defecto").eq("finca_id", finca.id).maybeSingle(),
+  ]);
+  const porNombre = (a: { nombre: string }, b: { nombre: string }) => a.nombre.localeCompare(b.nombre, "es");
+  return {
+    productos: (productos.data ?? [])
+      .filter((p) => p.rubro)
+      .map((p) => ({ id: p.id, nombre: p.nombre, rubro: p.rubro as RubroGasto, unidad: p.unidad ?? null, precio: p.precio_habitual != null ? Number(p.precio_habitual) : null, orden: p.orden ?? 0 }))
+      .sort((a, b) => a.orden - b.orden || porNombre(a, b)),
+    proveedores: (terceros.data ?? []).filter((t) => t.tipo === "proveedor" || t.tipo === "ambos").map((t) => ({ id: t.id, nombre: t.nombre })).sort(porNombre),
+    lotes: (lotes.data ?? []).map((l) => ({ id: l.id, nombre: l.nombre })),
+    productosVet: (vet?.data ?? []).map((p) => ({ id: p.id, nombre: p.nombre })).sort(porNombre),
+    especies: finca.especies,
+    ivaDefecto: ajustes.data?.iva_tarifa_defecto != null ? Number(ajustes.data.iva_tarifa_defecto) : null,
+    conSanidad,
   };
 }
 
@@ -199,6 +231,7 @@ export const esquemaEnvio = z.discriminatedUnion("tipo", [
   z.object({ tipo: z.literal("animal"), id: uuid, fincaId: uuid, animalId: uuid, fecha, campos: z.record(z.string(), z.string().max(1000)) }),
   z.object({ tipo: z.literal("servicio"), id: uuid, fincaId: uuid, animalId: uuid, fecha, campos: z.record(z.string(), z.string().max(1000)) }),
   z.object({ tipo: z.literal("sanidad"), id: uuid, fincaId: uuid, animalId: uuid, fecha, campos: z.record(z.string(), z.string().max(1000)), animales: z.array(uuid).min(1).max(1000) }),
+  z.object({ tipo: z.literal("compra"), id: uuid, fincaId: uuid, animalId: uuid, fecha, campos: z.record(z.string(), z.string().max(1000)) }),
   z.object({ tipo: z.literal("movimiento"), id: uuid, fincaId: uuid, animalId: uuid, fecha, campos: z.record(z.string(), z.string().max(1000)), animales: z.array(uuid).min(1).max(1000), creadoEn: z.iso.datetime({ offset: true }) }),
 ]);
 
@@ -505,5 +538,43 @@ export async function guardarMovimientoCampo(supabase: Cliente, e: Extract<Envio
 
   const { error } = await supabase.rpc("mover_animales", { p_finca: e.fincaId, p_ubicacion: destino, p_animales: faltan, p_fecha: d.fecha, p_motivo: d.motivo, p_observaciones: d.observaciones ?? "" });
   if (error) return rechazo(mensajeAmigable(error.message));
+  return { ok: true, estado: "guardado" };
+}
+
+/** Lo que solo sirve con señal y no viaja en una compra anotada sin señal (la novedad «Comprar», la compra que se corrige, la ficha a la que se vuelve). */
+const SOLO_CON_SENAL = ["novedad_id", "gasto_id", "volver"];
+
+/**
+ * Una compra anotada sin señal (o desde «Registrar una compra» cuando se cayó la señal): las mismas reglas que con señal (`esquemaCompra`,
+ * `revisarCompra`, `resolverListasCompra`) y la misma tabla. El identificador del registro es su `client_request_id`: reenviarla no la duplica. Si
+ * trae un proveedor nuevo (`proveedor_nuevo`), se usa el que ya exista con ese nombre o se crea, igual que el selector con señal (`asegurarTercero`).
+ * Una compra es un hecho nuevo: nunca reemplaza otra.
+ */
+export async function guardarCompraCampo(supabase: Cliente, e: Extract<EnvioCampo, { tipo: "compra" }>, plan: PlanId, hoy: string): Promise<RespuestaEnvio> {
+  const ya = await supabase.from("gastos").select("id").eq("finca_id", e.fincaId).eq("client_request_id", e.id).maybeSingle();
+  if (ya.data) return { ok: true, estado: "ya_estaba" };
+  const campos: Record<string, string> = { ...e.campos, client_request_id: e.id };
+  for (const k of SOLO_CON_SENAL) delete campos[k];
+  const datos = esquemaCompra.safeParse(campos);
+  if (!datos.success) return rechazo(datos.error.issues[0]?.message ?? "Revisa los datos de la compra.");
+  const d = datos.data;
+  const problema = revisarCompra(d, e.fincaId, hoy);
+  if (problema) return rechazo(problema);
+  if (d.rubro === "mano_obra") return rechazo("Los pagos al personal se registran en Equipo → Pagos, para que se cuenten una sola vez como mano de obra.");
+
+  const nuevo = (campos.proveedor_nuevo ?? "").replace(/\s+/g, " ").trim().slice(0, 120);
+  if (!d.tercero_id && nuevo) {
+    const t = await asegurarTercero(supabase, e.fincaId, nuevo, "proveedor");
+    if ("error" in t) return rechazo(t.error);
+    d.tercero_id = t.tercero.id;
+  }
+  const listas = await resolverListasCompra(supabase, e.fincaId, d, moduloEnPlan(plan, "sanidad"));
+  if ("error" in listas) return rechazo(listas.error);
+  const { error } = await supabase.from("gastos").insert({ finca_id: e.fincaId, ...filaCompra(d, listas.proveedor), client_request_id: e.id });
+  if (error) {
+    if (esDuplicado(error)) return { ok: true, estado: "ya_estaba" };
+    return rechazo(mensajeAmigable(error.message));
+  }
+  await recordarPrecioCompra(supabase, e.fincaId, d);
   return { ok: true, estado: "guardado" };
 }

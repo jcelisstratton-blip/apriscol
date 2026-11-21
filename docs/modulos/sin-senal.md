@@ -101,6 +101,26 @@ y de Ceba, la página «Sin señal» y la etiqueta flotante. La ayuda «¿Cómo 
 `tests/sin-senal.test.mjs` (el service worker con `/campo`). En el navegador: `npm run build && npm start`, abrir el panel con sesión, cortar
 la red **y** apagar el servidor, abrir `/campo`, anotar, volver a encender y ver que se envía. Auditoría de celular a 360 y 320 px.
 
+### Compras sin señal (21 nov 2026)
+
+**Compra en «Registrar sin señal»** (`components/campo/CompraCampo.tsx`, `/campo#compra`; atajo «Compra sin señal» y enlace en Hato → Compras):
+lo mismo que «Registrar una compra» con señal: grupo → producto del catálogo (con su unidad y el último precio pagado) o «Otra compra» (rubro y
+descripción) → cantidad y precio; fecha; proveedor; lote y vencimiento del producto veterinario (si el plan tiene Sanidad, obligatorio en vacunas,
+desparasitantes y tratamientos); a quién se carga (finca, especie, corral, lote de ceba o animal); pagado o por pagar; IVA (con el predeterminado de
+la finca) y observaciones. El dinero se escribe en la moneda de la finca. Lo hace quien registra compras (propietario, administrador, contador).
+- **Una sola regla** (`lib/compra-reglas.ts`: `esquemaCompra`, `revisarCompra`, `resolverListasCompra`, `filaCompra`, `recordarPrecioCompra`) para
+  `crearGasto`/`editarGasto`, la pantalla del celular y el envío (`guardarCompraCampo`). Misma tabla (`gastos`); el identificador del registro es su
+  `client_request_id` (reenviar no duplica). Al guardarse recuerda el precio por unidad, como con señal. **No hizo falta migración.**
+- **Proveedor nuevo sin señal**: se elige «Otro proveedor» y se escribe el nombre; al enviar se usa el que ya exista con ese nombre o se crea
+  (`asegurarTercero` de `lib/terceros-servidor.ts`, la misma regla del selector con señal `crearTercero`: nunca dos con el mismo nombre).
+- **Lo que queda para cuando haya señal**: la factura (se adjunta corrigiendo la compra) y la novedad «Comprar» (una compra guardada en el celular
+  desde una novedad no la marca atendida: se atiende con señal).
+- **Respaldo con señal**: «Registrar una compra» (`FormGasto`) guarda en el celular si se cae la señal, con el mismo identificador; corregir una
+  compra avisa y deja lo escrito.
+- **Copia de la finca, versión 6**: suma `compras` (productos de compra activos, proveedores, lotes de ceba abiertos, productos veterinarios, especies,
+  IVA predeterminado y si el plan tiene Sanidad), la moneda de la finca y el permiso `compras`; los corrales y los animales llegan también a quien
+  registra compras (para «a quién se carga»). Las copias de las versiones 1 a 5 siguen sirviendo.
+
 ### Corrales sin señal: mover animales (21 nov 2026)
 
 **Corrales en «Registrar sin señal»** (`components/campo/MoverCampo.tsx`, `/campo#corrales`; atajo «Mover animales sin señal» y enlace en Hato →
