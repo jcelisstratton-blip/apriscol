@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, ArrowRightLeft, CloudOff, CloudUpload, Fence, Heart, PawPrint, Plus, Receipt, Scale, Banknote, ShieldPlus, ShoppingCart, Stethoscope, Syringe, Wifi, WifiOff } from "lucide-react";
+import { ArrowLeft, ArrowRightLeft, CloudOff, CloudUpload, Fence, Heart, PawPrint, Plus, Receipt, Scale, Banknote, LogOut, ShieldPlus, ShoppingCart, Stethoscope, Syringe, Wifi, WifiOff } from "lucide-react";
 import { Aviso } from "@/components/Aviso";
 import { AyudaModulo } from "@/components/AyudaModulo";
 import { Cargando } from "@/components/Cargando";
@@ -19,6 +19,7 @@ import { SanidadCampo } from "@/components/campo/SanidadCampo";
 import { MoverCampo } from "@/components/campo/MoverCampo";
 import { CompraCampo } from "@/components/campo/CompraCampo";
 import { VentaCampo } from "@/components/campo/VentaCampo";
+import { BajaCampo } from "@/components/campo/BajaCampo";
 import { ProveedorMoneda } from "@/components/ProveedorMoneda";
 import { MONEDA_DEFECTO } from "@/lib/moneda";
 import { DiagnosticoCampo } from "@/components/campo/DiagnosticoCampo";
@@ -29,7 +30,7 @@ import { fechaHoraBogota, hoyBogota } from "@/lib/fechas";
 import { horaBogota, jornadaDeHora, RUTA_CAMPO } from "@/lib/campo";
 import { useBandejaCampo } from "@/lib/offline/useBandejaCampo";
 
-type Vista = "animal" | "ordeno" | "pesar" | "monta" | "diagnostico" | "sanidad" | "corrales" | "compra" | "venta" | "bandeja";
+type Vista = "animal" | "ordeno" | "pesar" | "monta" | "diagnostico" | "sanidad" | "corrales" | "compra" | "venta" | "baja" | "bandeja";
 
 const ESCENA_PESAR = escena(Scale, "arcilla");
 const ESCENA_BANDEJA = escena(CloudUpload, "grafito");
@@ -40,6 +41,7 @@ const ESCENA_DIAGNOSTICO = escena(Stethoscope, "musgo");
 const ESCENA_CORRALES = escena(Fence, "oliva", ArrowRightLeft);
 const ESCENA_COMPRA = escena(ShoppingCart, "ocre", Receipt);
 const ESCENA_VENTA = escena(Banknote, "musgo", Receipt);
+const ESCENA_BAJA = escena(LogOut, "arcilla", PawPrint);
 
 /**
  * «Registrar sin señal» (`/campo`): una página igual para todas las personas que el service worker deja lista para abrir sin conexión. Todo
@@ -53,12 +55,12 @@ export function PantallaCampo() {
   const [hoy] = useState(() => hoyBogota());
   const [jornadaInicial] = useState(() => jornadaDeHora(horaBogota()));
 
-  // «#bandeja» (la etiqueta «N sin enviar» del panel), «#animal», «#sanidad», «#corrales», «#compra» o «#venta» (los atajos «… sin señal») abren directo esa parte, al
+  // «#bandeja» (la etiqueta «N sin enviar» del panel), «#animal», «#sanidad», «#corrales», «#compra», «#venta» o «#baja» (los atajos «… sin señal») abren directo esa parte, al
   // abrir la pantalla y si el ancla cambia con la pantalla ya abierta.
   useEffect(() => {
     const leerAncla = () => {
       const ancla = window.location.hash.slice(1);
-      if (ancla === "bandeja" || ancla === "animal" || ancla === "sanidad" || ancla === "corrales" || ancla === "compra" || ancla === "venta") setVista(ancla);
+      if (ancla === "bandeja" || ancla === "animal" || ancla === "sanidad" || ancla === "corrales" || ancla === "compra" || ancla === "venta" || ancla === "baja") setVista(ancla);
     };
     const t = setTimeout(leerAncla, 0);
     window.addEventListener("hashchange", leerAncla);
@@ -151,6 +153,9 @@ export function PantallaCampo() {
               {referencia.puede.ventas ? (
                 <TarjetaOpcion escena={ESCENA_VENTA} titulo="Venta" dato="Queso, carne, abono…" activo={elegida === "venta"} onClick={() => setVista("venta")} />
               ) : null}
+              {referencia.puede.hato ? (
+                <TarjetaOpcion escena={ESCENA_BAJA} titulo="Dar de baja" dato="Venta, muerte…" activo={elegida === "baja"} onClick={() => setVista("baja")} />
+              ) : null}
               <TarjetaOpcion
                 escena={ESCENA_BANDEJA}
                 titulo="Guardado"
@@ -182,6 +187,10 @@ export function PantallaCampo() {
               ) : elegida === "venta" && usuarioId ? (
                 <ProveedorMoneda moneda={referencia.finca.moneda ?? MONEDA_DEFECTO}>
                   <VentaCampo referencia={referencia} registros={registros} usuarioId={usuarioId} hoy={hoy} enLinea={enLinea} alGuardar={() => void enviarAhora()} />
+                </ProveedorMoneda>
+              ) : elegida === "baja" && usuarioId ? (
+                <ProveedorMoneda moneda={referencia.finca.moneda ?? MONEDA_DEFECTO}>
+                  <BajaCampo referencia={referencia} registros={registros} usuarioId={usuarioId} hoy={hoy} enLinea={enLinea} alGuardar={() => void enviarAhora()} />
                 </ProveedorMoneda>
               ) : elegida === "pesar" && usuarioId ? (
                 <PesarCampo referencia={referencia} registros={registros} usuarioId={usuarioId} hoy={hoy} enLinea={enLinea} alGuardar={() => void enviarAhora()} />

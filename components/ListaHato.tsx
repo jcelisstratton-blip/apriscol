@@ -2,7 +2,7 @@
 
 import { useCallback, useState } from "react";
 import Link from "next/link";
-import { Rabbit, SearchX } from "lucide-react";
+import { LogOut, Rabbit, SearchX } from "lucide-react";
 import { CampoBusqueda } from "@/components/CampoBusqueda";
 import { EstadoVacio } from "@/components/EstadoVacio";
 import { TarjetasHato } from "@/components/TarjetasHato";
@@ -79,7 +79,13 @@ export function ListaHato({
         clave={(a) => a.id}
         fila={(a) => <FilaAnimal animal={a} retiro={retiros[a.id]} />}
         vacio={
-          hayFiltro ? (
+          filtro === "bajas" && !busqueda ? (
+            <EstadoVacio
+              icono={<LogOut strokeWidth={1.5} />}
+              titulo="Ningún animal ha salido del hato"
+              descripcion="Aquí aparecerán los animales vendidos, sacrificados, muertos o perdidos, con la fecha de su salida. Se dan de baja desde la ficha de cada animal, también sin señal."
+            />
+          ) : hayFiltro ? (
             <EstadoVacio icono={<SearchX strokeWidth={1.5} />} titulo="Nada con ese filtro" descripcion="Prueba con otro número de arete o quita el filtro." />
           ) : (
             <EstadoVacio

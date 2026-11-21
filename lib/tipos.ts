@@ -93,6 +93,8 @@ export type Baja = {
   iva_valor: number | null;
   guia_movilizacion: string | null;
   detalle: string | null;
+  /** Identificador del envío (doble toque o registro sin señal): reenviar la misma baja no la duplica. */
+  client_request_id: string | null;
   created_by: string | null;
   created_at: string;
   updated_at: string;

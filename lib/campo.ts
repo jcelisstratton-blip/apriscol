@@ -106,7 +106,7 @@ export type ComprasCampo = {
 /** Un producto de venta que se registra a mano (no la leche cruda ni los animales, que entran solos), con su línea, su unidad y el último precio. */
 export type ProductoVentaCampo = { id: string; nombre: string; linea: LineaVenta; unidad: string | null; precio: number | null; orden: number };
 
-/** Lo que pide una venta sin señal (el IVA predeterminado es el mismo de `compras`). */
+/** Lo que pide una venta sin señal (el IVA predeterminado es el mismo de `compras`). Los compradores también llegan a quien da de baja animales (una salida puede ser una venta). */
 export type VentasCampo = { productos: ProductoVentaCampo[]; compradores: { id: string; nombre: string }[] };
 
 export const VENTAS_VACIAS: VentasCampo = { productos: [], compradores: [] };
@@ -142,7 +142,7 @@ export type ReferenciaCampo = {
   ventas: VentasCampo;
 };
 
-export type TipoRegistroCampo = "ordeno" | "peso" | "monta" | "diagnostico" | "animal" | "sanidad" | "servicio" | "movimiento" | "compra" | "venta";
+export type TipoRegistroCampo = "ordeno" | "peso" | "monta" | "diagnostico" | "animal" | "sanidad" | "servicio" | "movimiento" | "compra" | "venta" | "baja";
 
 /** Lo que se anota en un diagnóstico de gestación sin señal (ecografía o palpación). */
 export type DiagnosticoCampo = {
@@ -187,7 +187,7 @@ export type RegistroCampo = {
   diagnostico?: DiagnosticoCampo;
   /**
    * Los mismos campos (texto) que envía el formulario con señal: animal nuevo (`animalId` es el propio identificador del registro), sanidad,
-   * servicio desde la ficha, lo extra de un peso desde la ficha (tipo, condición corporal, observaciones) el movimiento a un corral, la compra y la venta (en estas dos, `animalId` es el propio identificador del registro).
+   * servicio desde la ficha, lo extra de un peso desde la ficha (tipo, condición corporal, observaciones) el movimiento a un corral, la compra, la venta (en estas dos, `animalId` es el propio identificador del registro) y la baja de un animal.
    */
   campos?: Record<string, string>;
   /** Sanidad y movimiento: los animales del registro (`animalId` es el primero). */
@@ -212,7 +212,8 @@ export type EnvioCampo =
   /** `creadoEn`: cuándo se anotó en el celular; un movimiento registrado DESPUÉS por otra persona no se pisa. */
   | { tipo: "movimiento"; id: string; fincaId: string; animalId: string; fecha: string; campos: Record<string, string>; animales: string[]; creadoEn: string }
   | { tipo: "compra"; id: string; fincaId: string; animalId: string; fecha: string; campos: Record<string, string> }
-  | { tipo: "venta"; id: string; fincaId: string; animalId: string; fecha: string; campos: Record<string, string> };
+  | { tipo: "venta"; id: string; fincaId: string; animalId: string; fecha: string; campos: Record<string, string> }
+  | { tipo: "baja"; id: string; fincaId: string; animalId: string; fecha: string; campos: Record<string, string> };
 
 export function envioDe(r: RegistroCampo): EnvioCampo {
   const base = { id: r.id, fincaId: r.fincaId, animalId: r.animalId, fecha: r.fecha };
@@ -224,6 +225,7 @@ export function envioDe(r: RegistroCampo): EnvioCampo {
   if (r.tipo === "sanidad") return { tipo: "sanidad", ...base, campos: r.campos ?? {}, animales: r.animales ?? [] };
   if (r.tipo === "compra") return { tipo: "compra", ...base, campos: r.campos ?? {} };
   if (r.tipo === "venta") return { tipo: "venta", ...base, campos: r.campos ?? {} };
+  if (r.tipo === "baja") return { tipo: "baja", ...base, campos: r.campos ?? {} };
   if (r.tipo === "movimiento") return { tipo: "movimiento", ...base, campos: r.campos ?? {}, animales: r.animales ?? [], creadoEn: r.creadoEn };
   return { tipo: "peso", ...base, peso: r.peso!, ...(r.campos && Object.keys(r.campos).length > 0 ? { extras: r.campos } : {}) };
 }
@@ -476,4 +478,11 @@ export function ocupacion(donde: Map<string, string | null>): Map<string, number
   const n = new Map<string, number>();
   for (const u of donde.values()) if (u) n.set(u, (n.get(u) ?? 0) + 1);
   return n;
+}
+
+// ───────────── Dar de baja ─────────────
+
+/** Los animales que ya tienen una baja guardada en este celular, sin enviar (no se ofrecen de nuevo). `excepto`: la que se está corrigiendo. */
+export function conBajaPendiente(registros: RegistroCampo[], usuarioId: string, fincaId: string, excepto?: string): Set<string> {
+  return new Set(registros.filter((r) => r.tipo === "baja" && r.id !== excepto && r.usuarioId === usuarioId && r.fincaId === fincaId && r.estado !== "enviado").map((r) => r.animalId));
 }
