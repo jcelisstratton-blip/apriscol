@@ -101,6 +101,21 @@ y de Ceba, la página «Sin señal» y la etiqueta flotante. La ayuda «¿Cómo 
 `tests/sin-senal.test.mjs` (el service worker con `/campo`). En el navegador: `npm run build && npm start`, abrir el panel con sesión, cortar
 la red **y** apagar el servidor, abrir `/campo`, anotar, volver a encender y ver que se envía. Auditoría de celular a 360 y 320 px.
 
+### Ventas sin señal (21 nov 2026)
+
+**Venta en «Registrar sin señal»** (`components/campo/VentaCampo.tsx`, `/campo#venta`; atajo «Venta sin señal» y enlace en Hato → Ventas): lo mismo que
+«Registrar una venta» con señal: qué se vendió (los productos de venta que se registran a mano, con su unidad y el último precio), cantidad × precio,
+fecha, comprador (o uno nuevo por nombre), «Ya me pagaron» / «Me lo deben» (con la fecha del cobro o cuándo se espera), IVA (el predeterminado de la
+finca) y observaciones, en la moneda de la finca. **La leche cruda y los animales no se venden aquí** (entran solos desde Leche → Despachos y desde la
+salida del animal): ni la copia los trae ni el servidor los acepta. Lo hace quien registra ventas (propietario, administrador, contador).
+- **Una sola regla** (`lib/venta-reglas.ts`: `esquemaVenta`, `revisarVenta`, `comprobarListasVenta`, `filaVenta`) para `crearVenta`/`editarVenta`, la
+  pantalla del celular y el envío (`guardarVentaCampo`). Misma tabla (`ventas`); el identificador del registro es su `client_request_id` (reenviar no
+  duplica). Recuerda el precio de venta. **No hizo falta migración.**
+- **Comprador nuevo sin señal**: «Otro comprador» y su nombre; al enviar se usa el que ya exista o se crea (`asegurarTercero`, la misma regla de compras).
+- **Respaldo con señal**: «Registrar una venta» (`FormVenta`) guarda en el celular si se cae la señal; corregir una venta avisa y deja lo escrito.
+- **Copia de la finca, versión 7**: suma `ventas` (productos de venta a mano y compradores) y el permiso `ventas`; el IVA predeterminado es el de
+  `compras`. Las copias de las versiones 1 a 6 siguen sirviendo.
+
 ### Compras sin señal (21 nov 2026)
 
 **Compra en «Registrar sin señal»** (`components/campo/CompraCampo.tsx`, `/campo#compra`; atajo «Compra sin señal» y enlace en Hato → Compras):

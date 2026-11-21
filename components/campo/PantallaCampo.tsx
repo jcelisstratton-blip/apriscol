@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, ArrowRightLeft, CloudOff, CloudUpload, Fence, Heart, PawPrint, Plus, Receipt, Scale, ShieldPlus, ShoppingCart, Stethoscope, Syringe, Wifi, WifiOff } from "lucide-react";
+import { ArrowLeft, ArrowRightLeft, CloudOff, CloudUpload, Fence, Heart, PawPrint, Plus, Receipt, Scale, Banknote, ShieldPlus, ShoppingCart, Stethoscope, Syringe, Wifi, WifiOff } from "lucide-react";
 import { Aviso } from "@/components/Aviso";
 import { AyudaModulo } from "@/components/AyudaModulo";
 import { Cargando } from "@/components/Cargando";
@@ -18,6 +18,7 @@ import { AnimalCampo } from "@/components/campo/AnimalCampo";
 import { SanidadCampo } from "@/components/campo/SanidadCampo";
 import { MoverCampo } from "@/components/campo/MoverCampo";
 import { CompraCampo } from "@/components/campo/CompraCampo";
+import { VentaCampo } from "@/components/campo/VentaCampo";
 import { ProveedorMoneda } from "@/components/ProveedorMoneda";
 import { MONEDA_DEFECTO } from "@/lib/moneda";
 import { DiagnosticoCampo } from "@/components/campo/DiagnosticoCampo";
@@ -28,7 +29,7 @@ import { fechaHoraBogota, hoyBogota } from "@/lib/fechas";
 import { horaBogota, jornadaDeHora, RUTA_CAMPO } from "@/lib/campo";
 import { useBandejaCampo } from "@/lib/offline/useBandejaCampo";
 
-type Vista = "animal" | "ordeno" | "pesar" | "monta" | "diagnostico" | "sanidad" | "corrales" | "compra" | "bandeja";
+type Vista = "animal" | "ordeno" | "pesar" | "monta" | "diagnostico" | "sanidad" | "corrales" | "compra" | "venta" | "bandeja";
 
 const ESCENA_PESAR = escena(Scale, "arcilla");
 const ESCENA_BANDEJA = escena(CloudUpload, "grafito");
@@ -38,6 +39,7 @@ const ESCENA_SANIDAD = escena(Syringe, "musgo", ShieldPlus);
 const ESCENA_DIAGNOSTICO = escena(Stethoscope, "musgo");
 const ESCENA_CORRALES = escena(Fence, "oliva", ArrowRightLeft);
 const ESCENA_COMPRA = escena(ShoppingCart, "ocre", Receipt);
+const ESCENA_VENTA = escena(Banknote, "musgo", Receipt);
 
 /**
  * «Registrar sin señal» (`/campo`): una página igual para todas las personas que el service worker deja lista para abrir sin conexión. Todo
@@ -51,12 +53,12 @@ export function PantallaCampo() {
   const [hoy] = useState(() => hoyBogota());
   const [jornadaInicial] = useState(() => jornadaDeHora(horaBogota()));
 
-  // «#bandeja» (la etiqueta «N sin enviar» del panel), «#animal», «#sanidad», «#corrales» o «#compra» (los atajos «… sin señal») abren directo esa parte, al
+  // «#bandeja» (la etiqueta «N sin enviar» del panel), «#animal», «#sanidad», «#corrales», «#compra» o «#venta» (los atajos «… sin señal») abren directo esa parte, al
   // abrir la pantalla y si el ancla cambia con la pantalla ya abierta.
   useEffect(() => {
     const leerAncla = () => {
       const ancla = window.location.hash.slice(1);
-      if (ancla === "bandeja" || ancla === "animal" || ancla === "sanidad" || ancla === "corrales" || ancla === "compra") setVista(ancla);
+      if (ancla === "bandeja" || ancla === "animal" || ancla === "sanidad" || ancla === "corrales" || ancla === "compra" || ancla === "venta") setVista(ancla);
     };
     const t = setTimeout(leerAncla, 0);
     window.addEventListener("hashchange", leerAncla);
@@ -67,7 +69,7 @@ export function PantallaCampo() {
   }, []);
 
   // Sin elegir: lo primero que la persona puede registrar.
-  const primera: Vista = !referencia ? "ordeno" : referencia.puede.hato ? "animal" : referencia.puede.leche ? "ordeno" : referencia.puede.pesos ? "pesar" : referencia.puede.reproduccion ? "monta" : referencia.puede.sanidad ? "sanidad" : referencia.puede.corrales ? "corrales" : referencia.puede.compras ? "compra" : "bandeja";
+  const primera: Vista = !referencia ? "ordeno" : referencia.puede.hato ? "animal" : referencia.puede.leche ? "ordeno" : referencia.puede.pesos ? "pesar" : referencia.puede.reproduccion ? "monta" : referencia.puede.sanidad ? "sanidad" : referencia.puede.corrales ? "corrales" : referencia.puede.compras ? "compra" : referencia.puede.ventas ? "venta" : "bandeja";
   const elegida: Vista = vista ?? primera;
 
   return (
@@ -110,7 +112,7 @@ export function PantallaCampo() {
           >
             <Link href="/" className={clasesBoton("primario", true)}>Ir a Apriscol</Link>
           </EstadoVacio>
-        ) : !referencia.puede.leche && !referencia.puede.pesos && !referencia.puede.reproduccion && !referencia.puede.hato && !referencia.puede.sanidad && !referencia.puede.corrales && !referencia.puede.compras ? (
+        ) : !referencia.puede.leche && !referencia.puede.pesos && !referencia.puede.reproduccion && !referencia.puede.hato && !referencia.puede.sanidad && !referencia.puede.corrales && !referencia.puede.compras && !referencia.puede.ventas ? (
           <EstadoVacio icono={<CloudOff strokeWidth={1.5} />} titulo="Tu rol no registra en el campo" descripcion="Si necesitas hacerlo, pídele al propietario de la finca que cambie tu rol en Equipo." />
         ) : (
           <>
@@ -146,6 +148,9 @@ export function PantallaCampo() {
               {referencia.puede.compras ? (
                 <TarjetaOpcion escena={ESCENA_COMPRA} titulo="Compra" dato="Alimento, droga…" activo={elegida === "compra"} onClick={() => setVista("compra")} />
               ) : null}
+              {referencia.puede.ventas ? (
+                <TarjetaOpcion escena={ESCENA_VENTA} titulo="Venta" dato="Queso, carne, abono…" activo={elegida === "venta"} onClick={() => setVista("venta")} />
+              ) : null}
               <TarjetaOpcion
                 escena={ESCENA_BANDEJA}
                 titulo="Guardado"
@@ -173,6 +178,10 @@ export function PantallaCampo() {
               ) : elegida === "compra" && usuarioId ? (
                 <ProveedorMoneda moneda={referencia.finca.moneda ?? MONEDA_DEFECTO}>
                   <CompraCampo referencia={referencia} registros={registros} usuarioId={usuarioId} hoy={hoy} enLinea={enLinea} alGuardar={() => void enviarAhora()} />
+                </ProveedorMoneda>
+              ) : elegida === "venta" && usuarioId ? (
+                <ProveedorMoneda moneda={referencia.finca.moneda ?? MONEDA_DEFECTO}>
+                  <VentaCampo referencia={referencia} registros={registros} usuarioId={usuarioId} hoy={hoy} enLinea={enLinea} alGuardar={() => void enviarAhora()} />
                 </ProveedorMoneda>
               ) : elegida === "pesar" && usuarioId ? (
                 <PesarCampo referencia={referencia} registros={registros} usuarioId={usuarioId} hoy={hoy} enLinea={enLinea} alGuardar={() => void enviarAhora()} />

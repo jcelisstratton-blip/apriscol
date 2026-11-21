@@ -8,6 +8,8 @@ import { Campo, CLASE_INPUT } from "@/components/Campo";
 import { CampoIva } from "@/components/CampoIva";
 import { SelectorTarjetas } from "@/components/SelectorTarjetas";
 import { SelectorTercero } from "@/components/SelectorTercero";
+import { AvisoGuardadoLocal } from "@/components/AvisoGuardadoLocal";
+import { accionConRespaldo, camposDe, errorDe, quedoEnCelular } from "@/lib/offline/respaldo";
 import { crearVenta, editarVenta } from "@/app/(app)/hato/ventas/actions";
 import { ESCENA_COBRO, ESCENA_LINEA_VENTA } from "@/lib/escenas-costos";
 import { useDinero } from "@/components/ProveedorMoneda";
@@ -28,7 +30,30 @@ const ETIQUETA_COBRO: Record<EstadoCobro, string> = { cobrado: "Ya me pagaron", 
 export function FormVenta({ hoy, productos, terceros, venta, solicitud, ivaDefecto = null }: { hoy: string; productos: Producto[]; terceros: Tercero[]; venta?: Venta; solicitud?: string; /** El IVA predeterminado de la finca: se escribe solo en una venta nueva. */ ivaDefecto?: number | null }) {
   const dinero = useDinero();
   const editando = Boolean(venta);
-  const [estado, enviar, pendiente] = useActionState(editando ? editarVenta : crearVenta, undefined);
+  // Sin señal: una venta nueva queda en el celular (mismo identificador del formulario: nunca se duplica) y se envía sola; una corrección pide
+  // intentarlo de nuevo. Nunca se pierde lo escrito.
+  const [estado, enviar, pendiente] = useActionState(
+    accionConRespaldo(
+      editando ? editarVenta : crearVenta,
+      editando || !solicitud
+        ? null
+        : (formulario) => {
+            const p = productos.find((x) => x.id === formulario.get("producto_id"));
+            const t = (leerNumero(String(formulario.get("cantidad") ?? "")) ?? 0) * (leerNumero(String(formulario.get("precio_unitario") ?? "")) ?? 0);
+            return {
+              id: solicitud,
+              tipo: "venta",
+              animalId: solicitud,
+              etiqueta: `${p?.nombre ?? "Venta"} · ${dinero(Math.round(t * 100) / 100)}`,
+              fecha: String(formulario.get("fecha") ?? ""),
+              campos: camposDe(formulario, ["client_request_id", "venta_id"]),
+            };
+          },
+    ),
+    undefined,
+  );
+  const guardadoLocal = quedoEnCelular(estado);
+  const error = errorDe(estado);
   const [, iniciar] = useTransition();
   const [producto, setProducto] = useState(venta?.producto_id ?? "");
   const [cantidad, setCantidad] = useState(coma(venta?.cantidad));
@@ -132,10 +157,11 @@ export function FormVenta({ hoy, productos, terceros, venta, solicitud, ivaDefec
       ) : null}
 
       {falta && producto ? <Aviso tipo="atencion">{falta}</Aviso> : null}
-      {estado?.error ? <Aviso tipo="error">{estado.error}</Aviso> : null}
+      {error ? <Aviso tipo="error">{error}</Aviso> : null}
+      {guardadoLocal ? <AvisoGuardadoLocal /> : null}
       <div className="space-y-2">
-        <Boton type="submit" pendiente={pendiente} cargando="Guardando…" disabled={Boolean(falta)}>
-          {editando ? "Guardar cambios" : "Guardar venta"}
+        <Boton type="submit" pendiente={pendiente} cargando="Guardando…" disabled={Boolean(falta) || guardadoLocal}>
+          {guardadoLocal ? "Guardado en el celular" : editando ? "Guardar cambios" : "Guardar venta"}
         </Boton>
         <Link href="/hato?vista=ventas" className={clasesBoton("fantasma")}>Cancelar</Link>
       </div>

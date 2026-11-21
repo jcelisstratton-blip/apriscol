@@ -3,6 +3,7 @@ import { Banknote, Plus } from "lucide-react";
 import { AvisoGuardado } from "@/components/AvisoGuardado";
 import { AyudaModulo } from "@/components/AyudaModulo";
 import { clasesBoton } from "@/components/Boton";
+import { EnlaceSinSenal } from "@/components/EnlaceSinSenal";
 import { ListaVentas } from "@/components/ListaVentas";
 import { crearClienteServidor } from "@/lib/supabase/server";
 import { AYUDA_VENTAS } from "@/lib/ayuda";
@@ -37,7 +38,10 @@ export async function Ventas({
   return (
     <div className="space-y-4">
       <AvisoGuardado activo={guardado} />
-      <AyudaModulo ayuda={AYUDA_VENTAS} />
+      <div className="flex flex-wrap items-center gap-x-5">
+        <AyudaModulo ayuda={AYUDA_VENTAS} />
+        {puedeEditar ? <EnlaceSinSenal texto="Registrar una venta sin señal" ancla="venta" /> : null}
+      </div>
       {puedeEditar ? (
         <Link href="/hato/ventas/nueva" className={clasesBoton("primario")}>
           <Plus className="size-5" strokeWidth={2.2} aria-hidden="true" /> Registrar una venta
