@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, CloudOff, Wifi, WifiOff } from "lucide-react";
 import { Aviso } from "@/components/Aviso";
+import { AvisoInstalar } from "@/components/AvisoInstalar";
 import { AyudaModulo } from "@/components/AyudaModulo";
 import { Cargando } from "@/components/Cargando";
 import { clasesBoton } from "@/components/Boton";
@@ -117,6 +118,8 @@ export function PantallaCampo() {
                 <a href={`/login?next=${encodeURIComponent(RUTA_CAMPO)}`} className="font-semibold text-musgo underline underline-offset-4">Entrar</a>
               </Aviso>
             ) : null}
+
+            <AvisoInstalar />
 
             <FilaTarjetas etiqueta="Qué registrar">
               {referencia.puede.hato ? (

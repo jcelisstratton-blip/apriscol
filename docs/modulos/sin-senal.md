@@ -290,6 +290,15 @@ La misma pantalla `/campo` suma **Monta** y **Diagnóstico** para quien registra
 - **Migración** `20261121175426_crias_con_identificador_del_celular` (solo reemplaza la función): `registrar_parto` guarda el `id` de cada cría como
   `client_request_id` del animal creado (`esquemaCria.id` en `lib/parto-reglas.ts`).
 
+### Aviso para instalar la app (21 nov 2026)
+
+- **`AvisoInstalar`** (`components/AvisoInstalar.tsx`, reglas en `lib/instalar.ts`) en Hoy (solo para quien ve «Registrar sin señal» en el menú) y
+  en `/campo`. Instalada, se abre de un toque desde la pantalla de inicio (también sin señal) y el celular no borra lo guardado: **Safari en iPhone
+  borra los datos de una página que no se abre en unos días si no está en la pantalla de inicio**, por eso el aviso insiste más en iPhone (los dos
+  pasos: Compartir → «Agregar a inicio»). En Android con Chrome ofrece «Instalar» directo (`beforeinstallprompt`); si el navegador no lo permite,
+  dice dónde está en el menú. No sale en el computador, si ya está instalada (`display-mode: standalone`) ni durante `DIAS_OCULTAR_INSTALAR` días
+  tras «Ahora no» (`localStorage`). Al guardar un registro se pide además `navigator.storage.persist()`.
+
 ## Pasos siguientes (por definir)
 
 - Todo lo del campo ya funciona sin señal (incluidos los partos con sus crías).

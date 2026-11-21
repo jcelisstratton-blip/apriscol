@@ -24,6 +24,8 @@ import { etiquetaAnimal, saludo } from "@/lib/animal";
 import { dinero } from "@/lib/moneda";
 import { AvisoMigracion } from "@/components/AvisoMigracion";
 import { AvisoAlGrano } from "@/components/AvisoAlGrano";
+import { AvisoInstalar } from "@/components/AvisoInstalar";
+import { visibilidadMenu } from "@/lib/menu";
 import { avisoAlGranoVisible } from "@/lib/al-grano";
 import { AvisoTutoriales } from "@/components/AvisoTutoriales";
 import { avisoTutorialesVisible } from "@/lib/tutoriales";
@@ -175,6 +177,8 @@ export default async function PaginaHoy({ searchParams }: { searchParams: Promis
 
       {pasoSiguiente ? <AvisoMigracion fincaId={finca.id} hechos={avanceMig.hechos} total={avanceMig.total} siguiente={{ id: pasoSiguiente.id, accion: pasoSiguiente.accion, titulo: pasoSiguiente.titulo, href: pasoSiguiente.href }} /> : null}
       {avisoAlGranoVisible(diasDesde((perfil?.created_at ?? finca.created_at).slice(0, 10), hoy)) ? <AvisoAlGrano /> : null}
+      {/* Quien anota sin señal: instalada, la abre de un toque y el celular no borra lo guardado (en iPhone, lo único que lo protege). */}
+      {visibilidadMenu(rol, finca.plan, finca.especies).sinSenal ? <AvisoInstalar className="mb-4" /> : null}
       {avisoTutorialesVisible(diasDesde(finca.created_at.slice(0, 10), hoy), hoy) ? <AvisoTutoriales fincaId={finca.id} /> : null}
 
       {hato === 0 ? (
