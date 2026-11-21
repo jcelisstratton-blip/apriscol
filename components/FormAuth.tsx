@@ -1,13 +1,19 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useTransition } from "react";
 import Link from "next/link";
 import { Aviso } from "@/components/Aviso";
 import { Boton } from "@/components/Boton";
 import { Campo, CLASE_INPUT } from "@/components/Campo";
 import { CampoClave } from "@/components/CampoClave";
 import type { EstadoAuth } from "@/app/login/actions";
+import { SIN_SENAL_ENTRAR } from "@/lib/campo";
+import { esFallaDeRed } from "@/lib/offline/campo-envio";
 
+/**
+ * Entrar o crear la cuenta. Se envía con `onSubmit` (no con `action`): si la contraseña está mal o se cae la señal, lo escrito no se borra. Sin señal
+ * no se puede entrar: lo dice en palabras de persona en vez de romper la pantalla (en la de entrada, `SinSenalAcceso` ofrece registrar sin señal).
+ */
 export function FormAuth({
   accion,
   modo,
@@ -25,12 +31,27 @@ export function FormAuth({
   /** Correo al que va dirigida la invitación con la que se llegó: queda escrito y no se puede cambiar. */
   emailInicial?: string;
 }) {
-  const [estado, enviar, pendiente] = useActionState(accion, undefined);
+  const [estado, enviar, pendiente] = useActionState(async (previo: EstadoAuth, datos: FormData): Promise<EstadoAuth> => {
+    try {
+      return await accion(previo, datos);
+    } catch (e) {
+      if (esFallaDeRed(e)) return { error: SIN_SENAL_ENTRAR };
+      throw e;
+    }
+  }, undefined);
+  const [, iniciar] = useTransition();
   const esRegistro = modo === "registro";
   const sufijo = next ? `?next=${encodeURIComponent(next)}${emailInicial ? `&email=${encodeURIComponent(emailInicial)}` : ""}` : "";
 
   return (
-    <form action={enviar} className="space-y-4">
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        const datos = new FormData(e.currentTarget);
+        iniciar(() => enviar(datos));
+      }}
+      className="space-y-4"
+    >
       {next ? <input type="hidden" name="next" value={next} /> : null}
       {esRegistro && referido ? <input type="hidden" name="ref" value={referido} /> : null}
       {esRegistro ? (

@@ -29,3 +29,16 @@ supuestos ajustables, nunca como un resultado prometido.
 
 
 **Precio en dólares y en pesos (18 nov 2026):** los planes de la entrada (login y registro) muestran cada precio en US$ con su equivalente aproximado en pesos colombianos («≈ $ 33.095 COP / mes»), calculado con la TRM del día que lee `pesosPorDolar()` (`lib/pago-manual.ts`, datos.gov.co, caché de 6 horas, respaldo `PESOS_POR_DOLAR`). Si no hay TRM ni respaldo, se ven solo en dólares. Es el mismo cálculo de la pantalla de pago.
+
+## Sin señal en la pantalla de entrada (21 nov 2026)
+
+- **El formulario** (`components/FormAuth.tsx`, entrar y crear cuenta) se envía con `onSubmit`: una contraseña equivocada o un corte de señal ya no
+  borran el correo escrito. Sin señal no se puede entrar: lo dice (`SIN_SENAL_ENTRAR` de `lib/campo.ts`) en vez de romper la pantalla.
+- **Debajo del formulario de entrada** (`components/SinSenalAcceso.tsx`): si el celular ya quedó listo (tiene la copia de la finca: se entró con señal y no
+  se cerró la sesión), un botón «Registrar sin señal · <finca>»; si no, una línea que dice cómo dejarlo listo y lleva a la sección «Sin señal». Si hay
+  registros guardados sin enviar, avisa que se envían solos al entrar con la cuenta. Sin conexión, avisa que para entrar hace falta señal.
+- **Sección «Sin señal»** (`#sin-senal`, también en la barra de arriba, en la portada y en las preguntas frecuentes): qué se puede anotar (la lista única
+  `REGISTROS_SIN_SENAL` de `lib/campo.ts`, una entrada por opción de «Registrar sin señal»: la prueba lo exige), qué necesita señal y cómo se llega en tres
+  pasos (dejar listo el celular, abrir Apriscol y tocar «Registrar sin señal» —o «Al grano», o el ícono de la app instalada—, y se envía solo).
+- El atajo del ícono de la app (`app/manifest.ts`) y la página «Sin señal» (`public/offline.html`) ya no dicen solo «ordeño y pesos».
+

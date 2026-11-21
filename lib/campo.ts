@@ -25,6 +25,21 @@ export const SEGUNDOS_REINTENTO = 30;
 
 export const MENSAJE_GUARDADO_LOCAL = "Guardado en el celular. Se enviará al volver la señal.";
 
+/**
+ * Lo que se anota sin señal: una entrada por cada opción de «Registrar sin señal» (`components/campo/PantallaCampo.tsx`), en el mismo orden. La usan la
+ * pantalla de entrada, la ayuda y la página «Sin señal»; `tests/campo.test.mjs` exige que tenga tantas entradas como opciones la pantalla.
+ */
+export const REGISTROS_SIN_SENAL = ["Animal nuevo", "Ordeño", "Pesos", "Monta", "Diagnóstico de gestación", "Parto y crías", "Sanidad", "Mover de corral", "Compras", "Ventas", "Dar de baja"] as const;
+
+/** Lo mismo en una frase («animal nuevo, ordeño, pesos… y dar de baja»). */
+export const textoRegistrosSinSenal = () => {
+  const l = REGISTROS_SIN_SENAL.map((t, i) => (i === 0 ? t : t.charAt(0).toLowerCase() + t.slice(1)));
+  return `${l.slice(0, -1).join(", ")} y ${l[l.length - 1]}`;
+};
+
+/** Lo que dice la pantalla de entrada cuando se intenta entrar sin señal (lo escrito no se borra). */
+export const SIN_SENAL_ENTRAR = "Sin señal no se puede entrar. Lo que escribiste sigue aquí: inténtalo cuando vuelva la señal.";
+
 export type JornadaCampo = Turno;
 
 export type HembraCampo = {

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, Check, ChevronDown, Droplets, FlaskConical, Layers, Moon, PawPrint, Smartphone, Tags, Users, Warehouse, Hand, Keyboard, Download, Building2, UserPlus, FileSpreadsheet } from "lucide-react";
+import { ArrowRight, Check, ChevronDown, CloudUpload, Droplets, FlaskConical, Layers, Moon, PawPrint, Smartphone, Tags, Users, Warehouse, Hand, Keyboard, Download, Building2, UserPlus, FileSpreadsheet, WifiOff, Zap } from "lucide-react";
 import { CarruselCubre } from "@/components/presentacion/CarruselCubre";
 import { Planes } from "@/components/presentacion/Planes";
 import { PLANES, usd } from "@/lib/planes";
@@ -11,6 +11,7 @@ import { REPORTES as REPORTES_HATO } from "@/lib/reportes/catalogo";
 import { etiquetaDePlan, gruposDeFunciones } from "@/lib/presentacion";
 import { RUBROS } from "@/lib/costos";
 import { ETIQUETA_ROL } from "@/lib/permisos";
+import { REGISTROS_SIN_SENAL, textoRegistrosSinSenal } from "@/lib/campo";
 
 /** El rótulo pequeño de cada sección: monoespaciado, en mayúsculas y con el ocre de la marca. */
 function Rotulo({ children }: { children: React.ReactNode }) {
@@ -57,6 +58,7 @@ const PASOS = [
 const PREGUNTAS: { p: string; r: string }[] = [
   { p: "¿Sirve para cabras y para ovejas?", r: "Sí, para las dos: en la misma finca o por separado. Cada una tiene sus parámetros, como la edad de ceba o el máximo de hembras por semental. En Colombia hay ovejas de lana y de pelo: la app esquila solo las de lana y te avisa cuándo toca." },
   { p: "¿Se puede usar desde el celular?", r: "Está pensada primero para el celular, con botones grandes y teclado propio para los números. En el computador te da un menú lateral y más espacio." },
+  { p: "¿Funciona donde no hay señal?", r: `Sí, para anotar: ${textoRegistrosSinSenal().toLowerCase()}. Entra una vez con señal en ese celular; después, sin señal, abre Apriscol y toca «Registrar sin señal». Lo anotado queda en el celular y se envía solo cuando vuelve la señal, sin repetirse. Entrar, los reportes y adjuntar fotos o facturas sí necesitan señal.` },
   { p: "¿Puedo traer los datos que ya llevo en Excel?", r: "Sí. Al crear tu finca te ofrecemos «Migrar mi finca»: una guía por etapas (corrales, animales con su genealogía, pesos, ordeños, sanidad, medicamentos y alimento), con una plantilla para cada tabla. Confirmas qué columna es cuál, ves qué va a cambiar antes de guardar y puedes deshacer cada carga. Si prefieres, también invitas a alguien de confianza para que la cargue por ti." },
   { p: "¿Puedo traer mis animales de un libro genealógico?", r: "Sí. Si tus animales están en el libro genealógico, los traes una sola vez al crear tu cuenta, demostrando que son tuyos con el documento del titular y el microchip de uno de ellos." },
   { p: "¿Quién ve la información de mi finca?", r: "Solo quienes tú invites. Los datos están separados por finca, y cada persona ve únicamente lo que le toca según su rol." },
@@ -94,6 +96,7 @@ export function Presentacion({ modo, formulario, cambio = null }: { modo: "login
               ["#que-resuelve", "Qué resuelve"],
               ["#como-funciona", "Cómo funciona"],
               ["#equipo", "Tu equipo"],
+              ["#sin-senal", "Sin señal"],
               ["#planes", "Planes"],
               ["#preguntas", "Preguntas"],
             ].map(([href, texto]) => (
@@ -130,6 +133,7 @@ export function Presentacion({ modo, formulario, cambio = null }: { modo: "login
                 "Cada animal con su historia: genealogía, endogamia, leche y sanidad",
                 "Trae tu finca desde Excel: corrales, animales, pesos, ordeños, sanidad e inventario",
                 "Semáforos en rojo, ámbar y verde: qué pide atención hoy y qué hacer",
+                "Funciona sin señal: anotas en el corral y se envía solo cuando vuelve la señal",
                 "Avisa los periodos de retiro: la leche tratada no llega al tanque",
                 "Corrales con cupo, rotación de potreros y cuarentena",
                 "Inventario de la bodega: medicamentos por lote y vencimiento, y el alimento en kg",
@@ -309,6 +313,32 @@ export function Presentacion({ modo, formulario, cambio = null }: { modo: "login
             <Paso n="03" icono={<Smartphone className="size-5" strokeWidth={1.75} />} titulo="Se adapta" texto="Desde pantallas pequeñas hasta el computador, con menú lateral." />
             <Paso n="04" icono={<Moon className="size-5" strokeWidth={1.75} />} titulo="Claro u oscuro" texto="Sigue el modo de tu teléfono, de día y de noche." />
           </ul>
+        </Seccion>
+
+        {/* Sin señal: qué se anota y cómo se llega */}
+        <Seccion id="sin-senal" rotulo="Sin señal" titulo="Anota en el corral aunque no haya señal" texto="Lo que registras queda guardado en el celular y se envía solo cuando vuelve la señal: no se repite ni borra lo que anotó otra persona.">
+          <div className="grid grid-cols-1 gap-3 lg:grid-cols-[0.9fr_1.1fr]">
+            <div className="rounded-3xl bg-papel p-4 ring-1 ring-arena sm:p-5">
+              <div className="flex items-center justify-between gap-3">
+                <p className="font-mono text-[0.6875rem] font-semibold uppercase tracking-[0.18em] text-humo">Qué puedes anotar</p>
+                <WifiOff className="size-5 text-humo" strokeWidth={1.75} aria-hidden="true" />
+              </div>
+              <ul className="mt-3 grid grid-cols-1 gap-x-4 gap-y-1.5 text-[0.9375rem] min-[420px]:grid-cols-2">
+                {REGISTROS_SIN_SENAL.map((t) => (
+                  <li key={t} className="flex items-start gap-2">
+                    <Check className="mt-1 size-4 shrink-0 text-musgo" strokeWidth={2.6} aria-hidden="true" />
+                    <span className="min-w-0">{t}</span>
+                  </li>
+                ))}
+              </ul>
+              <p className="mt-3 text-sm text-humo">Con señal: entrar, reportes, fotos, facturas y correcciones.</p>
+            </div>
+            <ul className="grid grid-cols-1 gap-3 min-[560px]:grid-cols-3 lg:grid-cols-1">
+              <Paso n="01" icono={<Smartphone className="size-5" strokeWidth={1.75} />} titulo="Déjalo listo" texto="Entra una vez con señal en ese celular: guarda la lista de tu finca." />
+              <Paso n="02" icono={<Zap className="size-5" strokeWidth={1.75} />} titulo="Sin señal, abre Apriscol" texto="Toca «Registrar sin señal». También está en «Al grano» (escribe «sin señal») y, si instalaste la app, al dejar presionado su ícono." />
+              <Paso n="03" icono={<CloudUpload className="size-5" strokeWidth={1.75} />} titulo="Se envía solo" texto="Al volver la señal. En «Guardado» ves lo que falta por enviar." />
+            </ul>
+          </div>
         </Seccion>
 
         {/* Planes */}
