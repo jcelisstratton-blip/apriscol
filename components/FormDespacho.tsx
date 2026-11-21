@@ -9,6 +9,9 @@ import { CampoIva } from "@/components/CampoIva";
 import { SelectorTarjetas } from "@/components/SelectorTarjetas";
 import { SelectorTercero } from "@/components/SelectorTercero";
 import { crearDespacho, editarDespacho } from "@/app/(app)/leche/gestion";
+import { AvisoGuardadoLocal } from "@/components/AvisoGuardadoLocal";
+import { accionConRespaldo, camposDe, errorDe, quedoEnCelular } from "@/lib/offline/respaldo";
+import { litros as fmtLitros } from "@/lib/fechas";
 import { ESCENA_DESTINO_LECHE } from "@/lib/escenas-forms-a-leche";
 import { ESCENA_COBRO } from "@/lib/escenas-costos";
 import { leerNumero } from "@/lib/numeros";
@@ -41,7 +44,29 @@ export function FormDespacho({
   const moneda = useMoneda();
   const dinero = useDinero();
   const editando = Boolean(despacho);
-  const [estado, enviar, pendiente] = useActionState(editando ? editarDespacho : crearDespacho, undefined);
+  // Sin señal: un despacho nuevo queda en el celular (mismo identificador del formulario: nunca se duplica) y se envía solo; una corrección pide
+  // intentarlo de nuevo. Nunca se pierde lo escrito.
+  const [estado, enviar, pendiente] = useActionState(
+    accionConRespaldo(
+      editando ? editarDespacho : crearDespacho,
+      editando || !solicitud
+        ? null
+        : (formulario) => {
+            const destinoTipo = String(formulario.get("destino_tipo") ?? "") as DestinoLeche;
+            return {
+              id: solicitud,
+              tipo: "despacho",
+              animalId: solicitud,
+              etiqueta: `Despacho · ${fmtLitros(leerNumero(String(formulario.get("litros") ?? "")) ?? 0)} L · ${ETIQUETA_DESTINO[destinoTipo] ?? "Leche"}`,
+              fecha: String(formulario.get("fecha") ?? ""),
+              campos: camposDe(formulario, ["client_request_id", "despacho_id"]),
+            };
+          },
+    ),
+    undefined,
+  );
+  const guardadoLocal = quedoEnCelular(estado);
+  const error = errorDe(estado);
   const [, iniciar] = useTransition();
   const [destino, setDestino] = useState<DestinoLeche>(despacho?.destino_tipo ?? "queseria");
   const [litros, setLitros] = useState(coma(despacho?.litros));
@@ -127,10 +152,11 @@ export function FormDespacho({
         {(id) => <textarea id={id} name="observaciones" defaultValue={despacho?.observaciones ?? ""} rows={3} maxLength={1000} className={`${CLASE_INPUT} py-3`} />}
       </Campo>
 
-      {estado?.error ? <Aviso tipo="error">{estado.error}</Aviso> : null}
+      {error ? <Aviso tipo="error">{error}</Aviso> : null}
+      {guardadoLocal ? <AvisoGuardadoLocal /> : null}
       <div className="space-y-2">
-        <Boton type="submit" pendiente={pendiente} cargando="Guardando…">
-          {editando ? "Guardar cambios" : "Guardar despacho"}
+        <Boton type="submit" pendiente={pendiente} cargando="Guardando…" disabled={guardadoLocal}>
+          {guardadoLocal ? "Guardado en el celular" : editando ? "Guardar cambios" : "Guardar despacho"}
         </Boton>
         <Link href="/leche?vista=despachos" className={clasesBoton("fantasma")}>
           Cancelar

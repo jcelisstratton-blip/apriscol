@@ -10,8 +10,9 @@ import { puedeEscribir, puedeGestionar } from "@/lib/permisos";
 import { mensajeAmigable } from "@/lib/mensaje-amigable";
 import { hoyBogota } from "@/lib/fechas";
 import { cambioDeAjuste } from "@/lib/inventario";
-import { MOTIVOS_AJUSTE_ALIMENTO, RUBROS_ALIMENTO, aKg, compraEnKg, marcaRepeticion, planearRepeticion, type FilaAlimento, type MotivoAjusteAlimento } from "@/lib/inventario-alimento";
+import { MOTIVOS_AJUSTE_ALIMENTO, aKg, compraEnKg, marcaRepeticion, planearRepeticion, type FilaAlimento, type MotivoAjusteAlimento } from "@/lib/inventario-alimento";
 import { decimal, esRepetido, noFutura, opcional } from "@/lib/validacion";
+import { cargarAlimento, esquemaSalida, prepararSalida } from "@/lib/alimento-reglas";
 
 export type EstadoForm = { error?: string; /** Se guardó y la pantalla sigue («Guardar y anotar otro»). */ guardado?: boolean } | undefined;
 type Resultado = { ok: true } | { ok: false; error: string };
@@ -19,18 +20,6 @@ type Cliente = Awaited<ReturnType<typeof crearClienteServidor>>;
 
 const SIN_PERMISO = "No tienes permiso para mover el inventario de alimento de esta finca.";
 const SOLO_GESTION = "Solo el propietario o el administrador puede contar, ajustar o cambiar el peso del alimento.";
-
-/** El alimento, con su peso por unidad (lo pone el servidor: el navegador nunca elige cuánto pesa un bulto). */
-async function cargarAlimento(supabase: Cliente, fincaId: string, id: string) {
-  const { data } = await supabase
-    .from("finca_productos")
-    .select("id, nombre, unidad, kg_por_unidad, rubro")
-    .eq("id", id)
-    .eq("finca_id", fincaId)
-    .eq("tipo", "compra")
-    .maybeSingle();
-  return data && data.rubro && (RUBROS_ALIMENTO as readonly string[]).includes(data.rubro) ? data : null;
-}
 
 function refrescar(productoId: string) {
   revalidatePath("/inventario");
@@ -66,16 +55,6 @@ export async function guardarPesoUnidad(_: EstadoForm, form: FormData): Promise<
 }
 
 // ───────────────────────── Salidas: lo que se le dio de comer al hato ─────────────────────────
-const esquemaSalida = z.object({
-  producto_id: z.uuid("Elige el alimento."),
-  cantidad: decimal(z.number("Escribe cuánto se dio.").gt(0, "Escribe cuánto se dio (más de 0).").max(1_000_000, "Ese número es demasiado grande.")),
-  unidad: opcional(z.enum(["kg", "unidad"])),
-  fecha: z.iso.date("Indica la fecha."),
-  destino: opcional(z.string().max(60)),
-  observaciones: opcional(z.string().trim().max(300, "Las observaciones son muy largas (máximo 300 letras).")),
-  client_request_id: opcional(z.uuid()),
-});
-
 /**
  * Anota lo que se dio de comer. Lo hace quien da el alimento (el ordeñador, el administrador, el propietario) en segundos: alimento, cuánto (en kg o en bultos) y
  * la fecha; el destino (un corral o un lote de ceba) es opcional. Con «Guardar y anotar otro» el formulario sigue abierto para el siguiente alimento.
@@ -85,47 +64,11 @@ export async function guardarSalida(_: EstadoForm, form: FormData): Promise<Esta
   if (!puedeEscribir(rol, "nutricion", finca.plan)) return { error: SIN_PERMISO };
   const datos = esquemaSalida.safeParse(Object.fromEntries(form));
   if (!datos.success) return { error: datos.error.issues[0]?.message ?? "Revisa los datos." };
-  const d = datos.data;
-  if (d.cantidad === undefined) return { error: "Escribe cuánto se dio." };
-  const futura = noFutura(d.fecha);
-  if (futura) return { error: futura };
-
   const supabase = await crearClienteServidor();
-  const alimento = await cargarAlimento(supabase, finca.id, d.producto_id);
-  if (!alimento) return { error: "No encontramos ese alimento." };
-  const enUnidad = d.unidad === "unidad";
-  if (enUnidad && (compraEnKg(alimento.unidad) || !alimento.kg_por_unidad)) return { error: "Este alimento todavía no tiene el peso de cada unidad. Escribe la cantidad en kg." };
-  const kg = aKg(d.cantidad, enUnidad ? (alimento.kg_por_unidad ?? 1) : 1);
-  if (kg <= 0) return { error: "La cantidad es demasiado pequeña." };
-
-  // El destino (corral o lote de ceba) se comprueba contra los de la finca; solo lo ve quien puede ver Corrales o Carne.
-  let ubicacionId: string | null = null;
-  let loteId: string | null = null;
-  if (d.destino) {
-    const [tipo, id] = d.destino.split(":");
-    if (!z.uuid().safeParse(id).success || (tipo !== "ubicacion" && tipo !== "lote")) return { error: "Ese destino no es válido." };
-    if (tipo === "ubicacion") {
-      const { data } = await supabase.from("ubicaciones").select("id").eq("id", id).eq("finca_id", finca.id).maybeSingle();
-      if (!data) return { error: "No encontramos ese corral." };
-      ubicacionId = data.id;
-    } else {
-      const { data } = await supabase.from("lotes_ceba").select("id").eq("id", id).eq("finca_id", finca.id).maybeSingle();
-      if (!data) return { error: "No encontramos ese lote." };
-      loteId = data.id;
-    }
-  }
-
-  const { error } = await supabase.from("inventario_alimento_movimientos").insert({
-    finca_id: finca.id,
-    producto_id: alimento.id,
-    tipo: "salida",
-    fecha: d.fecha,
-    cantidad: kg,
-    ubicacion_id: ubicacionId,
-    lote_id: loteId,
-    observaciones: d.observaciones ?? null,
-    client_request_id: d.client_request_id ?? null,
-  });
+  const p = await prepararSalida(supabase, finca.id, datos.data);
+  if ("error" in p) return { error: p.error };
+  const alimento = p.alimento;
+  const { error } = await supabase.from("inventario_alimento_movimientos").insert(p.fila);
   // Doble toque: la misma solicitud ya se guardó.
   if (error && !esRepetido(error)) return { error: mensajeAmigable(error.message) };
   refrescar(alimento.id);

@@ -7,10 +7,10 @@ import { crearClienteServidor } from "@/lib/supabase/server";
 import { obtenerContexto } from "@/lib/contexto";
 import { puedeEscribir, puedeGestionar } from "@/lib/permisos";
 import { mensajeAmigable } from "@/lib/mensaje-amigable";
-import { hoyBogota } from "@/lib/fechas";
 import { decimal, opcional, texto } from "@/lib/validacion";
-import { DESTINOS_LECHE, MOMENTOS_FRIO, RESIDUOS, TIPOS_MANTENIMIENTO } from "@/lib/leche-calidad";
+import { MOMENTOS_FRIO, RESIDUOS, TIPOS_MANTENIMIENTO } from "@/lib/leche-calidad";
 import { soporteValido } from "@/lib/soportes";
+import { aplicarCompradorDespacho, leerDespacho, recordarPrecioLeche } from "@/lib/despacho-reglas";
 import { esRepetido, noFutura } from "@/lib/validacion";
 
 export type EstadoForm = { error?: string } | undefined;
@@ -134,83 +134,16 @@ export async function editarAnalisis(_: EstadoForm, form: FormData): Promise<Est
 }
 
 // ───────────────────────── Despachos ─────────────────────────
-const esquemaDespacho = z.object({
-  fecha: z.iso.date("Indica la fecha."),
-  litros: decimal(z.coerce.number("Los litros deben ser un número.").positive("Los litros deben ser mayores que cero.").max(1_000_000, "Los litros son demasiados. Revisa el dato.")).pipe(z.number("Indica cuántos litros se despacharon.")),
-  destino_tipo: z.enum(DESTINOS_LECHE as [string, ...string[]], "Elige el destino."),
-  comprador: texto(120, "El nombre del comprador es muy largo."),
-  /** Comprador elegido de la lista, y si ya se cobró (solo cuenta cuando el despacho tiene precio: sin precio todavía no es una venta). */
-  tercero_id: opcional(z.uuid()),
-  cobro: opcional(z.enum(["cobrado", "por_cobrar"])),
-  cobrado_en: opcional(z.iso.date("La fecha de cobro no es válida.")),
-  cobro_vence: opcional(z.iso.date("La fecha en que esperas el pago no es válida.")),
-  tanque: texto(80, "El nombre del tanque es muy largo."),
-  guia: texto(60, "La guía o factura es muy larga."),
-  precio_litro: decimal(z.coerce.number("El precio debe ser un número.").min(0, "El precio no puede ser negativo.").max(1_000_000, "El precio es demasiado alto. Revisa el dato.")),
-  iva_tarifa: decimal(z.coerce.number("La tarifa del IVA debe ser un número (por ejemplo 19).").min(0, "La tarifa del IVA no puede ser negativa.").max(100, "La tarifa del IVA no puede pasar de 100 %.")),
-  temperatura_c: decimal(z.coerce.number("La temperatura debe ser un número.").min(-10, "La temperatura no es válida.").max(60, "La temperatura no es válida.")),
-  observaciones: texto(1000, "Las observaciones son muy largas."),
-  client_request_id: opcional(z.uuid()),
-  despacho_id: opcional(z.uuid()),
-});
-
-function leerDespacho(form: FormData) {
-  const datos = esquemaDespacho.safeParse(Object.fromEntries(form));
-  if (!datos.success) return { error: datos.error.issues[0]?.message ?? "Revisa los datos." } as const;
-  const d = datos.data;
-  const futura = noFutura(d.fecha);
-  if (futura) return { error: futura } as const;
-  // Cobro: solo un despacho con precio es una venta. Sin precio no hay nada que cobrar todavía.
-  const vendido = d.precio_litro != null && d.precio_litro > 0;
-  const cobrado = vendido && (d.cobro ?? "cobrado") === "cobrado";
-  if (cobrado && d.cobrado_en && d.cobrado_en > hoyBogota()) return { error: "La fecha de cobro no puede ser futura." } as const;
-  if (cobrado && d.cobrado_en && d.cobrado_en < d.fecha) return { error: "No se puede cobrar antes de la fecha del despacho." } as const;
-  if (vendido && !cobrado && d.cobro_vence && d.cobro_vence < d.fecha) return { error: "El pago no puede vencer antes de la fecha del despacho." } as const;
-  return {
-    d,
-    fila: {
-      fecha: d.fecha,
-      litros: d.litros,
-      destino_tipo: d.destino_tipo as never,
-      comprador: d.comprador ?? null,
-      tercero_id: d.tercero_id ?? null,
-      tanque: d.tanque ?? null,
-      guia: d.guia ?? null,
-      precio_litro: d.precio_litro ?? null,
-      iva_tarifa: vendido ? (d.iva_tarifa ?? null) : null,
-      cobrado_en: cobrado ? (d.cobrado_en ?? d.fecha) : null,
-      cobro_vence: vendido && !cobrado ? (d.cobro_vence ?? null) : null,
-      temperatura_c: d.temperatura_c ?? null,
-      observaciones: d.observaciones ?? null,
-    },
-  } as const;
-}
-
-/**
- * El comprador elegido de la lista pasa a ser también el nombre guardado como texto (lo que leen las pantallas anteriores). Y el precio de este
- * despacho queda como el habitual de la leche, para proponerlo la próxima vez.
- */
-async function aplicarListas(supabase: Awaited<ReturnType<typeof crearClienteServidor>>, fincaId: string, fila: { comprador: string | null; tercero_id: string | null }): Promise<string | null> {
-  if (!fila.tercero_id) return null;
-  const { data } = await supabase.from("finca_terceros").select("nombre").eq("id", fila.tercero_id).eq("finca_id", fincaId).maybeSingle();
-  if (!data) return "No encontramos ese comprador. Elígelo de nuevo.";
-  fila.comprador = data.nombre;
-  return null;
-}
-async function recordarPrecioLeche(supabase: Awaited<ReturnType<typeof crearClienteServidor>>, fincaId: string, precio: number | null | undefined) {
-  if (precio == null || precio <= 0) return;
-  const { data } = await supabase.from("finca_productos").select("id").eq("finca_id", fincaId).eq("clave", "leche_cruda").maybeSingle();
-  if (data) await supabase.rpc("recordar_precio_producto", { p_finca: fincaId, p_producto: data.id, p_precio: precio });
-}
+// Las reglas viven en `lib/despacho-reglas.ts`: las mismas que el despacho anotado sin señal.
 
 export async function crearDespacho(_: EstadoForm, form: FormData): Promise<EstadoForm> {
   const p = await permiso("registrar");
   if ("error" in p) return { error: p.error };
-  const l = leerDespacho(form);
+  const l = leerDespacho(Object.fromEntries(form));
   if ("error" in l) return { error: l.error };
   const supabase = await crearClienteServidor();
   const fila = { ...l.fila };
-  const listas = await aplicarListas(supabase, p.finca.id, fila);
+  const listas = await aplicarCompradorDespacho(supabase, p.finca.id, fila);
   if (listas) return { error: listas };
   const { data, error } = await supabase.from("despachos_leche").insert({ finca_id: p.finca.id, ...fila, client_request_id: l.d.client_request_id ?? null }).select("id").maybeSingle();
   if (error && !esRepetido(error)) return { error: mensajeAmigable(error.message) };
@@ -229,12 +162,12 @@ export async function crearDespacho(_: EstadoForm, form: FormData): Promise<Esta
 export async function editarDespacho(_: EstadoForm, form: FormData): Promise<EstadoForm> {
   const p = await permiso("editar");
   if ("error" in p) return { error: p.error };
-  const l = leerDespacho(form);
+  const l = leerDespacho(Object.fromEntries(form));
   if ("error" in l) return { error: l.error };
   if (!l.d.despacho_id) return { error: "No encontramos ese despacho." };
   const supabase = await crearClienteServidor();
   const fila = { ...l.fila };
-  const listas = await aplicarListas(supabase, p.finca.id, fila);
+  const listas = await aplicarCompradorDespacho(supabase, p.finca.id, fila);
   if (listas) return { error: listas };
   const { data, error } = await supabase.from("despachos_leche").update(fila).eq("id", l.d.despacho_id).eq("finca_id", p.finca.id).select("id");
   if (error) return { error: mensajeAmigable(error.message) };

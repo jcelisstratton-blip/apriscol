@@ -299,6 +299,37 @@ La misma pantalla `/campo` suma **Monta** y **Diagnóstico** para quien registra
   dice dónde está en el menú. No sale en el computador, si ya está instalada (`display-mode: standalone`) ni durante `DIAS_OCULTAR_INSTALAR` días
   tras «Ahora no» (`localStorage`). Al guardar un registro se pide además `navigator.storage.persist()`.
 
+### Lo que se dio de comer y despachos de leche sin señal (21 nov 2026)
+
+- **Dos opciones nuevas en `/campo`**, entre «Corrales» y «Compra» (`REGISTROS_SIN_SENAL`, misma orden que las tarjetas): **Alimento**
+  (`AlimentoCampo`: alimento, cuánto en kg o en bultos, fecha, destino opcional y observaciones; quien escribe en `nutricion`, `puede.alimento`) y
+  **Despacho** (`DespachoCampo`: litros, fecha, destino, comprador (o uno nuevo), tanque, guía, precio por litro con IVA, cobrado o por cobrar,
+  temperatura y observaciones; quien registra leche). Son registros de todos los días: al guardar, el formulario queda listo para el siguiente.
+- **Copia versión 8** (v1–7 siguen sirviendo, sin estas dos opciones hasta renovarse): `alimentacion` (alimentos con conteo de apertura, peso por
+  unidad y lo que quedaba; destinos que la persona ve) y `despachos` (compradores, último precio de la leche cruda e IVA predeterminado).
+- **Una sola regla**: `lib/alimento-reglas.ts` (también `cargarDestinosSalida`, que salió de `lib/inventario-alimento-servidor.ts` porque ese archivo es
+  `server-only`) y `lib/despacho-reglas.ts` (`esquemaDespacho`, `leerDespacho`, `aplicarCompradorDespacho`, `recordarPrecioLeche`), las mismas de
+  `guardarSalida`, `crearDespacho` y `editarDespacho`. Envío: `guardarSalidaAlimentoCampo` y `guardarDespachoCampo` (idempotentes por
+  `client_request_id`; un comprador nuevo con `asegurarTercero`; el precio queda como el habitual de la leche). Nunca reemplazan otro registro.
+- **Respaldo con señal**: «Anotar lo que se dio» (`FormSalidaAlimento`) y «Registrar despacho» (`FormDespacho`) guardan en el celular si se cae la
+  señal; los controles de calidad del despacho se responden después, con señal. Enlace «¿Sin señal?» en las dos pantallas, atajos en «Al grano» y
+  «Registrar sin señal» en el menú también para quien solo anota alimento (`nutricion` en `sinSenal`). Sin migración.
+
+### Prueba en la finca (Android y iPhone, en modo avión)
+
+Lo emulado en Chromium (Pixel 7 e iPhone 13, sin red) ya pasa: abre `/campo` guardada, anota alimento y despacho, crea un animal y una cría y los usa
+en Ordeño y Pesar, y al volver la red todo se envía solo y en orden. Lo que solo se comprueba con los teléfonos reales:
+
+1. Con señal: entrar con la cuenta, abrir Hoy y **instalar la app** (iPhone: Compartir → «Agregar a inicio»; Android: «Instalar»).
+2. Abrir la app instalada una vez con señal (deja lista la copia) y luego activar **modo avión**.
+3. Abrir la app desde el ícono: debe abrir «Registrar sin señal» (no la página del navegador sin conexión).
+4. Anotar uno de cada uno: animal nuevo (con último parto), su ordeño, un parto con una cría con arete y luego el peso de esa cría, alimento en
+   bultos y un despacho con comprador nuevo.
+5. Cerrar la app del todo, volver a abrirla en modo avión: todo debe seguir en «Guardado».
+6. Quitar el modo avión con la app abierta: en segundos todo pasa a «Enviado» (en iPhone, al abrir la app). Revisar con señal que la cría tenga su
+   peso, que el alimento haya bajado del inventario y que el despacho tenga su comprador.
+7. Repetir el paso 4 con el ordeñador (solo ordeño, alimento y despacho).
+
 ## Pasos siguientes (por definir)
 
 - Todo lo del campo ya funciona sin señal (incluidos los partos con sus crías).

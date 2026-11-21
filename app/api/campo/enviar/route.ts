@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { crearClienteServidor } from "@/lib/supabase/server";
-import { esquemaEnvio, guardarAnimalCampo, guardarBajaCampo, guardarPartoCampo, guardarCompraCampo, guardarVentaCampo, guardarDiagnosticoCampo, guardarMontaCampo, guardarMovimientoCampo, guardarOrdenoCampo, guardarPesoCampo, guardarSanidadCampo, guardarServicioCampo, permisosCampo, traducirAnimalesLocales } from "@/lib/campo-servidor";
+import { esquemaEnvio, guardarAnimalCampo, guardarBajaCampo, guardarDespachoCampo, guardarSalidaAlimentoCampo, guardarPartoCampo, guardarCompraCampo, guardarVentaCampo, guardarDiagnosticoCampo, guardarMontaCampo, guardarMovimientoCampo, guardarOrdenoCampo, guardarPesoCampo, guardarSanidadCampo, guardarServicioCampo, permisosCampo, traducirAnimalesLocales } from "@/lib/campo-servidor";
 import { hoyBogota } from "@/lib/fechas";
 import type { Especie, PlanId, RolFinca } from "@/lib/tipos";
 
@@ -12,7 +12,7 @@ const responder = (cuerpo: object, status = 200) => NextResponse.json(cuerpo, { 
 const rechazo = (error: string, status = 422) => responder({ ok: false, codigo: "rechazado", error }, status);
 
 /**
- * Recibe UN registro hecho sin señal (animal nuevo, ordeño, peso, monta, servicio, diagnóstico de gestación, sanidad, movimiento a un corral, compra, venta, baja de un animal o parto) desde la bandeja del celular. Exige sesión, que la petición venga de la propia app y que
+ * Recibe UN registro hecho sin señal (animal nuevo, ordeño, peso, monta, servicio, diagnóstico de gestación, sanidad, movimiento a un corral, lo que se dio de comer, despacho de leche, compra, venta, baja de un animal o parto) desde la bandeja del celular. Exige sesión, que la petición venga de la propia app y que
  * la persona pueda registrar eso en ESA finca (la del registro, no la activa: pudo cambiar de finca antes de que volviera la señal).
  * Respuestas: 200 guardado o ya estaba · 409 ya había otro dato · 422/403 rechazado · 401 sin sesión (el celular lo guarda y espera).
  */
@@ -52,6 +52,8 @@ export async function POST(request: Request) {
   if (e.tipo === "venta" && !puede.ventas) return rechazo("No tienes permiso para registrar ventas en esta finca.", 403);
   if (e.tipo === "compra" && !puede.compras) return rechazo("No tienes permiso para registrar compras en esta finca.", 403);
   if (e.tipo === "movimiento" && !puede.corrales) return rechazo("No tienes permiso para mover animales en esta finca.", 403);
+  if (e.tipo === "alimento" && !puede.alimento) return rechazo("No tienes permiso para anotar lo que se da de comer en esta finca.", 403);
+  if (e.tipo === "despacho" && !puede.leche) return rechazo("No tienes permiso para registrar despachos de leche en esta finca.", 403);
 
   // Un animal (o una cría) creado en el mismo celular sin señal llega con el identificador del celular: se traduce al real.
   e = await traducirAnimalesLocales(supabase, e);
@@ -79,9 +81,13 @@ export async function POST(request: Request) {
                   ? await guardarCompraCampo(supabase, e, finca.plan as PlanId, hoy)
                   : e.tipo === "movimiento"
                   ? await guardarMovimientoCampo(supabase, e, hoy, usuario)
+                  : e.tipo === "alimento"
+                  ? await guardarSalidaAlimentoCampo(supabase, e)
+                  : e.tipo === "despacho"
+                  ? await guardarDespachoCampo(supabase, e)
                   : await guardarAnimalCampo(supabase, e, (finca.especies ?? []) as Especie[]);
   if (r.ok) {
-    revalidatePath(e.tipo === "ordeno" ? "/leche" : e.tipo === "peso" ? "/carne" : e.tipo === "animal" || e.tipo === "movimiento" || e.tipo === "baja" ? "/hato" : e.tipo === "sanidad" ? "/sanidad" : "/reproduccion");
+    revalidatePath(e.tipo === "ordeno" || e.tipo === "despacho" ? "/leche" : e.tipo === "alimento" ? "/inventario" : e.tipo === "peso" ? "/carne" : e.tipo === "animal" || e.tipo === "movimiento" || e.tipo === "baja" ? "/hato" : e.tipo === "sanidad" ? "/sanidad" : "/reproduccion");
     if (e.tipo === "movimiento") revalidatePath("/corrales");
     if (e.tipo === "parto") {
       revalidatePath("/hato");
@@ -91,7 +97,7 @@ export async function POST(request: Request) {
       revalidatePath("/leche");
       revalidatePath("/");
     }
-    if (e.tipo === "compra" || e.tipo === "venta") {
+    if (e.tipo === "compra" || e.tipo === "venta" || e.tipo === "alimento" || e.tipo === "despacho") {
       revalidatePath("/costos");
       revalidatePath("/inventario");
       revalidatePath("/");

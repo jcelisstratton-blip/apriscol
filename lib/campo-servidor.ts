@@ -9,7 +9,7 @@ import { puedeEscribir } from "@/lib/permisos";
 import { litros as fmtLitros } from "@/lib/fechas";
 import {
   CONDICIONES, MAX_DIAS_GESTACION, errorFecha, errorLitros, errorPeso, redondearPeso,
-  type AnimalHato, type AnimalPesar, type UbicacionCampo, type ComprasCampo, type VentasCampo, COMPRAS_VACIAS, VENTAS_VACIAS, type EnvioCampo, type ProductoCampo, type HembraCampo, type HembraRepro, type MachoCampo, type RazaCampo, type ReferenciaCampo, type RespuestaEnvio,
+  type AnimalHato, type AnimalPesar, type UbicacionCampo, type ComprasCampo, type VentasCampo, COMPRAS_VACIAS, VENTAS_VACIAS, type AlimentacionCampo, type DespachosCampo, ALIMENTACION_VACIA, DESPACHOS_VACIOS, type EnvioCampo, type ProductoCampo, type HembraCampo, type HembraRepro, type MachoCampo, type RazaCampo, type ReferenciaCampo, type RespuestaEnvio,
 } from "@/lib/campo";
 import { reglasDiagnostico } from "@/lib/diagnostico-reglas";
 import { esquemaAnimal, fotoValida, prepararAnimalNuevo } from "@/lib/animal-nuevo";
@@ -29,6 +29,9 @@ import { prepararParto } from "@/lib/parto-reglas";
 import { sumarDias } from "@/lib/fechas";
 import { asegurarTercero } from "@/lib/terceros-servidor";
 import { moduloEnPlan } from "@/lib/planes";
+import { cargarDestinosSalida, esquemaSalida, prepararSalida } from "@/lib/alimento-reglas";
+import { aplicarCompradorDespacho, leerDespacho, recordarPrecioLeche } from "@/lib/despacho-reglas";
+import type { FilaAlimento } from "@/lib/inventario-alimento";
 import type { EstadoUbicacion, LineaVenta, RubroGasto, TipoUbicacion, UsoUbicacion } from "@/lib/tipos";
 
 /**
@@ -52,6 +55,7 @@ export function permisosCampo(rol: RolFinca, plan: PlanId): ReferenciaCampo["pue
     corrales: puedeEscribir(rol, "corrales", plan),
     compras: puedeEscribir(rol, "contabilidad", plan),
     ventas: puedeEscribir(rol, "contabilidad", plan),
+    alimento: puedeEscribir(rol, "nutricion", plan),
   };
 }
 
@@ -91,9 +95,11 @@ export async function leerReferenciaCampo(
       ? leerTodo((d, h) => supabase.from("movimientos_animales").select("animal_id, ubicacion_id").eq("finca_id", fincaId).is("hasta", null).order("animal_id").range(d, h))
       : null,
   ]);
-  const [compras, ventas] = await Promise.all([
+  const [compras, ventas, alimentacion, despachos] = await Promise.all([
     puede.compras ? leerComprasCampo(supabase, ctx.finca) : COMPRAS_VACIAS,
     puede.ventas || puede.hato ? leerVentasCampo(supabase, fincaId, puede.ventas) : VENTAS_VACIAS,
+    puede.alimento ? leerAlimentacionCampo(supabase, ctx.finca, ctx.rol, hoy) : ALIMENTACION_VACIA,
+    puede.leche ? leerDespachosCampo(supabase, fincaId) : DESPACHOS_VACIOS,
   ]);
 
   const ordeno: HembraCampo[] = (leche?.animales ?? []).map((a) => ({
@@ -166,7 +172,7 @@ export async function leerReferenciaCampo(
     .sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
 
   return {
-    version: 7,
+    version: 8,
     generadaEn: ahora.toISOString(),
     hoy,
     usuario: { id: ctx.usuarioId },
@@ -184,6 +190,32 @@ export async function leerReferenciaCampo(
     ubicaciones,
     compras,
     ventas,
+    alimentacion,
+    despachos,
+  };
+}
+
+/** Lo que se dio de comer: los alimentos que ya tienen su conteo de apertura (a los demás no hay de dónde descontarles) y los destinos que la persona ve. */
+async function leerAlimentacionCampo(supabase: Cliente, finca: { id: string; plan: PlanId }, rol: RolFinca, hoy: string): Promise<AlimentacionCampo> {
+  const [{ data }, destinos] = await Promise.all([supabase.rpc("inventario_alimento", { p_finca: finca.id, p_hoy: hoy }), cargarDestinosSalida(supabase, finca, rol)]);
+  const alimentos = ((data ?? []) as FilaAlimento[])
+    .filter((a) => a.desde !== null)
+    .map((a) => ({ producto_id: a.producto_id, nombre: a.nombre, unidad: a.unidad, kg_por_unidad: a.kg_por_unidad != null ? Number(a.kg_por_unidad) : null, stock_kg: a.stock_kg != null ? Number(a.stock_kg) : null }))
+    .sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
+  return { alimentos, destinos };
+}
+
+/** Los despachos de leche: compradores activos, el último precio por litro de la leche cruda y el IVA predeterminado. */
+async function leerDespachosCampo(supabase: Cliente, fincaId: string): Promise<DespachosCampo> {
+  const [terceros, leche, ajustes] = await Promise.all([
+    leerTodo((d, h) => supabase.from("finca_terceros").select("id, nombre, tipo").eq("finca_id", fincaId).eq("activo", true).order("id").range(d, h)),
+    supabase.from("finca_productos").select("precio_habitual").eq("finca_id", fincaId).eq("clave", "leche_cruda").maybeSingle(),
+    supabase.from("finca_ajustes").select("iva_tarifa_defecto").eq("finca_id", fincaId).maybeSingle(),
+  ]);
+  return {
+    compradores: (terceros.data ?? []).filter((t) => t.tipo === "comprador" || t.tipo === "ambos").map((t) => ({ id: t.id, nombre: t.nombre })).sort((a, b) => a.nombre.localeCompare(b.nombre, "es")),
+    precioHabitual: leche.data?.precio_habitual != null ? Number(leche.data.precio_habitual) : null,
+    ivaDefecto: ajustes.data?.iva_tarifa_defecto != null ? Number(ajustes.data.iva_tarifa_defecto) : null,
   };
 }
 
@@ -262,6 +294,8 @@ export const esquemaEnvio = z.discriminatedUnion("tipo", [
   z.object({ tipo: z.literal("compra"), id: uuid, fincaId: uuid, animalId: uuid, fecha, campos: z.record(z.string(), z.string().max(1000)) }),
   z.object({ tipo: z.literal("venta"), id: uuid, fincaId: uuid, animalId: uuid, fecha, campos: z.record(z.string(), z.string().max(1000)) }),
   z.object({ tipo: z.literal("baja"), id: uuid, fincaId: uuid, animalId: uuid, fecha, campos: z.record(z.string(), z.string().max(1000)) }),
+  z.object({ tipo: z.literal("alimento"), id: uuid, fincaId: uuid, animalId: uuid, fecha, campos: z.record(z.string(), z.string().max(1000)) }),
+  z.object({ tipo: z.literal("despacho"), id: uuid, fincaId: uuid, animalId: uuid, fecha, campos: z.record(z.string(), z.string().max(1000)) }),
   z.object({ tipo: z.literal("parto"), id: uuid, fincaId: uuid, animalId: uuid, fecha, campos: z.record(z.string(), z.string().max(5000)) }),
   z.object({ tipo: z.literal("movimiento"), id: uuid, fincaId: uuid, animalId: uuid, fecha, campos: z.record(z.string(), z.string().max(1000)), animales: z.array(uuid).min(1).max(1000), creadoEn: z.iso.datetime({ offset: true }) }),
 ]);
@@ -645,6 +679,57 @@ export async function guardarVentaCampo(supabase: Cliente, e: Extract<EnvioCampo
 }
 
 /**
+ * Lo que se dio de comer, anotado sin señal (o desde «Anotar lo que se dio» cuando se cayó la señal): las mismas reglas que con señal
+ * (`esquemaSalida`, `prepararSalida`: el alimento de la finca, su peso por unidad, que lo pone el servidor, y el destino) y la misma tabla. El
+ * identificador del registro es su `client_request_id`: reenviarlo no lo duplica. Es un hecho nuevo: nunca reemplaza otra salida.
+ */
+export async function guardarSalidaAlimentoCampo(supabase: Cliente, e: Extract<EnvioCampo, { tipo: "alimento" }>): Promise<RespuestaEnvio> {
+  const ya = await supabase.from("inventario_alimento_movimientos").select("id").eq("finca_id", e.fincaId).eq("client_request_id", e.id).maybeSingle();
+  if (ya.data) return { ok: true, estado: "ya_estaba" };
+  const datos = esquemaSalida.safeParse({ ...e.campos, client_request_id: e.id });
+  if (!datos.success) return rechazo(datos.error.issues[0]?.message ?? "Revisa lo que se dio de comer.");
+  const p = await prepararSalida(supabase, e.fincaId, datos.data);
+  if ("error" in p) return rechazo(p.error ?? "Revisa lo que se dio de comer.");
+  const { error } = await supabase.from("inventario_alimento_movimientos").insert(p.fila);
+  if (error) {
+    if (esDuplicado(error)) return { ok: true, estado: "ya_estaba" };
+    return rechazo(mensajeAmigable(error.message));
+  }
+  return { ok: true, estado: "guardado" };
+}
+
+/**
+ * Un despacho de leche anotado sin señal (o desde «Registrar despacho» cuando se cayó la señal): las mismas reglas que con señal (`leerDespacho`:
+ * con precio es una venta, cobrada o por cobrar) y la misma tabla. El identificador del registro es su `client_request_id`: reenviarlo no lo duplica.
+ * Un comprador nuevo (`comprador_nuevo`) se reutiliza o se crea con `asegurarTercero`, y el precio queda como el habitual de la leche. Varios despachos
+ * en un día son normales: nunca reemplaza otro.
+ */
+export async function guardarDespachoCampo(supabase: Cliente, e: Extract<EnvioCampo, { tipo: "despacho" }>): Promise<RespuestaEnvio> {
+  const ya = await supabase.from("despachos_leche").select("id").eq("finca_id", e.fincaId).eq("client_request_id", e.id).maybeSingle();
+  if (ya.data) return { ok: true, estado: "ya_estaba" };
+  const campos: Record<string, string> = { ...e.campos, client_request_id: e.id };
+  delete campos.despacho_id;
+  const l = leerDespacho(campos);
+  if ("error" in l) return rechazo(l.error ?? "Revisa los datos del despacho.");
+  const fila = { ...l.fila };
+  const nuevo = (campos.comprador_nuevo ?? "").replace(/\s+/g, " ").trim().slice(0, 120);
+  if (!fila.tercero_id && nuevo) {
+    const t = await asegurarTercero(supabase, e.fincaId, nuevo, "comprador");
+    if ("error" in t) return rechazo(t.error);
+    fila.tercero_id = t.tercero.id;
+  }
+  const listas = await aplicarCompradorDespacho(supabase, e.fincaId, fila);
+  if (listas) return rechazo(listas);
+  const { error } = await supabase.from("despachos_leche").insert({ finca_id: e.fincaId, ...fila, client_request_id: e.id });
+  if (error) {
+    if (esDuplicado(error)) return { ok: true, estado: "ya_estaba" };
+    return rechazo(mensajeAmigable(error.message));
+  }
+  await recordarPrecioLeche(supabase, e.fincaId, l.d.precio_litro);
+  return { ok: true, estado: "guardado" };
+}
+
+/**
  * Dar de baja a un animal sin señal (o desde la ficha cuando se cayó la señal): las mismas reglas que con señal (`esquemaBaja`, `revisarBaja`,
  * `datosDeVenta`) y la misma tabla; la base marca el estado del animal, cierra su lactancia y rechaza sacar para consumo a uno en retiro de carne.
  * El identificador del registro es su `client_request_id`: reenviarla no la duplica. **Nunca pisa a otra persona**: si el animal ya salió del hato
@@ -732,8 +817,9 @@ export async function traducirAnimalesLocales<T extends EnvioCampo>(supabase: Cl
   const anotar = (v: unknown) => {
     if (typeof v === "string" && uuid.safeParse(v).success) ids.add(v);
   };
-  // En el animal nuevo, la compra y la venta, `animalId` es el identificador del propio registro, no el de un animal que ya exista.
-  if (e.tipo !== "animal" && e.tipo !== "compra" && e.tipo !== "venta") anotar(e.animalId);
+  // En el animal nuevo, la compra, la venta, lo que se dio de comer y el despacho, `animalId` es el identificador del propio registro, no el de un animal que ya exista.
+  const propio = e.tipo === "animal" || e.tipo === "compra" || e.tipo === "venta" || e.tipo === "alimento" || e.tipo === "despacho";
+  if (!propio) anotar(e.animalId);
   if ("animales" in e) e.animales.forEach(anotar);
   if (e.tipo === "monta") anotar(e.machoId);
   if ("campos" in e) for (const k of CAMPOS_DE_ANIMAL) anotar(e.campos[k]);
@@ -756,7 +842,7 @@ export async function traducirAnimalesLocales<T extends EnvioCampo>(supabase: Cl
 
   const t = (v: string) => real.get(v) ?? v;
   const copia = { ...e } as T & { animales?: string[]; machoId?: string | null; campos?: Record<string, string> };
-  if (e.tipo !== "animal" && e.tipo !== "compra" && e.tipo !== "venta") copia.animalId = t(e.animalId);
+  if (!propio) copia.animalId = t(e.animalId);
   if (copia.animales) copia.animales = copia.animales.map(t);
   if (copia.machoId) copia.machoId = t(copia.machoId);
   if (copia.campos) {

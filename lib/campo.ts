@@ -1,5 +1,6 @@
 import { sumarDias } from "@/lib/fechas";
 import { turnosDe, type Turno } from "@/lib/ordeno";
+import type { FilaAlimento } from "@/lib/inventario-alimento";
 import type { Cobertura, Especie, EstadoRepro, EstadoUbicacion, LineaVenta, RubroGasto, IndicadorPalpacion, MetodoDiagnostico, ResultadoDiagnostico, SexoAnimal, TipoUbicacion, UsoUbicacion, ViabilidadFetal, Vocacion } from "@/lib/tipos";
 
 /**
@@ -26,7 +27,7 @@ export const SEGUNDOS_REINTENTO = 30;
 export const MENSAJE_GUARDADO_LOCAL = "Guardado en el celular. Se enviará al volver la señal.";
 
 /** Cada opción de «Registrar sin señal» (`components/campo/PantallaCampo.tsx`), más lo guardado. */
-export type VistaCampo = "animal" | "ordeno" | "pesar" | "monta" | "diagnostico" | "parto" | "sanidad" | "corrales" | "compra" | "venta" | "baja" | "bandeja";
+export type VistaCampo = "animal" | "ordeno" | "pesar" | "monta" | "diagnostico" | "parto" | "sanidad" | "corrales" | "alimento" | "despacho" | "compra" | "venta" | "baja" | "bandeja";
 
 /**
  * Lo que se anota sin señal: una entrada por cada opción de «Registrar sin señal», en el mismo orden, con un detalle corto. La usan la pantalla de
@@ -42,6 +43,8 @@ export const REGISTROS_SIN_SENAL: readonly { vista: Exclude<VistaCampo, "bandeja
   { vista: "parto", titulo: "Parto y crías", detalle: "Las crías entran al hato" },
   { vista: "sanidad", titulo: "Sanidad", detalle: "Vacunas y tratamientos" },
   { vista: "corrales", titulo: "Mover de corral", detalle: "Uno o todo el lote" },
+  { vista: "alimento", titulo: "Lo que se dio de comer", detalle: "Sale del inventario" },
+  { vista: "despacho", titulo: "Despacho de leche", detalle: "Litros que salieron" },
   { vista: "compra", titulo: "Compras", detalle: "Alimento, droga…" },
   { vista: "venta", titulo: "Ventas", detalle: "Queso, carne, abono…" },
   { vista: "baja", titulo: "Dar de baja", detalle: "Venta, muerte…" },
@@ -144,17 +147,28 @@ export type VentasCampo = { productos: ProductoVentaCampo[]; compradores: { id: 
 
 export const VENTAS_VACIAS: VentasCampo = { productos: [], compradores: [] };
 
+/** Un alimento del inventario que ya tiene su conteo de apertura (a los demás no hay de dónde descontarles), con su peso por unidad y lo que quedaba. */
+export type AlimentoCampo = Pick<FilaAlimento, "producto_id" | "nombre" | "unidad" | "kg_por_unidad" | "stock_kg">;
+/** Para anotar lo que se dio de comer: los alimentos y los destinos posibles (corrales y lotes de ceba, según lo que la persona ve). */
+export type AlimentacionCampo = { alimentos: AlimentoCampo[]; destinos: { valor: string; etiqueta: string; detalle?: string }[] };
+/** Para un despacho de leche: los compradores, el último precio por litro y el IVA predeterminado. */
+export type DespachosCampo = { compradores: { id: string; nombre: string }[]; precioHabitual: number | null; ivaDefecto: number | null };
+
+export const ALIMENTACION_VACIA: AlimentacionCampo = { alimentos: [], destinos: [] };
+export const DESPACHOS_VACIOS: DespachosCampo = { compradores: [], precioHabitual: null, ivaDefecto: null };
+
 export const COMPRAS_VACIAS: ComprasCampo = { productos: [], proveedores: [], lotes: [], productosVet: [], especies: [], ivaDefecto: null, conSanidad: false };
 
 /** Lo mínimo de la finca para registrar sin señal. Se guarda en el celular de quien abre la app con señal. */
 export type ReferenciaCampo = {
-  version: 7;
+  version: 8;
   generadaEn: string;
   hoy: string;
   usuario: { id: string };
   /** `moneda`: la de la finca (ISO 4217) para escribir el dinero de una compra; sin ella, la de fábrica. */
   finca: { id: string; nombre: string; moneda?: string };
-  puede: { leche: boolean; pesos: boolean; reproduccion: boolean; hato: boolean; sanidad: boolean; lotes: boolean; corrales: boolean; compras: boolean; ventas: boolean };
+  /** `alimento`: anota lo que se dio de comer (Inventario). Los despachos de leche los anota quien registra leche (`leche`). */
+  puede: { leche: boolean; pesos: boolean; reproduccion: boolean; hato: boolean; sanidad: boolean; lotes: boolean; corrales: boolean; compras: boolean; ventas: boolean; alimento: boolean };
   ordeno: HembraCampo[];
   pesar: AnimalPesar[];
   /** Hembras activas y reproductores (solo si la persona registra reproducción). */
@@ -173,9 +187,13 @@ export type ReferenciaCampo = {
   compras: ComprasCampo;
   /** Para Ventas (solo quien registra ventas). */
   ventas: VentasCampo;
+  /** Para lo que se dio de comer (solo quien lo anota). */
+  alimentacion: AlimentacionCampo;
+  /** Para los despachos de leche (solo quien registra leche). */
+  despachos: DespachosCampo;
 };
 
-export type TipoRegistroCampo = "ordeno" | "peso" | "monta" | "diagnostico" | "animal" | "sanidad" | "servicio" | "movimiento" | "compra" | "venta" | "baja" | "parto";
+export type TipoRegistroCampo = "ordeno" | "peso" | "monta" | "diagnostico" | "animal" | "sanidad" | "servicio" | "movimiento" | "compra" | "venta" | "baja" | "parto" | "alimento" | "despacho";
 
 /** Lo que se anota en un diagnóstico de gestación sin señal (ecografía o palpación). */
 export type DiagnosticoCampo = {
@@ -247,7 +265,10 @@ export type EnvioCampo =
   | { tipo: "compra"; id: string; fincaId: string; animalId: string; fecha: string; campos: Record<string, string> }
   | { tipo: "venta"; id: string; fincaId: string; animalId: string; fecha: string; campos: Record<string, string> }
   | { tipo: "baja"; id: string; fincaId: string; animalId: string; fecha: string; campos: Record<string, string> }
-  | { tipo: "parto"; id: string; fincaId: string; animalId: string; fecha: string; campos: Record<string, string> };
+  | { tipo: "parto"; id: string; fincaId: string; animalId: string; fecha: string; campos: Record<string, string> }
+  /** Lo que se dio de comer y un despacho de leche: `animalId` es el propio identificador del registro (no son de un animal). */
+  | { tipo: "alimento"; id: string; fincaId: string; animalId: string; fecha: string; campos: Record<string, string> }
+  | { tipo: "despacho"; id: string; fincaId: string; animalId: string; fecha: string; campos: Record<string, string> };
 
 export function envioDe(r: RegistroCampo): EnvioCampo {
   const base = { id: r.id, fincaId: r.fincaId, animalId: r.animalId, fecha: r.fecha };
@@ -261,6 +282,8 @@ export function envioDe(r: RegistroCampo): EnvioCampo {
   if (r.tipo === "venta") return { tipo: "venta", ...base, campos: r.campos ?? {} };
   if (r.tipo === "baja") return { tipo: "baja", ...base, campos: r.campos ?? {} };
   if (r.tipo === "parto") return { tipo: "parto", ...base, campos: r.campos ?? {} };
+  if (r.tipo === "alimento") return { tipo: "alimento", ...base, campos: r.campos ?? {} };
+  if (r.tipo === "despacho") return { tipo: "despacho", ...base, campos: r.campos ?? {} };
   if (r.tipo === "movimiento") return { tipo: "movimiento", ...base, campos: r.campos ?? {}, animales: r.animales ?? [], creadoEn: r.creadoEn };
   return { tipo: "peso", ...base, peso: r.peso!, ...(r.campos && Object.keys(r.campos).length > 0 ? { extras: r.campos } : {}) };
 }
@@ -406,7 +429,7 @@ export function referenciaVencida(ref: Pick<ReferenciaCampo, "generadaEn"> | nul
 export function referenciaValida(valor: unknown): ReferenciaCampo | null {
   if (typeof valor !== "object" || valor === null) return null;
   const r = valor as Omit<Partial<ReferenciaCampo>, "version" | "puede"> & { version?: number; puede?: Partial<ReferenciaCampo["puede"]> };
-  if (![1, 2, 3, 4, 5, 6, 7].includes(r.version ?? 0) || typeof r.generadaEn !== "string" || typeof r.hoy !== "string") return null;
+  if (![1, 2, 3, 4, 5, 6, 7, 8].includes(r.version ?? 0) || typeof r.generadaEn !== "string" || typeof r.hoy !== "string") return null;
   if (!r.usuario?.id || !r.finca?.id || !Array.isArray(r.ordeno) || !Array.isArray(r.pesar) || !r.puede) return null;
   const v = r.version!;
   if (v >= 2 && (!Array.isArray(r.hembras) || !Array.isArray(r.machos))) return null;
@@ -415,6 +438,7 @@ export function referenciaValida(valor: unknown): ReferenciaCampo | null {
   if (v >= 5 && !Array.isArray(r.ubicaciones)) return null;
   if (v >= 6 && (typeof r.compras !== "object" || r.compras === null || !Array.isArray(r.compras.productos))) return null;
   if (v >= 7 && (typeof r.ventas !== "object" || r.ventas === null || !Array.isArray(r.ventas.productos) || !Array.isArray(r.ventas.compradores))) return null;
+  if (v >= 8 && (!Array.isArray(r.alimentacion?.alimentos) || !Array.isArray(r.alimentacion?.destinos) || !Array.isArray(r.despachos?.compradores))) return null;
   const puede = {
     leche: Boolean(r.puede.leche),
     pesos: Boolean(r.puede.pesos),
@@ -425,10 +449,11 @@ export function referenciaValida(valor: unknown): ReferenciaCampo | null {
     corrales: v >= 5 && Boolean(r.puede.corrales),
     compras: v >= 6 && Boolean(r.puede.compras),
     ventas: v >= 7 && Boolean(r.puede.ventas),
+    alimento: v >= 8 && Boolean(r.puede.alimento),
   };
   return {
     ...(r as ReferenciaCampo),
-    version: 7,
+    version: 8,
     puede,
     hembras: r.hembras ?? [],
     machos: r.machos ?? [],
@@ -440,6 +465,8 @@ export function referenciaValida(valor: unknown): ReferenciaCampo | null {
     ubicaciones: r.ubicaciones ?? [],
     compras: r.compras ?? COMPRAS_VACIAS,
     ventas: r.ventas ?? VENTAS_VACIAS,
+    alimentacion: r.alimentacion ?? ALIMENTACION_VACIA,
+    despachos: r.despachos ?? DESPACHOS_VACIOS,
   };
 }
 

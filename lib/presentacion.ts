@@ -44,7 +44,7 @@ export const CONTENIDO: Record<string, ContenidoOpcion> = {
   "/campo": {
     escena: escena(WifiOff, "grafito", CloudUpload),
     lema: "Anota donde no entra la señal",
-    puntos: ["Ordeño, partos, sanidad, compras, ventas y más, guardados en el celular", "Se envía solo al volver la señal, sin repetirse ni pisar lo de otros"],
+    puntos: ["Ordeño, partos, sanidad, alimento, despachos de leche y más, guardados en el celular", "Se envía solo al volver la señal, sin repetirse ni pisar lo de otros"],
   },
   "/novedades": {
     escena: escena(Inbox, "arcilla", CalendarCheck),

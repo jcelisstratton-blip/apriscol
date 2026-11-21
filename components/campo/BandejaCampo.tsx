@@ -27,6 +27,10 @@ function Detalle({ r }: { r: RegistroCampo }) {
             ? `Compra · ${dia}`
           : r.tipo === "venta"
             ? `Venta · ${dia}`
+          : r.tipo === "alimento"
+            ? `Lo que se dio de comer · ${dia}`
+          : r.tipo === "despacho"
+            ? `Despacho de leche · ${dia}`
           : r.tipo === "baja"
             ? `Salida del hato · ${dia}`
           : r.tipo === "parto"

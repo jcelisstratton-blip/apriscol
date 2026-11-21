@@ -60,13 +60,14 @@ export const ATAJOS: Atajo[] = [
 
   // Leche
   { grupo: "Leche", tipo: "registrar", titulo: "Registrar ordeño", detalle: "Litros por animal, jornada de hoy", href: "/hato?vista=ordeno", Icono: Droplets, modulo: "leche", clave: "litros leche ordeno jornada" },
-  { grupo: "Hato", tipo: "registrar", titulo: "Registrar sin señal", detalle: "Animal, ordeño, pesos, partos, sanidad, compras y más, en el celular; se envía solo al volver la señal", href: "/campo", Icono: WifiOff, menu: "sinSenal", clave: "sin senal sin conexion offline potrero corral campo ordeno pesar peso guardar celular parto sanidad compra venta baja corral" },
+  { grupo: "Hato", tipo: "registrar", titulo: "Registrar sin señal", detalle: "Animal, ordeño, pesos, partos, sanidad, alimento, despachos y más, en el celular; se envía solo al volver la señal", href: "/campo", Icono: WifiOff, menu: "sinSenal", clave: "sin senal sin conexion offline potrero corral campo ordeno pesar peso guardar celular parto sanidad compra venta baja corral alimento despacho" },
   { grupo: "Reproducción", tipo: "registrar", titulo: "Monta y diagnóstico sin señal", detalle: "En el corral sin señal; se envían solos al volver", href: "/campo", Icono: WifiOff, modulo: "reproduccion", clave: "sin senal offline potrero corral campo monta servicio empadre diagnostico gestacion palpacion ecografia celular" },
   { grupo: "Reproducción", tipo: "registrar", titulo: "Parto sin señal", detalle: "El parto y sus crías, anotados en el celular", href: "/campo#parto", Icono: WifiOff, modulo: "reproduccion", clave: "sin senal sin conexion offline parto parir crias cria aborto cesarea celular campo" },
   { grupo: "Sanidad", tipo: "registrar", titulo: "Sanidad sin señal", detalle: "Vacunas, desparasitaciones y tratamientos en el corral sin señal", href: "/campo#sanidad", Icono: WifiOff, modulo: "sanidad", clave: "sin senal sin conexion offline potrero corral campo vacuna desparasitar tratamiento pediluvio podologia cirugia celular" },
 
   { grupo: "Leche", tipo: "registrar", titulo: "Análisis de calidad", detalle: "Grasa, proteína y células somáticas", href: "/leche/calidad/nuevo", Icono: FlaskConical, modulo: "leche", clave: "laboratorio grasa proteina" },
   { grupo: "Leche", tipo: "registrar", titulo: "Despacho de leche", detalle: "A dónde fue la leche y a qué precio", href: "/leche/despachos/nuevo", Icono: Truck, modulo: "leche", clave: "venta queseria comprador" },
+  { grupo: "Leche", tipo: "registrar", titulo: "Despacho de leche sin señal", detalle: "Los litros que salieron, anotados en el celular", href: "/campo#despacho", Icono: WifiOff, modulo: "leche", clave: "sin senal sin conexion offline despacho leche queseria comprador carro tanque celular campo" },
   { grupo: "Leche", tipo: "registrar", titulo: "Medir el frío del tanque", detalle: "Temperatura del tanque", href: "/leche/frio/nuevo", Icono: Snowflake, modulo: "leche", clave: "temperatura tanque" },
   { grupo: "Leche", tipo: "registrar", titulo: "Mantenimiento del equipo", detalle: "Lavados, revisiones y pulsadores", href: "/leche/equipo/nuevo", Icono: Wrench, modulo: "leche", clave: "ordeñadora lavado" },
   { grupo: "Leche", tipo: "ir", titulo: "Producción de leche", detalle: "Litros por día y por animal", href: "/leche", Icono: Droplets, modulo: "leche" },
@@ -113,6 +114,7 @@ export const ATAJOS: Atajo[] = [
 
   // Inventario
   { grupo: "Inventario", tipo: "registrar", titulo: "Anotar lo que se dio de comer", detalle: "Alimento, cuánto y qué día: en segundos", href: "/inventario/alimento/salida", Icono: Utensils, modulo: "nutricion", clave: "alimento concentrado forraje sal melaza dar de comer salida racion" },
+  { grupo: "Inventario", tipo: "registrar", titulo: "Lo que se dio de comer sin señal", detalle: "Alimento y cuánto, anotado en el celular", href: "/campo#alimento", Icono: WifiOff, modulo: "nutricion", clave: "sin senal sin conexion offline alimento concentrado forraje sal dar de comer racion celular campo" },
   { grupo: "Inventario", tipo: "ir", titulo: "Inventario de alimento", detalle: "Qué queda y para cuántos días alcanza", href: "/inventario?vista=alimento", Icono: Wheat, modulo: "nutricion", clave: "bodega stock existencias autonomia concentrado" },
     { grupo: "Inventario", tipo: "ir", titulo: "Inventario de medicamentos", detalle: "Qué queda de cada medicamento y vacuna, y los lotes por vencer", href: "/inventario", Icono: Boxes, modulo: "inventario", clave: "bodega stock existencias lotes vencimiento" },
 

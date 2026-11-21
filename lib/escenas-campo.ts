@@ -1,4 +1,4 @@
-import { ArrowRightLeft, Baby, Banknote, CloudUpload, Fence, Heart, LogOut, PawPrint, Plus, Receipt, Scale, ShieldPlus, ShoppingCart, Stethoscope, Syringe } from "lucide-react";
+import { ArrowRightLeft, Baby, Banknote, CloudUpload, Fence, Heart, LogOut, Milk, PawPrint, Plus, Receipt, Scale, ShieldPlus, ShoppingCart, Sprout, Stethoscope, Syringe, Truck, Wheat } from "lucide-react";
 import { ESC, escena, type EscenaDef } from "@/lib/escenas";
 import type { VistaCampo } from "@/lib/campo";
 
@@ -15,6 +15,8 @@ export const ESCENA_OPCION_CAMPO: Record<VistaCampo, EscenaDef> = {
   parto: escena(Baby, "ocre", Heart),
   sanidad: escena(Syringe, "musgo", ShieldPlus),
   corrales: escena(Fence, "oliva", ArrowRightLeft),
+  alimento: escena(Wheat, "ambar", Sprout),
+  despacho: escena(Truck, "ocre", Milk),
   compra: escena(ShoppingCart, "ocre", Receipt),
   venta: escena(Banknote, "musgo", Receipt),
   baja: escena(LogOut, "arcilla", PawPrint),
