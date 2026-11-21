@@ -52,6 +52,7 @@ export function TarjetaOpcion({
   deshabilitada = false,
   descarga = false,
   destacada = false,
+  estatica = false,
 }: {
   escena: EscenaDef;
   titulo: string;
@@ -69,6 +70,8 @@ export function TarjetaOpcion({
   descarga?: boolean;
   /** Resalta la tarjeta (borde verde) sin marcarla como elegida: la acción principal de una pantalla. */
   destacada?: boolean;
+  /** Solo muestra (sin acción ni efecto al pasar el cursor): una tarjeta que presenta algo, como en la pantalla de entrada. */
+  estatica?: boolean;
 }) {
   const ancho = tamano === "compacta" ? "w-[9.5rem] shrink-0 snap-start" : "w-full min-w-0";
   const clases = `group relative flex ${ancho} flex-col overflow-hidden rounded-3xl text-left ring-1 transition motion-safe:duration-200 motion-safe:hover:-translate-y-0.5 motion-safe:active:scale-[0.98] disabled:opacity-50 ${
@@ -89,6 +92,9 @@ export function TarjetaOpcion({
       ) : null}
     </>
   );
+  if (estatica) {
+    return <div className={`relative flex ${ancho} flex-col overflow-hidden rounded-3xl bg-papel text-left ring-1 ring-arena`}>{contenido}</div>;
+  }
   if (href && descarga) {
     return (
       <a href={href} download className={clases}>

@@ -293,4 +293,5 @@ export const SIN_AYUDA_PROPIA: Record<string, string> = {
   "/mas": "Es el menú «Más» del celular: la lista de las demás opciones, cada una con su propia ayuda.",
   "/mas/referidos": "Ya trae su propia tarjeta «Cómo funciona» visible en la pantalla (los términos del programa).",
   "/onboarding": "Es el asistente para crear otra finca, con sus propios pasos explicados.",
+  "/campo": "Es «Registrar sin señal»: vive fuera del panel para abrir sin conexión y trae su propio «¿Cómo funciona?» en la pantalla.",
 };

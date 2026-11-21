@@ -1,4 +1,4 @@
-import { Scissors, Activity, Inbox, CalendarCheck, Coins, Crown, Download, FileBarChart2, FileSpreadsheet, GitFork, Gift, Home, Package, Plug, Plus, Send, SlidersHorizontal, Sprout, TrendingUp, Trophy, Users, Wallet, Wrench } from "lucide-react";
+import { Scissors, Activity, Inbox, CalendarCheck, CloudUpload, WifiOff, Coins, Crown, Download, FileBarChart2, FileSpreadsheet, GitFork, Gift, Home, Package, Plug, Plus, Send, SlidersHorizontal, Sprout, TrendingUp, Trophy, Users, Wallet, Wrench } from "lucide-react";
 import { escena, ESC, ESCENA_HATO, type EscenaDef } from "@/lib/escenas";
 import { ESCENA_TODOS_INVENTARIO } from "@/lib/escenas-inventario";
 import { menuFinca, menuPrincipal, visibilidadMenu, type EntradaMenu } from "@/lib/menu";
@@ -40,6 +40,11 @@ export const CONTENIDO: Record<string, ContenidoOpcion> = {
     escena: ESCENA_HATO.todos,
     lema: "Cada animal, con su historia",
     puntos: ["Ficha con foto, edad, estado y padres", "Trae tus animales del libro genealógico o desde un Excel", "Leche, peso, partos y sanidad de cada uno, en su ficha"],
+  },
+  "/campo": {
+    escena: escena(WifiOff, "grafito", CloudUpload),
+    lema: "Anota donde no entra la señal",
+    puntos: ["Ordeño, partos, sanidad, compras, ventas y más, guardados en el celular", "Se envía solo al volver la señal, sin repetirse ni pisar lo de otros"],
   },
   "/novedades": {
     escena: escena(Inbox, "arcilla", CalendarCheck),

@@ -25,15 +25,31 @@ export const SEGUNDOS_REINTENTO = 30;
 
 export const MENSAJE_GUARDADO_LOCAL = "Guardado en el celular. Se enviará al volver la señal.";
 
+/** Cada opción de «Registrar sin señal» (`components/campo/PantallaCampo.tsx`), más lo guardado. */
+export type VistaCampo = "animal" | "ordeno" | "pesar" | "monta" | "diagnostico" | "parto" | "sanidad" | "corrales" | "compra" | "venta" | "baja" | "bandeja";
+
 /**
- * Lo que se anota sin señal: una entrada por cada opción de «Registrar sin señal» (`components/campo/PantallaCampo.tsx`), en el mismo orden. La usan la
- * pantalla de entrada, la ayuda y la página «Sin señal»; `tests/campo.test.mjs` exige que tenga tantas entradas como opciones la pantalla.
+ * Lo que se anota sin señal: una entrada por cada opción de «Registrar sin señal», en el mismo orden, con un detalle corto. La usan la pantalla de
+ * entrada (tarjetas con la escena de `lib/escenas-campo.ts`), la ayuda y las preguntas frecuentes; `tests/campo.test.mjs` exige que tenga tantas
+ * entradas como opciones la pantalla.
  */
-export const REGISTROS_SIN_SENAL = ["Animal nuevo", "Ordeño", "Pesos", "Monta", "Diagnóstico de gestación", "Parto y crías", "Sanidad", "Mover de corral", "Compras", "Ventas", "Dar de baja"] as const;
+export const REGISTROS_SIN_SENAL: readonly { vista: Exclude<VistaCampo, "bandeja">; titulo: string; detalle: string }[] = [
+  { vista: "animal", titulo: "Animal nuevo", detalle: "Con arete, raza y padres" },
+  { vista: "ordeno", titulo: "Ordeño", detalle: "Litros por jornada" },
+  { vista: "pesar", titulo: "Pesos", detalle: "Peso del día" },
+  { vista: "monta", titulo: "Monta", detalle: "Con su reproductor" },
+  { vista: "diagnostico", titulo: "Diagnóstico de gestación", detalle: "Ecografía o palpación" },
+  { vista: "parto", titulo: "Parto y crías", detalle: "Las crías entran al hato" },
+  { vista: "sanidad", titulo: "Sanidad", detalle: "Vacunas y tratamientos" },
+  { vista: "corrales", titulo: "Mover de corral", detalle: "Uno o todo el lote" },
+  { vista: "compra", titulo: "Compras", detalle: "Alimento, droga…" },
+  { vista: "venta", titulo: "Ventas", detalle: "Queso, carne, abono…" },
+  { vista: "baja", titulo: "Dar de baja", detalle: "Venta, muerte…" },
+];
 
 /** Lo mismo en una frase («animal nuevo, ordeño, pesos… y dar de baja»). */
 export const textoRegistrosSinSenal = () => {
-  const l = REGISTROS_SIN_SENAL.map((t, i) => (i === 0 ? t : t.charAt(0).toLowerCase() + t.slice(1)));
+  const l = REGISTROS_SIN_SENAL.map((r, i) => (i === 0 ? r.titulo : r.titulo.charAt(0).toLowerCase() + r.titulo.slice(1)));
   return `${l.slice(0, -1).join(", ")} y ${l[l.length - 1]}`;
 };
 

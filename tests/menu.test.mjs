@@ -9,7 +9,7 @@ const etiquetas = (grupos) => grupos.map((g) => [g.titulo ?? "(inicio)", g.entra
 test("menú: el propietario con plan Profesional ve todos los grupos, en este orden", () => {
   const v = visibilidadMenu("propietario", "profesional");
   assert.deepEqual(etiquetas(menuPrincipal(v)), [
-    ["(inicio)", ["Novedades", "Hoy", "Semáforos", "Hato"]],
+    ["(inicio)", ["Novedades", "Hoy", "Semáforos", "Hato", "Registrar sin señal"]],
     ["Producción y manejo", ["Leche", "Reproducción", "Carne", "Sanidad", "Corrales", "Inventario"]],
     ["Dinero y análisis", ["Costos", "Reportes", "Proyecciones", "Productos y terceros"]],
     ["Genealogía", ["Endogamia", "Premios"]],
@@ -30,7 +30,7 @@ test("menú: Leche y Productos y terceros están en el menú del que salen el co
 test("menú: un ordeñador no ve lo que no puede abrir y los grupos vacíos desaparecen", () => {
   const v = visibilidadMenu("ordenador", "profesional");
   assert.deepEqual(etiquetas(menuPrincipal(v)), [
-    ["(inicio)", ["Mis novedades", "Hoy", "Semáforos", "Hato"]],
+    ["(inicio)", ["Mis novedades", "Hoy", "Semáforos", "Hato", "Registrar sin señal"]], // anota el ordeño sin señal
     ["Producción y manejo", ["Leche", "Inventario"]], // el ordeñador ve el inventario de alimento, no el de medicamentos
     ["Dinero y análisis", ["Reportes"]], // el reporte de ordeño sí lo puede abrir
     ["Genealogía", ["Endogamia"]],
@@ -159,3 +159,10 @@ test("«Al grano»: toda pantalla de «crear» tiene su atajo, salvo las de un s
   const sinAtajo = rutasDeCrear("app/(app)").filter((r) => !conAtajo.has(r) && !SIN_ATAJO.includes(r));
   assert.deepEqual(sinAtajo, [], "una pantalla nueva con botón de «crear» se agrega en lib/atajos.ts (o se justifica en SIN_ATAJO)");
 });
+
+test("menú: «Registrar sin señal» lo ve quien anota algo sin señal, y no quien no registra nada", () => {
+  const ve = (rol, plan = "profesional") => menuPrincipal(visibilidadMenu(rol, plan)).flatMap((g) => g.entradas).some((e) => e.href === "/campo");
+  for (const rol of ["propietario", "administrador", "veterinario", "ordenador", "contador"]) assert.ok(ve(rol), rol);
+  assert.equal(menuPrincipal(visibilidadMenu("propietario", "profesional"))[0].entradas.at(-1).etiqueta, "Registrar sin señal", "en el primer bloque, después de Hato");
+});
+

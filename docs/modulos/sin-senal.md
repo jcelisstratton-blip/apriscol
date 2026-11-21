@@ -107,6 +107,9 @@ La pantalla de entrada explica qué se anota sin señal y cómo se llega (secci�
 «Registrar sin señal» cuando el celular ya quedó listo). La lista sale de `REGISTROS_SIN_SENAL` (`lib/campo.ts`): **una opción nueva de «Registrar sin
 señal» se agrega también ahí** (la prueba lo exige). Detalle en `docs/modulos/presentacion-planes.md`.
 
+**Dónde se encuentra con señal**: en el menú (primer bloque, después de Hato; en el celular, dentro de «Más»), en «Al grano» (pestaña «Registrar»), en
+los enlaces «… sin señal» de cada pantalla y, con la app instalada, en el atajo de su ícono. Sin señal, la página «Sin señal» lo ofrece al abrir Apriscol.
+
 ### Partos sin señal (21 nov 2026)
 
 **Parto en «Registrar sin señal»** (`components/campo/PartoCampo.tsx`, `/campo#parto`; atajo «Parto sin señal» y enlace en «Registrar parto» de la
