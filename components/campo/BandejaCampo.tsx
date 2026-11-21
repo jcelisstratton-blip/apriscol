@@ -19,7 +19,9 @@ function Detalle({ r }: { r: RegistroCampo }) {
   const dia = formatoFecha(r.fecha, { day: "numeric", month: "short" });
   return (
     <span className="block text-sm text-humo [overflow-wrap:anywhere]">
-      {r.tipo === "ordeno"
+      {r.tipo === "animal"
+        ? `Animal nuevo · registrado el ${dia}`
+        : r.tipo === "ordeno"
         ? `Ordeño · ${dia}, ${JORNADA[r.jornada ?? ""] ?? ""} · ${fmt(r.litros ?? 0)} L${r.descartar ? " (descartada)" : ""}`
         : r.tipo === "monta"
           ? `Monta · ${dia} · con ${r.machoEtiqueta ?? "reproductor"}`

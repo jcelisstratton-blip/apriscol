@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { ChevronLeft } from "lucide-react";
 import { Encabezado } from "@/components/Encabezado";
 import { FormAnimal } from "@/components/FormAnimal";
+import { EnlaceSinSenal } from "@/components/EnlaceSinSenal";
 import { obtenerContexto } from "@/lib/contexto";
 import { crearClienteServidor } from "@/lib/supabase/server";
 import { puedeEscribir } from "@/lib/permisos";
@@ -23,6 +24,9 @@ export default async function PaginaAnimalNuevo() {
         <ChevronLeft className="size-5" strokeWidth={2} /> Hato
       </Link>
       <Encabezado titulo="Animal nuevo" subtitulo={finca.nombre} />
+      <div className="mb-3">
+        <EnlaceSinSenal texto="¿Sin señal en el corral? Regístralo en el celular" ancla="animal" />
+      </div>
       <div className="lg:max-w-3xl">
         <FormAnimal fincaId={finca.id} especies={finca.especies} propositoFinca={finca.proposito} razas={razas ?? []} solicitud={randomUUID()} />
       </div>

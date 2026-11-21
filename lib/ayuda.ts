@@ -72,8 +72,8 @@ export const AYUDA_CAMPO: Ayuda = {
   titulo: "Registrar sin señal",
   tutorial: 5,
   puntos: [
-    { titulo: "Prepárala con señal", texto: "Abre Apriscol con señal al menos una vez en este celular: así guarda la lista de tus hembras, tus reproductores y tus animales para pesar." },
-    { titulo: "Anota donde estés", texto: "Sin señal, abre esta pantalla (también sale en la página «Sin señal») y anota el ordeño, el peso, la monta o el diagnóstico de gestación de cada animal. Queda guardado en el celular." },
+    { titulo: "Prepárala con señal", texto: "Abre Apriscol con señal al menos una vez en este celular: así guarda la lista de tus animales, razas y reproductores para trabajar sin señal." },
+    { titulo: "Anota donde estés", texto: "Sin señal, abre esta pantalla (también sale en la página «Sin señal») y crea un animal nuevo, o anota el ordeño, el peso, la monta o el diagnóstico de gestación. Queda guardado en el celular." },
     { titulo: "Se envía solo", texto: "Cuando vuelve la señal se envía sin que hagas nada, con la app abierta. En iPhone se envía al abrir la app, no en segundo plano." },
     { titulo: "Nada se duplica ni se pisa", texto: "Si ya había un dato de ese animal en esa jornada o ese día, no se cambia: el tuyo queda en «Pendientes con error» para que decidas. La temporada de empadre se arma y se cierra con señal." },
     { titulo: "Si algo no entra", texto: "Un animal que ya salió del hato o un permiso que cambió dejan el registro en «Pendientes con error», con el motivo, para reintentar o descartar." },

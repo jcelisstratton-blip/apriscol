@@ -42,6 +42,7 @@ export type Atajo = {
 export const ATAJOS: Atajo[] = [
   // Hato
   { grupo: "Hato", tipo: "registrar", titulo: "Animal nuevo", detalle: "Cabra, cabro, oveja o carnero", href: "/hato/nuevo", Icono: PawPrint, modulo: "hato", clave: "registrar cabra oveja arete" },
+  { grupo: "Hato", tipo: "registrar", titulo: "Animal nuevo sin señal", detalle: "En el corral sin señal; se envía solo al volver", href: "/campo#animal", Icono: WifiOff, modulo: "hato", clave: "sin senal sin conexion offline potrero corral campo crear registrar cabra oveja arete celular" },
   { grupo: "Hato", tipo: "registrar", titulo: "Cargar animales desde Excel", detalle: "Muchos animales a la vez, con su genealogía", href: "/hato/importar", Icono: FileSpreadsheet, modulo: "hato", clave: "importar masivo plantilla excel subir cargar archivo xlsx" },
   { grupo: "Hato", tipo: "registrar", titulo: "Migrar mi finca", detalle: "Los pasos para traer animales, pesos y ordeños desde tus Excel", href: "/hato/migrar", Icono: FileSpreadsheet, modulo: "hato", clave: "migrar migracion traer finca excel historia pesos ordenos importar" },
   { grupo: "Hato", tipo: "registrar", titulo: "Llevar las plantillas al campo", detalle: "Todas tus plantillas de Excel en un archivo, para llenarlas sin señal", href: "/hato/migrar#plantillas-campo", Icono: FileArchive, modulo: "hato", clave: "sin senal sin conexion offline potrero campo descargar plantillas zip comprimido excel llenar" },

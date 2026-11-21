@@ -1,6 +1,6 @@
 import { sumarDias } from "@/lib/fechas";
 import { turnosDe, type Turno } from "@/lib/ordeno";
-import type { EstadoRepro, IndicadorPalpacion, MetodoDiagnostico, ResultadoDiagnostico, ViabilidadFetal } from "@/lib/tipos";
+import type { Cobertura, Especie, EstadoRepro, IndicadorPalpacion, MetodoDiagnostico, ResultadoDiagnostico, SexoAnimal, ViabilidadFetal, Vocacion } from "@/lib/tipos";
 
 /**
  * Registrar sin señal (modo sin señal, paso 3): reglas puras que usan la pantalla `/campo`, la captura de leche, la pesada de ceba, el motor de
@@ -62,22 +62,33 @@ export type HembraRepro = {
 /** Un reproductor del hato para la monta. */
 export type MachoCampo = { id: string; arete: string; nombre: string | null; especie: string };
 
+/** Una raza del catálogo (para el animal nuevo). */
+export type RazaCampo = { id: number; especie: Especie; nombre: string; cobertura: Cobertura | null };
+
+/** Un animal de la finca para elegir padre o madre y comprobar que el arete no se repita (también los que ya salieron). */
+export type AnimalHato = { id: string; arete: string; nombre: string | null; sexo: SexoAnimal; especie: Especie; activo: boolean };
+
 /** Lo mínimo de la finca para registrar sin señal. Se guarda en el celular de quien abre la app con señal. */
 export type ReferenciaCampo = {
-  version: 2;
+  version: 3;
   generadaEn: string;
   hoy: string;
   usuario: { id: string };
   finca: { id: string; nombre: string };
-  puede: { leche: boolean; pesos: boolean; reproduccion: boolean };
+  puede: { leche: boolean; pesos: boolean; reproduccion: boolean; hato: boolean };
   ordeno: HembraCampo[];
   pesar: AnimalPesar[];
   /** Hembras activas y reproductores (solo si la persona registra reproducción). */
   hembras: HembraRepro[];
   machos: MachoCampo[];
+  /** Para crear animales (solo si la persona registra en el Hato): especies de la finca, su propósito, razas y animales. */
+  especies: Especie[];
+  proposito: Vocacion;
+  razas: RazaCampo[];
+  animales: AnimalHato[];
 };
 
-export type TipoRegistroCampo = "ordeno" | "peso" | "monta" | "diagnostico";
+export type TipoRegistroCampo = "ordeno" | "peso" | "monta" | "diagnostico" | "animal";
 
 /** Lo que se anota en un diagnóstico de gestación sin señal (ecografía o palpación). */
 export type DiagnosticoCampo = {
@@ -112,6 +123,8 @@ export type RegistroCampo = {
   machoEtiqueta?: string;
   /** Diagnóstico de gestación. */
   diagnostico?: DiagnosticoCampo;
+  /** Animal nuevo: los mismos campos (texto) que envía el formulario con señal; `animalId` es el propio identificador del registro. */
+  campos?: Record<string, string>;
   creadoEn: string;
   estado: EstadoRegistro;
   /** Por qué el servidor no lo aceptó (en palabras de persona). */
@@ -125,13 +138,15 @@ export type EnvioCampo =
   | { tipo: "ordeno"; id: string; fincaId: string; animalId: string; fecha: string; jornada: JornadaCampo; litros: number; descartar: boolean }
   | { tipo: "peso"; id: string; fincaId: string; animalId: string; fecha: string; peso: number }
   | { tipo: "monta"; id: string; fincaId: string; animalId: string; fecha: string; machoId: string | null; machoExterno: string | null }
-  | ({ tipo: "diagnostico"; id: string; fincaId: string; animalId: string; fecha: string } & DiagnosticoCampo);
+  | ({ tipo: "diagnostico"; id: string; fincaId: string; animalId: string; fecha: string } & DiagnosticoCampo)
+  | { tipo: "animal"; id: string; fincaId: string; animalId: string; fecha: string; campos: Record<string, string> };
 
 export function envioDe(r: RegistroCampo): EnvioCampo {
   const base = { id: r.id, fincaId: r.fincaId, animalId: r.animalId, fecha: r.fecha };
   if (r.tipo === "ordeno") return { tipo: "ordeno", ...base, jornada: r.jornada!, litros: r.litros!, descartar: Boolean(r.descartar) };
   if (r.tipo === "monta") return { tipo: "monta", ...base, machoId: r.machoId ?? null, machoExterno: r.machoExterno ?? null };
   if (r.tipo === "diagnostico") return { tipo: "diagnostico", ...base, ...r.diagnostico! };
+  if (r.tipo === "animal") return { tipo: "animal", ...base, campos: r.campos ?? {} };
   return { tipo: "peso", ...base, peso: r.peso! };
 }
 
@@ -270,17 +285,50 @@ export function referenciaVencida(ref: Pick<ReferenciaCampo, "generadaEn"> | nul
 }
 
 /**
- * Lee una copia guardada y la descarta si está dañada. Una copia de la versión 1 (antes de la monta y el diagnóstico) sigue sirviendo para el
- * ordeño y los pesos: se completa sin reproducción hasta que la app se abra con señal y traiga la nueva.
+ * Lee una copia guardada y la descarta si está dañada. Las copias de versiones anteriores (1: ordeño y pesos; 2: más monta y diagnóstico)
+ * siguen sirviendo para lo que ya traían: se completan vacías hasta que la app se abra con señal y traiga la nueva.
  */
 export function referenciaValida(valor: unknown): ReferenciaCampo | null {
   if (typeof valor !== "object" || valor === null) return null;
   const r = valor as Omit<Partial<ReferenciaCampo>, "version" | "puede"> & { version?: number; puede?: Partial<ReferenciaCampo["puede"]> };
-  if ((r.version !== 1 && r.version !== 2) || typeof r.generadaEn !== "string" || typeof r.hoy !== "string") return null;
+  if (![1, 2, 3].includes(r.version ?? 0) || typeof r.generadaEn !== "string" || typeof r.hoy !== "string") return null;
   if (!r.usuario?.id || !r.finca?.id || !Array.isArray(r.ordeno) || !Array.isArray(r.pesar) || !r.puede) return null;
-  if (r.version === 2 && (!Array.isArray(r.hembras) || !Array.isArray(r.machos))) return null;
-  const puede = { leche: Boolean(r.puede.leche), pesos: Boolean(r.puede.pesos), reproduccion: r.version === 2 && Boolean(r.puede.reproduccion) };
-  return { ...(r as ReferenciaCampo), version: 2, puede, hembras: r.hembras ?? [], machos: r.machos ?? [] };
+  const v = r.version!;
+  if (v >= 2 && (!Array.isArray(r.hembras) || !Array.isArray(r.machos))) return null;
+  if (v >= 3 && (!Array.isArray(r.especies) || !Array.isArray(r.razas) || !Array.isArray(r.animales))) return null;
+  const puede = { leche: Boolean(r.puede.leche), pesos: Boolean(r.puede.pesos), reproduccion: v >= 2 && Boolean(r.puede.reproduccion), hato: v >= 3 && Boolean(r.puede.hato) };
+  return {
+    ...(r as ReferenciaCampo),
+    version: 3,
+    puede,
+    hembras: r.hembras ?? [],
+    machos: r.machos ?? [],
+    especies: r.especies ?? [],
+    proposito: r.proposito ?? "leche",
+    razas: r.razas ?? [],
+    animales: r.animales ?? [],
+  };
+}
+
+// ───────────── Animal nuevo ─────────────
+
+/** El arete como lo compara la base (`animales_arete_uk`: sin espacios a los lados y sin mayúsculas). */
+export const areteClave = (arete: string) => arete.trim().toLowerCase();
+
+/**
+ * ¿Ese arete ya está en la finca (según la copia) o en un animal nuevo guardado en este celular que aún no se envió? Solo avisa: la base lo
+ * vuelve a comprobar al enviar. `excepto`: el registro que se está corrigiendo.
+ */
+export function areteRepetido(arete: string, ref: Pick<ReferenciaCampo, "animales">, registros: RegistroCampo[], excepto?: string): boolean {
+  const clave = areteClave(arete);
+  if (!clave) return false;
+  if (ref.animales.some((a) => areteClave(a.arete) === clave)) return true;
+  return registros.some((r) => r.tipo === "animal" && r.id !== excepto && r.estado !== "enviado" && r.estado !== "error" && areteClave(r.campos?.numero_arete ?? "") === clave);
+}
+
+/** Padres posibles: machos (o hembras) de la misma especie, también los que ya salieron del hato, como en la ficha. */
+export function padresPosibles(ref: Pick<ReferenciaCampo, "animales">, especie: Especie, sexo: SexoAnimal): AnimalHato[] {
+  return ref.animales.filter((a) => a.especie === especie && a.sexo === sexo).sort((a, b) => Number(b.activo) - Number(a.activo) || a.arete.localeCompare(b.arete, "es", { numeric: true }));
 }
 
 // ───────────── Monta y diagnóstico ─────────────

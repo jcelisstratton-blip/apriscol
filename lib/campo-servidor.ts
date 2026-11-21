@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
-import type { Database, EstadoRepro, PlanId, RolFinca } from "@/lib/tipos";
+import type { Cobertura, Database, Especie, EstadoRepro, PlanId, RolFinca, Vocacion } from "@/lib/tipos";
 import { leerTodo } from "@/lib/consultas";
 import { leerCeba } from "@/lib/ceba-servidor";
 import { hembrasEnLeche } from "@/lib/ordeno-servidor";
@@ -9,9 +9,10 @@ import { puedeEscribir } from "@/lib/permisos";
 import { litros as fmtLitros } from "@/lib/fechas";
 import {
   CONDICIONES, MAX_DIAS_GESTACION, errorFecha, errorLitros, errorPeso, redondearPeso,
-  type AnimalPesar, type EnvioCampo, type HembraCampo, type HembraRepro, type MachoCampo, type ReferenciaCampo, type RespuestaEnvio,
+  type AnimalHato, type AnimalPesar, type EnvioCampo, type HembraCampo, type HembraRepro, type MachoCampo, type RazaCampo, type ReferenciaCampo, type RespuestaEnvio,
 } from "@/lib/campo";
 import { reglasDiagnostico } from "@/lib/diagnostico-reglas";
+import { esquemaAnimal, fotoValida, prepararAnimalNuevo } from "@/lib/animal-nuevo";
 import { MENSAJE_SIN_SERVICIO, MENSAJE_YA_VACIA, servicioVigente } from "@/lib/servicio-vigente";
 import { ETIQUETA_RESULTADO } from "@/lib/reproduccion";
 import { formatoFecha } from "@/lib/fechas";
@@ -26,19 +27,19 @@ type Cliente = SupabaseClient<Database>;
 
 /** Qué puede registrar sin señal cada rol en su plan: los mismos módulos que la captura de leche y la pesada con señal. */
 export function permisosCampo(rol: RolFinca, plan: PlanId): ReferenciaCampo["puede"] {
-  return { leche: puedeEscribir(rol, "leche", plan), pesos: puedeEscribir(rol, "carne", plan), reproduccion: puedeEscribir(rol, "reproduccion", plan) };
+  return { leche: puedeEscribir(rol, "leche", plan), pesos: puedeEscribir(rol, "carne", plan), reproduccion: puedeEscribir(rol, "reproduccion", plan), hato: puedeEscribir(rol, "hato", plan) };
 }
 
 /** La copia de la finca que se guarda en el celular: solo lo indispensable para capturar (aretes, nombres, turnos, retiro y último peso). */
 export async function leerReferenciaCampo(
   supabase: Cliente,
-  ctx: { usuarioId: string; finca: { id: string; nombre: string; plan: PlanId }; rol: RolFinca },
+  ctx: { usuarioId: string; finca: { id: string; nombre: string; plan: PlanId; especies: Especie[]; proposito: Vocacion }; rol: RolFinca },
   hoy: string,
   ahora = new Date(),
 ): Promise<ReferenciaCampo> {
   const puede = permisosCampo(ctx.rol, ctx.finca.plan);
   const fincaId = ctx.finca.id;
-  const [leche, ceba, todos, repro] = await Promise.all([
+  const [leche, ceba, todos, repro, razasDB, hatoDB] = await Promise.all([
     puede.leche ? hembrasEnLeche(supabase, fincaId) : null,
     puede.pesos ? leerCeba(supabase, fincaId, hoy) : null,
     puede.pesos || puede.reproduccion
@@ -46,6 +47,11 @@ export async function leerReferenciaCampo(
       : null,
     puede.reproduccion
       ? leerTodo((d, h) => supabase.from("v_repro_hembras").select("animal_id, estado, ultimo_servicio").eq("finca_id", fincaId).order("animal_id").range(d, h))
+      : null,
+    puede.hato ? supabase.from("razas").select("id, especie, nombre, cobertura").in("especie", ctx.finca.especies).order("nombre") : null,
+    // Para padre y madre (también los que ya salieron del hato) y para avisar si un arete ya existe.
+    puede.hato
+      ? leerTodo((d, h) => supabase.from("animales").select("id, numero_arete, nombre, sexo, especie, estado").eq("finca_id", fincaId).is("deleted_at", null).order("id").range(d, h))
       : null,
   ]);
 
@@ -87,7 +93,27 @@ export async function leerReferenciaCampo(
     ? activos.filter((a) => a.sexo === "macho").map((a) => ({ id: a.id, arete: a.numero_arete, nombre: a.nombre, especie: a.especie })).sort(porArete)
     : [];
 
-  return { version: 2, generadaEn: ahora.toISOString(), hoy, usuario: { id: ctx.usuarioId }, finca: { id: fincaId, nombre: ctx.finca.nombre }, puede, ordeno, pesar, hembras, machos };
+  const razas: RazaCampo[] = ((razasDB?.data ?? []) as { id: number; especie: Especie; nombre: string; cobertura: Cobertura | null }[]).map((r) => ({ id: r.id, especie: r.especie, nombre: r.nombre, cobertura: r.cobertura ?? null }));
+  const animales: AnimalHato[] = (hatoDB?.data ?? [])
+    .map((a) => ({ id: a.id, arete: a.numero_arete, nombre: a.nombre, sexo: a.sexo as AnimalHato["sexo"], especie: a.especie as Especie, activo: a.estado === "activo" }))
+    .sort(porArete);
+
+  return {
+    version: 3,
+    generadaEn: ahora.toISOString(),
+    hoy,
+    usuario: { id: ctx.usuarioId },
+    finca: { id: fincaId, nombre: ctx.finca.nombre },
+    puede,
+    ordeno,
+    pesar,
+    hembras,
+    machos,
+    especies: puede.hato ? ctx.finca.especies : [],
+    proposito: ctx.finca.proposito,
+    razas,
+    animales,
+  };
 }
 
 // ───────────── Lo que llega del celular ─────────────
@@ -112,6 +138,7 @@ export const esquemaEnvio = z.discriminatedUnion("tipo", [
     indicador: z.enum(["ausencia_celo", "retorno_celo", "llenado_uterino", "revision_manual"]).nullish(),
     condicion: z.number().refine((n) => CONDICIONES.includes(n)).nullish(),
   }),
+  z.object({ tipo: z.literal("animal"), id: uuid, fincaId: uuid, animalId: uuid, fecha, campos: z.record(z.string(), z.string().max(1000)) }),
 ]);
 
 const rechazo = (error: string): RespuestaEnvio => ({ ok: false, codigo: "rechazado", error });
@@ -281,4 +308,23 @@ export async function guardarDiagnosticoCampo(supabase: Cliente, e: Extract<Envi
   if (!error) return { ok: true, estado: "guardado" };
   if (esDuplicado(error)) return { ok: true, estado: "ya_estaba" };
   return rechazo(mensajeAmigable(error.message));
+}
+
+/**
+ * Crea un animal registrado sin señal con la misma función y las mismas reglas que el formulario con señal (`esquemaAnimal`, `prepararAnimalNuevo`,
+ * `registrar_animal`). El identificador del registro es su `client_request_id`: reenviarlo devuelve el mismo animal. Si el arete ya existe (otra
+ * persona lo creó mientras tanto), no se crea otro: pasa a «Pendientes con error».
+ */
+export async function guardarAnimalCampo(supabase: Cliente, e: Extract<EnvioCampo, { tipo: "animal" }>, especiesFinca: readonly Especie[]): Promise<RespuestaEnvio> {
+  const datos = esquemaAnimal.safeParse({ ...e.campos, client_request_id: e.id });
+  if (!datos.success) return rechazo(datos.error.issues[0]?.message ?? "Revisa los datos del animal.");
+  if (!fotoValida(datos.data.foto_path, e.fincaId)) return rechazo("La foto no es válida: agrégala desde la ficha del animal.");
+  const listo = prepararAnimalNuevo(datos.data, especiesFinca);
+  if ("error" in listo) return rechazo(listo.error);
+  const { data: id, error } = await supabase.rpc("registrar_animal", { p_finca: e.fincaId, p_animal: listo.animal, p_fecha_ultimo_parto: listo.fechaUltimoParto });
+  if (!error && id) return { ok: true, estado: "guardado" };
+  if (error && /animales_arete_uk|numero_arete/i.test(error.message)) {
+    return conflicto(`Ya hay un animal con el arete ${datos.data.numero_arete} en la finca (lo registró otra persona o se creó desde otro aparato). No se creó otro: revisa el arete y corrígelo antes de reintentar.`);
+  }
+  return rechazo(mensajeAmigable(error?.message ?? "No se pudo registrar el animal."));
 }

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, CloudOff, CloudUpload, Heart, Scale, Stethoscope, Wifi, WifiOff } from "lucide-react";
+import { ArrowLeft, CloudOff, CloudUpload, Heart, PawPrint, Plus, Scale, Stethoscope, Wifi, WifiOff } from "lucide-react";
 import { Aviso } from "@/components/Aviso";
 import { AyudaModulo } from "@/components/AyudaModulo";
 import { Cargando } from "@/components/Cargando";
@@ -14,6 +14,7 @@ import { OrdenoCampo } from "@/components/campo/OrdenoCampo";
 import { PesarCampo } from "@/components/campo/PesarCampo";
 import { BandejaCampo } from "@/components/campo/BandejaCampo";
 import { MontaCampo } from "@/components/campo/MontaCampo";
+import { AnimalCampo } from "@/components/campo/AnimalCampo";
 import { DiagnosticoCampo } from "@/components/campo/DiagnosticoCampo";
 import { AYUDA_CAMPO } from "@/lib/ayuda";
 import { ESC, escena } from "@/lib/escenas";
@@ -22,11 +23,12 @@ import { fechaHoraBogota, hoyBogota } from "@/lib/fechas";
 import { horaBogota, jornadaDeHora, RUTA_CAMPO } from "@/lib/campo";
 import { useBandejaCampo } from "@/lib/offline/useBandejaCampo";
 
-type Vista = "ordeno" | "pesar" | "monta" | "diagnostico" | "bandeja";
+type Vista = "animal" | "ordeno" | "pesar" | "monta" | "diagnostico" | "bandeja";
 
 const ESCENA_PESAR = escena(Scale, "arcilla");
 const ESCENA_BANDEJA = escena(CloudUpload, "grafito");
 const ESCENA_MONTA = escena(Heart, "ocre");
+const ESCENA_ANIMAL = escena(PawPrint, "ambar", Plus);
 const ESCENA_DIAGNOSTICO = escena(Stethoscope, "musgo");
 
 /**
@@ -41,16 +43,23 @@ export function PantallaCampo() {
   const [hoy] = useState(() => hoyBogota());
   const [jornadaInicial] = useState(() => jornadaDeHora(horaBogota()));
 
-  // «#bandeja» (desde la etiqueta «N sin enviar» del panel) abre directo lo guardado.
+  // «#bandeja» (la etiqueta «N sin enviar» del panel) o «#animal» (el atajo «Animal nuevo sin señal») abren directo esa parte, al abrir la
+  // pantalla y si el ancla cambia con la pantalla ya abierta.
   useEffect(() => {
-    const t = setTimeout(() => {
+    const leerAncla = () => {
       if (window.location.hash === "#bandeja") setVista("bandeja");
-    }, 0);
-    return () => clearTimeout(t);
+      if (window.location.hash === "#animal") setVista("animal");
+    };
+    const t = setTimeout(leerAncla, 0);
+    window.addEventListener("hashchange", leerAncla);
+    return () => {
+      clearTimeout(t);
+      window.removeEventListener("hashchange", leerAncla);
+    };
   }, []);
 
   // Sin elegir: lo primero que la persona puede registrar.
-  const primera: Vista = !referencia ? "ordeno" : referencia.puede.leche ? "ordeno" : referencia.puede.pesos ? "pesar" : referencia.puede.reproduccion ? "monta" : "bandeja";
+  const primera: Vista = !referencia ? "ordeno" : referencia.puede.hato ? "animal" : referencia.puede.leche ? "ordeno" : referencia.puede.pesos ? "pesar" : referencia.puede.reproduccion ? "monta" : "bandeja";
   const elegida: Vista = vista ?? primera;
 
   return (
@@ -93,7 +102,7 @@ export function PantallaCampo() {
           >
             <Link href="/" className={clasesBoton("primario", true)}>Ir a Apriscol</Link>
           </EstadoVacio>
-        ) : !referencia.puede.leche && !referencia.puede.pesos && !referencia.puede.reproduccion ? (
+        ) : !referencia.puede.leche && !referencia.puede.pesos && !referencia.puede.reproduccion && !referencia.puede.hato ? (
           <EstadoVacio icono={<CloudOff strokeWidth={1.5} />} titulo="Tu rol no registra en el campo" descripcion="Si necesitas hacerlo, pídele al propietario de la finca que cambie tu rol en Equipo." />
         ) : (
           <>
@@ -105,6 +114,9 @@ export function PantallaCampo() {
             ) : null}
 
             <FilaTarjetas etiqueta="Qué registrar">
+              {referencia.puede.hato ? (
+                <TarjetaOpcion escena={ESCENA_ANIMAL} titulo="Animal nuevo" dato="Cabra, oveja…" activo={elegida === "animal"} onClick={() => setVista("animal")} />
+              ) : null}
               {referencia.puede.leche ? (
                 <TarjetaOpcion escena={ESC.leche} titulo="Ordeño" dato={textoAnimales(referencia.ordeno.length)} activo={elegida === "ordeno"} onClick={() => setVista("ordeno")} />
               ) : null}
@@ -129,7 +141,9 @@ export function PantallaCampo() {
             <p className="px-1 text-xs text-humo">Lista de la finca guardada el {fechaHoraBogota(referencia.generadaEn)} · se actualiza sola cada vez que abres Apriscol con señal</p>
 
             <div id="bandeja" className="scroll-mt-4">
-              {elegida === "ordeno" && usuarioId ? (
+              {elegida === "animal" && usuarioId ? (
+                <AnimalCampo referencia={referencia} registros={registros} usuarioId={usuarioId} hoy={hoy} enLinea={enLinea} alGuardar={() => void enviarAhora()} />
+              ) : elegida === "ordeno" && usuarioId ? (
                 <OrdenoCampo referencia={referencia} registros={registros} usuarioId={usuarioId} hoy={hoy} jornadaInicial={jornadaInicial} enLinea={enLinea} alGuardar={() => void enviarAhora()} />
               ) : elegida === "monta" && usuarioId ? (
                 <MontaCampo referencia={referencia} registros={registros} usuarioId={usuarioId} hoy={hoy} enLinea={enLinea} alGuardar={() => void enviarAhora()} />

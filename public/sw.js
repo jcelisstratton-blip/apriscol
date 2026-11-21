@@ -3,7 +3,7 @@
 //  1. Si una navegación falla por la red (sin señal en el potrero, el Wi‑Fi se cayó, el servidor no responde), muestra /offline.html
 //     —con la marca, «Reintentar» y reintento automático— en lugar de la pantalla de error del navegador.
 //
-//  2. Deja lista /campo («Registrar sin señal»: ordeño y pesos) para abrirla sin conexión. /campo es una página ESTÁTICA, igual para
+//  2. Deja lista /campo («Registrar sin señal»: animal nuevo, ordeño, pesos, monta y diagnóstico) para abrirla sin conexión. /campo es una página ESTÁTICA, igual para
 //     todas las personas: no lleva datos de nadie (la copia de la finca y lo registrado viven en IndexedDB, en el código de la página), por
 //     eso es seguro guardarla. Se guardan también los archivos de /_next/static que usa: son inmutables (su nombre lleva el hash).
 //

@@ -10,7 +10,9 @@ import { FotoAnimal } from "@/components/FotoAnimal";
 import { Selector } from "@/components/Selector";
 import { SelectorAnimal } from "@/components/SelectorAnimal";
 import { SelectorTarjetas } from "@/components/SelectorTarjetas";
-import { crearAnimal, editarAnimal } from "@/app/(app)/hato/actions";
+import { crearAnimal, editarAnimal, type EstadoAnimal } from "@/app/(app)/hato/actions";
+import { esFallaDeRed, guardarEnCelular, usuarioDelCelular } from "@/lib/offline/campo-envio";
+import { MENSAJE_GUARDADO_LOCAL, RUTA_CAMPO, etiquetaCampo } from "@/lib/campo";
 import { nombreTipo } from "@/lib/animal";
 import { hoyBogota } from "@/lib/fechas";
 import { ESCENA_COBERTURA, ESCENA_ESPECIE, ESCENA_ORIGEN_ANIMAL, ESCENA_SEXO, ESCENA_USO_MACHO, ESCENA_VOCACION } from "@/lib/escenas-forms-b-hato";
@@ -19,6 +21,8 @@ import type { Cobertura, Especie, Raza, SexoAnimal, UsoMacho, Vocacion } from "@
 import { useMoneda } from "@/components/ProveedorMoneda";
 
 type Ref = { id: string; numero_arete: string; nombre: string | null };
+/** Lo que devuelve el envío del formulario: el de la acción, o «guardado en el celular» si no había señal. */
+type EstadoForm = EstadoAnimal | { local: true };
 
 /** Los datos de un animal ya registrado, para corregirlos. */
 export type AnimalEditable = {
@@ -84,7 +88,25 @@ export function FormAnimal({
 }) {
   const moneda = useMoneda();
   const editando = Boolean(animal);
-  const [estado, enviar, pendiente] = useActionState(editando ? editarAnimal : crearAnimal, undefined);
+  // Si la señal se cae al guardar, la acción falla con un error de red: un animal NUEVO queda en el celular (con el mismo identificador del
+  // formulario, así nunca se duplica) y se envía solo al volver; una corrección pide intentarlo de nuevo. Nunca se pierde lo escrito.
+  const accion = async (previo: EstadoForm, datos: FormData): Promise<EstadoForm> => {
+    try {
+      return await (editando ? editarAnimal : crearAnimal)(previo as EstadoAnimal, datos);
+    } catch (e) {
+      if (!esFallaDeRed(e)) throw e;
+      if (editando) return { error: "Sin señal: los cambios no se guardaron. Inténtalo de nuevo cuando vuelva la señal." };
+      const quien = await usuarioDelCelular(fincaId);
+      if (!quien || !solicitud) return { error: "Sin señal. Abre «Registrar sin señal» para crear el animal en el celular." };
+      const campos: Record<string, string> = {};
+      for (const [k, v] of datos.entries()) if (typeof v === "string" && v.trim() !== "" && k !== "client_request_id") campos[k] = v;
+      const arete = campos.numero_arete ?? "";
+      await guardarEnCelular({ id: solicitud, tipo: "animal", usuarioId: quien, fincaId, animalId: solicitud, etiqueta: `${etiquetaCampo({ arete, nombre: campos.nombre ?? null })} · ${nombreTipo(campos.especie === "ovino" ? "ovino" : "caprino", campos.sexo === "macho" ? "macho" : "hembra")}`, fecha: hoyBogota(), campos });
+      return { local: true };
+    }
+  };
+  const [estado, enviar, pendiente] = useActionState(accion, undefined);
+  const guardadoLocal = Boolean(estado && "local" in estado);
   const [, iniciar] = useTransition();
   const [especie, setEspecie] = useState<Especie>(animal?.especie ?? especies[0] ?? "caprino");
   const [sexo, setSexo] = useState<SexoAnimal>(animal?.sexo ?? "hembra");
@@ -390,11 +412,17 @@ export function FormAnimal({
         </Campo>
       </Seccion>
 
-      {estado?.error ? <Aviso tipo="error">{estado.error}</Aviso> : null}
+      {estado && "error" in estado && estado.error ? <Aviso tipo="error">{estado.error}</Aviso> : null}
+      {guardadoLocal ? (
+        <Aviso tipo="exito">
+          {MENSAJE_GUARDADO_LOCAL}{" "}
+          <a href={`${RUTA_CAMPO}#bandeja`} className="font-semibold text-musgo underline underline-offset-4">Ver lo guardado</a>
+        </Aviso>
+      ) : null}
 
       <div className="space-y-2">
-        <Boton type="submit" pendiente={pendiente} cargando={editando ? "Guardando cambios…" : "Guardando animal…"} disabled={subiendoFoto}>
-          {subiendoFoto ? "Esperando la foto…" : editando ? "Guardar cambios" : "Guardar animal"}
+        <Boton type="submit" pendiente={pendiente} cargando={editando ? "Guardando cambios…" : "Guardando animal…"} disabled={subiendoFoto || guardadoLocal}>
+          {guardadoLocal ? "Guardado en el celular" : subiendoFoto ? "Esperando la foto…" : editando ? "Guardar cambios" : "Guardar animal"}
         </Boton>
         {animal ? (
           <Link href={`/hato/${animal.id}`} className={clasesBoton("fantasma")}>
