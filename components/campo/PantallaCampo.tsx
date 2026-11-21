@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, CloudOff, Wifi, WifiOff } from "lucide-react";
 import { Aviso } from "@/components/Aviso";
@@ -28,7 +28,7 @@ import { AYUDA_CAMPO } from "@/lib/ayuda";
 import { ESCENA_OPCION_CAMPO } from "@/lib/escenas-campo";
 import { textoAnimales } from "@/lib/hato";
 import { fechaHoraBogota, hoyBogota } from "@/lib/fechas";
-import { horaBogota, jornadaDeHora, RUTA_CAMPO, type VistaCampo } from "@/lib/campo";
+import { horaBogota, jornadaDeHora, referenciaConPendientes, RUTA_CAMPO, type VistaCampo } from "@/lib/campo";
 import { useBandejaCampo } from "@/lib/offline/useBandejaCampo";
 
 type Vista = VistaCampo;
@@ -41,7 +41,9 @@ const E = ESCENA_OPCION_CAMPO;
  */
 export function PantallaCampo() {
   const toast = useToast();
-  const { registros, referencia, usuarioId, resumen, enLinea, enviando, sesionVencida, enviarAhora } = useBandejaCampo(null, toast);
+  const { registros, referencia: copia, usuarioId, resumen, enLinea, enviando, sesionVencida, enviarAhora } = useBandejaCampo(null, toast);
+  // La copia de la finca más lo guardado sin enviar: un animal o una cría creados aquí se pueden usar de inmediato en las demás opciones.
+  const referencia = useMemo(() => (copia && usuarioId ? referenciaConPendientes(copia, registros, usuarioId) : copia), [copia, registros, usuarioId]);
   const [vista, setVista] = useState<Vista | null>(null);
   const [hoy] = useState(() => hoyBogota());
   const [jornadaInicial] = useState(() => jornadaDeHora(horaBogota()));

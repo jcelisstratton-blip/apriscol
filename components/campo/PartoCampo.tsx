@@ -19,11 +19,12 @@ import { MENSAJE_GUARDADO_LOCAL, areteRepetido, conPartoPendiente, etiquetaCampo
 import { guardarEnCelular } from "@/lib/offline/campo-envio";
 import type { CausaAborto, TipoParto } from "@/lib/tipos";
 
-type Fila = { sexo: "hembra" | "macho" | ""; vivo: boolean; peso: string; arete: string; nombre: string };
-const NUEVA: Fila = { sexo: "", vivo: true, peso: "", arete: "", nombre: "" };
+/** `id`: el que le da el celular a la cría, para poder anotar sobre ella (pesarla, moverla…) antes de que se envíe el parto. */
+type Fila = { id: string; sexo: "hembra" | "macho" | ""; vivo: boolean; peso: string; arete: string; nombre: string };
+const nueva = (): Fila => ({ id: crypto.randomUUID(), sexo: "", vivo: true, peso: "", arete: "", nombre: "" });
 
 type Estado = { hembra: string; fecha: string; tipo: TipoParto; filas: Fila[]; causa: CausaAborto | ""; asistido: string; complicaciones: string; protocolo: string; observaciones: string };
-const inicial = (hoy: string): Estado => ({ hembra: "", fecha: hoy, tipo: "normal", filas: [{ ...NUEVA }], causa: "", asistido: "", complicaciones: "", protocolo: "", observaciones: "" });
+const inicial = (hoy: string): Estado => ({ hembra: "", fecha: hoy, tipo: "normal", filas: [nueva()], causa: "", asistido: "", complicaciones: "", protocolo: "", observaciones: "" });
 
 /**
  * Partos sin señal: lo mismo que «Registrar parto» en la ficha (qué pasó: normal, asistido, cesárea o aborto; una fila por cría con sexo, viva o muerta,
@@ -69,7 +70,7 @@ export function PartoCampo({ referencia, registros, usuarioId, hoy, enLinea, alG
     const x: Record<string, string> = {
       fecha: e.fecha, tipo: e.tipo, causa_aborto: esAborto ? e.causa : "", asistido_por: e.tipo !== "normal" ? e.asistido : "",
       complicaciones: e.complicaciones, protocolo_posoperatorio: esCesarea ? e.protocolo : "", observaciones: e.observaciones,
-      crias: esAborto ? "" : JSON.stringify(e.filas.map((f) => ({ sexo: f.sexo || null, vivo: f.vivo, peso: f.peso.trim() || undefined, arete: f.arete.trim() || undefined, nombre: f.nombre.trim() || undefined }))),
+      crias: esAborto ? "" : JSON.stringify(e.filas.map((f) => ({ ...(f.arete.trim() && f.vivo ? { id: f.id } : {}), sexo: f.sexo || null, vivo: f.vivo, peso: f.peso.trim() || undefined, arete: f.arete.trim() || undefined, nombre: f.nombre.trim() || undefined }))),
     };
     return Object.fromEntries(Object.entries(x).filter(([, v]) => v.trim() !== ""));
   };
@@ -113,10 +114,10 @@ export function PartoCampo({ referencia, registros, usuarioId, hoy, enLinea, alG
 
   const corregir = (r: RegistroCampo) => {
     const x = r.campos ?? {};
-    let filas: Fila[] = [{ ...NUEVA }];
+    let filas: Fila[] = [nueva()];
     try {
-      const lista = JSON.parse(x.crias ?? "[]") as { sexo?: string | null; vivo?: boolean; peso?: string; arete?: string; nombre?: string }[];
-      if (Array.isArray(lista) && lista.length) filas = lista.map((c) => ({ sexo: (c.sexo as Fila["sexo"]) ?? "", vivo: c.vivo !== false, peso: c.peso ?? "", arete: c.arete ?? "", nombre: c.nombre ?? "" }));
+      const lista = JSON.parse(x.crias ?? "[]") as { id?: string; sexo?: string | null; vivo?: boolean; peso?: string; arete?: string; nombre?: string }[];
+      if (Array.isArray(lista) && lista.length) filas = lista.map((c) => ({ id: c.id ?? crypto.randomUUID(), sexo: (c.sexo as Fila["sexo"]) ?? "", vivo: c.vivo !== false, peso: c.peso ?? "", arete: c.arete ?? "", nombre: c.nombre ?? "" }));
     } catch {
       // Sin crías legibles: se empieza con una fila vacía.
     }
@@ -189,7 +190,7 @@ export function PartoCampo({ referencia, registros, usuarioId, hoy, enLinea, alG
             </div>
           ))}
           {e.filas.length < MAX_CRIAS ? (
-            <button type="button" onClick={() => poner("filas", [...e.filas, { ...NUEVA }])} className="inline-flex min-h-11 items-center gap-1.5 text-sm font-semibold text-musgo underline-offset-4 hover:underline">
+            <button type="button" onClick={() => poner("filas", [...e.filas, nueva()])} className="inline-flex min-h-11 items-center gap-1.5 text-sm font-semibold text-musgo underline-offset-4 hover:underline">
               <Plus className="size-4" strokeWidth={2.2} aria-hidden="true" /> Agregar otra cría
             </button>
           ) : null}
