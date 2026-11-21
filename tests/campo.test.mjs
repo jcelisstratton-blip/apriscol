@@ -17,6 +17,7 @@ import { reglasDiagnostico } from "../lib/diagnostico-reglas.ts";
 import { ATAJOS } from "../lib/atajos.ts";
 import { AYUDA_CAMPO } from "../lib/ayuda.ts";
 import { TUTORIALES } from "../lib/tutoriales.ts";
+import { PLANES } from "../lib/planes.ts";
 
 const leer = (ruta) => readFileSync(new URL(`../${ruta}`, import.meta.url), "utf8");
 const HOY = "2026-11-20";
@@ -1182,6 +1183,8 @@ test("entrada: el formulario no borra lo escrito y explica qué hacer sin señal
   assert.match(pres, /¿Funciona donde no hay señal\?/);
   assert.match(leer("app/manifest.ts"), /name: "Registrar sin señal"[^}]*partos/, "el atajo del ícono ya no dice solo «ordeño y pesos»");
   assert.match(leer("public/offline.html"), /href="\/campo">Registrar sin señal<\/a>/);
+  assert.equal(PLANES[0].id, "cria");
+  assert.ok(PLANES[0].funciones.some((f) => /^Registra sin señal/.test(f)), "el plan inicial dice que se registra sin señal");
 });
 
 // ───────────────────────── Conexiones ─────────────────────────
