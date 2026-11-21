@@ -47,4 +47,6 @@ supuestos ajustables, nunca como un resultado prometido.
 - **Qué puedes anotar** se muestra como **tarjetas**, con las mismas escenas de «Registrar sin señal» (`ESCENA_OPCION_CAMPO`, `lib/escenas-campo.ts`) y
   un detalle corto (`REGISTROS_SIN_SENAL`), en una fila que se desplaza de lado **en el celular y en el computador** (`FilaTarjetasDeLado`: se desliza
   con el dedo o se arrastra con el mouse). Las tarjetas solo muestran (`TarjetaOpcion` con `estatica`).
-
+- **Plan Cría** (`lib/planes.ts`) dice «Registra sin señal en el corral: animal, ordeño, partos, sanidad y más; se envía solo al volver la señal»: sin señal
+  se registra lo de los módulos de cada plan (Cría: animal, ordeño, monta, diagnóstico, parto, sanidad y dar de baja; Hato suma corrales; Profesional,
+  pesos, compras y ventas). No se cobra aparte.
