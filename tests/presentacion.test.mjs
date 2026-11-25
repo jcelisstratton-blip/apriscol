@@ -46,3 +46,18 @@ test("presentación: la portada entra animada y los carruseles se deslizan solos
     assert.match(c, /aria-hidden[\s\S]*inert/, `${archivo}: la copia de las tarjetas no la leen los lectores de pantalla ni el teclado`);
   }
 });
+
+test("presentación: en el celular el formulario va antes de la lista, y la contraseña avisa las mayúsculas", async () => {
+  const { readFileSync } = await import("node:fs");
+  const leer = (r) => readFileSync(new URL(`../${r}`, import.meta.url), "utf8");
+  const pres = leer("components/presentacion/Presentacion.tsx");
+  const tarjeta = pres.indexOf('id="acceso"');
+  const lista = pres.indexOf("Cada animal con su historia");
+  assert.ok(tarjeta > 0 && lista > tarjeta, "en el HTML (orden del celular) la tarjeta de acceso va antes de la lista de puntos");
+  assert.match(pres, /id="acceso"[^>]*lg:col-start-2 lg:row-span-2 lg:row-start-1/, "en el computador la tarjeta sigue a la derecha");
+  const clave = leer("components/CampoClave.tsx");
+  assert.match(clave, /getModifierState\?\.\("CapsLock"\)/);
+  assert.match(clave, /Mayúsculas activadas/);
+  assert.match(clave, /onBlur=\{\(\) => setMayusculas\(false\)\}/, "se oculta al salir del campo");
+  assert.match(clave, /aria-live="polite"/, "lo anuncian los lectores de pantalla");
+});

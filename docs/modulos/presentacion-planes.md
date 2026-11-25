@@ -20,6 +20,10 @@ Movido desde `CLAUDE.md`; sigue siendo ley del repo. Si cambia el proceso, se ac
 - **Carruseles («Cubre todo esto» y «Qué puedes anotar sin señal»):** se deslizan solos, **despacio y sin parar** (26 px/s, `lib/desplazamiento-continuo.ts`). Llevan las tarjetas dos veces (la copia con `aria-hidden` e `inert`) y al llegar a la copia vuelven al inicio sin que se note; mueven `scrollLeft`, así que el dedo, el arrastre, la rueda y las flechas siguen funcionando. Se detienen con el mouse encima, al tocar o arrastrar (y 2,5 s después), con el foco del teclado dentro, fuera de pantalla o con la pestaña oculta, y tienen **botón de pausa** (`BotonPausaMovimiento`, obligatorio para lo que se mueve solo). Mientras se mueven no hay ajuste por tarjeta (`snap`); en pausa vuelve.
 - **«Reducir movimiento»:** la portada solo aparece, sin desplazarse; los carruseles quedan quietos, sin copia, sin botón de pausa y con su `snap` normal.
 
+**El formulario, a la vista en el celular (24 nov 2026):** en el celular la tarjeta de acceso va **justo después del titular y su texto**, antes de la lista de puntos y el sello (antes había que bajar por toda la lista para llegar a ella), y el escudo es más pequeño (`size-16`). Desde `lg` nada cambia: la lista vuelve a la columna izquierda, debajo del titular, y la tarjeta ocupa la derecha (`lg:col-start-*` / `lg:row-span-2`). El orden del HTML es el del celular, que es también el que leen los lectores de pantalla.
+
+**Mayúsculas activadas (`CampoClave`):** mientras se escribe la contraseña con Bloq Mayús encendido aparece «Mayúsculas activadas» bajo el campo (en ámbar, anunciado con `aria-live`). Sale de la propia tecla (`getModifierState("CapsLock")`), se oculta al salir del campo y en los teclados que no informan Bloq Mayús (la mayoría de los celulares) no aparece. Vale para entrar, crear la cuenta y cambiar la contraseña.
+
 ## «Qué resuelve»: sigue el orden del menú
 
 La sección «Qué resuelve» de la pantalla de entrada se arma desde `lib/menu.ts` (mismos grupos y mismo orden: cada día, Producción y manejo,

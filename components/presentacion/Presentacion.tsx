@@ -122,10 +122,11 @@ export function Presentacion({ modo, formulario, cambio = null }: { modo: "login
       </header>
 
       <main>
-        {/* Portada y acceso */}
-        <section className="mx-auto grid w-full max-w-6xl grid-cols-1 gap-8 px-4 pb-8 pt-8 sm:px-6 lg:grid-cols-[1.15fr_0.85fr] lg:items-start lg:gap-12 lg:pt-14">
-          <div className="min-w-0 space-y-6">
-            <Isotipo className="anim-asentar size-24 sm:size-28" prioridad />
+        {/* Portada y acceso. En el celular el formulario va justo después del titular (antes de la lista de puntos), para no tener que bajar
+            hasta él; desde `lg` la lista vuelve a la columna izquierda, debajo del titular, y el formulario ocupa la derecha. */}
+        <section className="mx-auto grid w-full max-w-6xl grid-cols-1 gap-8 px-4 pb-8 pt-8 sm:px-6 lg:grid-cols-[1.15fr_0.85fr] lg:items-start lg:gap-x-12 lg:gap-y-6 lg:pt-14">
+          <div className="min-w-0 space-y-6 lg:col-start-1 lg:row-start-1">
+            <Isotipo className="anim-asentar size-16 sm:size-28" prioridad />
             <Rotulo {...asentar(60)}>Para criadores de cabras y ovejas</Rotulo>
             <h1 style={asentar(110).style} className="anim-asentar font-display text-[2.375rem] font-semibold leading-[1.02] tracking-tight sm:text-6xl">
               Registra una vez. <span className="text-musgo">Tu aprisco, al día.</span>
@@ -133,6 +134,18 @@ export function Presentacion({ modo, formulario, cambio = null }: { modo: "login
             <p style={asentar(160).style} className="anim-asentar max-w-xl text-[1.0625rem] text-humo sm:text-lg">
               Hato, genealogía, leche, sanidad, partos, corrales, carne, inventario y costos en un solo lugar, con semáforos que te dicen qué atender hoy. Hecho para usarlo en el corral, con una mano, desde el celular.
             </p>
+          </div>
+
+          <div id="acceso" style={asentar(120).style} className="anim-asentar scroll-mt-24 lg:col-start-2 lg:row-span-2 lg:row-start-1 rounded-[1.75rem] bg-papel p-5 shadow-sm ring-1 ring-arena sm:p-7">
+            <div className="mb-5 space-y-1.5">
+              <Rotulo>{esRegistro ? "Primera vez" : "Bienvenido de vuelta"}</Rotulo>
+              <h2 className="font-display text-2xl font-semibold tracking-tight">{esRegistro ? "Crea tu cuenta" : "Entra a tu espacio"}</h2>
+              <p className="text-[0.9375rem] text-humo">{esRegistro ? "En un minuto tienes tu finca lista para registrar el primer animal." : "Ordeños, sanidad, partos y genealogía de cabras y ovejas, desde el celular."}</p>
+            </div>
+            {formulario}
+          </div>
+
+          <div className="min-w-0 space-y-6 lg:col-start-1 lg:row-start-2">
             <ul style={asentar(220).style} className="anim-asentar space-y-2.5 text-[0.9375rem] sm:text-base">
               {[
                 "Cada animal con su historia: genealogía, endogamia, leche y sanidad",
@@ -153,15 +166,6 @@ export function Presentacion({ modo, formulario, cambio = null }: { modo: "login
             <p style={asentar(280).style} className="anim-asentar inline-flex items-center gap-2 rounded-full bg-ok/12 px-4 py-2 text-sm font-semibold text-ok ring-1 ring-ok/25">
               <Check className="size-4" strokeWidth={2.6} aria-hidden="true" /> Crea tu cuenta en un minuto y registra tu primer animal hoy
             </p>
-          </div>
-
-          <div id="acceso" style={asentar(120).style} className="anim-asentar scroll-mt-24 rounded-[1.75rem] bg-papel p-5 shadow-sm ring-1 ring-arena sm:p-7">
-            <div className="mb-5 space-y-1.5">
-              <Rotulo>{esRegistro ? "Primera vez" : "Bienvenido de vuelta"}</Rotulo>
-              <h2 className="font-display text-2xl font-semibold tracking-tight">{esRegistro ? "Crea tu cuenta" : "Entra a tu espacio"}</h2>
-              <p className="text-[0.9375rem] text-humo">{esRegistro ? "En un minuto tienes tu finca lista para registrar el primer animal." : "Ordeños, sanidad, partos y genealogía de cabras y ovejas, desde el celular."}</p>
-            </div>
-            {formulario}
           </div>
         </section>
 
