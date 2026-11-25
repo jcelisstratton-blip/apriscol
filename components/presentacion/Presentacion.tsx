@@ -16,9 +16,12 @@ import { ESCENA_OPCION_CAMPO } from "@/lib/escenas-campo";
 import { FilaTarjetasDeLado } from "@/components/FilaTarjetasDeLado";
 
 /** El rótulo pequeño de cada sección: monoespaciado, en mayúsculas y con el ocre de la marca. */
-function Rotulo({ children }: { children: React.ReactNode }) {
-  return <p className="font-mono text-[0.6875rem] font-semibold uppercase tracking-[0.18em] text-ocre">{children}</p>;
+function Rotulo({ children, className = "", style }: { children: React.ReactNode; className?: string; style?: React.CSSProperties }) {
+  return <p className={`font-mono text-[0.6875rem] font-semibold uppercase tracking-[0.18em] text-ocre ${className}`} style={style}>{children}</p>;
 }
+
+/** Entrada de la portada: cada pieza aparece con el mismo movimiento (`anim-asentar` en `globals.css`), un poco después de la anterior. */
+const asentar = (ms: number) => ({ className: "anim-asentar", style: { "--retraso": `${ms}ms` } as React.CSSProperties });
 
 function Seccion({ id, rotulo, titulo, texto, children }: { id?: string; rotulo: string; titulo: string; texto?: string; children: React.ReactNode }) {
   return (
@@ -122,15 +125,15 @@ export function Presentacion({ modo, formulario, cambio = null }: { modo: "login
         {/* Portada y acceso */}
         <section className="mx-auto grid w-full max-w-6xl grid-cols-1 gap-8 px-4 pb-8 pt-8 sm:px-6 lg:grid-cols-[1.15fr_0.85fr] lg:items-start lg:gap-12 lg:pt-14">
           <div className="min-w-0 space-y-6">
-            <Isotipo className="size-24 sm:size-28" prioridad />
-            <Rotulo>Para criadores de cabras y ovejas</Rotulo>
-            <h1 className="font-display text-[2.375rem] font-semibold leading-[1.02] tracking-tight sm:text-6xl">
+            <Isotipo className="anim-asentar size-24 sm:size-28" prioridad />
+            <Rotulo {...asentar(60)}>Para criadores de cabras y ovejas</Rotulo>
+            <h1 style={asentar(110).style} className="anim-asentar font-display text-[2.375rem] font-semibold leading-[1.02] tracking-tight sm:text-6xl">
               Registra una vez. <span className="text-musgo">Tu aprisco, al día.</span>
             </h1>
-            <p className="max-w-xl text-[1.0625rem] text-humo sm:text-lg">
+            <p style={asentar(160).style} className="anim-asentar max-w-xl text-[1.0625rem] text-humo sm:text-lg">
               Hato, genealogía, leche, sanidad, partos, corrales, carne, inventario y costos en un solo lugar, con semáforos que te dicen qué atender hoy. Hecho para usarlo en el corral, con una mano, desde el celular.
             </p>
-            <ul className="space-y-2.5 text-[0.9375rem] sm:text-base">
+            <ul style={asentar(220).style} className="anim-asentar space-y-2.5 text-[0.9375rem] sm:text-base">
               {[
                 "Cada animal con su historia: genealogía, endogamia, leche y sanidad",
                 "Trae tu finca desde Excel: corrales, animales, pesos, ordeños, sanidad e inventario",
@@ -147,12 +150,12 @@ export function Presentacion({ modo, formulario, cambio = null }: { modo: "login
                 </li>
               ))}
             </ul>
-            <p className="inline-flex items-center gap-2 rounded-full bg-ok/12 px-4 py-2 text-sm font-semibold text-ok ring-1 ring-ok/25">
+            <p style={asentar(280).style} className="anim-asentar inline-flex items-center gap-2 rounded-full bg-ok/12 px-4 py-2 text-sm font-semibold text-ok ring-1 ring-ok/25">
               <Check className="size-4" strokeWidth={2.6} aria-hidden="true" /> Crea tu cuenta en un minuto y registra tu primer animal hoy
             </p>
           </div>
 
-          <div id="acceso" className="scroll-mt-24 rounded-[1.75rem] bg-papel p-5 shadow-sm ring-1 ring-arena sm:p-7">
+          <div id="acceso" style={asentar(120).style} className="anim-asentar scroll-mt-24 rounded-[1.75rem] bg-papel p-5 shadow-sm ring-1 ring-arena sm:p-7">
             <div className="mb-5 space-y-1.5">
               <Rotulo>{esRegistro ? "Primera vez" : "Bienvenido de vuelta"}</Rotulo>
               <h2 className="font-display text-2xl font-semibold tracking-tight">{esRegistro ? "Crea tu cuenta" : "Entra a tu espacio"}</h2>
@@ -320,11 +323,14 @@ export function Presentacion({ modo, formulario, cambio = null }: { modo: "login
         {/* Sin señal: qué se anota y cómo se llega */}
         <Seccion id="sin-senal" rotulo="Sin señal" titulo="Anota en el corral aunque no haya señal" texto="Lo que registras queda guardado en el celular y se envía solo cuando vuelve la señal: no se repite ni borra lo que anotó otra persona.">
           <div className="space-y-3">
-            <div className="flex items-center justify-between gap-3 px-1">
-              <p className="font-mono text-[0.6875rem] font-semibold uppercase tracking-[0.18em] text-humo">Qué puedes anotar</p>
-              <p className="text-xs text-humo">Desliza o arrastra para ver todo</p>
-            </div>
-            <FilaTarjetasDeLado etiqueta="Qué puedes anotar sin señal">
+            <FilaTarjetasDeLado etiqueta="Qué puedes anotar sin señal"
+              encabezado={
+                <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-0.5">
+                  <p className="font-mono text-[0.6875rem] font-semibold uppercase tracking-[0.18em] text-humo">Qué puedes anotar</p>
+                  <p className="text-xs text-humo">Desliza o arrastra para ver todo</p>
+                </div>
+              }
+            >
               {REGISTROS_SIN_SENAL.map((r) => (
                 <TarjetaOpcion key={r.vista} escena={ESCENA_OPCION_CAMPO[r.vista]} titulo={r.titulo} detalle={r.detalle} estatica />
               ))}
