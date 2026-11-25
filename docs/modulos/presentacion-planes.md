@@ -14,6 +14,12 @@ Movido desde `CLAUDE.md`; sigue siendo ley del repo. Si cambia el proceso, se ac
 
 **Portada de entrada:** «Qué cubre» es un carrusel de tarjetas (`components/presentacion/CarruselCubre.tsx`): dedo en el celular; flechas, teclado y arrastre con mouse en el computador.
 
+**Movimiento de la entrada (decisión del dueño del producto, 24 nov 2026):** natural y sutil, nunca coreografiado.
+- **Portada y formulario:** cada pieza (escudo, rótulo, titular, texto, lista, sello y la tarjeta de acceso) aparece con **un solo movimiento**: sube 10 px y se aclara en 0,7 s, escalonadas con `--retraso` (`anim-asentar` en `globals.css`, `asentar(ms)` en `Presentacion.tsx`). Es CSS puro: sin JavaScript todo se ve igual. Nada gira ni se dibuja.
+- **Formulario (`FormAuth`):** al pasar el mouse, el campo se entibia y su etiqueta toma el musgo (también al enfocar); los enlaces se subrayan de izquierda a derecha (`enlace-suave`); el botón principal se eleva 1 px, su flecha avanza y recibe un brillo leve **una sola vez** al terminar la entrada (`boton-acceso`). El error aparece con un empujón corto (`anim-aviso`) y se esconde mientras se reintenta, para que reaparezca si vuelve a fallar. En el celular no hay efectos de mouse (`hover` solo con mouse).
+- **Carruseles («Cubre todo esto» y «Qué puedes anotar sin señal»):** se deslizan solos, **despacio y sin parar** (26 px/s, `lib/desplazamiento-continuo.ts`). Llevan las tarjetas dos veces (la copia con `aria-hidden` e `inert`) y al llegar a la copia vuelven al inicio sin que se note; mueven `scrollLeft`, así que el dedo, el arrastre, la rueda y las flechas siguen funcionando. Se detienen con el mouse encima, al tocar o arrastrar (y 2,5 s después), con el foco del teclado dentro, fuera de pantalla o con la pestaña oculta, y tienen **botón de pausa** (`BotonPausaMovimiento`, obligatorio para lo que se mueve solo). Mientras se mueven no hay ajuste por tarjeta (`snap`); en pausa vuelve.
+- **«Reducir movimiento»:** la portada solo aparece, sin desplazarse; los carruseles quedan quietos, sin copia, sin botón de pausa y con su `snap` normal.
+
 ## «Qué resuelve»: sigue el orden del menú
 
 La sección «Qué resuelve» de la pantalla de entrada se arma desde `lib/menu.ts` (mismos grupos y mismo orden: cada día, Producción y manejo,

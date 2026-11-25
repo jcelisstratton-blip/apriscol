@@ -27,3 +27,22 @@ test("presentación: la esquila aparece en Producción y manejo aunque el menú 
   const prod = gruposDeFunciones().find((x) => x.id === "produccion");
   assert.ok(prod.tarjetas.some((t) => t.href === "/esquila"), "Esquila debe estar en la presentación");
 });
+
+test("presentación: la portada entra animada y los carruseles se deslizan solos, con pausa y respetando «Reducir movimiento»", async () => {
+  const { readFileSync } = await import("node:fs");
+  const leer = (r) => readFileSync(new URL(`../${r}`, import.meta.url), "utf8");
+  const css = leer("app/globals.css");
+  assert.match(css, /\.anim-asentar \{ animation: asentar/, "la entrada es CSS puro: no depende de JavaScript");
+  assert.match(css, /prefers-reduced-motion: reduce\) \{\s*\.anim-asentar \{ animation: aparecer/, "con «Reducir movimiento» solo aparece, sin desplazarse");
+  assert.match(leer("components/presentacion/Presentacion.tsx"), /id="acceso" style=\{asentar\(\d+\)\.style\} className="anim-asentar/, "el formulario de acceso entra animado");
+  assert.match(leer("components/FormAuth.tsx"), /className="form-acceso /);
+  const mov = leer("lib/desplazamiento-continuo.ts");
+  assert.match(mov, /prefers-reduced-motion: reduce/, "con «Reducir movimiento» la fila no se mueve sola");
+  assert.match(mov, /e\.pointerType === "mouse"\) s\.encima = true/, "solo el mouse la detiene al pasar: en el celular un toque no la deja quieta para siempre");
+  for (const archivo of ["components/presentacion/CarruselCubre.tsx", "components/FilaTarjetasDeLado.tsx"]) {
+    const c = leer(archivo);
+    assert.match(c, /useDesplazamientoContinuo\(/, `${archivo} se desliza solo`);
+    assert.match(c, /<BotonPausaMovimiento /, `${archivo}: todo lo que se mueve solo se puede pausar`);
+    assert.match(c, /aria-hidden[\s\S]*inert/, `${archivo}: la copia de las tarjetas no la leen los lectores de pantalla ni el teclado`);
+  }
+});

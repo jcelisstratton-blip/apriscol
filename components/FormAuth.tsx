@@ -2,6 +2,7 @@
 
 import { useActionState, useTransition } from "react";
 import Link from "next/link";
+import { ArrowRight } from "lucide-react";
 import { Aviso } from "@/components/Aviso";
 import { Boton } from "@/components/Boton";
 import { Campo, CLASE_INPUT } from "@/components/Campo";
@@ -13,6 +14,8 @@ import { esFallaDeRed } from "@/lib/offline/campo-envio";
 /**
  * Entrar o crear la cuenta. Se envía con `onSubmit` (no con `action`): si la contraseña está mal o se cae la señal, lo escrito no se borra. Sin señal
  * no se puede entrar: lo dice en palabras de persona en vez de romper la pantalla (en la de entrada, `SinSenalAcceso` ofrece registrar sin señal).
+ * Movimiento (`form-acceso`, `boton-acceso`, `enlace-suave` y `anim-aviso` en `globals.css`): detalles sutiles al pasar el mouse y al enfocar. El
+ * aviso se esconde mientras se vuelve a intentar, para que reaparezca con su empujón corto si el intento también falla.
  */
 export function FormAuth({
   accion,
@@ -50,7 +53,7 @@ export function FormAuth({
         const datos = new FormData(e.currentTarget);
         iniciar(() => enviar(datos));
       }}
-      className="space-y-4"
+      className="form-acceso space-y-4"
     >
       {next ? <input type="hidden" name="next" value={next} /> : null}
       {esRegistro && referido ? <input type="hidden" name="ref" value={referido} /> : null}
@@ -85,17 +88,17 @@ export function FormAuth({
       </Campo>
       {!esRegistro ? (
         <div className="-mt-2 flex justify-end">
-          <Link href="/recuperar" className="inline-flex min-h-11 items-center px-1 text-[0.9375rem] font-semibold text-musgo underline-offset-4 hover:underline">
+          <Link href="/recuperar" className="inline-flex min-h-11 items-center px-1 text-[0.9375rem] font-semibold text-musgo enlace-suave">
             ¿Olvidaste tu contraseña?
           </Link>
         </div>
       ) : null}
 
-      {estado?.error ?? errorInicial ? <Aviso tipo="error">{estado?.error ?? errorInicial ?? ""}</Aviso> : null}
-      {estado?.aviso ? <Aviso tipo="exito">{estado.aviso}</Aviso> : null}
+      {!pendiente && (estado?.error ?? errorInicial) ? <Aviso tipo="error" className="anim-aviso">{estado?.error ?? errorInicial ?? ""}</Aviso> : null}
+      {!pendiente && estado?.aviso ? <Aviso tipo="exito" className="anim-aviso">{estado.aviso}</Aviso> : null}
 
-      <Boton type="submit" pendiente={pendiente} cargando={esRegistro ? "Creando cuenta…" : "Entrando…"}>
-        {esRegistro ? "Crear cuenta" : "Entrar"}
+      <Boton type="submit" pendiente={pendiente} cargando={esRegistro ? "Creando cuenta…" : "Entrando…"} className="boton-acceso">
+        {esRegistro ? "Crear cuenta" : "Entrar"} <ArrowRight className="flecha size-[1.125rem]" strokeWidth={2.2} aria-hidden="true" />
       </Boton>
 
       {esRegistro ? (
@@ -114,7 +117,7 @@ export function FormAuth({
 
       <p className="text-center text-[0.9375rem] text-humo">
         {esRegistro ? "¿Ya tienes cuenta? " : "¿Primera vez? "}
-        <Link href={`${esRegistro ? "/login" : "/registro"}${sufijo}`} className="-mx-1 inline-flex min-h-11 items-center px-1 font-semibold text-musgo underline-offset-4 hover:underline">
+        <Link href={`${esRegistro ? "/login" : "/registro"}${sufijo}`} className="-mx-1 inline-flex min-h-11 items-center px-1 font-semibold text-musgo enlace-suave">
           {esRegistro ? "Entra" : "Crea tu cuenta"}
         </Link>
       </p>
